@@ -35,7 +35,9 @@ endif()
 set(WITH_GFLAGS OFF CACHE BOOL "Use gflags")
 add_subdirectory(deps/glog)
 
-find_package(embree 3.0 REQUIRED)
+set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "enable ispc functionality")
+set(EMBREE_TUTORIALS OFF CACHE BOOL "enable embree tutorials")
+add_subdirectory(deps/embree)
 
 if(PROFILE)
 	add_definitions(-DPROFILE)

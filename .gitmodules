@@ -7,3 +7,6 @@
 [submodule "deps/eigen-git-mirror"]
 	path = deps/eigen-git-mirror
 	url = https://github.com/eigenteam/eigen-git-mirror.git
+[submodule "deps/embree"]
+	path = deps/embree
+	url = https://github.com/embree/embree.git
