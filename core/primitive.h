@@ -15,9 +15,6 @@ public:
 	// destructor
 	virtual ~Primitive() {}
 
-	// updates internal state if soup positions are modified
-	virtual void update() = 0;
-
 	// returns bounding box
 	virtual BoundingBox<DIM> boundingBox() const = 0;
 
@@ -32,6 +29,9 @@ public:
 
 	// returns normal
 	virtual Vector<DIM> normal(bool normalize=false) const = 0;
+
+	// returns barycentric coordinates
+	virtual Vector<DIM - 1> barycentricCoordinates(const Vector<DIM>& p) const = 0;
 
 	// returns texture coordinates
 	virtual Vector<DIM - 1> textureCoordinates(const Vector<DIM - 1>& uv) const = 0;

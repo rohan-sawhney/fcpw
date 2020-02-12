@@ -17,11 +17,6 @@ index(index_)
 
 }
 
-void Triangle::update()
-{
-	// do nothing
-}
-
 BoundingBox<3> Triangle::boundingBox() const
 {
 	const Vector3f& pa = soup->positions[indices[0]];
@@ -69,6 +64,28 @@ Vector3f Triangle::normal(bool normalize) const
 
 	Vector3f n = v1.cross(v2)*(swapHandedness ? -1.0f : 1.0f);
 	return normalize ? n.normalized() : n;
+}
+
+Vector2f Triangle::barycentricCoordinates(const Vector3f& p) const
+{
+	const Vector3f& pa = soup->positions[indices[0]];
+	const Vector3f& pb = soup->positions[indices[1]];
+	const Vector3f& pc = soup->positions[indices[2]];
+
+	Vector3f v1 = pb - pa;
+	Vector3f v2 = pc - pa;
+	Vector3f v3 = p - pa;
+
+	float d11 = v1.dot(v1);
+	float d12 = v1.dot(v2);
+	float d22 = v2.dot(v2);
+	float d31 = v3.dot(v1);
+	float d32 = v3.dot(v2);
+	float denom = d11*d22 - d12*d12;
+	float v = (d22*d31 - d12*d32)/denom;
+	float w = (d11*d32 - d12*d31)/denom;
+
+	return Vector2f(1.0f - v - w, v);
 }
 
 Vector2f Triangle::textureCoordinates(const Vector2f& uv) const
