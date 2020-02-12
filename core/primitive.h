@@ -7,13 +7,13 @@
 namespace fcpw {
 
 template <int DIM>
-class Shape {
+class Primitive {
 public:
 	// constructor
-	Shape(bool swapHandedness_): swapHandedness(swapHandedness_) {}
+	Primitive(bool swapHandedness_): swapHandedness(swapHandedness_) {}
 
 	// destructor
-	virtual ~Shape() {}
+	virtual ~Primitive() {}
 
 	// updates internal state if soup positions are modified
 	virtual void update() = 0;
@@ -48,7 +48,7 @@ public:
 };
 
 template <int DIM>
-class Aggregate: public Shape<DIM> {
+class Aggregate: public Primitive<DIM> {
 public:
 	// performs inside outside test for x
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
@@ -90,7 +90,7 @@ public:
 		return hits == 0;
 	}
 
-	// clamps x to the closest shape this aggregate bounds
+	// clamps x to the closest primitive this aggregate bounds
 	void clampToBoundary(Vector<DIM>& x, float distanceUpperBound) const {
 		Interaction<DIM> i;
 		BoundingSphere<DIM> s(x, distanceUpperBound*distanceUpperBound);
@@ -181,7 +181,7 @@ public:
 		return aggregate->hasLineOfSight(transformInv*xi, transformInv*xj);
 	}
 
-	// clamps x to the closest shape this aggregate bounds
+	// clamps x to the closest primitive this aggregate bounds
 	void clampToBoundary(Vector<DIM>& x, float distanceUpperBound) const {
 		// apply inverse transform to x and distance bound
 		Vector<DIM> xInv = transformInv*x;

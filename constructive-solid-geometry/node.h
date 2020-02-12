@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shape.h"
+#include "primitive.h"
 
 namespace fcpw {
 
@@ -15,8 +15,8 @@ template <int DIM>
 class CsgNode: public Aggregate<DIM> {
 public:
 	// constructor
-	CsgNode(const std::shared_ptr<Shape<DIM>>& left_,
-			const std::shared_ptr<Shape<DIM>>& right_,
+	CsgNode(const std::shared_ptr<Primitive<DIM>>& left_,
+			const std::shared_ptr<Primitive<DIM>>& right_,
 			const BooleanOperation& operation_);
 
 	// returns bounding box
@@ -49,8 +49,8 @@ private:
 							 std::vector<Interaction<DIM>>& is) const;
 
 	// members
-	std::shared_ptr<Shape<DIM>> left;
-	std::shared_ptr<Shape<DIM>> right;
+	std::shared_ptr<Primitive<DIM>> left;
+	std::shared_ptr<Primitive<DIM>> right;
 	BooleanOperation operation;
 	BoundingBox<DIM> box;
 };

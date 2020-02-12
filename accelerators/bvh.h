@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shape.h"
+#include "primitive.h"
 
 namespace fcpw {
 // source: https://github.com/brandonpelfrey/Fast-BVH
@@ -8,14 +8,14 @@ namespace fcpw {
 template <int DIM>
 struct BvhFlatNode {
 	BoundingBox<DIM> bbox;
-	int start, nShapes, rightOffset;
+	int start, nPrimitives, rightOffset;
 };
 
 template <int DIM>
 class Bvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Bvh(std::vector<std::shared_ptr<Shape<DIM>>>& shapes_, int leafSize_=4);
+	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -43,7 +43,7 @@ private:
 
 	// members
 	int nNodes, nLeafs, leafSize;
-	std::vector<std::shared_ptr<Shape<DIM>>>& shapes;
+	std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<BvhFlatNode<DIM>> flatTree;
 };
 

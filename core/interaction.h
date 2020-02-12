@@ -12,7 +12,7 @@ enum class DistanceInfo {
 template <int DIM>
 struct Interaction {
 	// constructor
-	Interaction(): d(maxFloat), sign(0), distanceInfo(DistanceInfo::Exact), shape(nullptr) {
+	Interaction(): d(maxFloat), sign(0), distanceInfo(DistanceInfo::Exact), primitive(nullptr) {
 		p.setZero();
 		n.setZero();
 		uv.setZero();
@@ -51,7 +51,7 @@ struct Interaction {
 	Vector<DIM> p, n;
 	Vector<DIM - 1> uv;
 	DistanceInfo distanceInfo;
-	const Shape<DIM> *shape;
+	const Primitive<DIM> *primitive;
 };
 
 template <int DIM>

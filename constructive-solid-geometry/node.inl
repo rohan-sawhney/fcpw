@@ -1,8 +1,8 @@
 namespace fcpw {
 
 template <int DIM>
-inline CsgNode<DIM>::CsgNode(const std::shared_ptr<Shape<DIM>>& left_,
-							 const std::shared_ptr<Shape<DIM>>& right_,
+inline CsgNode<DIM>::CsgNode(const std::shared_ptr<Primitive<DIM>>& left_,
+							 const std::shared_ptr<Primitive<DIM>>& right_,
 							 const BooleanOperation& operation_):
 left(left_),
 right(right_),

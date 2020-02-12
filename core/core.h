@@ -32,7 +32,7 @@ class BoundingBox;
 template <int DIM>
 class Interaction;
 template <int DIM>
-class Shape;
+class Primitive;
 
 static const float minFloat = std::numeric_limits<float>::lowest();
 static const float maxFloat = std::numeric_limits<float>::max();

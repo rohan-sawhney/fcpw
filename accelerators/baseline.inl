@@ -1,8 +1,8 @@
 namespace fcpw {
 
 template <int DIM>
-inline Baseline<DIM>::Baseline(const std::vector<std::shared_ptr<Shape<DIM>>>& shapes_):
-shapes(shapes_)
+inline Baseline<DIM>::Baseline(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_):
+primitives(primitives_)
 {
 
 }
@@ -11,8 +11,8 @@ template <int DIM>
 inline BoundingBox<DIM> Baseline<DIM>::boundingBox() const
 {
 	BoundingBox<DIM> bb;
-	for (int p = 0; p < (int)shapes.size(); p++) {
-		bb.expandToInclude(shapes[p]->boundingBox());
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		bb.expandToInclude(primitives[p]->boundingBox());
 	}
 
 	return bb;
@@ -28,8 +28,8 @@ template <int DIM>
 inline float Baseline<DIM>::surfaceArea() const
 {
 	float area = 0.0f;
-	for (int p = 0; p < (int)shapes.size(); p++) {
-		area += shapes[p]->surfaceArea();
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		area += primitives[p]->surfaceArea();
 	}
 
 	return area;
@@ -39,8 +39,8 @@ template <int DIM>
 inline float Baseline<DIM>::signedVolume() const
 {
 	float volume = 0.0f;
-	for (int p = 0; p < (int)shapes.size(); p++) {
-		volume += shapes[p]->signedVolume();
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		volume += primitives[p]->signedVolume();
 	}
 
 	return volume;
@@ -57,9 +57,9 @@ inline int Baseline<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& 
 	int hits = 0;
 	if (!collectAll) is.resize(1);
 
-	for (int p = 0; p < (int)shapes.size(); p++) {
+	for (int p = 0; p < (int)primitives.size(); p++) {
 		std::vector<Interaction<DIM>> cs;
-		int hit = shapes[p]->intersect(r, cs, checkOcclusion, countHits, collectAll);
+		int hit = primitives[p]->intersect(r, cs, checkOcclusion, countHits, collectAll);
 
 		if (hit > 0) {
 			hits += hit;
@@ -84,9 +84,9 @@ inline bool Baseline<DIM>::findClosestPoint(BoundingSphere<DIM>& s,
 #endif
 
 	bool notFound = true;
-	for (int p = 0; p < (int)shapes.size(); p++) {
+	for (int p = 0; p < (int)primitives.size(); p++) {
 		Interaction<DIM> c;
-		bool found = shapes[p]->findClosestPoint(s, c);
+		bool found = primitives[p]->findClosestPoint(s, c);
 
 		// keep the closest point only
 		if (found) {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shape.h"
+#include "primitive.h"
 
 namespace fcpw {
 
@@ -8,7 +8,7 @@ template <int DIM>
 class Baseline: public Aggregate<DIM> {
 public:
 	// constructor
-	Baseline(const std::vector<std::shared_ptr<Shape<DIM>>>& shapes_);
+	Baseline(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -32,7 +32,7 @@ public:
 
 private:
 	// members
-	const std::vector<std::shared_ptr<Shape<DIM>>>& shapes;
+	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 };
 
 } // namespace fcpw

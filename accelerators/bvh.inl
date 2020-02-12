@@ -10,7 +10,7 @@ struct BvhBuildEntry {
 
 	// members
 	int parent; // if non-zero then this is the index of the parent (used in offsets)
-	int start, end; // the range of shapes in the shape list covered by this node
+	int start, end; // the range of primitives in the primitive list covered by this node
 };
 
 struct BvhTraversal {
@@ -23,17 +23,17 @@ struct BvhTraversal {
 };
 
 template <int DIM>
-inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Shape<DIM>>>& shapes_, int leafSize_):
+inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_):
 nNodes(0),
 nLeafs(0),
 leafSize(leafSize_),
-shapes(shapes_)
+primitives(primitives_)
 {
 	build();
 	LOG(INFO) << "Bvh created with "
 			  << nNodes << " nodes, "
 			  << nLeafs << " leaves, "
-			  << shapes.size() << " shapes";
+			  << primitives.size() << " primitives";
 }
 
 template <int DIM>
@@ -48,21 +48,21 @@ inline void Bvh<DIM>::build()
 	const int TouchedTwice = 0xfffffffd;
 
 	// precompute bounding boxes and centroids
-	int nShapes = (int)shapes.size();
-	std::vector<BoundingBox<DIM>> shapeBoxes(nShapes);
-	std::vector<Vector<DIM>> shapeCentroids(nShapes);
+	int nPrimitives = (int)primitives.size();
+	std::vector<BoundingBox<DIM>> primitiveBoxes(nPrimitives);
+	std::vector<Vector<DIM>> primitiveCentroids(nPrimitives);
 
-	for (int i = 0; i < nShapes; i++) {
-		shapeBoxes[i] = shapes[i]->boundingBox();
-		shapeCentroids[i] = shapes[i]->centroid();
+	for (int i = 0; i < nPrimitives; i++) {
+		primitiveBoxes[i] = primitives[i]->boundingBox();
+		primitiveCentroids[i] = primitives[i]->centroid();
 	}
 
 	// push the root
-	todo.emplace(BvhBuildEntry(0xfffffffc, 0, nShapes));
+	todo.emplace(BvhBuildEntry(0xfffffffc, 0, nPrimitives));
 
 	BvhFlatNode<DIM> node;
 	std::vector<BvhFlatNode<DIM>> buildNodes;
-	buildNodes.reserve(nShapes*2);
+	buildNodes.reserve(nPrimitives*2);
 
 	while (!todo.empty()) {
 		// pop the next item off the stack
@@ -71,25 +71,25 @@ inline void Bvh<DIM>::build()
 
 		int start = buildEntry.start;
 		int end = buildEntry.end;
-		int nShapes = end - start;
+		int nPrimitives = end - start;
 
 		nNodes++;
 		node.start = start;
-		node.nShapes = nShapes;
+		node.nPrimitives = nPrimitives;
 		node.rightOffset = Untouched;
 
 		// calculate the bounding box for this node
 		BoundingBox<DIM> bb, bc;
 		for (int p = start; p < end; p++) {
-			bb.expandToInclude(shapeBoxes[p]);
-			bc.expandToInclude(shapeCentroids[p]);
+			bb.expandToInclude(primitiveBoxes[p]);
+			bc.expandToInclude(primitiveCentroids[p]);
 		}
 
 		node.bbox = bb;
 
-		// if the number of shapes at this point is less than the leaf
+		// if the number of primitives at this point is less than the leaf
 		// size, then this will become a leaf (signified by rightOffset == 0)
-		if (nShapes <= leafSize) {
+		if (nPrimitives <= leafSize) {
 			node.rightOffset = 0;
 			nLeafs++;
 		}
@@ -119,13 +119,13 @@ inline void Bvh<DIM>::build()
 		// split on the center of the longest axis
 		float splitCoord = (bc.pMin[splitDim] + bc.pMax[splitDim])*0.5;
 
-		// partition the list of shapes on this split
+		// partition the list of primitives on this split
 		int mid = start;
 		for (int i = start; i < end; i++) {
-			if (shapeCentroids[i][splitDim] < splitCoord) {
-				std::swap(shapes[i], shapes[mid]);
-				std::swap(shapeBoxes[i], shapeBoxes[mid]);
-				std::swap(shapeCentroids[i], shapeCentroids[mid]);
+			if (primitiveCentroids[i][splitDim] < splitCoord) {
+				std::swap(primitives[i], primitives[mid]);
+				std::swap(primitiveBoxes[i], primitiveBoxes[mid]);
+				std::swap(primitiveCentroids[i], primitiveCentroids[mid]);
 				mid++;
 			}
 		}
@@ -164,8 +164,8 @@ template <int DIM>
 inline float Bvh<DIM>::surfaceArea() const
 {
 	float area = 0.0f;
-	for (int p = 0; p < (int)shapes.size(); p++) {
-		area += shapes[p]->surfaceArea();
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		area += primitives[p]->surfaceArea();
 	}
 
 	return area;
@@ -175,8 +175,8 @@ template <int DIM>
 inline float Bvh<DIM>::signedVolume() const
 {
 	float volume = 0.0f;
-	for (int p = 0; p < (int)shapes.size(); p++) {
-		volume += shapes[p]->signedVolume();
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		volume += primitives[p]->signedVolume();
 	}
 
 	return volume;
@@ -215,9 +215,9 @@ inline int Bvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 
 		// is leaf -> intersect
 		if (node.rightOffset == 0) {
-			for (int p = 0; p < node.nShapes; p++) {
+			for (int p = 0; p < node.nPrimitives; p++) {
 				std::vector<Interaction<DIM>> cs;
-				const std::shared_ptr<Shape<DIM>>& prim = shapes[node.start + p];
+				const std::shared_ptr<Primitive<DIM>>& prim = primitives[node.start + p];
 				int hit = prim->intersect(r, cs, checkOcclusion, countHits, collectAll);
 
 				// keep the closest intersection only
@@ -292,16 +292,16 @@ inline bool Bvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>&
 		float near = traversal.d;
 		const BvhFlatNode<DIM>& node(flatTree[ni]);
 
-		// if this node is further than the closest found shape, continue
+		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) {
 			continue;
 		}
 
 		// is leaf -> compute squared distance
 		if (node.rightOffset == 0) {
-			for (int p = 0; p < node.nShapes; p++) {
+			for (int p = 0; p < node.nPrimitives; p++) {
 				Interaction<DIM> c;
-				const std::shared_ptr<Shape<DIM>>& prim = shapes[node.start + p];
+				const std::shared_ptr<Primitive<DIM>>& prim = primitives[node.start + p];
 				bool found = prim->findClosestPoint(s, c);
 
 				// keep the closest point only

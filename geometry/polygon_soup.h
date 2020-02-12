@@ -1,6 +1,6 @@
 #pragma once
 
-#include "shape.h"
+#include "primitive.h"
 
 namespace fcpw {
 

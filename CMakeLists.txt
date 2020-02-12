@@ -57,7 +57,7 @@ set(FCPW_CORE_HEADERS
 	core/ray.h
 	core/bounding_volumes.h
 	core/interaction.h
-	core/shape.h
+	core/primitive.h
 	)
 
 file(GLOB FCPW_SOURCE

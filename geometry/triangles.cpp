@@ -7,7 +7,7 @@ namespace fcpw {
 
 Triangle::Triangle(const Transform<float, 3, Affine>& transform_,
 				   const std::shared_ptr<PolygonSoup<3>>& soup_, int index_):
-Shape<3>(transform_.matrix().determinant() < 0),
+Primitive<3>(transform_.matrix().determinant() < 0),
 soup(soup_),
 indices(soup->indices[index_]),
 eIndices(soup->eIndices[index_]),
@@ -132,7 +132,7 @@ int Triangle::intersect(const Ray<3>& r, std::vector<Interaction<3>>& is, bool c
 		it->uv[0] = u;
 		it->uv[1] = v;
 		it->n = normal(true);
-		it->shape = this;
+		it->primitive = this;
 
 		return 1;
 	}
@@ -247,10 +247,10 @@ void Triangle::findClosestPoint(const Vector3f& x, Interaction<3>& i) const
 	int eIndex = -1;
 	i.d = findClosestPointOnTriangle(pa, pb, pc, x, i.p, i.uv, vIndex, eIndex);
 	i.n = normal(vIndex, eIndex);
-	i.shape = this;
+	i.primitive = this;
 }
 
-void computeTriangleVertexEdgeNormals(const std::vector<std::shared_ptr<Shape<3>>>& triangles,
+void computeTriangleVertexEdgeNormals(const std::vector<std::shared_ptr<Primitive<3>>>& triangles,
 									  std::shared_ptr<PolygonSoup<3>>& soup)
 {
 	// set edge indices
@@ -351,7 +351,7 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 												const Transform<float, 3, Affine>& transform,
-												std::vector<std::shared_ptr<Shape<3>>>& triangles,
+												std::vector<std::shared_ptr<Primitive<3>>>& triangles,
 												bool computeVertexEdgeNormals)
 {
 	// read soup and initialize triangles
