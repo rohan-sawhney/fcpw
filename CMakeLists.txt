@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(fcpw)
 
-option(BUILD_TESTS "Build tests" OFF)
+option(BUILD_TESTS "Build tests" ON)
 option(PROFILE "Profile" OFF)
 
 ################################################################################
@@ -77,7 +77,7 @@ add_library(fcpw STATIC
 target_include_directories(fcpw PUBLIC deps/glog/src ${CMAKE_BINARY_DIR}/deps/glog)
 target_include_directories(fcpw PUBLIC deps/eigen-git-mirror)
 target_include_directories(fcpw PUBLIC deps/ThreadPool)
-target_include_directories(fcpw PUBLIC ${EMBREE_INCLUDE_DIRS})
+target_include_directories(fcpw PUBLIC deps/embree)
 target_include_directories(fcpw PUBLIC core)
 
 if(PROFILE)
@@ -85,7 +85,7 @@ if(PROFILE)
 	list(APPEND ALL_FCPW_LIBS profiler)
 endif()
 
-list(APPEND ALL_FCPW_LIBS fcpw glog ${EMBREE_LIBRARY})
+list(APPEND ALL_FCPW_LIBS fcpw glog embree)
 
 ################################################################################
 if(BUILD_TESTS)

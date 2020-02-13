@@ -10,6 +10,7 @@ template <int DIM>
 class Primitive {
 public:
 	// constructor
+	Primitive(): swapHandedness(false) {}
 	Primitive(bool swapHandedness_): swapHandedness(swapHandedness_) {}
 
 	// destructor

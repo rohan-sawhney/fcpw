@@ -30,7 +30,7 @@ public:
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
-private:
+protected:
 	// members
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 };

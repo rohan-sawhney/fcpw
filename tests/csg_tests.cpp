@@ -1,4 +1,8 @@
-#include "utilities/scene_loading.h"
+// #include "utilities/scene_loading.h"
+
+#include "geometry/triangles.h"
+#include "accelerators/bvh.h"
+#include "accelerators/embree_bvh.h"
 
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
@@ -8,7 +12,7 @@
 #include "args/args.hxx"
 
 using namespace fcpw;
-
+/*
 int nSamples = 10000;
 
 template <int DIM>
@@ -314,13 +318,13 @@ void run()
 						boundarySampler, interiorSampler, domain, pointsIntersected,
 						pointsRaymarched, aggregate);
 }
-
+*/
 int main(int argc, const char *argv[]) {
 	google::InitGoogleLogging(argv[0]);
 #ifdef PROFILE
 	Profiler::detect(argc, argv);
 #endif
-
+/*
 	// configure the argument parser
 	args::ArgumentParser parser("csg tests");
 	args::Group group(parser, "", args::Group::Validators::DontCare);
@@ -407,7 +411,7 @@ int main(int argc, const char *argv[]) {
 	// run app
 	if (DIM == 2) run<2>();
 	else if (DIM == 3) run<3>();
-
+*/
 #ifdef PROFILE
 	Profiler::dumphtml();
 #endif

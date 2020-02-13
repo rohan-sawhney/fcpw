@@ -1,7 +1,7 @@
 #pragma once
 
 #include "geometry/triangles.h"
-x#include "accelerators/bvh.h"
+#include "accelerators/bvh.h"
 #include "accelerators/baseline.h"
 #include <unordered_map>
 #include <fstream>

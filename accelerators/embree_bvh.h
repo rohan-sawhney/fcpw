@@ -1,21 +1,20 @@
 #pragma once
 
-#include "primitive.h"
+#include "baseline.h"
+#include "geometry/polygon_soup.h"
+#include <include/embree3/rtcore.h>
 
 namespace fcpw {
-// source: https://github.com/brandonpelfrey/Fast-BVH
 
 template <int DIM>
-struct BvhFlatNode {
-	BoundingBox<DIM> bbox;
-	int start, nPrimitives, rightOffset;
-};
-
-template <int DIM>
-class Bvh: public Aggregate<DIM> {
+class EmbreeBvh: public Baseline<DIM> {
 public:
 	// constructor
-	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4);
+	EmbreeBvh(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
+			  const std::shared_ptr<PolygonSoup<DIM>>& soup_);
+
+	// destructor
+	~EmbreeBvh();
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -38,15 +37,12 @@ public:
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 protected:
-	// builds binary tree
-	void build();
-
 	// members
-	int nNodes, nLeafs, leafSize;
-	std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
-	std::vector<BvhFlatNode<DIM>> flatTree;
+	const std::shared_ptr<PolygonSoup<DIM>>& soup;
+	RTCDevice device;
+	RTCScene scene;
 };
 
 } // namespace fcpw
 
-#include "bvh.inl"
+#include "embree_bvh.inl"

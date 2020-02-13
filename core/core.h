@@ -8,6 +8,7 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <functional>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <glog/logging.h>
