@@ -84,7 +84,7 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 
 	// check if interaction has already been added
 	for (int i = 0; i < (int)is.size(); i++) {
-		if (is[i].primitive == primitives[hit->geomID].get()) {
+		if (is[i].primitive == primitives[hit->primID].get()) {
 			return;
 		}
 	}
@@ -96,7 +96,7 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	it->uv(0) = hit->u;
 	it->uv(1) = hit->v;
 	it->n = Vector3f(hit->Ng_x, hit->Ng_y, hit->Ng_z).normalized();
-	it->primitive = primitives[hit->geomID].get();
+	it->primitive = primitives[hit->primID].get();
 }
 
 embree::Vec3fa closestPointTriangle(embree::Vec3fa const& p, embree::Vec3fa const& a,
@@ -338,7 +338,7 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 			it->uv(0) = rayhit.hit.u;
 			it->uv(1) = rayhit.hit.v;
 			it->n = Vector3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z).normalized();
-			it->primitive = this->primitives[rayhit.hit.geomID].get();
+			it->primitive = this->primitives[rayhit.hit.primID].get();
 			r.tMax = it->d;
 			hits++;
 		}
