@@ -5,7 +5,7 @@
 namespace fcpw {
 // source: https://github.com/brandonpelfrey/Fast-BVH
 // TODO:
-// - implement more tree construction heuristics
+// - implement more tree construction heuristics (sah, volume ratio, volume overlap)
 // - implement sbvh
 // - implement mbvh with vectorization
 // - guess closest point radius
