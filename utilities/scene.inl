@@ -8,9 +8,9 @@ namespace fcpw {
 
 template <int DIM>
 inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(
-				const std::string& filename, const std::string& loadingOption,
+				const std::string& filename, const LoadingOption& loadingOption,
 				const Transform<float, DIM, Affine>& transform, bool computeWeightedNormals,
-				std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, std::string& objectType)
+				std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, ObjectType& objectType)
 {
 	LOG(FATAL) << "readSoupFromFile<DIM>(): Not implemented";
 	return nullptr;
@@ -18,16 +18,16 @@ inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(
 
 template <>
 inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
-				const std::string& filename, const std::string& loadingOption,
+				const std::string& filename, const LoadingOption& loadingOption,
 				const Transform<float, 3, Affine>& transform, bool computeWeightedNormals,
-				std::vector<std::shared_ptr<Primitive<3>>>& primitives, std::string& objectType)
+				std::vector<std::shared_ptr<Primitive<3>>>& primitives, ObjectType& objectType)
 {
-	if (loadingOption == "triangles obj") {
-		objectType = "triangles";
+	if (loadingOption == LoadingOption::ObjTriangles) {
+		objectType = ObjectType::Triangles;
 		return readFromOBJFile(filename, transform, primitives, computeWeightedNormals);
 	}
 
-	LOG(FATAL) << "readSoupFromFile<3>(): Invalid loading option: " << loadingOption;
+	LOG(FATAL) << "readSoupFromFile<3>(): Invalid loading option";
 	return nullptr;
 }
 
@@ -37,7 +37,7 @@ inline void Scene<DIM>::loadFiles(bool computeWeightedNormals, bool randomizeObj
 	int nFiles = (int)files.size();
 	soups.resize(nFiles);
 	objects.resize(nFiles);
-	objectTypes.resize(nFiles, "");
+	objectTypes.resize(nFiles);
 
 	// generate object space transforms
 	Transform<float, DIM, Affine> Id = Transform<float, DIM, Affine>::Identity();
@@ -152,7 +152,7 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildCsgAggregate() const
 }
 
 template <int DIM>
-inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const std::string& aggregateType)
+inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 {
 	// build object aggregates
 	int nObjects = (int)objects.size();
@@ -160,8 +160,8 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const std::str
 	instanceTransforms.resize(nObjects);
 
 	for (int i = 0; i < nObjects; i++) {
-		objectAggregates[i] = aggregateType == "Bvh" ? std::make_shared<Bvh<DIM>>(objects[i]) :
-													   std::make_shared<Baseline<DIM>>(objects[i]);
+		objectAggregates[i] = aggregateType == AggregateType::Bvh ? std::make_shared<Bvh<DIM>>(objects[i]) :
+																	std::make_shared<Baseline<DIM>>(objects[i]);
 	}
 
 	// load instance transforms
@@ -189,8 +189,8 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const std::str
 	if (!csgFilename.empty()) return buildCsgAggregate();
 
 	// build aggregate over instances
-	return aggregateType == "Bvh" ? std::make_shared<Bvh<DIM>>(objectInstances) :
-									std::make_shared<Baseline<DIM>>(objectInstances);
+	return aggregateType == AggregateType::Bvh ? std::make_shared<Bvh<DIM>>(objectInstances) :
+												 std::make_shared<Baseline<DIM>>(objectInstances);
 }
 
 } // namespace fcpw

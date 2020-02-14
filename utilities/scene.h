@@ -6,7 +6,21 @@
 
 namespace fcpw {
 
-std::vector<std::pair<std::string, std::string>> files;
+enum class LoadingOption {
+	ObjTriangles
+};
+
+enum class ObjectType {
+	Triangles
+};
+
+enum class AggregateType {
+	Baseline,
+	Bvh,
+	EmbreeBvh
+};
+
+std::vector<std::pair<std::string, LoadingOption>> files;
 std::string instanceFilename = "";
 std::string csgFilename = "";
 
@@ -17,13 +31,13 @@ public:
 	void loadFiles(bool computeWeightedNormals=false, bool randomizeObjectTransforms=false);
 
 	// builds aggregate
-	std::shared_ptr<Aggregate<DIM>> buildAggregate(const std::string& aggregateType);
+	std::shared_ptr<Aggregate<DIM>> buildAggregate(const AggregateType& aggregateType);
 
 	// members
 	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;
 	std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>> objects;
 	std::vector<std::vector<Transform<float, DIM, Affine>>> instanceTransforms;
-	std::vector<std::string> objectTypes;
+	std::vector<ObjectType> objectTypes;
 
 private:
 	// builds csg aggregates
