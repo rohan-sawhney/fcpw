@@ -4,6 +4,13 @@
 
 namespace fcpw {
 // source: https://github.com/brandonpelfrey/Fast-BVH
+// TODO:
+// - implement more tree construction heuristics
+// - implement sbvh
+// - implement mbvh with vectorization
+// - guess closest point radius
+// - implement "queueless" closest point traversal
+// - try bottom up closest point traversal strategy
 
 template <int DIM>
 struct BvhFlatNode {

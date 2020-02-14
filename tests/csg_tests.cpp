@@ -1,8 +1,4 @@
-// #include "utilities/scene_loading.h"
-
-#include "geometry/triangles.h"
-#include "accelerators/bvh.h"
-#include "accelerators/embree_bvh.h"
+#include "utilities/scene.h"
 
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"

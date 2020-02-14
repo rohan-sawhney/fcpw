@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <chrono>
+#include <random>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <glog/logging.h>
@@ -82,6 +84,25 @@ inline float degrees(float rad) {
 
 inline float cross2d(const Vector2f& u, const Vector2f& v) {
 	return u(0)*v(1) - u(1)*v(0);
+}
+
+inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)
+{
+	thread_local std::mt19937 generator(std::random_device{}());
+	std::uniform_real_distribution<float> distribution(a, b);
+
+	return distribution(generator);
+}
+
+template <int DIM>
+inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
+{
+	Vector<DIM> v;
+	for (int i = 0; i < DIM; i++) {
+		v(i) = uniformRealRandomNumber(a, b);
+	}
+
+	return v;
 }
 
 } // namespace fcpw

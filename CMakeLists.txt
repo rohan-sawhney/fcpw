@@ -64,6 +64,7 @@ file(GLOB FCPW_SOURCE
 	 geometry/*
 	 accelerators/*
 	 constructive-solid-geometry/*
+	 utilities/*
 	 )
 
 ################################################################################

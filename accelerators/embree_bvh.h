@@ -38,7 +38,7 @@ public:
 
 protected:
 	// members
-	const std::shared_ptr<PolygonSoup<DIM>>& soup;
+	std::shared_ptr<PolygonSoup<DIM>> soup;
 	RTCDevice device;
 	RTCScene scene;
 };
