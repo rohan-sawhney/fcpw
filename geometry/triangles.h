@@ -59,6 +59,6 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 												const Transform<float, 3, Affine>& transform,
 												std::vector<std::shared_ptr<Primitive<3>>>& triangles,
-												bool computeVertexEdgeNormals);
+												bool computeWeightedNormals);
 
 } // namespace fcpw

@@ -267,8 +267,8 @@ void Triangle::findClosestPoint(const Vector3f& x, Interaction<3>& i) const
 	i.primitive = this;
 }
 
-void computeTriangleVertexEdgeNormals(const std::vector<std::shared_ptr<Primitive<3>>>& triangles,
-									  std::shared_ptr<PolygonSoup<3>>& soup)
+void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<3>>>& triangles,
+									std::shared_ptr<PolygonSoup<3>>& soup)
 {
 	// set edge indices
 	int E = 0;
@@ -369,7 +369,7 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 												const Transform<float, 3, Affine>& transform,
 												std::vector<std::shared_ptr<Primitive<3>>>& triangles,
-												bool computeVertexEdgeNormals)
+												bool computeWeightedNormals)
 {
 	// read soup and initialize triangles
 	std::shared_ptr<PolygonSoup<3>> soup = readFromOBJFile(filename, transform);
@@ -385,8 +385,8 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 		triangles.emplace_back(std::make_shared<Triangle>(transform, soup, i));
 	}
 
-	// compute vertex and edge normals if requested
-	if (computeVertexEdgeNormals) computeTriangleVertexEdgeNormals(triangles, soup);
+	// compute weighted normals if requested
+	if (computeWeightedNormals) computeWeightedTriangleNormals(triangles, soup);
 
 	return soup;
 }
