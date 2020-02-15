@@ -179,6 +179,9 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const Aggregat
 		}
 	}
 
+	// return object aggregate if there is only a single object instance in the scene
+	if (objectInstances.size() == 1) return objectAggregates[0];
+
 	// build csg aggregate if csg tree is specified
 	if (csgTree.size() > 0) return buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
 
