@@ -151,13 +151,15 @@ inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 }
 
 template <int DIM>
-inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const AggregateType& aggregateType,
-										std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances)
+inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 {
+	// initialize instances and aggregate
+	objectInstances.clear();
+	aggregate = nullptr;
+
 	// build object aggregates
 	int nObjects = (int)objects.size();
 	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
-	objectInstances.clear();
 
 	for (int i = 0; i < nObjects; i++) {
 		if (aggregateType == AggregateType::Bvh) {
@@ -183,15 +185,23 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const Aggregat
 		}
 	}
 
-	// return object aggregate if there is only a single object instance in the scene
-	if (objectInstances.size() == 1) return objectAggregates[0];
+	// set aggregate
+	if (objectInstances.size() == 1) {
+		// set to object aggregate if there is only a single object instance in the scene
+		aggregate = objectAggregates[0];
 
-	// build csg aggregate if csg tree is specified
-	if (csgTree.size() > 0) return buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
+	} else if (csgTree.size() > 0) {
+		// build csg aggregate if csg tree is specified
+		aggregate = buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
 
-	// build aggregate over instances
-	if (aggregateType == AggregateType::Bvh) return std::make_shared<Bvh<DIM>>(objectInstances);
-	return std::make_shared<Baseline<DIM>>(objectInstances);
+	} else if (aggregateType == AggregateType::Bvh) {
+		// build bvh aggregate
+		aggregate = std::make_shared<Bvh<DIM>>(objectInstances);
+
+	} else {
+		// build bvh aggregate
+		aggregate = std::make_shared<Baseline<DIM>>(objectInstances);
+	}
 }
 
 #ifdef BENCHMARK_EMBREE

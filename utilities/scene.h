@@ -31,8 +31,7 @@ public:
 	void loadFiles(bool computeWeightedNormals=false, bool randomizeObjectTransforms=false);
 
 	// builds aggregate
-	std::shared_ptr<Aggregate<DIM>> buildAggregate(const AggregateType& aggregateType,
-						std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances);
+	void buildAggregate(const AggregateType& aggregateType);
 
 #ifdef BENCHMARK_EMBREE
 	// builds embree aggregate
@@ -44,10 +43,12 @@ public:
 	std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>> objects;
 	std::vector<std::vector<Transform<float, DIM, Affine>>> instanceTransforms;
 	std::vector<ObjectType> objectTypes;
+	std::shared_ptr<Aggregate<DIM>> aggregate;
 
 private:
-	// member
+	// members
 	std::unordered_map<int, CsgTreeNode> csgTree;
+	std::vector<std::shared_ptr<Primitive<DIM>>> objectInstances;
 };
 
 } // namespace fcpw
