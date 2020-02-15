@@ -154,8 +154,8 @@ template <int DIM>
 inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 {
 	// initialize instances and aggregate
-	objectInstances.clear();
 	aggregate = nullptr;
+	objectInstances.clear();
 
 	// build object aggregates
 	int nObjects = (int)objects.size();
@@ -199,7 +199,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 		aggregate = std::make_shared<Bvh<DIM>>(objectInstances);
 
 	} else {
-		// build bvh aggregate
+		// build baseline aggregate
 		aggregate = std::make_shared<Baseline<DIM>>(objectInstances);
 	}
 }
