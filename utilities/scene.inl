@@ -192,7 +192,7 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const Aggregat
 
 #ifdef BENCHMARK_EMBREE
 template <int DIM>
-std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildEmbreeAggregate()
+inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildEmbreeAggregate()
 {
 	int nObjects = (int)objects.size();
 	if (nObjects > 1) LOG(FATAL) << "Scene::buildEmbreeAggregate(): Not supported for multiple objects";
