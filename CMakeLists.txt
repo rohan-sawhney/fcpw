@@ -99,8 +99,8 @@ list(APPEND ALL_FCPW_LIBS fcpw glog)
 if(BUILD_TESTS)
 	add_subdirectory(deps/polyscope)
 
-	add_executable(geometry_tests tests/geometry_tests.cpp)
-	target_link_libraries(geometry_tests ${ALL_FCPW_LIBS} polyscope)
+	add_executable(aggregate_tests tests/aggregate_tests.cpp)
+	target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope)
 
 	add_executable(csg_tests tests/csg_tests.cpp)
 	target_link_libraries(csg_tests ${ALL_FCPW_LIBS} polyscope)

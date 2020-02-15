@@ -35,31 +35,6 @@ inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
 }
 
 template <int DIM>
-inline void Scene<DIM>::loadFiles(bool computeWeightedNormals, bool randomizeObjectTransforms)
-{
-	int nFiles = (int)files.size();
-	soups.resize(nFiles);
-	objects.resize(nFiles);
-	objectTypes.resize(nFiles);
-
-	// generate object space transforms
-	Transform<float, DIM, Affine> Id = Transform<float, DIM, Affine>::Identity();
-	std::vector<Transform<float, DIM, Affine>> objectTransforms(nFiles, Id);
-	if (randomizeObjectTransforms) {
-		for (int i = 0; i < nFiles; i++) {
-			objectTransforms[i].prescale(uniformRealRandomNumber(0.1f, 1.0f))
-							   .pretranslate(uniformRealRandomVector<DIM>());
-		}
-	}
-
-	// load soups and primitives
-	for (int i = 0; i < nFiles; i++) {
-		soups[i] = readSoupFromFile<DIM>(files[i].first, files[i].second, objectTransforms[i],
-										 computeWeightedNormals, objects[i], objectTypes[i]);
-	}
-}
-
-template <int DIM>
 inline void loadInstanceTransforms(
 				std::vector<std::vector<Transform<float, DIM, Affine>>>& instanceTransforms)
 {
@@ -127,6 +102,38 @@ inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 }
 
 template <int DIM>
+inline void Scene<DIM>::loadFiles(bool computeWeightedNormals, bool randomizeObjectTransforms)
+{
+	int nFiles = (int)files.size();
+	soups.resize(nFiles);
+	objects.resize(nFiles);
+	instanceTransforms.resize(nFiles);
+	objectTypes.resize(nFiles);
+
+	// generate object space transforms
+	Transform<float, DIM, Affine> Id = Transform<float, DIM, Affine>::Identity();
+	std::vector<Transform<float, DIM, Affine>> objectTransforms(nFiles, Id);
+	if (randomizeObjectTransforms) {
+		for (int i = 0; i < nFiles; i++) {
+			objectTransforms[i].prescale(uniformRealRandomNumber(0.1f, 1.0f))
+							   .pretranslate(uniformRealRandomVector<DIM>());
+		}
+	}
+
+	// load soups and primitives
+	for (int i = 0; i < nFiles; i++) {
+		soups[i] = readSoupFromFile<DIM>(files[i].first, files[i].second, objectTransforms[i],
+										 computeWeightedNormals, objects[i], objectTypes[i]);
+	}
+
+	// load instance transforms
+	if (!instanceFilename.empty()) loadInstanceTransforms<DIM>(instanceTransforms);
+
+	// load csg tree
+	if (!csgFilename.empty()) loadCsgTree<DIM>(csgTree);
+}
+
+template <int DIM>
 inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 				int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
 				std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances)
@@ -144,31 +151,18 @@ inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 }
 
 template <int DIM>
-inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildCsgAggregate() const
-{
-	// load csg tree
-	std::unordered_map<int, CsgTreeNode> csgTree;
-	loadCsgTree<DIM>(csgTree);
-
-	// build csg aggregate
-	return buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
-}
-
-template <int DIM>
-inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
+inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const AggregateType& aggregateType,
+										std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances)
 {
 	// build object aggregates
 	int nObjects = (int)objects.size();
-	objectAggregates.resize(nObjects);
-	instanceTransforms.resize(nObjects);
+	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
+	objectInstances.clear();
 
 	for (int i = 0; i < nObjects; i++) {
 		objectAggregates[i] = aggregateType == AggregateType::Bvh ? std::make_shared<Bvh<DIM>>(objects[i]) :
 																	std::make_shared<Baseline<DIM>>(objects[i]);
 	}
-
-	// load instance transforms
-	if (!instanceFilename.empty()) loadInstanceTransforms<DIM>(instanceTransforms);
 
 	// build object instances
 	for (int i = 0; i < nObjects; i++) {
@@ -185,33 +179,23 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const Aggregat
 		}
 	}
 
-	// return object aggregate if there is only a single object instance in the scene
-	if (objectInstances.size() == 1) return objectAggregates[0];
-
-	// build csg aggregate if csg file is provided
-	if (!csgFilename.empty()) return buildCsgAggregate();
+	// build csg aggregate if csg tree is specified
+	if (csgTree.size() > 0) return buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
 
 	// build aggregate over instances
 	return aggregateType == AggregateType::Bvh ? std::make_shared<Bvh<DIM>>(objectInstances) :
 												 std::make_shared<Baseline<DIM>>(objectInstances);
 }
 
+#ifdef BENCHMARK_EMBREE
 template <int DIM>
 std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildEmbreeAggregate()
 {
-#ifdef BENCHMARK_EMBREE
 	int nObjects = (int)objects.size();
 	if (nObjects > 1) LOG(FATAL) << "Scene::buildEmbreeAggregate(): Not supported for multiple objects";
 
-	objectAggregates.emplace_back(std::make_shared<EmbreeBvh<DIM>>(objects[0], soups[0]));
-	objectInstances.emplace_back(objectAggregates[0]);
-	instanceTransforms.resize(1);
-
-	return objectAggregates[0];
-#endif
-
-	LOG(FATAL) << "Scene::buildEmbreeAggregate(): Embree not linked!";
-	return nullptr;
+	return std::make_shared<EmbreeBvh<DIM>>(objects[0], soups[0]);
 }
+#endif
 
 } // namespace fcpw

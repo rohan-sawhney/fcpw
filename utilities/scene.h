@@ -19,6 +19,7 @@ enum class AggregateType {
 	Bvh
 };
 
+struct CsgTreeNode;
 std::vector<std::pair<std::string, LoadingOption>> files;
 std::string instanceFilename = "";
 std::string csgFilename = "";
@@ -30,10 +31,13 @@ public:
 	void loadFiles(bool computeWeightedNormals=false, bool randomizeObjectTransforms=false);
 
 	// builds aggregate
-	std::shared_ptr<Aggregate<DIM>> buildAggregate(const AggregateType& aggregateType);
+	std::shared_ptr<Aggregate<DIM>> buildAggregate(const AggregateType& aggregateType,
+						std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances);
 
+#ifdef BENCHMARK_EMBREE
 	// builds embree aggregate
 	std::shared_ptr<Aggregate<DIM>> buildEmbreeAggregate();
+#endif
 
 	// members
 	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;
@@ -42,12 +46,8 @@ public:
 	std::vector<ObjectType> objectTypes;
 
 private:
-	// builds csg aggregates
-	std::shared_ptr<Aggregate<DIM>> buildCsgAggregate() const;
-
-	// members
-	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates;
-	std::vector<std::shared_ptr<Primitive<DIM>>> objectInstances;
+	// member
+	std::unordered_map<int, CsgTreeNode> csgTree;
 };
 
 } // namespace fcpw
