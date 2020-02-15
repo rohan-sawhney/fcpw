@@ -1,4 +1,4 @@
-#include "constructive-solid-geometry/node.h"
+#include "csg_node.h"
 #include "accelerators/baseline.h"
 #include "accelerators/bvh.h"
 #ifdef BENCHMARK_EMBREE
@@ -160,8 +160,12 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const Aggregat
 	objectInstances.clear();
 
 	for (int i = 0; i < nObjects; i++) {
-		objectAggregates[i] = aggregateType == AggregateType::Bvh ? std::make_shared<Bvh<DIM>>(objects[i]) :
-																	std::make_shared<Baseline<DIM>>(objects[i]);
+		if (aggregateType == AggregateType::Bvh) {
+			objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i]);
+
+		} else {
+			objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);
+		}
 	}
 
 	// build object instances
@@ -186,8 +190,8 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const Aggregat
 	if (csgTree.size() > 0) return buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
 
 	// build aggregate over instances
-	return aggregateType == AggregateType::Bvh ? std::make_shared<Bvh<DIM>>(objectInstances) :
-												 std::make_shared<Baseline<DIM>>(objectInstances);
+	if (aggregateType == AggregateType::Bvh) return std::make_shared<Bvh<DIM>>(objectInstances);
+	return std::make_shared<Baseline<DIM>>(objectInstances);
 }
 
 #ifdef BENCHMARK_EMBREE

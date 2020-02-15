@@ -112,7 +112,8 @@ Vector3f Triangle::normal(int vIndex, int eIndex) const
 	return normal(true);
 }
 
-int Triangle::intersect(const Ray<3>& r, std::vector<Interaction<3>>& is, bool collectAll) const
+int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
+						bool checkOcclusion, bool countHits, bool collectAll) const
 {
 	#ifdef PROFILE
 		PROFILE_SCOPED();
@@ -158,8 +159,8 @@ int Triangle::intersect(const Ray<3>& r, std::vector<Interaction<3>>& is, bool c
 }
 
 float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const Vector3f& pc,
-								  const Vector3f& x, Vector3f& pt, Vector2f& t,
-								  int& vIndex, int& eIndex)
+								 const Vector3f& x, Vector3f& pt, Vector2f& t,
+								 int& vIndex, int& eIndex)
 {
 	// source: real time collision detection
 	// check if x in vertex region outside pa
@@ -250,7 +251,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 	return (x - pt).norm();
 }
 
-void Triangle::findClosestPoint(const Vector3f& x, Interaction<3>& i) const
+bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 {
 	#ifdef PROFILE
 		PROFILE_SCOPED();
@@ -262,9 +263,11 @@ void Triangle::findClosestPoint(const Vector3f& x, Interaction<3>& i) const
 
 	int vIndex = -1;
 	int eIndex = -1;
-	i.d = findClosestPointOnTriangle(pa, pb, pc, x, i.p, i.uv, vIndex, eIndex);
+	i.d = findClosestPointOnTriangle(pa, pb, pc, s.c, i.p, i.uv, vIndex, eIndex);
 	i.n = normal(vIndex, eIndex);
 	i.primitive = this;
+
+	return true;
 }
 
 void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<3>>>& triangles,
@@ -296,7 +299,7 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 	soup->eNormals.resize(E, Vector3f::Zero());
 
 	for (int i = 0; i < N; i++) {
-		Vector3f n = triangles[i]->normal(true);
+		Vector3f n = static_cast<const Triangle *>(triangles[i].get())->normal(true);
 		for (int j = 0; j < 3; j++) {
 			soup->vNormals[soup->indices[i][j]] += n;
 			soup->eNormals[soup->eIndices[i][j]] += n;

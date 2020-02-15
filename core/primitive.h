@@ -28,21 +28,13 @@ public:
 	// returns signed volume
 	virtual float signedVolume() const = 0;
 
-	// returns normal
-	virtual Vector<DIM> normal(bool normalize=false) const = 0;
-
-	// returns barycentric coordinates
-	virtual Vector<DIM - 1> barycentricCoordinates(const Vector<DIM>& p) const = 0;
-
-	// returns texture coordinates
-	virtual Vector<DIM - 1> textureCoordinates(const Vector<DIM - 1>& uv) const = 0;
-
 	// intersects with ray
-	virtual int intersect(const Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+	virtual int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+						  bool checkOcclusion=false, bool countHits=false,
 						  bool collectAll=false) const = 0;
 
 	// finds closest point to sphere center
-	virtual void findClosestPoint(const Vector<DIM>& x, Interaction<DIM>& i) const = 0;
+	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const = 0;
 
 	// member
 	bool swapHandedness;

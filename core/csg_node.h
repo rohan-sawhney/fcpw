@@ -57,4 +57,4 @@ private:
 
 } // namespace fcpw
 
-#include "node.inl"
+#include "csg_node.inl"

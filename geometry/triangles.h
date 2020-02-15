@@ -32,11 +32,12 @@ public:
 	Vector2f textureCoordinates(const Vector2f& uv) const;
 
 	// intersects with ray
-	int intersect(const Ray<3>& r, std::vector<Interaction<3>>& is,
+	int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
+				  bool checkOcclusion=false, bool countHits=false,
 				  bool collectAll=false) const;
 
 	// finds closest point to sphere center
-	void findClosestPoint(const Vector3f& x, Interaction<3>& i) const;
+	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;
 
 	// members
 	std::shared_ptr<PolygonSoup<3>> soup;

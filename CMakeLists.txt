@@ -66,7 +66,6 @@ set(FCPW_CORE_HEADERS
 file(GLOB FCPW_SOURCE
 	 geometry/*
 	 accelerators/*
-	 constructive-solid-geometry/*
 	 utilities/*
 	 )
 
