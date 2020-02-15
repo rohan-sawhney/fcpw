@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1.0)
 project(fcpw)
 
 option(BUILD_TESTS "Build tests" ON)
+option(BENCHMARK_EMBREE "Benchmark Embree" ON)
 option(PROFILE "Profile" OFF)
 
 ################################################################################
@@ -35,9 +36,11 @@ endif()
 set(WITH_GFLAGS OFF CACHE BOOL "Use gflags")
 add_subdirectory(deps/glog)
 
-set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "enable ispc functionality")
-set(EMBREE_TUTORIALS OFF CACHE BOOL "enable embree tutorials")
-add_subdirectory(deps/embree)
+if(BENCHMARK_EMBREE)
+	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "enable ispc functionality")
+	set(EMBREE_TUTORIALS OFF CACHE BOOL "enable embree tutorials")
+	add_subdirectory(deps/embree)
+endif()
 
 if(PROFILE)
 	add_definitions(-DPROFILE)
@@ -78,15 +81,19 @@ add_library(fcpw STATIC
 target_include_directories(fcpw PUBLIC deps/glog/src ${CMAKE_BINARY_DIR}/deps/glog)
 target_include_directories(fcpw PUBLIC deps/eigen-git-mirror)
 target_include_directories(fcpw PUBLIC deps/ThreadPool)
-target_include_directories(fcpw PUBLIC deps/embree)
 target_include_directories(fcpw PUBLIC core)
+
+if(BENCHMARK_EMBREE)
+	target_include_directories(fcpw PUBLIC deps/embree)
+	list(APPEND ALL_FCPW_LIBS embree)
+endif()
 
 if(PROFILE)
 	target_include_directories(fcpw PUBLIC deps/high-performance-cplusplus-profiler)
 	list(APPEND ALL_FCPW_LIBS profiler)
 endif()
 
-list(APPEND ALL_FCPW_LIBS fcpw glog embree)
+list(APPEND ALL_FCPW_LIBS fcpw glog)
 
 ################################################################################
 if(BUILD_TESTS)

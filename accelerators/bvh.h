@@ -8,7 +8,7 @@ namespace fcpw {
 // - implement more tree construction heuristics (sah, volume ratio, volume overlap)
 // - implement sbvh
 // - implement mbvh with vectorization
-// - guess closest point radius
+// - estimate closest point radius (i.e., conversative guess of spherical region containing query point)
 // - implement "queueless" closest point traversal
 // - try bottom up closest point traversal strategy
 

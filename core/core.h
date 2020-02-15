@@ -15,7 +15,6 @@
 #include <Eigen/Geometry>
 #include <glog/logging.h>
 #include <glog/raw_logging.h>
-#include <ThreadPool.h>
 #ifdef PROFILE
 	#include <profiler/Profiler.h>
 #endif
@@ -41,9 +40,6 @@ static const float minFloat = std::numeric_limits<float>::lowest();
 static const float maxFloat = std::numeric_limits<float>::max();
 static const float epsilon = std::numeric_limits<float>::epsilon();
 static const float inf = std::numeric_limits<float>::infinity();
-
-static progschj::ThreadPool pool;
-static int nThreads = 8;
 
 template <typename T, typename U, typename V>
 inline T clamp(T val, U low, V high) {

@@ -1,6 +1,9 @@
 #include "constructive-solid-geometry/node.h"
+#include "accelerators/baseline.h"
 #include "accelerators/bvh.h"
-#include "accelerators/embree_bvh.h"
+#ifdef BENCHMARK_EMBREE
+	#include "accelerators/embree_bvh.h"
+#endif
 #include <fstream>
 #include <sstream>
 
@@ -191,6 +194,24 @@ inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildAggregate(const Aggregat
 	// build aggregate over instances
 	return aggregateType == AggregateType::Bvh ? std::make_shared<Bvh<DIM>>(objectInstances) :
 												 std::make_shared<Baseline<DIM>>(objectInstances);
+}
+
+template <int DIM>
+std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildEmbreeAggregate()
+{
+#ifdef BENCHMARK_EMBREE
+	int nObjects = (int)objects.size();
+	if (nObjects > 1) LOG(FATAL) << "Scene::buildEmbreeAggregate(): Not supported for multiple objects";
+
+	objectAggregates.emplace_back(std::make_shared<EmbreeBvh<DIM>>(objects[0], soups[0]));
+	objectInstances.emplace_back(objectAggregates[0]);
+	instanceTransforms.resize(1);
+
+	return objectAggregates[0];
+#endif
+
+	LOG(FATAL) << "Scene::buildEmbreeAggregate(): Embree not linked!";
+	return nullptr;
 }
 
 } // namespace fcpw

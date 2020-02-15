@@ -16,8 +16,7 @@ enum class ObjectType {
 
 enum class AggregateType {
 	Baseline,
-	Bvh,
-	EmbreeBvh
+	Bvh
 };
 
 std::vector<std::pair<std::string, LoadingOption>> files;
@@ -32,6 +31,9 @@ public:
 
 	// builds aggregate
 	std::shared_ptr<Aggregate<DIM>> buildAggregate(const AggregateType& aggregateType);
+
+	// builds embree aggregate
+	std::shared_ptr<Aggregate<DIM>> buildEmbreeAggregate();
 
 	// members
 	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;

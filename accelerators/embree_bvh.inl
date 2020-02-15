@@ -8,7 +8,7 @@ inline EmbreeBvh<DIM>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<DIM
 Baseline<DIM>(primitives_),
 soup(soup_)
 {
-	// nothing to do
+	LOG(INFO) << "EmbreeBvh<DIM>(): No embree support for dimension: " << DIM;
 }
 
 template <int DIM>
@@ -70,7 +70,7 @@ void errorFunction(void *userPtr, enum RTCError error, const char *str)
 		default                         : code = "invalid error code"; break;
 	}
 
-	LOG(FATAL) << "code: " << code << " msg: " << str;
+	LOG(FATAL) << "Embree error code: " << code << " msg: " << str;
 }
 
 void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args,
@@ -197,7 +197,7 @@ soup(soup_)
 {
 	// initialize device
 	device = rtcNewDevice(NULL); // specify flags e.g. threads, isa, verbose, tri_accel=bvh4.triangle4v if required
-	if (!device) LOG(FATAL) << "unable to create device: " << rtcGetDeviceError(NULL);
+	if (!device) LOG(FATAL) << "EmbreeBvh<3>(): Unable to create device: " << rtcGetDeviceError(NULL);
 
 	// register error callback
 	rtcSetDeviceErrorFunction(device, errorFunction, NULL);
@@ -285,6 +285,10 @@ template <>
 inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 								   bool checkOcclusion, bool countHits, bool collectAll) const
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	// initialize intersect context (RTC_INTERSECT_CONTEXT_FLAG_INCOHERENT is enabled by default)
 	RTCIntersectContext context;
 	rtcInitIntersectContext(&context);
@@ -351,6 +355,10 @@ template <>
 inline bool EmbreeBvh<3>::findClosestPoint(BoundingSphere<3>& s,
 										   Interaction<3>& i) const
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	// initialize closest point context
 	RTCPointQueryContext context;
 	rtcInitPointQueryContext(&context);
