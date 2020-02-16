@@ -206,12 +206,13 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 
 #ifdef BENCHMARK_EMBREE
 template <int DIM>
-inline std::shared_ptr<Aggregate<DIM>> Scene<DIM>::buildEmbreeAggregate()
+inline void Scene<DIM>::buildEmbreeAggregate()
 {
 	int nObjects = (int)objects.size();
 	if (nObjects > 1) LOG(FATAL) << "Scene::buildEmbreeAggregate(): Not supported for multiple objects";
 
-	return std::make_shared<EmbreeBvh<DIM>>(objects[0], soups[0]);
+	aggregate = std::make_shared<EmbreeBvh<DIM>>(objects[0], soups[0]);
+	objectInstances.clear();
 }
 #endif
 

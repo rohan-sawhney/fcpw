@@ -29,11 +29,18 @@ nLeafs(0),
 leafSize(leafSize_),
 primitives(primitives_)
 {
+	using namespace std::chrono;
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
 	build();
-	LOG(INFO) << "Bvh created with "
+
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+	LOG(INFO) << "Built Bvh with "
 			  << nNodes << " nodes, "
 			  << nLeafs << " leaves, "
-			  << primitives.size() << " primitives";
+			  << primitives.size() << " primitives in "
+			  << timeSpan.count() << " seconds";
 }
 
 template <int DIM>

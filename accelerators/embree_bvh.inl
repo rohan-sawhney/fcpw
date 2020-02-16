@@ -195,6 +195,9 @@ inline EmbreeBvh<3>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<3>>>&
 Baseline<3>(primitives_),
 soup(soup_)
 {
+	using namespace std::chrono;
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
 	// initialize device
 	device = rtcNewDevice(NULL); // specify flags e.g. threads, isa, verbose, tri_accel=bvh4.triangle4v if required
 	if (!device) LOG(FATAL) << "EmbreeBvh<3>(): Unable to create device: " << rtcGetDeviceError(NULL);
@@ -246,8 +249,11 @@ soup(soup_)
 	rtcCommitScene(scene);
 
 	// print bvh stats
-	LOG(INFO) << "Embree Bvh created with "
-			  << this->primitives.size() << " primitives";
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+	LOG(INFO) << "Built Embree Bvh with "
+			  << primitives.size() << " primitives in "
+			  << timeSpan.count() << " seconds";
 }
 
 template <>

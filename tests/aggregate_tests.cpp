@@ -9,11 +9,12 @@
 #include "args/args.hxx"
 
 using namespace fcpw;
+using namespace std::chrono;
 
 static bool vizScene = false;
 static bool checkCorrectness = true;
 static bool checkPerformance = true;
-static int nPoints = 10000;
+static int nQueries = 10000;
 static progschj::ThreadPool pool;
 static int nThreads = 8;
 
@@ -26,7 +27,7 @@ void generateScatteredPointsAndRays(std::vector<fcpw::Vector<DIM>>& scatteredPoi
 	fcpw::Vector<DIM> o = fcpw::Vector<DIM>::Zero();
 	fcpw::Vector<DIM> d = fcpw::Vector<DIM>::Zero();
 
-	for (int i = 0; i < nPoints; i++) {
+	for (int i = 0; i < nQueries; i++) {
 		for (int j = 0; j < DIM; j++) {
 			o(j) = boundingBox.pMin(j) + e(j)*uniformRealRandomNumber();
 			d(j) = uniformRealRandomNumber(-1.0f, 1.0f);
@@ -37,6 +38,80 @@ void generateScatteredPointsAndRays(std::vector<fcpw::Vector<DIM>>& scatteredPoi
 	}
 }
 
+template <int DIM>
+void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
+							 const std::vector<fcpw::Vector<DIM>>& rayOrigins,
+							 const std::vector<fcpw::Vector<DIM>>& rayDirections,
+							 const std::string& aggregateType)
+{
+	int pCurrent = 0;
+	int pRange = std::max(100, (int)nQueries/nThreads);
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+	while (pCurrent < nQueries) {
+		int pEnd = std::min(nQueries, pCurrent + pRange);
+		pool.enqueue([&aggregate, &rayOrigins, &rayDirections, pCurrent, pEnd]() {
+			#ifdef PROFILE
+				PROFILE_THREAD_SCOPED();
+			#endif
+
+			for (int i = pCurrent; i < pEnd; i++) {
+				// perform intersection query
+				std::vector<Interaction<DIM>> cs;
+				Ray<DIM> r(rayOrigins[i], rayDirections[i]);
+				int hit = aggregate->intersect(r, cs);
+			}
+		});
+
+		pCurrent += pRange;
+	}
+
+	pool.wait_until_empty();
+	pool.wait_until_nothing_in_flight();
+
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+	LOG(INFO) << rayOrigins.size() << " intersection queries took "
+			  << timeSpan.count() << " seconds with "
+			  << aggregateType << " aggregate";
+}
+
+template <int DIM>
+void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
+							 const std::vector<fcpw::Vector<DIM>>& queryPoints,
+							 const std::string& aggregateType)
+{
+	int pCurrent = 0;
+	int pRange = std::max(100, (int)nQueries/nThreads);
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+	while (pCurrent < nQueries) {
+		int pEnd = std::min(nQueries, pCurrent + pRange);
+		pool.enqueue([&aggregate, &queryPoints, pCurrent, pEnd]() {
+			#ifdef PROFILE
+				PROFILE_THREAD_SCOPED();
+			#endif
+
+			for (int i = pCurrent; i < pEnd; i++) {
+				// perform closest point query
+				Interaction<DIM> c;
+				BoundingSphere<DIM> s(queryPoints[i], maxFloat);
+				bool found = aggregate->findClosestPoint(s, c);
+			}
+		});
+
+		pCurrent += pRange;
+	}
+
+	pool.wait_until_empty();
+	pool.wait_until_nothing_in_flight();
+
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+	LOG(INFO) << queryPoints.size() << " closest point queries took "
+			  << timeSpan.count() << " seconds with "
+			  << aggregateType << " aggregate";
+}
 /*
 template <int DIM>
 void testIntersectionQueries(const std::shared_ptr<PointCloud<DIM>>& cloud,
@@ -109,10 +184,10 @@ void testAggregates(const std::shared_ptr<PointCloud<DIM>>& cloud,
 					const std::shared_ptr<Aggregate<DIM>>& bvh)
 {
 	int pCurrent = 0;
-	int pRange = std::max(100, (int)nSamples/nThreads);
+	int pRange = std::max(100, (int)nQueries/nThreads);
 
-	while (pCurrent < nSamples) {
-		int pEnd = std::min(nSamples, pCurrent + pRange);
+	while (pCurrent < nQueries) {
+		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&cloud, &rayDirections, &kdTree, &baseline, &bvh, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
@@ -167,34 +242,38 @@ template <int DIM>
 void run()
 {
 	// build baseline scene
-	Scene<DIM> baselineScene;
-	baselineScene.loadFiles(true, false);
-	baselineScene.buildAggregate(AggregateType::Baseline);
+	Scene<DIM> scene;
+	scene.loadFiles(true, false);
+	scene.buildAggregate(AggregateType::Baseline);
 
 	// generate random points and rays used to visualize csg
-	BoundingBox<DIM> boundingBox = baselineScene.aggregate->boundingBox();
+	BoundingBox<DIM> boundingBox = scene.aggregate->boundingBox();
 	std::vector<fcpw::Vector<DIM>> queryPoints, randomDirections;
 	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
 
 	if (vizScene) {
-		visualizeScene<DIM>(baselineScene, queryPoints, randomDirections);
+		visualizeScene<DIM>(scene, queryPoints, randomDirections);
 
 	} else {
-		// build bvh scene
-		Scene<DIM> bvhScene;
-		bvhScene.loadFiles(true, false);
-		bvhScene.buildAggregate(AggregateType::Bvh);
+		if (checkPerformance) {
+			// benchmark baseline queries
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
+
+			// build bvh aggregate & benchmark queries
+			scene.buildAggregate(AggregateType::Bvh);
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh");
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh");
 
 #ifdef BENCHMARK_EMBREE
-		// build embree bvh scene
-		Scene<DIM> embreeBvhScene;
-		embreeBvhScene.loadFiles(true, false);
-		embreeBvhScene.buildEmbreeAggregate();
+			// build embree bvh aggregate & benchmark queries
+			scene.buildEmbreeAggregate();
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
 #endif
+		}
 
-		// TODO:
-		// checkCorrectness
-		// checkPerformance
+		// TODO: checkCorrectness
 	}
 }
 
@@ -210,7 +289,7 @@ int main(int argc, const char *argv[]) {
 	args::Flag checkCorrectness(group, "bool", "check aggregate correctness", {"checkCorrectness"});
 	args::Flag checkPerformance(group, "bool", "check aggregate performance", {"checkPerformance"});
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
-	args::ValueFlag<int> nPoints(parser, "integer", "nPoints", {"nPoints"});
+	args::ValueFlag<int> nQueries(parser, "integer", "number of queries", {"nQueries"});
 	args::ValueFlag<int> nThreads(parser, "integer", "nThreads", {"nThreads"});
 	args::ValueFlagList<std::string> triangleFilenames(parser, "string", "triangle soup filenames", {"tFile"});
 
@@ -249,7 +328,7 @@ int main(int argc, const char *argv[]) {
 	if (vizScene) ::vizScene = args::get(vizScene);
 	if (checkCorrectness) ::checkCorrectness = args::get(checkCorrectness);
 	if (checkPerformance) ::checkPerformance = args::get(checkPerformance);
-	if (nPoints) ::nPoints = args::get(nPoints);
+	if (nQueries) ::nQueries = args::get(nQueries);
 	if (nThreads) ::nThreads = args::get(nThreads);
 	if (triangleFilenames) {
 		for (const auto tsf: args::get(triangleFilenames)) {

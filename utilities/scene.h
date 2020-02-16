@@ -35,7 +35,7 @@ public:
 
 #ifdef BENCHMARK_EMBREE
 	// builds embree aggregate
-	std::shared_ptr<Aggregate<DIM>> buildEmbreeAggregate();
+	void buildEmbreeAggregate();
 #endif
 
 	// members
