@@ -127,9 +127,9 @@ inline void CsgNode<DIM>::computeInteractions(const std::vector<Interaction<DIM>
 
 template <int DIM>
 inline int CsgNode<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-								   bool checkOcclusion, bool countHits, bool collectAll) const
+								   bool checkOcclusion, bool countHits) const
 {
-	// TODO: optimize for checkOcclusion == true and collectAll == false
+	// TODO: optimize for checkOcclusion == true
 	int hits = 0;
 	is.clear();
 	float tMin, tMax;
@@ -138,7 +138,7 @@ inline int CsgNode<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& i
 		// perform intersection query for left child
 		Ray<DIM> rLeft = r;
 		std::vector<Interaction<DIM>> isLeft;
-		int hitsLeft = left->intersect(rLeft, isLeft, false, true, true);
+		int hitsLeft = left->intersect(rLeft, isLeft, false, true);
 
 		// return if no intersections for the left child were found and
 		// the operation is intersection or difference
@@ -148,7 +148,7 @@ inline int CsgNode<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& i
 		// perform intersection query for right child
 		Ray<DIM> rRight = r;
 		std::vector<Interaction<DIM>> isRight;
-		int hitsRight = right->intersect(rRight, isRight, false, true, true);
+		int hitsRight = right->intersect(rRight, isRight, false, true);
 
 		// return if no intersections were found for both children
 		if (hitsLeft == 0 && hitsRight == 0) return 0;
@@ -183,8 +183,7 @@ inline int CsgNode<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& i
 
 		// shrink ray's tMax if possible
 		hits = (int)is.size();
-		if (operation == BooleanOperation::None && !collectAll) is.resize(1);
-		if (!countHits && !collectAll) r.tMax = is[0].d; // list is already sorted
+		if (!countHits) r.tMax = is[0].d; // list is already sorted
 	}
 
 	return hits;

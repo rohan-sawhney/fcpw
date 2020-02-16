@@ -184,14 +184,14 @@ inline float Bvh<DIM>::signedVolume() const
 
 template <int DIM>
 inline int Bvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-							   bool checkOcclusion, bool countHits, bool collectAll) const
+							   bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
 	int hits = 0;
-	if (!collectAll) is.resize(1);
+	if (!countHits) is.resize(1);
 	std::stack<BvhTraversal> todo;
 	float bbhits[4];
 	int closer, other;
@@ -209,23 +209,20 @@ inline int Bvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 		const BvhFlatNode<DIM>& node(flatTree[ni]);
 
 		// if this node is further than the closest found intersection, continue
-		if (!countHits && !collectAll && near > r.tMax) {
-			continue;
-		}
+		if (!countHits && near > r.tMax) continue;
 
 		// is leaf -> intersect
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nPrimitives; p++) {
 				std::vector<Interaction<DIM>> cs;
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[node.start + p];
-				int hit = prim->intersect(r, cs, checkOcclusion, countHits, collectAll);
+				int hit = prim->intersect(r, cs, checkOcclusion, countHits);
 
 				// keep the closest intersection only
 				if (hit > 0) {
 					hits += hit;
-					if (!countHits && !collectAll) r.tMax = cs[0].d;
-					if (collectAll) is.insert(is.end(), cs.begin(), cs.end());
-					else is[0] = cs[0];
+					if (countHits) is.insert(is.end(), cs.begin(), cs.end());
+					else r.tMax = cs[0].d;
 
 					if (checkOcclusion) return 1;
 				}
@@ -264,7 +261,12 @@ inline int Bvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 		}
 	}
 
-	if (collectAll) std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+	if (countHits) {
+		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+		is = removeDuplicates<DIM>(is);
+		hits = (int)is.size();
+	}
+
 	return hits;
 }
 

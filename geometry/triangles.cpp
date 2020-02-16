@@ -113,7 +113,7 @@ Vector3f Triangle::normal(int vIndex, int eIndex) const
 }
 
 int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-						bool checkOcclusion, bool countHits, bool collectAll) const
+						bool checkOcclusion, bool countHits) const
 {
 	#ifdef PROFILE
 		PROFILE_SCOPED();

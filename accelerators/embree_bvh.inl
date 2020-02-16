@@ -43,9 +43,9 @@ inline float EmbreeBvh<DIM>::signedVolume() const
 
 template <int DIM>
 inline int EmbreeBvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-									 bool checkOcclusion, bool countHits, bool collectAll) const
+									 bool checkOcclusion, bool countHits) const
 {
-	return Baseline<DIM>::intersect(r, is, checkOcclusion, countHits, collectAll);
+	return Baseline<DIM>::intersect(r, is, checkOcclusion, countHits);
 }
 
 template <int DIM>
@@ -283,7 +283,7 @@ inline float EmbreeBvh<3>::signedVolume() const
 
 template <>
 inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-								   bool checkOcclusion, bool countHits, bool collectAll) const
+								   bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -316,7 +316,7 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	}
 
 	// set filter function to collect all hits if requested
-	if (countHits || collectAll) {
+	if (countHits) {
 		std::function<void(const struct RTCFilterFunctionNArguments *)> callback =
 										std::bind(triangleIntersectionCallback, std::placeholders::_1,
 												  std::cref(this->primitives), std::cref(r), std::ref(is));
@@ -330,8 +330,9 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	if (is.size() > 0) {
 		// sort interactions
 		std::sort(is.begin(), is.end(), compareInteractions<3>);
-		r.tMax = is[0].d;
+		is = removeDuplicates<3>(is);
 		hits = (int)is.size();
+		r.tMax = is[0].d;
 
 	} else {
 		if (rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {

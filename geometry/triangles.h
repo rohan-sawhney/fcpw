@@ -33,8 +33,7 @@ public:
 
 	// intersects with ray
 	int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-				  bool checkOcclusion=false, bool countHits=false,
-				  bool collectAll=false) const;
+				  bool checkOcclusion=false, bool countHits=false) const;
 
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;

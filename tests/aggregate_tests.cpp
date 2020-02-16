@@ -1,4 +1,5 @@
 #include "utilities/scene.h"
+#include <ThreadPool.h>
 
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
@@ -8,11 +9,15 @@
 #include "args/args.hxx"
 
 using namespace fcpw;
-/*
-bool runTests = true;
-bool vizScene = false;
-int nSamples = 10000;
 
+static bool vizScene = false;
+static bool checkCorrectness = true;
+static bool checkPerformance = true;
+static int nPoints = 10000;
+static progschj::ThreadPool pool;
+static int nThreads = 8;
+
+/*
 template <int DIM>
 std::shared_ptr<PointCloud<DIM>> generateScatteredPointsAndRays(
 								std::vector<VectorXf>& rayDirections,
@@ -314,10 +319,15 @@ void visualizeScene(const std::vector<std::shared_ptr<PolygonSoup<DIM>>>& soups,
 	// give control to polyscope gui
 	polyscope::show();
 }
-
+*/
 template <int DIM>
 void run()
 {
+	// build scene
+	Scene<DIM> scene;
+	scene.loadFiles(true, false);
+
+	/*
 	// build scene
 	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;
 	std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>> primitives;
@@ -343,24 +353,23 @@ void run()
 	} else if (vizScene) {
 		visualizeScene<DIM>(soups, primitives, cloud, rayDirections);
 	}
+	*/
 }
-*/
+
 int main(int argc, const char *argv[]) {
 	google::InitGoogleLogging(argv[0]);
 #ifdef PROFILE
 	Profiler::detect(argc, argv);
 #endif
-/*
 	// configure the argument parser
-	args::ArgumentParser parser("geometry tests");
+	args::ArgumentParser parser("aggregate tests");
 	args::Group group(parser, "", args::Group::Validators::DontCare);
-	args::Flag runTests(group, "runTests", "run tests", {"runTests"});
-	args::Flag vizScene(group, "vizScene", "visualize scene", {"vizScene"});
+	args::Flag vizScene(group, "bool", "visualize scene", {"vizScene"});
+	args::Flag checkCorrectness(group, "bool", "check aggregate correctness", {"checkCorrectness"});
+	args::Flag checkPerformance(group, "bool", "check aggregate performance", {"checkPerformance"});
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
-	args::ValueFlag<int> nSamples(parser, "integer", "total samples", {"nSamples"});
+	args::ValueFlag<int> nPoints(parser, "integer", "nPoints", {"nPoints"});
 	args::ValueFlag<int> nThreads(parser, "integer", "nThreads", {"nThreads"});
-	args::ValueFlagList<std::string> lineSegmentFilenames(parser, "string", "line segment soup filenames", {"lsFile"});
-	args::ValueFlagList<std::string> bezierFilenames(parser, "string", "bezier soup filenames", {"bFile"});
 	args::ValueFlagList<std::string> triangleFilenames(parser, "string", "triangle soup filenames", {"tFile"});
 
 	// parse args
@@ -383,46 +392,32 @@ int main(int argc, const char *argv[]) {
 		return EXIT_FAILURE;
 
 	} else {
-		if (DIM != 2 && DIM != 3) {
-			std::cerr << "Only dimensions 2 and 3 are supported at this moment" << std::endl;
+		if (DIM != 3) {
+			std::cerr << "Only dimension 3 is supported at this moment" << std::endl;
 			return EXIT_FAILURE;
 		}
 	}
 
-	if (DIM == 2 && !lineSegmentFilenames && !bezierFilenames && !triangleFilenames) {
-		std::cerr << "Please specify line segment, bezier or triangle soup filenames" << std::endl;
-		return EXIT_FAILURE;
-
-	} else if (DIM == 3 && !triangleFilenames) {
+	if (!triangleFilenames) {
 		std::cerr << "Please specify triangle soup filenames" << std::endl;
 		return EXIT_FAILURE;
 	}
 
 	// set global flags
-	::runTests = args::get(runTests) || !args::get(vizScene);
-	::vizScene = args::get(vizScene);
-	if (nSamples) ::nSamples = args::get(nSamples);
-	if (nThreads) fcpw::nThreads = args::get(nThreads);
-	if (lineSegmentFilenames) {
-		for (const auto lsf: args::get(lineSegmentFilenames)) {
-			::lineSegmentFilenames.emplace_back(lsf);
-		}
-	}
-	if (bezierFilenames) {
-		for (const auto bsf: args::get(bezierFilenames)) {
-			::bezierFilenames.emplace_back(bsf);
-		}
-	}
+	if (vizScene) ::vizScene = args::get(vizScene);
+	if (checkCorrectness) ::checkCorrectness = args::get(checkCorrectness);
+	if (checkPerformance) ::checkPerformance = args::get(checkPerformance);
+	if (nPoints) ::nPoints = args::get(nPoints);
+	if (nThreads) ::nThreads = args::get(nThreads);
 	if (triangleFilenames) {
 		for (const auto tsf: args::get(triangleFilenames)) {
-			::triangleFilenames.emplace_back(tsf);
+			files.emplace_back(std::make_pair(tsf, LoadingOption::ObjTriangles));
 		}
 	}
 
 	// run app
-	if (DIM == 2) run<2>();
-	else if (DIM == 3) run<3>();
-*/
+	if (DIM == 3) run<3>();
+
 #ifdef PROFILE
 	Profiler::dumphtml();
 #endif

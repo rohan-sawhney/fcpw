@@ -30,8 +30,7 @@ public:
 
 	// intersects with ray
 	virtual int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-						  bool checkOcclusion=false, bool countHits=false,
-						  bool collectAll=false) const = 0;
+						  bool checkOcclusion=false, bool countHits=false) const = 0;
 
 	// finds closest point to sphere center
 	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const = 0;
@@ -46,21 +45,14 @@ public:
 	// performs inside outside test for x
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
 		if (useRayIntersection) {
-			// do two intersection tests to ensure correctness of resultness
-			Vector<DIM> direction1 = Vector<DIM>::Zero();
-			Vector<DIM> direction2 = Vector<DIM>::Zero();
-			direction1(0) = 1;
-			direction2(1) = 1;
+			Vector<DIM> direction = Vector<DIM>::Zero();
+			direction(0) = 1;
 
-			std::vector<Interaction<DIM>> is1;
-			Ray<DIM> r1(x, direction1);
-			int hits1 = this->intersect(r1, is1, false, true);
+			std::vector<Interaction<DIM>> is;
+			Ray<DIM> r(x, direction);
+			int hits = this->intersect(r, is, false, true);
 
-			std::vector<Interaction<DIM>> is2;
-			Ray<DIM> r2(x, direction2);
-			int hits2 = this->intersect(r2, is2, false, true);
-
-			return hits1%2 == 1 && hits2%2 == 1;
+			return hits%2 == 1;
 		}
 
 		Interaction<DIM> i;
@@ -130,13 +122,12 @@ public:
 
 	// intersects with ray
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-				  bool checkOcclusion=false, bool countHits=false,
-				  bool collectAll=false) const {
+				  bool checkOcclusion=false, bool countHits=false) const {
 		// apply inverse transform to ray
 		Ray<DIM> rInv = r.transform(transformInv);
 
 		// intersect
-		int hits = aggregate->intersect(rInv, is, checkOcclusion, countHits, collectAll);
+		int hits = aggregate->intersect(rInv, is, checkOcclusion, countHits);
 
 		// apply transform to ray and interactions
 		r.tMax = rInv.transform(transform).tMax;

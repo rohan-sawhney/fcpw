@@ -85,7 +85,7 @@ void clampToCsg(const std::string& method,
 
 				if (method == "intersect") {
 					std::vector<Interaction<DIM>> cs;
-					int hits = aggregate->intersect(r, cs, false, true, true);
+					int hits = aggregate->intersect(r, cs, false, true);
 					if (hits > 0) {
 						hitPoints[i] = cs[0].p;
 						didHit[i] = true;

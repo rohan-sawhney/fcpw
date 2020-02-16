@@ -19,14 +19,14 @@ struct Interaction {
 	}
 
 	// comparison operators
-	bool operator==(const Interaction<DIM>& i) {
+	bool operator==(const Interaction<DIM>& i) const {
 		bool distancesMatch = std::fabsf(d - i.d) < 1e-6;
 		if (distanceInfo == DistanceInfo::Bounded) return distancesMatch;
 
 		return distancesMatch && (p - i.p).squaredNorm() < 1e-6;
 	}
 
-	bool operator!=(const Interaction<DIM>& i) {
+	bool operator!=(const Interaction<DIM>& i) const {
 		return !(*this == i);
 	}
 
@@ -57,6 +57,23 @@ struct Interaction {
 template <int DIM>
 inline bool compareInteractions(const Interaction<DIM>& i, const Interaction<DIM>& j) {
 	return i.d < j.d;
+}
+
+template <int DIM>
+inline std::vector<Interaction<DIM>> removeDuplicates(const std::vector<Interaction<DIM>>& is) {
+	int N = (int)is.size();
+	std::vector<bool> isDuplicate(N, false);
+	std::vector<Interaction<DIM>> cs;
+
+	for (int i = 0; i < N - 1; i++) {
+		if (is[i] == is[i + 1]) isDuplicate[i + 1] = true;
+	}
+
+	for (int i = 0; i < N; i++) {
+		if (!isDuplicate[i]) cs.emplace_back(is[i]);
+	}
+
+	return cs;
 }
 
 } // namespace fcpw
