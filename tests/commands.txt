@@ -1,0 +1,1 @@
+GLOG_logtostderr=1 ./csg_tests --dim=3 --tFile ../input/armadillo.obj --tFile ../input/bunny.obj --tFile ../input/kitten.obj --csgFile ../input/csg.txt --instanceFile ../input/instances3d.txt --nThreads=8

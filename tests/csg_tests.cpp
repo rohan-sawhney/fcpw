@@ -159,9 +159,25 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 	if (DIM == 3) {
 		// register surface meshes
 		for (int i = 0; i < (int)scene.soups.size(); i++) {
-			polyscope::registerSurfaceMesh("Polygon_Soup_" + std::to_string(i),
-										   scene.soups[i]->positions,
-										   scene.soups[i]->indices);
+			std::string meshName = "Polygon_Soup_" + std::to_string(i);
+			const std::vector<std::vector<int>>& indices = scene.soups[i]->indices;
+			const std::vector<fcpw::Vector<DIM>>& positions = scene.soups[i]->positions;
+
+			if (scene.instanceTransforms[i].size() > 0) {
+				for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
+					std::string transformedMeshName = meshName + "_" + std::to_string(j);
+					std::vector<fcpw::Vector<DIM>> transformedPositions;
+
+					for (int k = 0; k < (int)positions.size(); k++) {
+						transformedPositions.emplace_back(scene.instanceTransforms[i][j]*positions[k]);
+					}
+
+					polyscope::registerSurfaceMesh(transformedMeshName, transformedPositions, indices);
+				}
+
+			} else {
+				polyscope::registerSurfaceMesh(meshName, positions, indices);
+			}
 		}
 
 		// register point clouds
@@ -184,7 +200,7 @@ void run()
 {
 	// build scene
 	Scene<DIM> scene;
-	scene.loadFiles(true, true);
+	scene.loadFiles(true, false);
 	scene.buildAggregate(AggregateType::Bvh);
 
 	// generate random points and rays used to visualize csg
@@ -214,6 +230,7 @@ int main(int argc, const char *argv[]) {
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
 	args::ValueFlag<int> nThreads(parser, "integer", "nThreads", {"nThreads"});
 	args::ValueFlag<std::string> csgFilename(parser, "string", "csg filename", {"csgFile"});
+	args::ValueFlag<std::string> instanceFilename(parser, "string", "instance filename", {"instanceFile"});
 	args::ValueFlagList<std::string> triangleFilenames(parser, "string", "triangle soup filenames", {"tFile"});
 
 	// parse args
@@ -250,6 +267,7 @@ int main(int argc, const char *argv[]) {
 	// set global flags
 	if (nThreads) ::nThreads = args::get(nThreads);
 	if (csgFilename) ::csgFilename = args::get(csgFilename);
+	if (instanceFilename) ::instanceFilename = args::get(instanceFilename);
 	if (triangleFilenames) {
 		for (const auto tsf: args::get(triangleFilenames)) {
 			files.emplace_back(std::make_pair(tsf, LoadingOption::ObjTriangles));
