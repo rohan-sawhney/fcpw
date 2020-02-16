@@ -263,11 +263,17 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 
 	int vIndex = -1;
 	int eIndex = -1;
-	i.d = findClosestPointOnTriangle(pa, pb, pc, s.c, i.p, i.uv, vIndex, eIndex);
-	i.n = normal(vIndex, eIndex);
-	i.primitive = this;
+	double d = findClosestPointOnTriangle(pa, pb, pc, s.c, i.p, i.uv, vIndex, eIndex);
 
-	return true;
+	if (d*d <= s.r2) {
+		i.d = d;
+		i.n = normal(vIndex, eIndex);
+		i.primitive = this;
+
+		return true;
+	}
+
+	return false;
 }
 
 void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<3>>>& triangles,

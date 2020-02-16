@@ -63,6 +63,7 @@ void clampToCsg(const std::string& method,
 				const std::vector<fcpw::Vector<DIM>>& scatteredPoints,
 				const std::vector<fcpw::Vector<DIM>>& randomDirections,
 				const std::shared_ptr<Aggregate<DIM>>& aggregate,
+				const BoundingBox<DIM>& boundingBox,
 				std::vector<fcpw::Vector<DIM>>& clampedPoints)
 {
 	int N = (int)scatteredPoints.size();
@@ -70,7 +71,6 @@ void clampToCsg(const std::string& method,
 	int pRange = std::max(100, N/nThreads);
 	std::vector<fcpw::Vector<DIM>> hitPoints(N);
 	std::vector<bool> didHit(N, false);
-	BoundingBox<DIM> boundingBox = aggregate->boundingBox();
 
 	while (pCurrent < N) {
 		int pEnd = std::min(N, pCurrent + pRange);
@@ -127,8 +127,10 @@ void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
 		generateScatteredPointsAndRays<DIM>(1000, scatteredPoints, randomDirections, boundingBox);
 
 		// intersect and raymarch points
-		clampToCsg<DIM>("intersect", scatteredPoints, randomDirections, scene.aggregate, intersectedPoints);
-		clampToCsg<DIM>("raymarch", scatteredPoints, randomDirections, scene.aggregate, raymarchedPoints);
+		clampToCsg<DIM>("intersect", scatteredPoints, randomDirections,
+						scene.aggregate, boundingBox, intersectedPoints);
+		clampToCsg<DIM>("raymarch", scatteredPoints, randomDirections,
+						scene.aggregate, boundingBox, raymarchedPoints);
 
 		if (DIM == 3) {
 			// register point clouds
@@ -169,7 +171,8 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 
 	// register callback
 	polyscope::state::userCallback = std::bind(&guiCallback<DIM>, std::cref(scene),
-											   std::ref(boundingBox), std::ref(intersectedPoints),
+											   std::cref(boundingBox),
+											   std::ref(intersectedPoints),
 											   std::ref(raymarchedPoints));
 
 	// give control to polyscope gui
@@ -181,7 +184,7 @@ void run()
 {
 	// build scene
 	Scene<DIM> scene;
-	scene.loadFiles(false, true);
+	scene.loadFiles(true, true);
 	scene.buildAggregate(AggregateType::Bvh);
 
 	// generate random points and rays used to visualize csg
@@ -191,8 +194,10 @@ void run()
 
 	// intersect and raymarch points
 	std::vector<fcpw::Vector<DIM>> intersectedPoints, raymarchedPoints;
-	clampToCsg<DIM>("intersect", scatteredPoints, randomDirections, scene.aggregate, intersectedPoints);
-	clampToCsg<DIM>("raymarch", scatteredPoints, randomDirections, scene.aggregate, raymarchedPoints);
+	clampToCsg<DIM>("intersect", scatteredPoints, randomDirections,
+					scene.aggregate, boundingBox, intersectedPoints);
+	clampToCsg<DIM>("raymarch", scatteredPoints, randomDirections,
+					scene.aggregate, boundingBox, raymarchedPoints);
 
 	// visualize scene
 	visualizeScene<DIM>(scene, boundingBox, intersectedPoints, raymarchedPoints);

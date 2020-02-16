@@ -11,7 +11,7 @@ struct PolygonSoup {
 
 	// constructor
  	PolygonSoup(const std::vector<std::vector<int>>& indices_,
-				const std::vector<Vector3f>& positions_):
+				const std::vector<Vector<DIM>>& positions_):
 				indices(indices_), positions(positions_) {}
 
 	// returns polygon center
