@@ -214,7 +214,7 @@ soup(soup_)
 	// register closest point callback
 	std::function<bool(RTCPointQueryFunctionArguments *)> callback =
 						std::bind(closestPointTriangleCallback, std::placeholders::_1, std::cref(soup));
-	rtcSetGeometryPointQueryFunction(geometry, *callback.target<bool(*)(RTCPointQueryFunctionArguments *)>());
+	rtcSetGeometryPointQueryFunction(geometry, *callback.target<bool(*)(RTCPointQueryFunctionArguments *)>()); // TODO: fix
 
 	float *vertices = (float *)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0,
 													   RTC_FORMAT_FLOAT3, 3*sizeof(float),
@@ -320,7 +320,7 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 		std::function<void(const struct RTCFilterFunctionNArguments *)> callback =
 										std::bind(triangleIntersectionCallback, std::placeholders::_1,
 												  std::cref(this->primitives), std::cref(r), std::ref(is));
-		context.filter = *callback.target<void(*)(const struct RTCFilterFunctionNArguments *)>();
+		context.filter = *callback.target<void(*)(const struct RTCFilterFunctionNArguments *)>(); // TODO: fix
 	}
 
 	// intersect single ray with the scene
@@ -383,8 +383,8 @@ inline bool EmbreeBvh<3>::findClosestPoint(BoundingSphere<3>& s,
 		i.p(2) = result.p.z;
 		i.d = (i.p - s.c).norm();
 		i.primitive = this->primitives[result.primID].get();
-		i.uv = i.primitive->barycentricCoordinates(i.p);
-		i.n = i.primitive->normal(true);
+		i.uv = static_cast<const Triangle *>(i.primitive)->barycentricCoordinates(i.p);
+		i.n = static_cast<const Triangle *>(i.primitive)->normal(true);
 		s.r2 = i.d*i.d;
 
 		return true;

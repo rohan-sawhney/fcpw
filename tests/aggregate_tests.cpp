@@ -17,93 +17,27 @@ static int nPoints = 10000;
 static progschj::ThreadPool pool;
 static int nThreads = 8;
 
-/*
 template <int DIM>
-std::shared_ptr<PointCloud<DIM>> generateScatteredPointsAndRays(
-								std::vector<VectorXf>& rayDirections,
-								const BoundingBox<DIM>& boundingBox)
+void generateScatteredPointsAndRays(std::vector<fcpw::Vector<DIM>>& scatteredPoints,
+									std::vector<fcpw::Vector<DIM>>& randomDirections,
+									const BoundingBox<DIM>& boundingBox)
 {
-	std::shared_ptr<PointCloud<DIM>> cloud = std::make_shared<PointCloud<DIM>>();
-	cloud->points.reserve(nSamples);
-	rayDirections.reserve(nSamples);
-	VectorXf e = boundingBox.extent();
-	VectorXf o = VectorXf::Zero(DIM);
-	VectorXf d = VectorXf::Zero(DIM);
+	fcpw::Vector<DIM> e = boundingBox.extent();
+	fcpw::Vector<DIM> o = fcpw::Vector<DIM>::Zero();
+	fcpw::Vector<DIM> d = fcpw::Vector<DIM>::Zero();
 
-	for (int i = 0; i < nSamples; i++) {
+	for (int i = 0; i < nPoints; i++) {
 		for (int j = 0; j < DIM; j++) {
 			o(j) = boundingBox.pMin(j) + e(j)*uniformRealRandomNumber();
 			d(j) = uniformRealRandomNumber(-1.0f, 1.0f);
 		}
 
-		d.normalize();
-		cloud->points.emplace_back(o);
-		rayDirections.emplace_back(d);
+		scatteredPoints.emplace_back(o);
+		randomDirections.emplace_back(d.normalized());
 	}
-
-	return cloud;
 }
 
-template <int DIM>
-std::shared_ptr<DynamicKdTree<DIM>> constructKdTree(const std::shared_ptr<PointCloud<DIM>>& cloud)
-{
-	std::shared_ptr<DynamicKdTree<DIM>> kdTree = std::make_shared<DynamicKdTree<DIM>>(cloud);
-	int pCurrent = 0;
-	int pRange = std::max(100, (int)nSamples/nThreads);
-
-	// dynamically add points to kdtree
-	while (pCurrent < nSamples) {
-		int pEnd = std::min(nSamples, pCurrent + pRange);
-		kdTree->addPoints(pCurrent, pEnd);
-
-		pCurrent += pRange;
-	}
-
-	return kdTree;
-}
-
-std::shared_ptr<PolygonSoup<2>> constructBezierBaselines(const std::vector<std::vector<std::shared_ptr<Primitive<2>>>>& primitives,
-														 std::vector<std::shared_ptr<Primitive<2>>>& bezierPrimitives,
-														 std::vector<std::shared_ptr<Primitive<2>>>& tesselatedPrimitives,
-														 std::shared_ptr<Aggregate<2>>& bezierBaseline,
-														 std::shared_ptr<Aggregate<2>>& tesselatedBaseline,
-														 int granularity)
-{
-	std::vector<std::shared_ptr<Shape<2>>> beziers, tesselatedBeziers;
-
-	// collect beziers
-	for (int i = 0; i < (int)primitives.size(); i++) {
-		for (int j = 0; j < (int)primitives[i].size(); j++) {
-			GeometricPrimitive<2, float> *geometricPrim = static_cast<GeometricPrimitive<2, float> *>(primitives[i][j].get());
-			std::shared_ptr<Shape<2>> shape = geometricPrim->getShape();
-			const Bezier *bezier = dynamic_cast<const Bezier *>(shape.get());
-
-			if (bezier) beziers.emplace_back(shape);
-		}
-	}
-
-	if (beziers.size() > 0) {
-		// tesselate beziers
-		std::shared_ptr<PolygonSoup<2>> tesselatedSoup = tesselateBeziers(beziers, tesselatedBeziers, granularity);
-
-		// construct baselines
-		for (int i = 0; i < (int)beziers.size(); i++) {
-			bezierPrimitives.emplace_back(std::make_shared<GeometricPrimitive<2, float>>(beziers[i], nullptr));
-		}
-
-		for (int i = 0; i < (int)tesselatedBeziers.size(); i++) {
-			tesselatedPrimitives.emplace_back(std::make_shared<GeometricPrimitive<2, float>>(tesselatedBeziers[i], nullptr));
-		}
-
-		bezierBaseline = std::make_shared<BaselineAggregate<2>>(bezierPrimitives);
-		tesselatedBaseline = std::make_shared<BaselineAggregate<2>>(tesselatedPrimitives);
-
-		return tesselatedSoup;
-	}
-
-	return nullptr;
-}
-
+/*
 template <int DIM>
 void testIntersectionQueries(const std::shared_ptr<PointCloud<DIM>>& cloud,
 							 const std::vector<VectorXf>& rayDirections,
@@ -168,77 +102,6 @@ void testClosestPointQueries(const std::shared_ptr<PointCloud<DIM>>& cloud,
 }
 
 template <int DIM>
-void performKnnQueries(const std::shared_ptr<PointCloud<DIM>>& cloud,
-					   const std::shared_ptr<DynamicKdTree<DIM>>& kdTree,
-					   int neighbors, int start, int end)
-{
-	int N = end - start;
-	std::vector<std::vector<std::pair<size_t, float>>> resultSet(N);
-
-	for (int i = start; i < end; i++) {
-		VectorXf p = cloud->points[i];
-		kdTree->findNeighbors(neighbors, p, resultSet[i - start]);
-	}
-}
-
-template <int DIM>
-void performRNNQueries(const std::shared_ptr<PointCloud<DIM>>& cloud,
-					   const std::shared_ptr<DynamicKdTree<DIM>>& kdTree,
-					   float radius, int start, int end)
-{
-	int N = end - start;
-	std::vector<std::vector<std::pair<size_t, float>>> resultSet(N);
-
-	for (int i = start; i < end; i++) {
-		VectorXf p = cloud->points[i];
-		kdTree->findNeighbors(radius, p, resultSet[i - start]);
-	}
-}
-
-template <int DIM>
-void testBeziers(const std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>>& primitives,
-				 const std::shared_ptr<PointCloud<DIM>>& cloud,
-				 const std::vector<VectorXf>& rayDirections)
-{
-	// do nothing
-}
-
-template <>
-void testBeziers<2>(const std::vector<std::vector<std::shared_ptr<Primitive<2>>>>& primitives,
-					const std::shared_ptr<PointCloud<2>>& cloud,
-					const std::vector<VectorXf>& rayDirections)
-{
-	// construct baselines
-	std::vector<std::shared_ptr<Primitive<2>>> bezierPrimitives, tesselatedPrimitives;
-	std::shared_ptr<Aggregate<2>> bezierBaseline, tesselatedBaseline;
-	std::shared_ptr<PolygonSoup<2>> tesselatedSoup = constructBezierBaselines(primitives, bezierPrimitives,
-																			  tesselatedPrimitives, bezierBaseline,
-																			  tesselatedBaseline, 1000);
-	if (tesselatedSoup != nullptr) {
-		// compare intersections and closest points
-		int pCurrent = 0;
-		int pRange = std::max(100, (int)nSamples/nThreads);
-
-		while (pCurrent < nSamples) {
-			int pEnd = std::min(nSamples, pCurrent + pRange);
-			pool.enqueue([&cloud, &rayDirections, &bezierBaseline, &tesselatedBaseline, pCurrent, pEnd]() {
-				#ifdef PROFILE
-					PROFILE_THREAD_SCOPED();
-				#endif
-
-				testIntersectionQueries<2>(cloud, rayDirections, bezierBaseline, tesselatedBaseline, pCurrent, pEnd);
-				testClosestPointQueries<2>(cloud, bezierBaseline, tesselatedBaseline, pCurrent, pEnd);
-			});
-
-			pCurrent += pRange;
-		}
-
-		pool.wait_until_empty();
-		pool.wait_until_nothing_in_flight();
-	}
-}
-
-template <int DIM>
 void testAggregates(const std::shared_ptr<PointCloud<DIM>>& cloud,
 					const std::vector<VectorXf>& rayDirections,
 					const std::shared_ptr<DynamicKdTree<DIM>>& kdTree,
@@ -267,15 +130,14 @@ void testAggregates(const std::shared_ptr<PointCloud<DIM>>& cloud,
 	pool.wait_until_empty();
 	pool.wait_until_nothing_in_flight();
 }
-
+*/
 template <int DIM>
-void visualizeScene(const std::vector<std::shared_ptr<PolygonSoup<DIM>>>& soups,
-					const std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>>& primitives,
-					const std::shared_ptr<PointCloud<DIM>>& cloud,
-					const std::vector<VectorXf>& rayDirections)
+void visualizeScene(const Scene<DIM>& scene,
+					std::vector<fcpw::Vector<DIM>>& queryPoints,
+					std::vector<fcpw::Vector<DIM>>& randomDirections)
 {
 	// set a few options
-	polyscope::options::programName = "Geometry Tests";
+	polyscope::options::programName = "Aggregate Tests";
 	polyscope::options::verbosity = 0;
 	polyscope::options::usePrefsFile = false;
 	polyscope::options::autocenterStructures = false;
@@ -283,77 +145,57 @@ void visualizeScene(const std::vector<std::shared_ptr<PolygonSoup<DIM>>>& soups,
 	// initialize polyscope
 	polyscope::init();
 
-	if (DIM == 2) {
-		// set the camera to 2D mode (see below)
-		polyscope::view::style = polyscope::view::NavigateStyle::Planar;
+	// register point cloud
+	polyscope::registerPointCloud("Query_Points", queryPoints);
 
-		// register curve networks
-		for (int i = 0; i < (int)soups.size(); i++) {
-			std::string meshName = "Polygon_Soup_" + std::to_string(i);
-
-			if (isBezierSoup.find(i) != isBezierSoup.end()) {
-				std::shared_ptr<PolygonSoup<DIM>> tesselatedSoup = tesselateBeziers<float>(primitives[i], 100);
-				polyscope::registerCurveNetwork2D(meshName, tesselatedSoup->positions, tesselatedSoup->indices);
-
-			} else {
-				polyscope::registerCurveNetwork2D(meshName, soups[i]->positions, soups[i]->indices);
-			}
-		}
-
-		// register point cloud
-		polyscope::registerPointCloud2D("Point_Cloud", cloud->points);
-		polyscope::getPointCloud("Point_Cloud")->addVectorQuantity2D("Rays", rayDirections);
-
-	} else if (DIM == 3) {
+	if (DIM == 3) {
 		// register surface meshes
-		for (int i = 0; i < (int)soups.size(); i++) {
+		for (int i = 0; i < (int)scene.soups.size(); i++) {
 			polyscope::registerSurfaceMesh("Polygon_Soup_" + std::to_string(i),
-										   soups[i]->positions, soups[i]->indices);
+										   scene.soups[i]->positions, scene.soups[i]->indices);
 		}
 
-		// register point cloud and rays
-		polyscope::registerPointCloud("Point_Cloud", cloud->points);
-		polyscope::getPointCloud("Point_Cloud")->addVectorQuantity("Rays", rayDirections);
+		// add direction vectors
+		polyscope::getPointCloud("Query_Points")->addVectorQuantity("Random_Directions", randomDirections);
 	}
 
 	// give control to polyscope gui
 	polyscope::show();
 }
-*/
+
 template <int DIM>
 void run()
 {
-	// build scene
-	Scene<DIM> scene;
-	scene.loadFiles(true, false);
+	// build baseline scene
+	Scene<DIM> baselineScene;
+	baselineScene.loadFiles(true, false);
+	baselineScene.buildAggregate(AggregateType::Baseline);
 
-	/*
-	// build scene
-	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;
-	std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>> primitives;
-	buildSoupScene<DIM, float>(soups, primitives, nullptr, nullptr, true);
+	// generate random points and rays used to visualize csg
+	BoundingBox<DIM> boundingBox = baselineScene.aggregate->boundingBox();
+	std::vector<fcpw::Vector<DIM>> queryPoints, randomDirections;
+	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
 
-	// build aggregates
-	std::shared_ptr<Aggregate<DIM>> baseline = buildAggregate<DIM>(primitives, "Baseline");
-	std::shared_ptr<Aggregate<DIM>> bvh = buildAggregate<DIM>(primitives, "Bvh");
+	if (vizScene) {
+		visualizeScene<DIM>(baselineScene, queryPoints, randomDirections);
 
-	// generate point cloud
-	std::vector<VectorXf> rayDirections;
-	std::shared_ptr<PointCloud<DIM>> cloud = generateScatteredPointsAndRays<DIM>(
-										rayDirections, baseline->boundingBox());
+	} else {
+		// build bvh scene
+		Scene<DIM> bvhScene;
+		bvhScene.loadFiles(true, false);
+		bvhScene.buildAggregate(AggregateType::Bvh);
 
-	// build kd tree
-	std::shared_ptr<DynamicKdTree<DIM>> kdTree = constructKdTree<DIM>(cloud);
+#ifdef BENCHMARK_EMBREE
+		// build embree bvh scene
+		Scene<DIM> embreeBvhScene;
+		embreeBvhScene.loadFiles(true, false);
+		embreeBvhScene.buildEmbreeAggregate();
+#endif
 
-	// run tests or visualize scene
-	if (runTests) {
-		testBeziers<DIM>(primitives, cloud, rayDirections);
-		testAggregates<DIM>(cloud, rayDirections, kdTree, baseline, bvh);
-
-	} else if (vizScene) {
-		visualizeScene<DIM>(soups, primitives, cloud, rayDirections);
+		// TODO:
+		// checkCorrectness
+		// checkPerformance
 	}
-	*/
 }
 
 int main(int argc, const char *argv[]) {

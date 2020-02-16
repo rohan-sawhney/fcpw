@@ -179,11 +179,11 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 				polyscope::registerSurfaceMesh(meshName, positions, indices);
 			}
 		}
-
-		// register point clouds
-		polyscope::registerPointCloud("Intersected_Points", intersectedPoints);
-		polyscope::registerPointCloud("Raymarched_Points", raymarchedPoints);
 	}
+
+	// register point clouds
+	polyscope::registerPointCloud("Intersected_Points", intersectedPoints);
+	polyscope::registerPointCloud("Raymarched_Points", raymarchedPoints);
 
 	// register callback
 	polyscope::state::userCallback = std::bind(&guiCallback<DIM>, std::cref(scene),
