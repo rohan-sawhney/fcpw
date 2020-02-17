@@ -167,8 +167,14 @@ struct ClosestPointResult {
 	unsigned int geomID;
 };
 
-bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args,
-								  const std::shared_ptr<PolygonSoup<3>>& soup)
+// NOTE: this global variable is created with great sadness; alternatives
+// such as declaring closestPointTriangleCallback as a member function of Embree Bvh
+// and using that function as the callback, or using std::bind to wrap the soup that
+// needs to be passed to closestPointTriangleCallback don't work since their function
+// signatures don't match those of the callback.
+static std::shared_ptr<PolygonSoup<3>> callbackSoup = nullptr;
+
+bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 {
 	// get required information from args
 	const unsigned int primID = args->primID;
@@ -176,10 +182,10 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args,
 	embree::Vec3fa q(args->query->x, args->query->y, args->query->z);
 
 	// determine distance to closest point on triangle
-	const std::vector<int>& indices = soup->indices[primID];
-	const Vector3f& pa = soup->positions[indices[0]];
-	const Vector3f& pb = soup->positions[indices[1]];
-	const Vector3f& pc = soup->positions[indices[2]];
+	const std::vector<int>& indices = callbackSoup->indices[primID];
+	const Vector3f& pa = callbackSoup->positions[indices[0]];
+	const Vector3f& pb = callbackSoup->positions[indices[1]];
+	const Vector3f& pc = callbackSoup->positions[indices[2]];
 	embree::Vec3fa v1(pa(0), pa(1), pa(2));
 	embree::Vec3fa v2(pb(0), pb(1), pb(2));
 	embree::Vec3fa v3(pc(0), pc(1), pc(2));
@@ -228,9 +234,8 @@ soup(soup_)
 	rtcSetGeometryBuildQuality(geometry, RTC_BUILD_QUALITY_HIGH);
 
 	// register closest point callback
-	//std::function<bool(RTCPointQueryFunctionArguments *)> callback =
-	//					std::bind(closestPointTriangleCallback, std::placeholders::_1, std::cref(soup));
-	//rtcSetGeometryPointQueryFunction(geometry, *callback.target<bool(*)(RTCPointQueryFunctionArguments *)>()); // TODO: fix
+	callbackSoup = soup;
+	rtcSetGeometryPointQueryFunction(geometry, closestPointTriangleCallback);
 
 	float *vertices = (float *)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0,
 													   RTC_FORMAT_FLOAT3, 3*sizeof(float),

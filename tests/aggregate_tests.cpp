@@ -304,7 +304,7 @@ void run()
 		// build embree bvh aggregate & benchmark queries
 		scene.buildEmbreeAggregate();
 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
-		// timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
+		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
 #endif
 	}
 
@@ -329,7 +329,7 @@ void run()
 		embreeBvhScene.loadFiles(true, false);
 		embreeBvhScene.buildEmbreeAggregate();
 		testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints, randomDirections);
-		// testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints);
+		testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints);
 #endif
 	}
 
