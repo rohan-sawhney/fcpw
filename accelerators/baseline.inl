@@ -63,8 +63,13 @@ inline int Baseline<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& 
 
 		if (hit > 0) {
 			hits += hit;
-			if (countHits) is.insert(is.end(), cs.begin(), cs.end());
-			else r.tMax = std::min(r.tMax, cs[0].d);
+			if (countHits) {
+				is.insert(is.end(), cs.begin(), cs.end());
+
+			} else {
+				r.tMax = std::min(r.tMax, cs[0].d);
+				is[0] = cs[0];
+			}
 
 			if (checkOcclusion) return 1;
 		}

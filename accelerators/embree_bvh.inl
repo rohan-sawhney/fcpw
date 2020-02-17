@@ -73,13 +73,25 @@ void errorFunction(void *userPtr, enum RTCError error, const char *str)
 	LOG(FATAL) << "Embree error code: " << code << " msg: " << str;
 }
 
-void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args,
-								  const std::vector<std::shared_ptr<Primitive<3>>>& primitives,
-								  const Ray<3>& r, std::vector<Interaction<3>>& is)
+struct IntersectContext {
+	// constructor
+	IntersectContext(const std::vector<std::shared_ptr<Primitive<3>>>& primitives_,
+					 std::vector<Interaction<3>>& is_): primitives(primitives_), is(is_) {}
+
+	// members
+	RTCIntersectContext context;
+	const std::vector<std::shared_ptr<Primitive<3>>>& primitives;
+	std::vector<Interaction<3>>& is;
+};
+
+void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args)
 {
 	// get required information from args
 	RTCRay *ray = (RTCRay *)args->ray;
 	RTCHit *hit = (RTCHit *)args->hit;
+	IntersectContext *context = (IntersectContext *)args->context;
+	const std::vector<std::shared_ptr<Primitive<3>>>& primitives = context->primitives;
+	std::vector<Interaction<3>>& is = context->is;
 	args->valid[0] = 0; // ignore all hits
 
 	// check if interaction has already been added
@@ -92,7 +104,8 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	// add interaction
 	auto it = is.emplace(is.end(), Interaction<3>());
 	it->d = ray->tfar;
-	it->p = r(it->d);
+	it->p = Vector3f(ray->org_x, ray->org_y, ray->org_z) +
+			it->d*Vector3f(ray->dir_x, ray->dir_y, ray->dir_z);
 	it->uv(0) = hit->u;
 	it->uv(1) = hit->v;
 	it->n = Vector3f(hit->Ng_x, hit->Ng_y, hit->Ng_z).normalized();
@@ -215,9 +228,9 @@ soup(soup_)
 	rtcSetGeometryBuildQuality(geometry, RTC_BUILD_QUALITY_HIGH);
 
 	// register closest point callback
-	std::function<bool(RTCPointQueryFunctionArguments *)> callback =
-						std::bind(closestPointTriangleCallback, std::placeholders::_1, std::cref(soup));
-	rtcSetGeometryPointQueryFunction(geometry, *callback.target<bool(*)(RTCPointQueryFunctionArguments *)>()); // TODO: fix
+	//std::function<bool(RTCPointQueryFunctionArguments *)> callback =
+	//					std::bind(closestPointTriangleCallback, std::placeholders::_1, std::cref(soup));
+	//rtcSetGeometryPointQueryFunction(geometry, *callback.target<bool(*)(RTCPointQueryFunctionArguments *)>()); // TODO: fix
 
 	float *vertices = (float *)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0,
 													   RTC_FORMAT_FLOAT3, 3*sizeof(float),
@@ -296,8 +309,8 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 #endif
 
 	// initialize intersect context (RTC_INTERSECT_CONTEXT_FLAG_INCOHERENT is enabled by default)
-	RTCIntersectContext context;
-	rtcInitIntersectContext(&context);
+	IntersectContext context(this->primitives, is);
+	rtcInitIntersectContext(&context.context);
 
 	// initialize rayhit structure
 	RTCRayHit rayhit;
@@ -317,20 +330,15 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 
 	if (checkOcclusion) {
 		// test for occlusion
-		rtcOccluded1(scene, &context, &rayhit.ray);
+		rtcOccluded1(scene, &context.context, &rayhit.ray);
 		return rayhit.ray.tfar >= 0.0f ? 0 : 1;
 	}
 
 	// set filter function to collect all hits if requested
-	if (countHits) {
-		std::function<void(const struct RTCFilterFunctionNArguments *)> callback =
-										std::bind(triangleIntersectionCallback, std::placeholders::_1,
-												  std::cref(this->primitives), std::cref(r), std::ref(is));
-		context.filter = *callback.target<void(*)(const struct RTCFilterFunctionNArguments *)>(); // TODO: fix
-	}
+	if (countHits) context.context.filter = triangleIntersectionCallback;
 
 	// intersect single ray with the scene
-	rtcIntersect1(scene, &context, &rayhit);
+	rtcIntersect1(scene, &context.context, &rayhit);
 	int hits = 0;
 
 	if (is.size() > 0) {
