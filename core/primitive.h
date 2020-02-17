@@ -43,16 +43,24 @@ template <int DIM>
 class Aggregate: public Primitive<DIM> {
 public:
 	// performs inside outside test for x
+	// NOTE: assumes aggregate bounds watertight shape
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
 		if (useRayIntersection) {
-			Vector<DIM> direction = Vector<DIM>::Zero();
-			direction(0) = 1;
+			// do two intersection tests for robustness
+			Vector<DIM> direction1 = Vector<DIM>::Zero();
+			Vector<DIM> direction2 = Vector<DIM>::Zero();
+			direction1(0) = 1;
+			direction2(1) = 1;
 
-			std::vector<Interaction<DIM>> is;
-			Ray<DIM> r(x, direction);
-			int hits = this->intersect(r, is, false, true);
+			std::vector<Interaction<DIM>> is1;
+			Ray<DIM> r1(x, direction1);
+			int hits1 = this->intersect(r1, is1, false, true);
 
-			return hits%2 == 1;
+			std::vector<Interaction<DIM>> is2;
+			Ray<DIM> r2(x, direction2);
+			int hits2 = this->intersect(r2, is2, false, true);
+
+			return hits1%2 == 1 && hits2%2 == 1;
 		}
 
 		Interaction<DIM> i;

@@ -12,6 +12,7 @@ using namespace fcpw;
 using namespace std::chrono;
 
 static bool vizScene = false;
+static bool plotInteriorPoints = false;
 static bool checkCorrectness = false;
 static bool checkPerformance = false;
 static int nQueries = 10000;
@@ -207,9 +208,44 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 }
 
 template <int DIM>
+void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
+						   const std::vector<fcpw::Vector<DIM>>& queryPoints,
+						   std::vector<fcpw::Vector<DIM>>& interiorPoints)
+{
+	int pCurrent = 0;
+	int pRange = std::max(100, (int)nQueries/nThreads);
+	std::vector<bool> isInterior(nQueries, false);
+
+	while (pCurrent < nQueries) {
+		int pEnd = std::min(nQueries, pCurrent + pRange);
+		pool.enqueue([&aggregate, &queryPoints, &isInterior, pCurrent, pEnd]() {
+			#ifdef PROFILE
+				PROFILE_THREAD_SCOPED();
+			#endif
+
+			for (int i = pCurrent; i < pEnd; i++) {
+				if (aggregate->contains(queryPoints[i])) {
+					isInterior[i] = true;
+				}
+			}
+		});
+
+		pCurrent += pRange;
+	}
+
+	pool.wait_until_empty();
+	pool.wait_until_nothing_in_flight();
+
+	for (int i = 0; i < nQueries; i++) {
+		if (isInterior[i]) interiorPoints.emplace_back(queryPoints[i]);
+	}
+}
+
+template <int DIM>
 void visualizeScene(const Scene<DIM>& scene,
-					std::vector<fcpw::Vector<DIM>>& queryPoints,
-					std::vector<fcpw::Vector<DIM>>& randomDirections)
+					const std::vector<fcpw::Vector<DIM>>& queryPoints,
+					const std::vector<fcpw::Vector<DIM>>& randomDirections,
+					const std::vector<fcpw::Vector<DIM>>& interiorPoints)
 {
 	// set a few options
 	polyscope::options::programName = "Aggregate Tests";
@@ -220,8 +256,9 @@ void visualizeScene(const Scene<DIM>& scene,
 	// initialize polyscope
 	polyscope::init();
 
-	// register point cloud
+	// register query points and interior points
 	polyscope::registerPointCloud("Query_Points", queryPoints);
+	if (plotInteriorPoints) polyscope::registerPointCloud("Interior_Points", interiorPoints);
 
 	if (DIM == 3) {
 		// register surface meshes
@@ -251,54 +288,61 @@ void run()
 	std::vector<fcpw::Vector<DIM>> queryPoints, randomDirections;
 	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
 
+	if (checkPerformance) {
+		std::cout << "Running performance tests..." << std::endl;
+
+		// benchmark baseline queries
+		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
+		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
+
+		// build bvh aggregate & benchmark queries
+		scene.buildAggregate(AggregateType::Bvh);
+		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh");
+		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh");
+
+#ifdef BENCHMARK_EMBREE
+		// build embree bvh aggregate & benchmark queries
+		scene.buildEmbreeAggregate();
+		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
+		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
+#endif
+	}
+
+	if (checkCorrectness) {
+		std::cout << "Running correctness tests..." << std::endl;
+
+		// build baseline aggregate
+		scene.buildAggregate(AggregateType::Baseline);
+
+		// build bvh aggregate and compare results with baseline
+		std::cout << "Testing Bvh results against Baseline" << std::endl;
+		Scene<DIM> bvhScene;
+		bvhScene.loadFiles(true, false);
+		bvhScene.buildAggregate(AggregateType::Bvh);
+		testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
+		testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+
+#ifdef BENCHMARK_EMBREE
+		// build embree bvh aggregate and compare results with baseline
+		std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
+		Scene<DIM> embreeBvhScene;
+		embreeBvhScene.loadFiles(true, false);
+		embreeBvhScene.buildEmbreeAggregate();
+		testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints, randomDirections);
+		testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints);
+#endif
+	}
+
 	if (vizScene) {
-		visualizeScene<DIM>(scene, queryPoints, randomDirections);
+		// build bvh aggregate
+		scene.buildAggregate(AggregateType::Bvh);
 
-	} else {
-		if (checkPerformance) {
-			std::cout << "Running performance tests..." << std::endl;
+		// isolate interior points among query points
+		std::vector<fcpw::Vector<DIM>> interiorPoints;
+		if (plotInteriorPoints) isolateInteriorPoints<DIM>(scene.aggregate, queryPoints, interiorPoints);
 
-			// benchmark baseline queries
-			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
-			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
-
-			// build bvh aggregate & benchmark queries
-			scene.buildAggregate(AggregateType::Bvh);
-			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh");
-			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh");
-
-#ifdef BENCHMARK_EMBREE
-			// build embree bvh aggregate & benchmark queries
-			scene.buildEmbreeAggregate();
-			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
-			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
-#endif
-		}
-
-		if (checkCorrectness) {
-			std::cout << "Running correctness tests..." << std::endl;
-
-			// build baseline aggregate
-			scene.buildAggregate(AggregateType::Baseline);
-
-			// build bvh aggregate and compare results with baseline
-			std::cout << "Testing Bvh results against Baseline" << std::endl;
-			Scene<DIM> bvhScene;
-			bvhScene.loadFiles(true, false);
-			bvhScene.buildAggregate(AggregateType::Bvh);
-			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
-			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
-
-#ifdef BENCHMARK_EMBREE
-			// build embree bvh aggregate and compare results with baseline
-			std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
-			Scene<DIM> embreeBvhScene;
-			embreeBvhScene.loadFiles(true, false);
-			embreeBvhScene.buildEmbreeAggregate();
-			testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints, randomDirections);
-			testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints);
-#endif
-		}
+		// visualize scene
+		visualizeScene<DIM>(scene, queryPoints, randomDirections, interiorPoints);
 	}
 }
 
@@ -311,6 +355,7 @@ int main(int argc, const char *argv[]) {
 	args::ArgumentParser parser("aggregate tests");
 	args::Group group(parser, "", args::Group::Validators::DontCare);
 	args::Flag vizScene(group, "bool", "visualize scene", {"vizScene"});
+	args::Flag plotInteriorPoints(group, "bool", "plot interior points", {"plotInteriorPoints"});
 	args::Flag checkCorrectness(group, "bool", "check aggregate correctness", {"checkCorrectness"});
 	args::Flag checkPerformance(group, "bool", "check aggregate performance", {"checkPerformance"});
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
@@ -351,6 +396,7 @@ int main(int argc, const char *argv[]) {
 
 	// set global flags
 	if (vizScene) ::vizScene = args::get(vizScene);
+	if (plotInteriorPoints) ::plotInteriorPoints = args::get(plotInteriorPoints);
 	if (checkCorrectness) ::checkCorrectness = args::get(checkCorrectness);
 	if (checkPerformance) ::checkPerformance = args::get(checkPerformance);
 	if (nQueries) ::nQueries = args::get(nQueries);
