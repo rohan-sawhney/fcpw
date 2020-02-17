@@ -37,6 +37,7 @@ set(WITH_GFLAGS OFF CACHE BOOL "Use gflags")
 add_subdirectory(deps/glog)
 
 if(BENCHMARK_EMBREE)
+	add_definitions(-DBENCHMARK_EMBREE)
 	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "enable ispc functionality")
 	set(EMBREE_TUTORIALS OFF CACHE BOOL "enable embree tutorials")
 	add_subdirectory(deps/embree)
