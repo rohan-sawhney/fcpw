@@ -12,8 +12,8 @@ using namespace fcpw;
 using namespace std::chrono;
 
 static bool vizScene = false;
-static bool checkCorrectness = true;
-static bool checkPerformance = true;
+static bool checkCorrectness = false;
+static bool checkPerformance = false;
 static int nQueries = 10000;
 static progschj::ThreadPool pool;
 static int nThreads = 8;
@@ -71,9 +71,9 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	LOG(INFO) << rayOrigins.size() << " intersection queries took "
+	std::cout << rayOrigins.size() << " intersection queries took "
 			  << timeSpan.count() << " seconds with "
-			  << aggregateType << " aggregate";
+			  << aggregateType << " aggregate" << std::endl;
 }
 
 template <int DIM>
@@ -108,95 +108,56 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	LOG(INFO) << queryPoints.size() << " closest point queries took "
+	std::cout << queryPoints.size() << " closest point queries took "
 			  << timeSpan.count() << " seconds with "
-			  << aggregateType << " aggregate";
+			  << aggregateType << " aggregate" << std::endl;
 }
-/*
+
 template <int DIM>
-void testIntersectionQueries(const std::shared_ptr<PointCloud<DIM>>& cloud,
-							 const std::vector<VectorXf>& rayDirections,
-							 const std::shared_ptr<Aggregate<DIM>>& aggregate1,
+void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
-							 int start, int end)
-{
-	// compute and compare baseline and bvh interactions
-	for (int i = start; i < end; i++) {
-		std::vector<Interaction<DIM>> c1;
-		Ray<DIM> r1(cloud->points[i], rayDirections[i]);
-		bool hit1 = (bool)aggregate1->intersect(r1, c1);
-
-		std::vector<Interaction<DIM>> c2;
-		Ray<DIM> r2(cloud->points[i], rayDirections[i]);
-		bool hit2 = (bool)aggregate2->intersect(r2, c2);
-
-		if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
-			LOG(INFO) << "d1: " << c1[0].d << " d2: " << c2[0].d;
-			LOG(INFO) << "p1: " << c1[0].p << " p2: " << c2[0].p;
-			LOG(FATAL) << "Intersections do not match!";
-		}
-
-		std::vector<Interaction<DIM>> c3;
-		Ray<DIM> r3(cloud->points[i], rayDirections[i]);
-		int hit3 = aggregate1->intersect(r3, c3, false, true);
-
-		std::vector<Interaction<DIM>> c4;
-		Ray<DIM> r4(cloud->points[i], rayDirections[i]);
-		int hit4 = aggregate2->intersect(r4, c4, false, true);
-
-		if (hit3 != hit4) {
-			LOG(FATAL) << "Number of intersections do not match!"
-					   << " Aggregate1: " << hit3
-					   << " Aggregate2: " << hit4;
-		}
-	}
-}
-
-template <int DIM>
-void testClosestPointQueries(const std::shared_ptr<PointCloud<DIM>>& cloud,
-							 const std::shared_ptr<Aggregate<DIM>>& aggregate1,
-							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
-							 int start, int end)
-{
-	// compute and compare baseline and bvh interactions
-	for (int i = start; i < end; i++) {
-		Interaction<DIM> c1;
-		BoundingSphere<DIM> s1(cloud->points[i], maxFloat);
-		bool found1 = aggregate1->findClosestPoint(s1, c1);
-
-		Interaction<DIM> c2;
-		BoundingSphere<DIM> s2(cloud->points[i], maxFloat);
-		bool found2 = aggregate2->findClosestPoint(s2, c2);
-
-		if (found1 != found2 || c1 != c2) {
-			LOG(INFO) << "d1: " << c1.d << " d2: " << c2.d;
-			LOG(INFO) << "p1: " << c1.p << " p2: " << c2.p;
-			LOG(FATAL) << "Closest points do not match!";
-		}
-	}
-}
-
-template <int DIM>
-void testAggregates(const std::shared_ptr<PointCloud<DIM>>& cloud,
-					const std::vector<VectorXf>& rayDirections,
-					const std::shared_ptr<DynamicKdTree<DIM>>& kdTree,
-					const std::shared_ptr<Aggregate<DIM>>& baseline,
-					const std::shared_ptr<Aggregate<DIM>>& bvh)
+							 const std::vector<fcpw::Vector<DIM>>& rayOrigins,
+							 const std::vector<fcpw::Vector<DIM>>& rayDirections)
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&cloud, &rayDirections, &kdTree, &baseline, &bvh, pCurrent, pEnd]() {
+		pool.enqueue([&aggregate1, &aggregate2, &rayOrigins, &rayDirections, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
 			#endif
 
-			testIntersectionQueries<DIM>(cloud, rayDirections, baseline, bvh, pCurrent, pEnd);
-			testClosestPointQueries<DIM>(cloud, baseline, bvh, pCurrent, pEnd);
-			performKnnQueries<DIM>(cloud, kdTree, 5, pCurrent, pEnd);
-			performRNNQueries<DIM>(cloud, kdTree, 0.1f, pCurrent, pEnd);
+			for (int i = pCurrent; i < pEnd; i++) {
+				std::vector<Interaction<DIM>> c1;
+				Ray<DIM> r1(rayOrigins[i], rayDirections[i]);
+				bool hit1 = (bool)aggregate1->intersect(r1, c1);
+
+				std::vector<Interaction<DIM>> c2;
+				Ray<DIM> r2(rayOrigins[i], rayDirections[i]);
+				bool hit2 = (bool)aggregate2->intersect(r2, c2);
+
+				if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
+					LOG(INFO) << "d1: " << c1[0].d << " d2: " << c2[0].d;
+					LOG(INFO) << "p1: " << c1[0].p << " p2: " << c2[0].p;
+					LOG(FATAL) << "Intersections do not match!";
+				}
+
+				std::vector<Interaction<DIM>> c3;
+				Ray<DIM> r3(rayOrigins[i], rayDirections[i]);
+				int hit3 = aggregate1->intersect(r3, c3, false, true);
+
+				std::vector<Interaction<DIM>> c4;
+				Ray<DIM> r4(rayOrigins[i], rayDirections[i]);
+				int hit4 = aggregate2->intersect(r4, c4, false, true);
+
+				if (hit3 != hit4) {
+					LOG(FATAL) << "Number of intersections do not match!"
+							   << " hits1: " << hit3
+							   << " hits2: " << hit4;
+				}
+			}
 		});
 
 		pCurrent += pRange;
@@ -205,7 +166,46 @@ void testAggregates(const std::shared_ptr<PointCloud<DIM>>& cloud,
 	pool.wait_until_empty();
 	pool.wait_until_nothing_in_flight();
 }
-*/
+
+template <int DIM>
+void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
+							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
+							 const std::vector<fcpw::Vector<DIM>>& queryPoints)
+{
+	int pCurrent = 0;
+	int pRange = std::max(100, (int)nQueries/nThreads);
+
+	while (pCurrent < nQueries) {
+		int pEnd = std::min(nQueries, pCurrent + pRange);
+		pool.enqueue([&aggregate1, &aggregate2, &queryPoints, pCurrent, pEnd]() {
+			#ifdef PROFILE
+				PROFILE_THREAD_SCOPED();
+			#endif
+
+			for (int i = pCurrent; i < pEnd; i++) {
+				Interaction<DIM> c1;
+				BoundingSphere<DIM> s1(queryPoints[i], maxFloat);
+				bool found1 = aggregate1->findClosestPoint(s1, c1);
+
+				Interaction<DIM> c2;
+				BoundingSphere<DIM> s2(queryPoints[i], maxFloat);
+				bool found2 = aggregate2->findClosestPoint(s2, c2);
+
+				if (found1 != found2 || c1 != c2) {
+					LOG(INFO) << "d1: " << c1.d << " d2: " << c2.d;
+					LOG(INFO) << "p1: " << c1.p << " p2: " << c2.p;
+					LOG(FATAL) << "Closest points do not match!";
+				}
+			}
+		});
+
+		pCurrent += pRange;
+	}
+
+	pool.wait_until_empty();
+	pool.wait_until_nothing_in_flight();
+}
+
 template <int DIM>
 void visualizeScene(const Scene<DIM>& scene,
 					std::vector<fcpw::Vector<DIM>>& queryPoints,
@@ -256,6 +256,8 @@ void run()
 
 	} else {
 		if (checkPerformance) {
+			std::cout << "Running performance tests..." << std::endl;
+
 			// benchmark baseline queries
 			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
 			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
@@ -273,7 +275,30 @@ void run()
 #endif
 		}
 
-		// TODO: checkCorrectness
+		if (checkCorrectness) {
+			std::cout << "Running correctness tests..." << std::endl;
+
+			// build baseline aggregate
+			scene.buildAggregate(AggregateType::Baseline);
+
+			// build bvh aggregate and compare results with baseline
+			std::cout << "Testing Bvh results against Baseline" << std::endl;
+			Scene<DIM> bvhScene;
+			bvhScene.loadFiles(true, false);
+			bvhScene.buildAggregate(AggregateType::Bvh);
+			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
+			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+
+#ifdef BENCHMARK_EMBREE
+			// build embree bvh aggregate and compare results with baseline
+			std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
+			Scene<DIM> embreeBvhScene;
+			embreeBvhScene.loadFiles(true, false);
+			embreeBvhScene.buildEmbreeAggregate();
+			testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints, randomDirections);
+			testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints);
+#endif
+		}
 	}
 }
 

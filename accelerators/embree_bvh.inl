@@ -251,9 +251,9 @@ soup(soup_)
 	// print bvh stats
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	LOG(INFO) << "Built Embree Bvh with "
+	std::cout << "Built Embree Bvh with "
 			  << primitives.size() << " primitives in "
-			  << timeSpan.count() << " seconds";
+			  << timeSpan.count() << " seconds" << std::endl;
 }
 
 template <>

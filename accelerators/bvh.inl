@@ -36,11 +36,11 @@ primitives(primitives_)
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	LOG(INFO) << "Built Bvh with "
+	std::cout << "Built Bvh with "
 			  << nNodes << " nodes, "
 			  << nLeafs << " leaves, "
 			  << primitives.size() << " primitives in "
-			  << timeSpan.count() << " seconds";
+			  << timeSpan.count() << " seconds" << std::endl;
 }
 
 template <int DIM>

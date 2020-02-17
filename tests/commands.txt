@@ -1,2 +1,2 @@
 GLOG_logtostderr=1 ./csg_tests --dim=3 --tFile ../input/armadillo.obj --tFile ../input/bunny.obj --tFile ../input/kitten.obj --csgFile ../input/csg.txt --instanceFile ../input/instances3d.txt --nThreads=8
-GLOG_logtostderr=1 ./aggregate_tests --dim=3 --tFile ../input/bunny.obj --nQueries=10000 --nThreads=8 --vizScene
+GLOG_logtostderr=1 ./aggregate_tests --dim=3 --tFile ../input/bunny.obj --nQueries=10000 --checkPerformance --checkCorrectness --nThreads=8 
