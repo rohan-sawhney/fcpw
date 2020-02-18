@@ -34,3 +34,6 @@
 # Build directories
 build/
 build_debug/
+
+# Mesh library
+Meshes/
