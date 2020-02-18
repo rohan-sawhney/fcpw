@@ -129,6 +129,31 @@ public:
 		return true;
 	}
 
+	// returns the bounding box representing the intersection of two bounding boxes
+	// behavior when the two bounding boxes do not overlap is to return a point as the bounding box
+	BoundingBox<DIM> intersect(const BoundingBox<DIM>& b) const{
+		BoundingBox<DIM> res = BoundingBox<DIM>();
+		if(overlaps(b)){
+			// LOG(INFO) << "begin overlap";
+			Vector<DIM> p2Min = Vector<DIM>::Zero();
+			Vector<DIM> p2Max = Vector<DIM>::Zero();
+			for(int i = 0; i < DIM; i++){
+				p2Max(i) = b.pMax(i) < pMax(i) ? b.pMax(i) : pMax(i);
+				p2Min(i) = b.pMin(i) > pMin(i) ? b.pMin(i) : pMin(i);
+			}
+			res.expandToInclude(p2Max);
+			res.expandToInclude(p2Min);
+			// LOG(INFO) << "end overlap";
+		}
+		else{
+			// LOG(INFO) << "begin non overlap";
+			Vector<DIM> temp = Vector<DIM>::Zero();
+			res.expandToInclude(temp);
+			// LOG(INFO) << "end non overlap";
+		}
+		return res;
+	}
+
 	// returns max dimension
 	int maxDimension() const {
 		Vector<DIM> e = extent();

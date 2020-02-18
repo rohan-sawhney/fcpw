@@ -13,21 +13,14 @@ struct BvhBuildEntry {
 	int start, end; // the range of primitives in the primitive list covered by this node
 };
 
-struct BvhTraversal {
-	// constructor
-	BvhTraversal(int i_, float d_): i(i_), d(d_) {}
-
-	// members
-	int i; // node index
-	float d; // minimum distance (parametric, squared, ...) to this node
-};
-
 template <int DIM>
-inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_):
+inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_, int splittingMethod_, int binCount_):
 nNodes(0),
 nLeafs(0),
 leafSize(leafSize_),
-primitives(primitives_)
+primitives(primitives_),
+splittingMethod(splittingMethod_),
+binCount(binCount_)
 {
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -123,8 +116,45 @@ inline void Bvh<DIM>::build()
 		// set the split dimensions
 		int splitDim = bc.maxDimension();
 
+		float splitCoord = 0;
+
 		// split on the center of the longest axis
-		float splitCoord = (bc.pMin[splitDim] + bc.pMax[splitDim])*0.5;
+		if(splittingMethod == 0){
+		}
+		else{
+			costFunction<DIM> cost;
+			switch(splittingMethod){
+				case 0:
+					splitCoord = (bc.pMin[splitDim] + bc.pMax[splitDim])*0.5;
+					break;
+				case 1:
+					cost = &surfaceAreaCost;
+					break;
+				case 2:
+					cost = &volumeCost;
+					break;
+				case 3:
+					cost = &overlapSurfaceAreaCost;
+					break;
+				case 4:
+					cost = &overlapVolumeCost;
+					break;
+				default:
+					LOG(FATAL) << "Method number " << splittingMethod << " is an invalid splitting method";
+			}
+			if(splitCoord != 0){
+				// TEMPORARY: it just auto generates a reference list; may have to change how a BVH is
+				// built to reduce construction of these reference lists
+				// or not try to overgeneralize probabilityHeuristic
+				std::vector<ReferenceWrapper<DIM>> refs;
+				for(int i = start; i < end; i++){
+					refs.emplace_back(ReferenceWrapper<DIM>(primitives[i]->boundingBox(), i));
+				}
+				BvhSplit split = probabilityHeuristic(refs, bc, bb, binCount, cost);
+				splitCoord = split.split;
+				splitDim = split.axis;
+			}
+		}
 
 		// partition the list of primitives on this split
 		int mid = start;

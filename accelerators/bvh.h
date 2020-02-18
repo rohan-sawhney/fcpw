@@ -1,6 +1,6 @@
 #pragma once
 
-#include "primitive.h"
+#include "bvh_common.h"
 
 namespace fcpw {
 // source: https://github.com/brandonpelfrey/Fast-BVH
@@ -13,16 +13,10 @@ namespace fcpw {
 // - try bottom up closest point traversal strategy
 
 template <int DIM>
-struct BvhFlatNode {
-	BoundingBox<DIM> bbox;
-	int start, nPrimitives, rightOffset;
-};
-
-template <int DIM>
 class Bvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4);
+	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4, int splittingMethod_=0, int binCount_=16);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -48,9 +42,9 @@ protected:
 	void build();
 
 	// members
-	int nNodes, nLeafs, leafSize;
 	std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<BvhFlatNode<DIM>> flatTree;
+	int nNodes, nLeafs, leafSize, splittingMethod, binCount;
 };
 
 } // namespace fcpw
