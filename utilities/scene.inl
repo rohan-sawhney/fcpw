@@ -169,6 +169,15 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 			case AggregateType::Bvh_SAH:
 				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 1);
 				break;
+			case AggregateType::Bvh_Vol:
+				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 2);
+				break;
+			case AggregateType::Bvh_Overlap_SAH:
+				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 3);
+				break;
+			case AggregateType::Bvh_Overlap_Vol:
+				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 4);
+				break;
 			default:
 				objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);
 				break;		
