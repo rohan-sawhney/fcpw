@@ -57,6 +57,14 @@ inline void Bvh<DIM>::build()
 		primitiveCentroids[i] = primitives[i]->centroid();
 	}
 
+	// for heuristic based methods, construct a vector of references to primitives
+	std::vector<ReferenceWrapper<DIM>> references;
+	if(splittingMethod){
+		for(int i = 0; i < nPrimitives; i++){
+			references.emplace_back(primitives[i]->boundingBox(), i);
+		}
+	}
+
 	// push the root
 	todo.emplace(BvhBuildEntry(0xfffffffc, 0, nPrimitives));
 
@@ -146,10 +154,7 @@ inline void Bvh<DIM>::build()
 				// TEMPORARY: it just auto generates a reference list; may have to change how a BVH is
 				// built to reduce construction of these reference lists
 				// or not try to overgeneralize probabilityHeuristic
-				std::vector<ReferenceWrapper<DIM>> refs;
-				for(int i = start; i < end; i++){
-					refs.emplace_back(ReferenceWrapper<DIM>(primitives[i]->boundingBox(), i));
-				}
+				std::vector<ReferenceWrapper<DIM>> refs(references.begin() + start, references.begin() + start + end);
 				BvhSplit split = probabilityHeuristic(refs, bc, bb, binCount, cost);
 				splitCoord = split.split;
 				splitDim = split.axis;
@@ -163,6 +168,9 @@ inline void Bvh<DIM>::build()
 				std::swap(primitives[i], primitives[mid]);
 				std::swap(primitiveBoxes[i], primitiveBoxes[mid]);
 				std::swap(primitiveCentroids[i], primitiveCentroids[mid]);
+				if(splittingMethod){
+					std::swap(references[i], references[mid]);
+				}
 				mid++;
 			}
 		}

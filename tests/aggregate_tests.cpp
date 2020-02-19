@@ -300,6 +300,11 @@ void run()
 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh");
 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh");
 
+		// build bvh aggregate with surface area heuristic & benchmark queries
+		scene.buildAggregate(AggregateType::Bvh_SAH);
+		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Surface Area Heuristic");
+		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Surface Area Heuristic");
+
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
 		scene.buildEmbreeAggregate();
@@ -321,6 +326,14 @@ void run()
 		bvhScene.buildAggregate(AggregateType::Bvh);
 		testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
 		testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+
+		// build bvh aggregate with surface area heuristic and compare results with baseline
+		std::cout << "Testing Bvh with Surface Area Heuristic results against Baseline" << std::endl;
+		Scene<DIM> bvhSAHScene;
+		bvhSAHScene.loadFiles(true, false);
+		bvhSAHScene.buildAggregate(AggregateType::Bvh_SAH);
+		testIntersectionQueries<DIM>(scene.aggregate, bvhSAHScene.aggregate, queryPoints, randomDirections);
+		testClosestPointQueries<DIM>(scene.aggregate, bvhSAHScene.aggregate, queryPoints);
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate and compare results with baseline

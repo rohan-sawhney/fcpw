@@ -16,7 +16,8 @@ enum class ObjectType {
 
 enum class AggregateType {
 	Baseline,
-	Bvh
+	Bvh,
+	Bvh_SAH
 };
 
 struct CsgTreeNode;

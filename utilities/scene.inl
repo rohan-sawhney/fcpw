@@ -162,11 +162,16 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
 
 	for (int i = 0; i < nObjects; i++) {
-		if (aggregateType == AggregateType::Bvh) {
-			objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i]);
-
-		} else {
-			objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);
+		switch(aggregateType){
+			case AggregateType::Bvh:
+				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i]);
+				break;
+			case AggregateType::Bvh_SAH:
+				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 1);
+				break;
+			default:
+				objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);
+				break;		
 		}
 	}
 
