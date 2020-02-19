@@ -19,6 +19,11 @@ static int nQueries = 10000;
 static progschj::ThreadPool pool;
 static int nThreads = 8;
 
+// TODO:
+// - write timings to file
+// - loop over BVH optimizations for performance & correctness
+// - plot BVH scaling behavior with increasing mesh sizes
+
 template <int DIM>
 void generateScatteredPointsAndRays(std::vector<fcpw::Vector<DIM>>& scatteredPoints,
 									std::vector<fcpw::Vector<DIM>>& randomDirections,
