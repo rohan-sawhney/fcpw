@@ -181,6 +181,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 				break;
 			case AggregateType::Sbvh:
 				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i]);
+				break;
 			default:
 				objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);
 				break;		
@@ -215,6 +216,9 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 		// build bvh aggregate
 		aggregate = std::make_shared<Bvh<DIM>>(objectInstances);
 
+	} else if (aggregateType == AggregateType::Sbvh) {
+		// build sbvh aggregate
+		aggregate = std::make_shared<Sbvh<DIM>>(objectInstances);
 	} else {
 		// build baseline aggregate
 		aggregate = std::make_shared<Baseline<DIM>>(objectInstances);

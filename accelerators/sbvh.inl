@@ -32,14 +32,14 @@ namespace fcpw{
         // setup timer code
         std::chrono::high_resolution_clock::time_point t_start, t_end;
         std::chrono::nanoseconds duration;
-        float buildTime = 0;
+        double buildTime = 0;
 
         // construct and time sbvh construction
         t_start = std::chrono::high_resolution_clock::now();
         build();
         t_end = std::chrono::high_resolution_clock::now();
         duration = t_end - t_start;
-        buildTime = (float)(duration.count()) / std::chrono::nanoseconds::period::den;
+        buildTime = (double)(duration.count()) / std::chrono::nanoseconds::period::den;
 
         // output some stats about finished SBVH
         std::string bvhSplitHeuristic;
@@ -604,9 +604,9 @@ namespace fcpw{
 
             // is leaf -> compute squared distance
             if (node.rightOffset == 0) {
-                for (int p = 0; p < node.nPrimitives; p++) {
+                for (int p = node.start; p < node.start + node.nPrimitives; p++) {
                     Interaction<DIM> c;
-                    const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p].index];
+                    const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[p].index];
                     bool found = prim->findClosestPoint(s, c);
 
                     // keep the closest point only
