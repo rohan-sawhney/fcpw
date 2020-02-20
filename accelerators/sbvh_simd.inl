@@ -127,8 +127,8 @@ namespace fcpw{
 
                 // fill bbox data in node
                 for(int i = 0; i < DIM; i++){
-                    parentNode.minBoxes[i][tempCounter] = (float)bbox.pMin(i);
-                    parentNode.maxBoxes[i][tempCounter] = (float)bbox.pMax(i);
+                    parentNode.minBoxes[i][tempCounter] = bbox.pMin(i);
+                    parentNode.maxBoxes[i][tempCounter] = bbox.pMax(i);
                 }
 
                 // connect popped off node to associated build node
@@ -138,22 +138,20 @@ namespace fcpw{
                     buildLeaves.emplace_back(BvhSimdLeafNode<DIM, W>());
                     BvhSimdLeafNode<DIM, W>& leafNode = buildLeaves.back();
                     for(int i = 0; i < W; i++){
-                        if(i >= curNode.nPrims){
+                        if(i >= curNode.nPrimitives){
                             leafNode.indices[i] = -1;
                             continue;
                         }
                         leafNode.indices[i] = references[curNode.start + i].index;
-                        std::shared_ptr<Primitive<DIM>> prim = primitives[references[curNode.start + i].index];
+                        const std::shared_ptr<Primitive<DIM>>& primitive = primitives[leafNode.indices[i]];
                         if(DIM == 3){
-                            std::shared_ptr<GeometricPrimitive<3, double>> geoprim = std::dynamic_pointer_cast<GeometricPrimitive<3, double>>(prim);
-                            std::vector<Vector3d> vertices;
-                            std::shared_ptr<Shape<3>> shape = geoprim -> getShape();
-                            std::shared_ptr<Triangle> tri = std::dynamic_pointer_cast<Triangle>(shape);
-                            tri->getVertices(vertices);
+                            std::vector<Vector3f> vertices;
+                            std::shared_ptr<Triangle> triangle = std::dynamic_pointer_cast<Triangle>(primitive);
+                            triangle->getVertices(vertices);
 
-                            const Vector3d& pa = vertices[0];
-                            const Vector3d& pb = vertices[1];
-                            const Vector3d& pc = vertices[2];
+                            const Vector3f& pa = vertices[0];
+                            const Vector3f& pb = vertices[1];
+                            const Vector3f& pc = vertices[2];
 
                             for(int j = 0; j < DIM; j++){
                                 leafNode.pa[j][i] = pa(j);
@@ -226,8 +224,8 @@ namespace fcpw{
     }
 
     template <int DIM, int W>
-    inline double SbvhSimd<DIM, W>::surfaceArea() const{
-        double area = 0.0;
+    inline float SbvhSimd<DIM, W>::surfaceArea() const{
+        float area = 0.0;
         for(std::shared_ptr<Primitive<DIM>> p : primitives){
             area += p->surfaceArea();
         }
@@ -235,8 +233,8 @@ namespace fcpw{
     }
 
     template <int DIM, int W>
-    inline double SbvhSimd<DIM, W>::signedVolume() const{
-        double volume = 0.0;
+    inline float SbvhSimd<DIM, W>::signedVolume() const{
+        float volume = 0.0;
         for(std::shared_ptr<Primitive<DIM>> p : primitives){
             volume += p->signedVolume();
         }
@@ -268,7 +266,7 @@ namespace fcpw{
             todo.pop();
 
             int ni = traversal.i;
-            double near = traversal.d;
+            float near = traversal.d;
             const BvhSimdFlatNode<DIM, W>& node = flatTree[ni];
 
             if(near > s.r2){
@@ -285,7 +283,7 @@ namespace fcpw{
                 // only process if box is in bounds of query
                 if((float)s.r2 > resVec[0][j]){
                     // aggressively shorten if box is fully contained in query
-                    if((float)s.r2 > resVec[1][j]) s.r2 = (double)resVec[1][j];
+                    if((float)s.r2 > resVec[1][j]) s.r2 = (float)resVec[1][j];
                     if(!node.isLeaf[j]){
                         // if interior node, add to queue
                         if((float)s.r2 >= resVec[0][j])
@@ -310,10 +308,10 @@ namespace fcpw{
 
                         if(bestDistance < (float)s.r2){
                             updatedDistances = true;
-                            s.r2 = (double)bestDistance;
+                            s.r2 = (float)bestDistance;
                             i.p = Vector<DIM>();
                             for(int k = 0; k < DIM; k++){
-                                i.p(k) = (double)bestPoint[k];
+                                i.p(k) = (float)bestPoint[k];
                             }
                             i.n = Vector<DIM>(); // TEMPORARY!!!!
                             i.d = std::sqrt(s.r2);

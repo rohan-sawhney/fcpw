@@ -335,6 +335,13 @@ void Triangle::split(const BoundingBox<3>& curBox, BoundingBox<3>& leftBox, Boun
 	rightBox = curBox.intersect(rightBox);
 }
 
+void Triangle::getVertices(std::vector<Vector3f>& vertices) const{
+	const Vector3f& pa = soup->positions[indices[0]];
+	const Vector3f& pb = soup->positions[indices[1]];
+	const Vector3f& pc = soup->positions[indices[2]];
+	vertices = std::vector<Vector3f>({pa, pb, pc});
+}
+
 void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<3>>>& triangles,
 									std::shared_ptr<PolygonSoup<3>>& soup)
 {

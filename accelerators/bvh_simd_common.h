@@ -39,26 +39,26 @@ namespace fcpw{
     template <int W>
     struct UndefinedCounterType{};
     
-    template <int W>
-    struct CountType{
-        using type = UndefinedCounterType<W>;
-        static_assert((W == 4) || (W == 8) || (W == 16), "Provided SIMD width is not a valid SIMD width");
-    };
+    // template <int W>
+    // struct CountType{
+    //     using type = UndefinedCounterType<W>;
+    //     static_assert((W == 4) || (W == 8) || (W == 16), "Provided SIMD width is not a valid SIMD width");
+    // };
 
-    template <>
-    struct CountType<4>{
-        using type = char;
-    };
+    // template <>
+    // struct CountType<4>{
+    //     using type = char;
+    // };
 
-    template <>
-    struct CountType<8>{
-        using type = char;
-    };
+    // template <>
+    // struct CountType<8>{
+    //     using type = char;
+    // };
 
-    template <>
-    struct CountType<16>{
-        using type = short;
-    };
+    // template <>
+    // struct CountType<16>{
+    //     using type = short;
+    // };
 
     // TEMP NOTE: prep for simd optimized bvhs
     template <int DIM, int W>

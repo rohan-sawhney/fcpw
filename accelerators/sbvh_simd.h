@@ -1,7 +1,7 @@
 #pragma once
 
 #include "sbvh.h"
-#include "simd.h"
+#include "bvh_simd_common.h"
 
 namespace fcpw{
 
@@ -20,22 +20,16 @@ namespace fcpw{
         Vector<DIM> centroid() const;
 
         // gets surface area of bounding box of SBVH
-        double surfaceArea() const;
+        float surfaceArea() const;
 
         // gets signed volume of bounding box of SBVH
-        double signedVolume() const;
+        float signedVolume() const;
 
         // gets ray intersection point
-        int intersect(Ray<DIM>&r, Interaction<DIM>& i, bool countHits=false) const;
+        int intersect(Ray<DIM>&r, std::vector<Interaction<DIM>>& is, bool checkOcclusion=false, bool countHits=false) const;
 
         // gets closest point
-        void findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
-        
-        // returns neighboring box
-        BoundingBox<DIM> traverse(int& curIndex, int gotoIndex) const;
-
-        // returns list of boxes around a currently selected box
-    	void getBoxList(int curIndex, int topDepth, int bottomDepth, std::vector<Vector<DIM>>& boxVertices, std::vector<std::vector<int>>& boxEdges, std::vector<Vector<DIM>>& curBoxVertices, std::vector<std::vector<int>>& curBoxEdges) const;
+        bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
         private:
 
@@ -43,12 +37,10 @@ namespace fcpw{
         void build(std::vector<BvhFlatNode<DIM>> nodes, std::vector<ReferenceWrapper<DIM>> references);
 
         // member variables
-        int splittingMethod, leafSize, nNodes, binCount, nLeaves, depth, nRefs;
+        int splittingMethod, leafSize, nNodes, binCount, nLeaves, depth, nReferences, nPrimitives;
         std::vector<std::shared_ptr<Primitive<DIM>>> primitives;
         std::vector<BvhSimdFlatNode<DIM, W>> flatTree;
         std::vector<BvhSimdLeafNode<DIM, W>> leaves;
-        const double epsilon = 1e-16;
-        double buildTime;
         BoundingBox<DIM> bbox;
     };
 } // namespace fcpw

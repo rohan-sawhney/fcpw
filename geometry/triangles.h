@@ -41,6 +41,9 @@ public:
 	// splits primitive and returns the tight bounding boxes on either side of the split
 	void split(const BoundingBox<3>& curBox, BoundingBox<3>& leftBox, BoundingBox<3>& rightBox, int splitDim, float splitLoc) const;
 
+	// fills vector with vertices of triangle
+	void getVertices(std::vector<Vector3f>& vertices) const;
+
 	// members
 	std::shared_ptr<PolygonSoup<3>> soup;
 	const std::vector<int>& indices; /* a.k.a. vIndices */
