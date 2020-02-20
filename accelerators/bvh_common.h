@@ -133,7 +133,7 @@ namespace fcpw{
 
                 // get index of bbox via centroid
                 int binIndex = (center - loBound) / delta;
-                LOG_IF(FATAL, binIndex < -1 || binIndex > binCount) << "Out of bounds bin index even before adjustments, index is at " << binIndex << " with only " << binCount << "bins. Delta is " << delta;
+                LOG_IF(FATAL, binIndex < -1 || binIndex > binCount) << "Out of bounds bin index even before adjustments, index is at " << binIndex << " with only " << binCount << "bins. Delta is " << delta << " prim centroid at: " << center << " upper bound at " << bc.pMax(res.axis) << " lower bound at " << bc.pMin(res.axis);
                 if(binIndex == -1){
                     // if centroid is on lo end of box but negative bin index due to rounding, increase index
                     binIndex ++;

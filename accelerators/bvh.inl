@@ -5,12 +5,13 @@ namespace fcpw {
 
 struct BvhBuildEntry {
 	// constructor
-	BvhBuildEntry(int parent_, int start_, int end_):
-				  parent(parent_), start(start_), end(end_) {}
+	BvhBuildEntry(int parent_, int start_, int end_, int depth_):
+				  parent(parent_), start(start_), end(end_), depth(depth_) {}
 
 	// members
 	int parent; // if non-zero then this is the index of the parent (used in offsets)
 	int start, end; // the range of primitives in the primitive list covered by this node
+	int depth;
 };
 
 template <int DIM>
@@ -20,7 +21,8 @@ nLeafs(0),
 leafSize(leafSize_),
 primitives(primitives_),
 splittingMethod(splittingMethod_),
-binCount(binCount_)
+binCount(binCount_),
+depth(0)
 {
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -32,7 +34,8 @@ binCount(binCount_)
 	std::cout << "Built Bvh with "
 			  << nNodes << " nodes, "
 			  << nLeafs << " leaves, "
-			  << primitives.size() << " primitives in "
+			  << primitives.size() << " primitives, "
+			  << depth << " depth in "
 			  << timeSpan.count() << " seconds" << std::endl;
 }
 
@@ -54,7 +57,7 @@ inline void Bvh<DIM>::build()
 
 	for (int i = 0; i < nPrimitives; i++) {
 		primitiveBoxes[i] = primitives[i]->boundingBox();
-		primitiveCentroids[i] = primitives[i]->centroid();
+		primitiveCentroids[i] = splittingMethod == 0 ? primitives[i]->centroid() : primitiveBoxes[i].centroid();
 	}
 
 	// for heuristic based methods, construct a vector of references to primitives
@@ -67,7 +70,7 @@ inline void Bvh<DIM>::build()
 	}
 
 	// push the root
-	todo.emplace(BvhBuildEntry(0xfffffffc, 0, nPrimitives));
+	todo.emplace(BvhBuildEntry(0xfffffffc, 0, nPrimitives, 0));
 
 	BvhFlatNode<DIM> node;
 	std::vector<BvhFlatNode<DIM>> buildNodes;
@@ -80,6 +83,7 @@ inline void Bvh<DIM>::build()
 
 		int start = buildEntry.start;
 		int end = buildEntry.end;
+		int curDepth = buildEntry.depth;
 		int nPrimitives = end - start;
 
 		nNodes++;
@@ -95,6 +99,8 @@ inline void Bvh<DIM>::build()
 		}
 
 		node.bbox = bb;
+
+		if(curDepth > depth) depth = curDepth;
 
 		// if the number of primitives at this point is less than the leaf
 		// size, then this will become a leaf (signified by rightOffset == 0)
@@ -128,38 +134,31 @@ inline void Bvh<DIM>::build()
 		float splitCoord = 0;
 
 		// split on the center of the longest axis
-		if(splittingMethod == 0){
+		costFunction<DIM> cost;
+		switch(splittingMethod){
+			case 0:
+				splitCoord = (bc.pMin[splitDim] + bc.pMax[splitDim])*0.5;
+				break;
+			case 1:
+				cost = &surfaceAreaCost;
+				break;
+			case 2:
+				cost = &volumeCost;
+				break;
+			case 3:
+				cost = &overlapSurfaceAreaCost;
+				break;
+			case 4:
+				cost = &overlapVolumeCost;
+				break;
+			default:
+				LOG(FATAL) << "Method number " << splittingMethod << " is an invalid splitting method";
 		}
-		else{
-			costFunction<DIM> cost;
-			switch(splittingMethod){
-				case 0:
-					splitCoord = (bc.pMin[splitDim] + bc.pMax[splitDim])*0.5;
-					break;
-				case 1:
-					cost = &surfaceAreaCost;
-					break;
-				case 2:
-					cost = &volumeCost;
-					break;
-				case 3:
-					cost = &overlapSurfaceAreaCost;
-					break;
-				case 4:
-					cost = &overlapVolumeCost;
-					break;
-				default:
-					LOG(FATAL) << "Method number " << splittingMethod << " is an invalid splitting method";
-			}
-			if(splitCoord != 0){
-				// TEMPORARY: it just auto generates a reference list; may have to change how a BVH is
-				// built to reduce construction of these reference lists
-				// or not try to overgeneralize probabilityHeuristic
-				std::vector<ReferenceWrapper<DIM>> refs(references.begin() + start, references.begin() + start + end);
-				BvhSplit split = probabilityHeuristic(refs, bc, bb, binCount, cost);
-				splitCoord = split.split;
-				splitDim = split.axis;
-			}
+		if(splittingMethod != 0){
+			std::vector<ReferenceWrapper<DIM>> refs(references.begin() + start, references.begin() + end);
+			BvhSplit split = probabilityHeuristic(refs, bc, bb, binCount, cost);
+			splitCoord = split.split;
+			splitDim = split.axis;
 		}
 
 		// partition the list of primitives on this split
@@ -182,8 +181,8 @@ inline void Bvh<DIM>::build()
 		}
 
 		// push right and left children
-		todo.emplace(BvhBuildEntry(nNodes - 1, mid, end));
-		todo.emplace(BvhBuildEntry(nNodes - 1, start, mid));
+		todo.emplace(BvhBuildEntry(nNodes - 1, mid, end, curDepth + 1));
+		todo.emplace(BvhBuildEntry(nNodes - 1, start, mid, curDepth + 1));
 	}
 
 	// copy the temp node data to a flat array

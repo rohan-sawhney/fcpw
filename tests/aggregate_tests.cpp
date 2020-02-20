@@ -291,39 +291,35 @@ void run()
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
 
-		// benchmark baseline queries
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
+		std::vector<AggregateType> aggregateTypes({
+			AggregateType::Baseline,
+			AggregateType::Bvh,
+			AggregateType::Bvh_SAH,
+			AggregateType::Bvh_Vol,
+			AggregateType::Bvh_Overlap_SAH,
+			AggregateType::Bvh_Overlap_Vol,
+			AggregateType::Sbvh
+		});
 
-		// build bvh aggregate & benchmark queries
-		scene.buildAggregate(AggregateType::Bvh);
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh");
+		std::vector<std::string> aggregateNames({
+			"Baseline",
+			"Bvh",
+			"Bvh with Surface Area Heuristic",
+			"Bvh with Volume Heuristic",
+			"Bvh with Overlap Surface Area Heuristic",
+			"Bvh with Overlap Volume Heuristic",
+			"Sbvh"
+		});
 
-		// build bvh aggregate with surface area heuristic & benchmark queries
-		scene.buildAggregate(AggregateType::Bvh_SAH);
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Surface Area Heuristic");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Surface Area Heuristic");
-
-		// build bvh aggregate with volume heuristic & benchmark queries
-		scene.buildAggregate(AggregateType::Bvh_Vol);
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Volume Heuristic");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Volume Heuristic");
-
-		// build bvh aggregate with overlap surface area heuristic & benchmark queries
-		scene.buildAggregate(AggregateType::Bvh_Overlap_SAH);
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Overlap Surface Area Heuristic");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Overlap Surface Area Heuristic");
-
-		// build bvh aggregate with overlap volume heuristic & benchmark queries
-		scene.buildAggregate(AggregateType::Bvh_Overlap_Vol);
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Overlap Volume Heuristic");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Overlap Volume Heuristic");
-
-		// build sbvh aggregate & benchmark queries
-		scene.buildAggregate(AggregateType::Sbvh);
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Sbvh");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Sbvh");
+		for(int i = 0; i < aggregateTypes.size(); i++){
+			if(i != 0){
+				// build new aggregate
+				scene.buildAggregate(aggregateTypes[i]);
+			}
+			// benchmark queries
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, aggregateNames[i]);
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, aggregateNames[i]);
+		}
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries

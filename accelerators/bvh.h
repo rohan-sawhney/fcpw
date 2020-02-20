@@ -44,7 +44,7 @@ protected:
 	// members
 	std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<BvhFlatNode<DIM>> flatTree;
-	int nNodes, nLeafs, leafSize, splittingMethod, binCount;
+	int nNodes, nLeafs, leafSize, splittingMethod, binCount, depth;
 };
 
 } // namespace fcpw
