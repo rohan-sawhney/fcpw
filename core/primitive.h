@@ -35,6 +35,9 @@ public:
 	// finds closest point to sphere center
 	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const = 0;
 
+	// splits primitive and returns the tight bounding boxes on either side of the split
+	virtual void split(const BoundingBox<DIM>& curBox, BoundingBox<DIM>& leftBox, BoundingBox<DIM>& rightBox, int splitDim, float splitLoc) const = 0;
+
 	// member
 	bool swapHandedness;
 };
@@ -94,6 +97,11 @@ public:
 		LOG_IF(FATAL, i.distanceInfo == DistanceInfo::Bounded)
 							  << "Cannot clamp to boundary since exact distance isn't available";
 		x = i.p;
+	}
+
+	// splits primitive and returns the tight bounding boxes on either side of the split
+	void split(const BoundingBox<DIM>& curBox, BoundingBox<DIM>& leftBox, BoundingBox<DIM>& rightBox, int splitDim, float splitLoc) const{
+		LOG(FATAL) << "Aggregate::split: No available split function for splitting aggregate into tight bounding boxes";
 	}
 };
 

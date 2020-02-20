@@ -1,6 +1,7 @@
 #include "csg_node.h"
 #include "accelerators/baseline.h"
 #include "accelerators/bvh.h"
+#include "accelerators/sbvh.h"
 #ifdef BENCHMARK_EMBREE
 	#include "accelerators/embree_bvh.h"
 #endif
@@ -178,6 +179,8 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 			case AggregateType::Bvh_Overlap_Vol:
 				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 4);
 				break;
+			case AggregateType::Sbvh:
+				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i]);
 			default:
 				objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);
 				break;		

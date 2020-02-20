@@ -1,6 +1,7 @@
 #include <stack>
 #include <queue>
 #include <chrono>
+#include <set>
 #define DOTESTS false
 #define NEAR_ZERO 1e-12
 
@@ -16,31 +17,29 @@ namespace fcpw{
     };
 
     template <int DIM>
-    struct SahBin{
+    struct SplitBin{
         // constructor
-        SahBin(): bounds(BoundingBox<DIM>()), enter(0), exit(0){}
+        SplitBin(): bounds(BoundingBox<DIM>()), enter(0), exit(0){}
         BoundingBox<DIM> bounds;
         // sbvh entry and exit counters
         int enter, exit;
     };
 
     template <int DIM>
-    inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_, int splittingMethod_, bool makeBvh_, int binCount_, bool fillLeaves_):
-        nNodes(0), nLeaves(0), leafSize(leafSize_), splittingMethod(splittingMethod_), primitives(primitives_), makeBvh(makeBvh_), binCount(binCount_), depth(0), nRefs(0), fillLeaves(fillLeaves_){
-
-        times = std::unique_ptr<std::vector<double>>(new std::vector<double>({0, 0, 0}));
+    inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_, int splittingMethod_, int binCount_, bool doUnsplitting_, bool fillLeaves_):
+        nNodes(0), nLeaves(0), leafSize(leafSize_), splittingMethod(splittingMethod_), primitives(primitives_), binCount(binCount_), depth(0), nReferences(0), fillLeaves(fillLeaves_), doUnsplitting(doUnsplitting_){
 
         // setup timer code
         std::chrono::high_resolution_clock::time_point t_start, t_end;
         std::chrono::nanoseconds duration;
-        double buildTime = 0;
+        float buildTime = 0;
 
         // construct and time sbvh construction
         t_start = std::chrono::high_resolution_clock::now();
         build();
         t_end = std::chrono::high_resolution_clock::now();
         duration = t_end - t_start;
-        buildTime = (double)(duration.count()) / std::chrono::nanoseconds::period::den;
+        buildTime = (float)(duration.count()) / std::chrono::nanoseconds::period::den;
 
         // output some stats about finished SBVH
         std::string bvhSplitHeuristic;
@@ -69,118 +68,10 @@ namespace fcpw{
                     << buildTime << " seconds, "
                     << "using the " << bvhSplitHeuristic << " heuristic for the Bvh and the " << sbvhSplitHeuristic << " heuristic for the Sbvh";
     }
-
-    template <int DIM>
-    inline SbvhSplit<DIM> Sbvh<DIM>::probabilityHeuristic(
-        std::vector<ReferenceWrapper<DIM>>& references,
-        BoundingBox<DIM> bc, BoundingBox<DIM> bb,
-        int binCount, costFunction<DIM> cost){
-
-        // setup container for multiple splits
-        std::vector<SbvhSplit<DIM>> results;
-        for(int i = 0; i < DIM; i++){
-            results.emplace_back(SbvhSplit<DIM>());
-            results.back().split = 0.0;
-            results.back().cost = maxDouble;
-            results.back().axis = i;
-        }
-
-        // setup useful containers
-        std::vector<SahBin<DIM>> bins = std::vector<SahBin<DIM>>(binCount);
-        std::vector<double> splits = std::vector<double>(binCount - 1);
-
-        for(int dimension = 0; dimension < DIM; dimension++){
-            // skip if bounding box is flat in this dimension
-            if(bc.extent()[dimension] < NEAR_ZERO) continue;
-
-            // select a split container corresponding to this dimension
-            SbvhSplit<DIM>& res = results[dimension];
-
-            // setup containers and variables for binning process
-            double delta = bc.extent()[res.axis] / binCount;
-            double loBound = bc.pMin(res.axis);
-            for(int i = 0; i < binCount; i++){
-                bins[i] = SahBin<DIM>();
-            }
-            for(int i = 0; i < binCount - 1; i++){
-                splits[i] = delta * (i + 1) + loBound;
-            }
-
-            // loop over references and bin reference
-            for(ReferenceWrapper<DIM> reference : references){
-                // parse reference
-                BoundingBox<DIM> bbox = reference.bbox;
-                int index = reference.index;
-                double center = bbox.centroid()[res.axis];
-
-                // get index of bbox via centroid
-                int binIndex = (center - loBound) / delta;
-                LOG_IF(FATAL, binIndex < -1 || binIndex > binCount) << "Out of bounds bin index even before adjustments, index is at " << binIndex << " with only " << binCount << "bins. Delta is " << delta;
-                if(binIndex == -1){
-                    // if centroid is on lo end of box but negative bin index due to rounding, increase index
-                    binIndex ++;
-                }
-                if(binIndex == binCount){
-                    // if centroid is on hi end of box but out of bounds index due to rounding, reduce index
-                    binIndex --;
-                }
-
-                // bin reference
-                bins[binIndex].bounds.expandToInclude(bbox);
-                bins[binIndex].enter ++;
-            }
-
-            // initialize variables to find optimal split
-            BoundingBox<DIM> hiBins[binCount - 1];
-            BoundingBox<DIM> loBox = BoundingBox<DIM>();
-            BoundingBox<DIM> hiBox;
-            int loCount = 0;
-            int hiCount = references.size();
-            res.cost = maxDouble;
-            hiBins[binCount - 2] = bins.back().bounds;
-
-            // fill array with boxes grown from the hi value along dim
-            for(int i = binCount - 2; i > 0; i--){
-                hiBins[i - 1] = hiBins[i];
-                hiBins[i - 1].expandToInclude(bins[i].bounds);
-            }
-
-            // find optimal split scanning from lo bin to hi bin
-            for(int i = 0; i < binCount - 1; i++){
-                // grow lo box, choose shrunken hi box
-                loBox.expandToInclude(bins[i].bounds);
-                hiBox = hiBins[i];
-                hiCount -= bins[i].enter;
-                loCount += bins[i].enter;
-
-                // get cost for current split and compare
-                double tempCost = cost(loBox, hiBox, loCount, hiCount, (bb.volume() < epsilon), bb.surfaceArea(), bb.volume());
-                if(tempCost < res.cost){
-                    // update if current split better than prior splits
-                    res.loBox = loBox;
-                    res.hiBox = hiBox;
-                    res.cost = tempCost;
-                    res.split = splits[i];
-                    res.entry = loCount;
-                    res.exit = hiCount;
-                }
-            }
-        }
-
-        // get and return best split
-        SbvhSplit<DIM> bestSplit = results[0];
-        for(int i = 0; i < DIM; i++){
-            if(results[i].cost < bestSplit.cost){
-                bestSplit = results[i];
-            }
-        }
-        return bestSplit;
-    }
-
     //The following is adapted from the RadeonRays SDK in order to better integrate it with our datatypes
 
     template <int DIM>
-    inline bool Sbvh<DIM>::splitReference(const ReferenceWrapper<DIM>& reference, int dim, double split, ReferenceWrapper<DIM>& loRef, ReferenceWrapper<DIM>& hiRef){
+    inline bool Sbvh<DIM>::splitReference(const ReferenceWrapper<DIM>& reference, int dim, float split, ReferenceWrapper<DIM>& loRef, ReferenceWrapper<DIM>& hiRef){
         // set initial values for references
         loRef.index  = reference.index;
         hiRef.index = reference.index;
@@ -204,13 +95,13 @@ namespace fcpw{
         for(int i = 0; i < DIM; i++){
             results.emplace_back(SbvhSplit<DIM>());
             results.back().split = 0.0;
-            results.back().cost = maxDouble;
+            results.back().cost = maxFloat;
             results.back().axis = i;
         }
 
         // setup useful containers
-        std::vector<SahBin<DIM>> bins = std::vector<SahBin<DIM>>(binCount);
-        std::vector<double> splits = std::vector<double>(binCount - 1);
+        std::vector<SplitBin<DIM>> bins = std::vector<SplitBin<DIM>>(binCount);
+        std::vector<float> splits = std::vector<float>(binCount - 1);
         
         for(int dimension = 0; dimension < DIM; dimension++){
             // skip if bounding box is flat in this dimension
@@ -220,10 +111,10 @@ namespace fcpw{
             SbvhSplit<DIM>& res = results[dimension];
 
             // setup containers and variables for binning process
-            double delta = bb.extent()[res.axis] / binCount;
-            double loBound = bb.pMin(res.axis);
+            float delta = bb.extent()[res.axis] / binCount;
+            float loBound = bb.pMin(res.axis);
             for(int i = 0; i < binCount; i++){
-                bins[i] = SahBin<DIM>();
+                bins[i] = SplitBin<DIM>();
             }
             for(int i = 0; i < binCount - 1; i++){
                 splits[i] = delta * (i + 1) + loBound;
@@ -236,8 +127,8 @@ namespace fcpw{
                 int index = reference.index;
 
                 // get hi and lo bound from bbox, compute index of bounds
-                double refLoBound = bbox.pMin(res.axis);
-                double refHiBound = bbox.pMax(res.axis);
+                float refLoBound = bbox.pMin(res.axis);
+                float refHiBound = bbox.pMax(res.axis);
                 int loIndex = (refLoBound - loBound) / delta;
                 int hiIndex = (refHiBound - loBound) / delta;
 
@@ -273,7 +164,7 @@ namespace fcpw{
             BoundingBox<DIM> hiBox;
             int loCount = 0;
             int hiCount = references.size();
-            res.cost = maxDouble;
+            res.cost = maxFloat;
             hiBins[binCount - 2] = bins.back().bounds;
 
             // fill array with boxes grown from the hi value along dim
@@ -291,7 +182,7 @@ namespace fcpw{
                 loCount += bins[i].enter;
 
                 // get cost for current split and compare
-                double tempCost = cost(loBox, hiBox, loCount, hiCount, (bb.volume() < epsilon), bb.surfaceArea(), bb.volume());
+                float tempCost = cost(loBox, hiBox, bb, loCount, hiCount, (bb.volume() < epsilon));
                 if(tempCost < res.cost){
                     // update if current split is better than prior splits
                     res.loBox = loBox;
@@ -356,7 +247,7 @@ namespace fcpw{
             node.rightOffset = Untouched;
             node.parentIndex = parent;
             node.start = -1;
-            node.nPrims = -1;
+            node.nPrimitives = -1;
 
             // calculate the bounding box for this node
             BoundingBox<DIM> bb, bc;
@@ -372,8 +263,8 @@ namespace fcpw{
                 node.rightOffset = 0;
                 nLeaves ++;
                 node.start = references.size();
-                node.nPrims = curReferences.size();
-                nRefs += node.nPrims;
+                node.nPrimitives = curReferences.size();
+                nReferences += node.nPrimitives;
                 references.insert(references.end(), curReferences.begin(), curReferences.end());
 
                 std::vector<ReferenceWrapper<DIM>>().swap(curReferences);
@@ -417,25 +308,8 @@ namespace fcpw{
             }
 
             // get results from sbvh and bvh methods for splitting plane location
-            SbvhSplit<DIM> objectSplitRes = probabilityHeuristic(curReferences, bc, bb, binCount, objectHeuristic);
-            SbvhSplit<DIM> spatialSplitRes = makeBvh ? SbvhSplit<DIM>() : splitProbabilityHeuristic(curReferences, bc, bb, binCount, spatialHeuristic);
-
-            // compare two costs received
-            double cost = makeBvh || objectSplitRes.cost < spatialSplitRes.cost ? objectSplitRes.cost : spatialSplitRes.cost;
-
-            // leaf cost test (check if better than bruteforce)
-            if(false){//cost > costOperation * curReferences.size()){
-                // is a leaf
-                node.rightOffset = 0;
-                nLeaves ++;
-                node.start = references.size();
-                node.nPrims = curReferences.size();
-                nRefs += node.nPrims;
-                for(ReferenceWrapper<DIM> reference : curReferences){
-                    references.emplace_back(reference);
-                }
-                std::vector<ReferenceWrapper<DIM>>().swap(curReferences);
-            }
+            BvhSplit objectSplitRes = probabilityHeuristic(curReferences, bc, bb, binCount, objectHeuristic);
+            SbvhSplit<DIM> spatialSplitRes = splitProbabilityHeuristic(curReferences, bc, bb, binCount, spatialHeuristic);
 
             // if leaf, no need to split
             if(node.rightOffset == 0){
@@ -449,10 +323,20 @@ namespace fcpw{
             hiRefs.reserve(curReferences.size());
 
             // determine whether to use object or spatial split
-            bool isBvhNode = makeBvh || objectSplitRes.cost <= spatialSplitRes.cost;
-            cost         = isBvhNode ? objectSplitRes.cost  : spatialSplitRes.cost;
-            double split = isBvhNode ? objectSplitRes.split : spatialSplitRes.split;
-            int splitDim = isBvhNode ? objectSplitRes.axis  : spatialSplitRes.axis;
+            bool isBvhNode = objectSplitRes.cost <= spatialSplitRes.cost;
+            float split, cost;
+            int splitDim;
+            if(isBvhNode){
+                cost = objectSplitRes.cost;
+                split = objectSplitRes.split;
+                splitDim = objectSplitRes.axis;
+            }
+            else{
+                cost = spatialSplitRes.cost;
+                split = spatialSplitRes.split;
+                splitDim = spatialSplitRes.axis;
+            }
+
 
 
             // perform partition depending on previous determination
@@ -495,7 +379,7 @@ namespace fcpw{
                 int hiCount = hiRefs.size();
                 int loIndex = 0;
                 int hiIndex = 0;
-                double loUnsplitCost, hiUnsplitCost;
+                float loUnsplitCost, hiUnsplitCost;
 
                 // perform unsplitting check on all refs
                 while(loIndex < loRefs.size() && hiIndex < hiRefs.size()){
@@ -509,15 +393,11 @@ namespace fcpw{
                         hiUnsplitBox.expandToInclude(loRefs[loIndex].bbox);
                         
                         // compute unsplitting costs
-                        loUnsplitCost = spatialHeuristic(loUnsplitBox, hiBox, loCount, hiCount - 1, false, bb.surfaceArea(), bb.volume());
-                        hiUnsplitCost = spatialHeuristic(loBox, hiUnsplitBox, loCount - 1, hiCount, false, bb.surfaceArea(), bb.volume());
+                        loUnsplitCost = spatialHeuristic(loUnsplitBox, hiBox, bb, loCount, hiCount - 1, false);
+                        hiUnsplitCost = spatialHeuristic(loBox, hiUnsplitBox, bb, loCount - 1, hiCount, false);
 
-                        // compare unsplitting costs
-                        bool loUnsplit = loUnsplitCost < cost;
-                        bool hiUnsplit = hiUnsplitCost < cost;
-
-                        // case on comparisons
-                        if(loUnsplit && loUnsplitCost < hiUnsplitCost){
+                        // compare unsplitting costs and case on comparisons
+                        if(loUnsplitCost < cost && loUnsplitCost < hiUnsplitCost){
                             // unsplitting is best on lo
                             loBox = loUnsplitBox;
                             hiCount --;
@@ -525,7 +405,7 @@ namespace fcpw{
                             hiRefs.erase(hiRefs.begin() + hiIndex);
                             loIndex ++;
                         }
-                        else if(hiUnsplit){
+                        else if(hiUnsplitCost < cost){
                             // unsplitting is best on hi
                             hiBox = hiUnsplitBox;
                             loCount --;
@@ -579,8 +459,8 @@ namespace fcpw{
     }
 
     template <int DIM>
-    inline double Sbvh<DIM>::surfaceArea() const{
-        double area = 0.0;
+    inline float Sbvh<DIM>::surfaceArea() const{
+        float area = 0.0;
         for(std::shared_ptr<Primitive<DIM>> p : primitives){
             area += p->surfaceArea();
         }
@@ -588,8 +468,8 @@ namespace fcpw{
     }
 
     template <int DIM>
-    inline double Sbvh<DIM>::signedVolume() const{
-        double volume = 0.0;
+    inline float Sbvh<DIM>::signedVolume() const{
+        float volume = 0.0;
         for(std::shared_ptr<Primitive<DIM>> p : primitives){
             volume += p->signedVolume();
         }
@@ -597,51 +477,59 @@ namespace fcpw{
     }
 
     template <int DIM>
-    inline int Sbvh<DIM>::intersect(Ray<DIM>& r, Interaction<DIM>& i, bool countHits) const{
+    inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, bool checkOcclusion, bool countHits) const{
         #ifdef PROFILE
             PROFILE_SCOPED();
         #endif
 
+        // track visited primitives for double intersect check
+        std::set<int> visitedPrims({});
+
         int hits = 0;
+        if(!countHits) is.resize(1);
         std::stack<BvhTraversal> todo;
-        double bbhits[4];
+        float bbhits[4];
         int closer, other;
-        int numVisited = 0;
 
         // "push" on the root node to the working set
-        todo.emplace(BvhTraversal(0, minDouble));
+        todo.emplace(BvhTraversal(0, minFloat));
 
         while (!todo.empty()) {
-            numVisited ++;
             // pop off the next node to work on
             BvhTraversal traversal = todo.top();
             todo.pop();
 
             int ni = traversal.i;
-            double near = traversal.d;
+            float near = traversal.d;
             const BvhFlatNode<DIM>& node(flatTree[ni]);
 
             // if this node is further than the closest found intersection, continue
-            if (!countHits && near > r.tMax) {
-                continue;
-            }
+            if (!countHits && near > r.tMax) continue;
 
             // is leaf -> intersect
-            if (node.rightOffset == 0){// && node.references != nullptr) {
-                for(int ridx = node.start; ridx < node.start + node.nPrims; ridx++){
-                    Interaction<DIM> c;
+            if (node.rightOffset == 0){
+                for(int ridx = node.start; ridx < node.start + node.nPrimitives; ridx++){
                     const ReferenceWrapper<DIM>& reference = references[ridx];
+                    // skip if primitive has been intersected before
+                    if(countHits){
+                        if(visitedPrims.find(reference.index) != visitedPrims.end()) continue;
+                        else visitedPrims.emplace(reference.index);
+                    }
+                    std::vector<Interaction<DIM>> cs;
                     const std::shared_ptr<Primitive<DIM>>& prim = primitives[reference.index];
-                    int hit = prim->intersect(r, c);
+                    int hit = prim->intersect(r, cs, checkOcclusion, countHits);
                     
                     // keep the closest intersection only
                     if (hit > 0) {
-                        if (c.d < r.tMax) {
-                            if (!countHits) r.tMax = c.d;
-                            i = c;
-                        }
-
                         hits += hit;
+                        if (countHits){
+                            is.insert(is.end(), cs.begin(), cs.end());
+                        }
+                        else{
+                            r.tMax = std::min(r.tMax, cs[0].d);
+                            is[0] = cs[0];
+                        }
+                        if(checkOcclusion) return 1;
                     }
                 }
             } else { // not a leaf
@@ -677,29 +565,36 @@ namespace fcpw{
             }
         }
 
+        if(countHits){
+            std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+            is = removeDuplicates<DIM>(is);
+            hits = (int)is.size();
+        }
+
         return hits;
     }
 
     template <int DIM>
-    inline void Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const{
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+    inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const{
+    #ifdef PROFILE
+        PROFILE_SCOPED();
+    #endif
 
+        bool notFound = true;
         std::queue<BvhTraversal> todo;
-        double bbhits[4];
+        float bbhits[4];
         int closer, other;
 
         // "push" on the root node to the working set
-        todo.emplace(BvhTraversal(0, minDouble));
-        while (!todo.empty()) {
+        todo.emplace(BvhTraversal(0, minFloat));
 
+        while (!todo.empty()) {
             // pop off the next node to work on
             BvhTraversal traversal = todo.front();
             todo.pop();
 
             int ni = traversal.i;
-            double near = traversal.d;
+            float near = traversal.d;
             const BvhFlatNode<DIM>& node(flatTree[ni]);
 
             // if this node is further than the closest found primitive, continue
@@ -708,33 +603,26 @@ namespace fcpw{
             }
 
             // is leaf -> compute squared distance
-            if (node.rightOffset == 0){
-                for(int ridx = node.start; ridx < node.start + node.nPrims; ridx++){
+            if (node.rightOffset == 0) {
+                for (int p = 0; p < node.nPrimitives; p++) {
                     Interaction<DIM> c;
-                    const ReferenceWrapper<DIM>& reference = references[ridx];
-                    double dMin;
-                    double dMax;
-                    bool temp = reference.bbox.overlaps(s, dMin, dMax);
-                    if(temp){
-                        const std::shared_ptr<Primitive<DIM>>& prim = primitives[reference.index];
-                        prim->findClosestPoint(s, c);
+                    const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p].index];
+                    bool found = prim->findClosestPoint(s, c);
 
-                        // keep the closest point only
-                        if (c.d < s.r2) {
-                            s.r2 = c.d;
-                            i = c;
-                            i.d = std::sqrt(i.d);
-                            LOG_IF(FATAL, i.primitive == nullptr) << "Primitive " << reference.index << " referenced is null in sbvh";
-                        }
+                    // keep the closest point only
+                    if (found) {
+                        notFound = false;
+                        s.r2 = std::min(s.r2, c.d*c.d);
+                        i = c;
                     }
                 }
 
             } else { // not a leaf
                 bool hit0 = flatTree[ni + 1].bbox.overlaps(s, bbhits[0], bbhits[1]);
-                if (s.r2 > bbhits[1]) s.r2 = bbhits[1];
+                s.r2 = std::min(s.r2, bbhits[1]);
 
                 bool hit1 = flatTree[ni + node.rightOffset].bbox.overlaps(s, bbhits[2], bbhits[3]);
-                if (s.r2 > bbhits[3]) s.r2 = bbhits[3];
+                s.r2 = std::min(s.r2, bbhits[3]);
 
                 // is there overlap with both nodes?
                 if (hit0 && hit1) {
@@ -755,97 +643,16 @@ namespace fcpw{
                     // push the closer first, then the farther
                     todo.emplace(BvhTraversal(closer, bbhits[0]));
                     todo.emplace(BvhTraversal(other, bbhits[2]));
+
                 } else if (hit0) {
                     todo.emplace(BvhTraversal(ni + 1, bbhits[0]));
+
                 } else if (hit1) {
                     todo.emplace(BvhTraversal(ni + node.rightOffset, bbhits[2]));
                 }
             }
         }
-    }
 
-    template <int DIM>
-    inline BoundingBox<DIM> Sbvh<DIM>::traverse(int& curIndex, int gotoIdx) const{
-        // update provided curIndex with new index depending on what the goto number is, return bbox of node
-        // gotoIdx order is preorder traversal, cases 0 to 2 incl
-        LOG_IF(FATAL, curIndex < 0 || curIndex >= flatTree.size()) << "Index provided is out of bounds of tree";
-        const BvhFlatNode<DIM>& node = flatTree[curIndex];
-        switch(gotoIdx){
-            case 0:
-                // parent
-                if(curIndex == 0){
-                    // root node
-                    return node.bbox;
-                }
-                curIndex = node.parentIndex;
-                break;
-            case 1:
-                // leftChild
-                if(node.rightOffset == 0){
-                    // leaf node
-                    return node.bbox;
-                }
-                curIndex ++;
-                break;
-            case 2:
-                // rightChild
-                if(node.rightOffset == 0){
-                    // root node
-                    return node.bbox;
-                }
-                curIndex += node.rightOffset;
-                break;
-            default:
-                LOG(FATAL) << "Invalid traversal index";
-                break;
-        }
-        return flatTree[curIndex].bbox;
-    }
-
-    template <int DIM>
-    inline void Sbvh<DIM>::getBoxList(int curIndex, int topDepth, int bottomDepth,
-    std::vector<Vector<DIM>>& boxVertices, std::vector<std::vector<int>>& boxEdges,
-    std::vector<Vector<DIM>>& curBoxVertices, std::vector<std::vector<int>>& curBoxEdges) const{
-        int selectedBoxIndex = curIndex;
-        BoundingBox<DIM> bbox = flatTree[curIndex].bbox;
-        bbox.vertices(curBoxVertices, curBoxEdges, false);
-        boxVertices.clear();
-        boxEdges.clear();
-
-        while(topDepth > 0){
-            if(curIndex > 0){
-                curIndex = flatTree[curIndex].parentIndex;
-                bottomDepth ++;
-            }
-            topDepth --;
-        }
-
-        std::queue<BvhTraversal> todo;
-        todo.emplace(BvhTraversal(curIndex, minDouble, 0));
-        int boxIndex = 0;
-        int boxPow = 1;
-        for(int i = 0; i < DIM; i++) boxPow *= 2;
-
-        while(!todo.empty()){
-            BvhTraversal traversal = todo.front();
-            todo.pop();
-            if(traversal.i != selectedBoxIndex){
-                std::vector<Vector<DIM>> thisBoxVertices;
-                bbox = flatTree[traversal.i].bbox;
-                bbox.vertices(thisBoxVertices, curBoxEdges, false);
-                boxVertices.insert(boxVertices.end(), thisBoxVertices.begin(), thisBoxVertices.end());
-                for(std::vector<int> edge : curBoxEdges){
-                    int boxOffset = boxIndex * boxPow;
-                    boxEdges.emplace_back(std::vector<int>({edge[0] + boxOffset, edge[1] + boxOffset}));
-                }
-            }
-
-            if(flatTree[traversal.i].rightOffset != 0 && traversal.depth < bottomDepth){
-                todo.emplace(BvhTraversal(traversal.i + 1, 0, traversal.depth + 1));
-                todo.emplace(BvhTraversal(traversal.i + flatTree[traversal.i].rightOffset, 0, traversal.depth + 1));
-            }
-
-            if(traversal.i != selectedBoxIndex) boxIndex ++;
-        }
+        return !notFound;
     }
 }

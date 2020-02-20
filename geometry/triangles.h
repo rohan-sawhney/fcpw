@@ -38,6 +38,9 @@ public:
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;
 
+	// splits primitive and returns the tight bounding boxes on either side of the split
+	void split(const BoundingBox<3>& curBox, BoundingBox<3>& leftBox, BoundingBox<3>& rightBox, int splitDim, float splitLoc) const;
+
 	// members
 	std::shared_ptr<PolygonSoup<3>> soup;
 	const std::vector<int>& indices; /* a.k.a. vIndices */

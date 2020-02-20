@@ -305,20 +305,25 @@ void run()
 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Surface Area Heuristic");
 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Surface Area Heuristic");
 
-		// build bvh aggregate with surface area heuristic & benchmark queries
+		// build bvh aggregate with volume heuristic & benchmark queries
 		scene.buildAggregate(AggregateType::Bvh_Vol);
 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Volume Heuristic");
 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Volume Heuristic");
 
-		// build bvh aggregate with surface area heuristic & benchmark queries
+		// build bvh aggregate with overlap surface area heuristic & benchmark queries
 		scene.buildAggregate(AggregateType::Bvh_Overlap_SAH);
 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Overlap Surface Area Heuristic");
 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Overlap Surface Area Heuristic");
 
-		// build bvh aggregate with surface area heuristic & benchmark queries
+		// build bvh aggregate with overlap volume heuristic & benchmark queries
 		scene.buildAggregate(AggregateType::Bvh_Overlap_Vol);
 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh with Overlap Volume Heuristic");
 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh with Overlap Volume Heuristic");
+
+		// build sbvh aggregate & benchmark queries
+		scene.buildAggregate(AggregateType::Sbvh);
+		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Sbvh");
+		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Sbvh");
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
@@ -350,7 +355,7 @@ void run()
 		testIntersectionQueries<DIM>(scene.aggregate, bvhSAHScene.aggregate, queryPoints, randomDirections);
 		testClosestPointQueries<DIM>(scene.aggregate, bvhSAHScene.aggregate, queryPoints);
 		
-		// build bvh aggregate with surface area heuristic and compare results with baseline
+		// build bvh aggregate with volume heuristic and compare results with baseline
 		std::cout << "Testing Bvh with Volume Heuristic results against Baseline" << std::endl;
 		Scene<DIM> bvhVolScene;
 		bvhVolScene.loadFiles(true, false);
@@ -358,7 +363,7 @@ void run()
 		testIntersectionQueries<DIM>(scene.aggregate, bvhVolScene.aggregate, queryPoints, randomDirections);
 		testClosestPointQueries<DIM>(scene.aggregate, bvhVolScene.aggregate, queryPoints);
 
-		// build bvh aggregate with surface area heuristic and compare results with baseline
+		// build bvh aggregate with overlap surface area heuristic and compare results with baseline
 		std::cout << "Testing Bvh with Overlap Surface Area Heuristic results against Baseline" << std::endl;
 		Scene<DIM> bvhOSAHScene;
 		bvhOSAHScene.loadFiles(true, false);
@@ -366,13 +371,21 @@ void run()
 		testIntersectionQueries<DIM>(scene.aggregate, bvhOSAHScene.aggregate, queryPoints, randomDirections);
 		testClosestPointQueries<DIM>(scene.aggregate, bvhOSAHScene.aggregate, queryPoints);
 
-		// build bvh aggregate with surface area heuristic and compare results with baseline
+		// build bvh aggregate with overlap volume heuristic and compare results with baseline
 		std::cout << "Testing Bvh with Overlap Volume results against Baseline" << std::endl;
 		Scene<DIM> bvhOVolScene;
 		bvhOVolScene.loadFiles(true, false);
 		bvhOVolScene.buildAggregate(AggregateType::Bvh_Overlap_Vol);
 		testIntersectionQueries<DIM>(scene.aggregate, bvhOVolScene.aggregate, queryPoints, randomDirections);
 		testClosestPointQueries<DIM>(scene.aggregate, bvhOVolScene.aggregate, queryPoints);
+
+		// build sbvh aggregate and compare results with baseline
+		std::cout << "Testing Sbvh results against Baseline" << std::endl;
+		Scene<DIM> sbvhScene;
+		sbvhScene.loadFiles(true, false);
+		sbvhScene.buildAggregate(AggregateType::Sbvh);
+		testIntersectionQueries<DIM>(scene.aggregate, sbvhScene.aggregate, queryPoints, randomDirections);
+		testClosestPointQueries<DIM>(scene.aggregate, sbvhScene.aggregate, queryPoints);
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate and compare results with baseline

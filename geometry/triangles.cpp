@@ -276,6 +276,65 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 	return false;
 }
 
+void Triangle::split(const BoundingBox<3>& curBox, BoundingBox<3>& leftBox, BoundingBox<3>& rightBox, int dim, float split) const{
+	// check if provided split can actually split the box
+	// prepare split bounding boxes (as if splitting entire shape box)
+	leftBox = BoundingBox<3>();
+	rightBox = BoundingBox<3>();
+	// create edge tracker
+	int j = 2;
+	
+	for(int i = 0; i < 3; i++){
+		// get pair of vertices of triangle to get edge
+		const Vector3f& pa = soup->positions[indices[j]];
+		const Vector3f& pb = soup->positions[indices[i]];
+		j = i;
+		
+		// place segment endpoints into correct boxes
+		bool paInLeft, pbInLeft;
+		if(pa[dim] < split){
+			leftBox.expandToInclude(pa);
+			paInLeft = true;
+		}
+		else if(pa[dim] > split){
+			rightBox.expandToInclude(pa);
+			paInLeft = false;
+		}
+		else{
+			leftBox.expandToInclude(pa);
+			rightBox.expandToInclude(pa);
+			paInLeft = true;
+		}
+
+		if(pb[dim] < split){
+			leftBox.expandToInclude(pb);
+			pbInLeft = true;
+		}
+		else if(pb[dim] > split){
+			rightBox.expandToInclude(pb);
+			pbInLeft = false;
+		}
+		else{
+			leftBox.expandToInclude(pb);
+			rightBox.expandToInclude(pb);
+			pbInLeft = true;
+		}
+
+		// detect and bin intersection point between segment and split plane (if there is one)
+		if((paInLeft && !pbInLeft) || (pbInLeft && !paInLeft)){
+			float t = (split - pa[dim]) / (pb[dim] - pa[dim]);
+			t = t > 0.0 ? ( t < 1.0 ? t : 1.0) : 0.0;
+			Vector3f pSplit = pa + (t * (pb - pa));
+			leftBox.expandToInclude(pSplit);
+			rightBox.expandToInclude(pSplit);
+		}
+	}
+
+	// tighten left and right boxes given some initial bounding box
+	leftBox = curBox.intersect(leftBox);
+	rightBox = curBox.intersect(rightBox);
+}
+
 void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<3>>>& triangles,
 									std::shared_ptr<PolygonSoup<3>>& soup)
 {

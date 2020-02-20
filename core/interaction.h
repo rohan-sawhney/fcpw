@@ -20,10 +20,10 @@ struct Interaction {
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
-		bool distancesMatch = std::fabsf(d - i.d) < 1e-6;
+		bool distancesMatch = std::fabsf(d - i.d) < 1e-5;
 		if (distanceInfo == DistanceInfo::Bounded) return distancesMatch;
 
-		return distancesMatch && (p - i.p).squaredNorm() < 1e-6;
+		return distancesMatch && (p - i.p).squaredNorm() < 1e-5;
 	}
 
 	bool operator!=(const Interaction<DIM>& i) const {

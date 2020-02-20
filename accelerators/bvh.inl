@@ -58,10 +58,11 @@ inline void Bvh<DIM>::build()
 	}
 
 	// for heuristic based methods, construct a vector of references to primitives
-	std::vector<ReferenceWrapper<DIM>> references;
+	std::vector<ReferenceWrapper<DIM>> references(nPrimitives);
 	if(splittingMethod){
 		for(int i = 0; i < nPrimitives; i++){
-			references.emplace_back(primitives[i]->boundingBox(), i);
+			references[i].bbox = primitiveBoxes[i];
+			references[i].index = i;
 		}
 	}
 

@@ -43,7 +43,7 @@ namespace fcpw{
         float d; // minimum distance (parametric, squared, ...) to this node
     };
 
-    // cost function type (shared between BVH and SBVH) (NEED TO ADDRESS DIFFERENCE IN NOT HAVING BASE COSTS IN BVH VERSION)
+    // cost function type (shared between BVH and SBVH)
     template <int DIM>
     using costFunction = float (*) (BoundingBox<DIM>& loBox, BoundingBox<DIM>& hiBox, const BoundingBox<DIM>& parent, int countsLo, int countsHi, bool isFlat);
     // typedef float (* costFunction)(BoundingBox<DIM>& consolidateLeft, BoundingBox<DIM>& consolidateRight, int countsLeft, int countsRight, bool isFlat, float bbSA, float bbVol, float costTraversal, float costOperation);
