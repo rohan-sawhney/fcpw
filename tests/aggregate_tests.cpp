@@ -311,7 +311,7 @@ void run()
 			"Sbvh"
 		});
 
-		for(int i = 0; i < aggregateTypes.size(); i++){
+		for(int i = 1; i < aggregateTypes.size(); i++){
 			if(i != 0){
 				// build new aggregate
 				scene.buildAggregate(aggregateTypes[i]);

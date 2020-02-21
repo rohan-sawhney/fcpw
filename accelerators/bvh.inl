@@ -352,6 +352,7 @@ inline bool Bvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>&
 		// is leaf -> compute squared distance
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nPrimitives; p++) {
+				// TODO: CREATE A NEW FUNCTION WHICH IS CALLED HERE FOR WHAT HAPPENS WHEN BVH REACHES A LEAF NODE, OVERRIDE THIS IN SBVH (MAINTAIN LOGIC BETWEEN BVH AND SBVH IN PLACES WHERE LOGIC SHOULDN'T BE DIFFERENT)
 				Interaction<DIM> c;
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[node.start + p];
 				bool found = prim->findClosestPoint(s, c);
