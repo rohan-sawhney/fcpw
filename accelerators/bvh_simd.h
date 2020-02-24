@@ -1,28 +1,31 @@
 #pragma once
 
-#include "sbvh.h"
 #include "bvh_simd_common.h"
 
 namespace fcpw{
 
     template <int DIM, int W>
-    class SbvhSimd: public Aggregate<DIM>{
+    class BvhSimd: public Aggregate<DIM>{
         using SimdType = typename IntrinsicType<W>::type;
+
+        // Notes:
+        // We assume leaf size of original bvh is simd size or smaller
+        // need to eventually handle case of greater than simd size leaves
 
         public:
         // constructor
-	    SbvhSimd(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4, int splittingMethod_=0, int binCount_=16);
+	    BvhSimd(std::vector<BvhFlatNode<DIM>>& nodes, std::vector<ReferenceWrapper<DIM>>& references, std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, std::string parentDescription = "");
 
-        // gets bounding box of SBVH
+        // gets bounding box of MBVH
         BoundingBox<DIM> boundingBox() const;
         
-        // gets centroid of bounding box of SBVH
+        // gets centroid of bounding box of MBVH
         Vector<DIM> centroid() const;
 
-        // gets surface area of bounding box of SBVH
+        // gets surface area of bounding box of MBVH
         float surfaceArea() const;
 
-        // gets signed volume of bounding box of SBVH
+        // gets signed volume of bounding box of MBVH
         float signedVolume() const;
 
         // gets ray intersection point
@@ -33,11 +36,11 @@ namespace fcpw{
 
         private:
 
-        // constructs SBVH4
-        void build(std::vector<BvhFlatNode<DIM>> nodes, std::vector<ReferenceWrapper<DIM>> references);
+        // constructs mbvh
+        void build(std::vector<BvhFlatNode<DIM>>& nodes, std::vector<ReferenceWrapper<DIM>>& references);
 
         // member variables
-        int splittingMethod, leafSize, nNodes, binCount, nLeaves, depth, nReferences, nPrimitives;
+        int nNodes, nLeaves, depth, nReferences, nPrimitives;
         std::vector<std::shared_ptr<Primitive<DIM>>> primitives;
         std::vector<BvhSimdFlatNode<DIM, W>> flatTree;
         std::vector<BvhSimdLeafNode<DIM, W>> leaves;
@@ -45,4 +48,4 @@ namespace fcpw{
     };
 } // namespace fcpw
 
-#include "sbvh_simd.inl"
+#include "bvh_simd.inl"

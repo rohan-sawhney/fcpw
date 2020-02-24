@@ -411,4 +411,9 @@ inline bool Bvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>&
 	return !notFound;
 }
 
+template <int DIM>
+inline void Bvh<DIM>::convert(int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh){
+	LOG(FATAL) << "conversion to mbvh has not yet been implemented in for normal bvh";
+}
+
 } // namespace fcpw

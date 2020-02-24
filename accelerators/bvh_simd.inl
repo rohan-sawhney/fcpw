@@ -1,7 +1,6 @@
 #include <stack>
 #include <queue>
 #include <chrono>
-// #include "sbvh.h"
 
 namespace fcpw{
 
@@ -12,7 +11,7 @@ namespace fcpw{
     };
 
     template <int DIM, int W>
-    inline SbvhSimd<DIM, W>::SbvhSimd(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_, int splittingMethod_, int binCount_):
+    inline BvhSimd<DIM, W>::BvhSimd(std::vector<BvhFlatNode<DIM>>& nodes, std::vector<ReferenceWrapper<DIM>>& references, std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, std::string parentDescription):
         nNodes(0), nLeaves(0), leafSize(leafSize_), splittingMethod(splittingMethod_), 
         primitives(primitives_), binCount(binCount_), depth(0), nRefs(0){
 

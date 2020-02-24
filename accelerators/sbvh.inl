@@ -556,4 +556,9 @@ namespace fcpw{
         return primitive->findClosestPoint(s, i);
     }
 
+    template <int DIM>
+    inline void Bvh<DIM>::convert(int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh){
+        
+    }
+
 }

@@ -40,6 +40,9 @@ public:
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
+	// converts bvh into a SIMD-parallel bvh (mbvh)
+	virtual void convert(int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh);
+
 protected:
 	// builds binary tree
 	void build();
