@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bvh_simd_common.h"
+#include "bvh_common.h"
 
 namespace fcpw{
 
@@ -14,7 +15,10 @@ namespace fcpw{
 
         public:
         // constructor
-	    BvhSimd(std::vector<BvhFlatNode<DIM>>& nodes, std::vector<ReferenceWrapper<DIM>>& references, std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, std::string parentDescription = "");
+	    BvhSimd(const std::vector<BvhFlatNode<DIM>>& nodes_, 
+        const std::vector<ReferenceWrapper<DIM>>& references_, 
+        const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, 
+        const std::string& parentDescription_ = "");
 
         // gets bounding box of MBVH
         BoundingBox<DIM> boundingBox() const;
@@ -37,7 +41,7 @@ namespace fcpw{
         private:
 
         // constructs mbvh
-        void build(std::vector<BvhFlatNode<DIM>>& nodes, std::vector<ReferenceWrapper<DIM>>& references);
+        void build(const std::vector<BvhFlatNode<DIM>>& nodes, const std::vector<ReferenceWrapper<DIM>>& references);
 
         // member variables
         int nNodes, nLeaves, depth, nReferences, nPrimitives;

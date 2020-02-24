@@ -1,6 +1,7 @@
 #pragma once
 
 #include "bvh_common.h"
+#include "bvh_simd.h"
 
 namespace fcpw {
 // source: https://github.com/brandonpelfrey/Fast-BVH
@@ -34,16 +35,16 @@ public:
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const;
 
-	// applies closest point to leaves
-	virtual bool applyClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, int pos) const;
-
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 	// converts bvh into a SIMD-parallel bvh (mbvh)
-	virtual void convert(int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh);
+	virtual void convert(const int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh);
 
 protected:
+	// applies closest point to leaves
+	virtual bool applyClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, int pos) const;
+
 	// builds binary tree
 	void build();
 

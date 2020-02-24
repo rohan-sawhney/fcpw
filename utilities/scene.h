@@ -21,7 +21,10 @@ enum class AggregateType {
 	Bvh_Vol,
 	Bvh_Overlap_SAH,
 	Bvh_Overlap_Vol,
-	Sbvh
+	Sbvh,
+	SSEBvh,
+	AVXBvh,
+	AVX512Bvh
 };
 
 struct CsgTreeNode;

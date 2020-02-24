@@ -11,40 +11,24 @@ namespace fcpw{
     };
 
     template <int DIM, int W>
-    inline BvhSimd<DIM, W>::BvhSimd(std::vector<BvhFlatNode<DIM>>& nodes, std::vector<ReferenceWrapper<DIM>>& references, std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, std::string parentDescription):
-        nNodes(0), nLeaves(0), leafSize(leafSize_), splittingMethod(splittingMethod_), 
-        primitives(primitives_), binCount(binCount_), depth(0), nRefs(0){
+    inline BvhSimd<DIM, W>::BvhSimd(
+        const std::vector<BvhFlatNode<DIM>>& nodes_, 
+        const std::vector<ReferenceWrapper<DIM>>& references_, 
+        const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, 
+        const std::string& parentDescription_):
+        nNodes(0), nLeaves(0), primitives(primitives_), bbox(nodes_[0].bbox),
+        depth(0), nReferences(0), nPrimitives(primitives_.size()){
 
         std::chrono::high_resolution_clock::time_point t_start, t_end;
         std::chrono::nanoseconds duration;
         double buildTime = 0;
 
         t_start = std::chrono::high_resolution_clock::now();
-        std::unique_ptr<Sbvh<DIM>> sbvh = std::unique_ptr<Sbvh<DIM>>(new Sbvh<DIM>(primitives_, W, splittingMethod, false, binCount));
-        bbox = sbvh->boundingBox();
-        build(sbvh->flatTree, sbvh->references);
+        build(nodes_, references_);
         t_end = std::chrono::high_resolution_clock::now();
         duration = t_end - t_start;
         buildTime = (double)(duration.count()) / std::chrono::nanoseconds::period::den;
 
-        std::string bvhSplitHeuristic;
-        std::string sbvhSplitHeuristic;
-        switch(splittingMethod){
-            case 1:
-                bvhSplitHeuristic = sbvhSplitHeuristic = "Volume";
-                break;
-            case 2:
-                bvhSplitHeuristic = "Overlap Surface Area";
-                sbvhSplitHeuristic = "Surface Area";
-                break;
-            case 3:
-                bvhSplitHeuristic = "Overlap Volume";
-                sbvhSplitHeuristic = "Volume";
-                break;
-            default:
-                bvhSplitHeuristic = sbvhSplitHeuristic = "Surface Area";
-                break;
-        }
         std::string simdMethod;
         switch(W){
             case 4:
@@ -60,17 +44,17 @@ namespace fcpw{
                 simdMethod = "INVALID";
                 break;
         }
-        LOG(INFO) << simdMethod << " Sbvh created with "
+        LOG(INFO) << simdMethod << " Bvh created with "
                     << nNodes << " nodes, "
                     << nLeaves << " leaves, "
-                    << primitives.size() << " primitives, "
+                    << nPrimitives << " primitives, "
                     << depth << " depth, in "
                     << buildTime << " seconds, "
-                    << "using the " << bvhSplitHeuristic << " heuristic for the Bvh and the " << sbvhSplitHeuristic << " heuristic for the Sbvh";
+                    << parentDescription_;
     }
 
     template <int DIM, int W>
-    inline void SbvhSimd<DIM, W>::build(std::vector<BvhFlatNode<DIM>> nodes, std::vector<ReferenceWrapper<DIM>> references){
+    inline void BvhSimd<DIM, W>::build(const std::vector<BvhFlatNode<DIM>>& nodes, const std::vector<ReferenceWrapper<DIM>>& references){
         std::stack<BvhSimdBuildNode> todo;
         std::stack<BvhTraversal> nodeWorkingSet;
         std::vector<BvhSimdFlatNode<DIM, W>> buildNodes;
@@ -78,7 +62,7 @@ namespace fcpw{
         LOG(INFO) << "Size of flat node for dimension " << DIM << " and vector width " << W << ": " << sizeof(BvhSimdFlatNode<DIM, W>);
 
         int maxDepth = W == 4 ? 2 : (W == 8 ? 3 : (W == 16 ? 4 : 0));
-        LOG_IF(FATAL, maxDepth == 0) << "SbvhSimd::build(): Provided width for SIMD is invalid";
+        LOG_IF(FATAL, maxDepth == 0) << "BvhSimd::build(): Provided width for SIMD is invalid";
 
         todo.emplace(BvhSimdBuildNode(0, -1, 0));
 
@@ -95,7 +79,7 @@ namespace fcpw{
             int parentIndex = toBuild.parentIndex;
             if(depth < toBuild.depth) depth = toBuild.depth;
             int toBuildDepth = toBuild.depth;
-            BvhFlatNode<DIM>& curNode = nodes[nodeIndex];
+            const BvhFlatNode<DIM>& curNode = nodes[nodeIndex];
 
             // construct a new tree node
             if(parentIndex == -1 || curNode.rightOffset != 0){
@@ -213,17 +197,29 @@ namespace fcpw{
     }
 
     template <int DIM, int W>
-    inline BoundingBox<DIM> SbvhSimd<DIM, W>::boundingBox() const{
+    inline BoundingBox<DIM> BvhSimd<DIM, W>::boundingBox() const{
+        // BoundingBox<DIM> bbox = BoundingBox<DIM>();
+        // BvhSimdFlatNode<DIM>& root = flatTree[0];
+        // for(int i = 0; i < W; i++){
+        //     Vector<DIM> pMin = Vector<DIM>();
+        //     Vector<DIM> pMax = Vector<DIM>();
+        //     for(int j = 0; j < DIM; j++){
+        //         pMin(j) = root.minBoxes[j][i];
+        //         pMax(j) = root.maxBoxes[j][i];
+        //     }
+        //     bbox.expandToInclude(pMin);
+        //     bbox.expandToInclude(pMax);
+        // }
         return bbox;
     }
 
     template <int DIM, int W>
-    inline Vector<DIM> SbvhSimd<DIM, W>::centroid() const{
+    inline Vector<DIM> BvhSimd<DIM, W>::centroid() const{
         return bbox.centroid();
     }
 
     template <int DIM, int W>
-    inline float SbvhSimd<DIM, W>::surfaceArea() const{
+    inline float BvhSimd<DIM, W>::surfaceArea() const{
         float area = 0.0;
         for(std::shared_ptr<Primitive<DIM>> p : primitives){
             area += p->surfaceArea();
@@ -232,7 +228,7 @@ namespace fcpw{
     }
 
     template <int DIM, int W>
-    inline float SbvhSimd<DIM, W>::signedVolume() const{
+    inline float BvhSimd<DIM, W>::signedVolume() const{
         float volume = 0.0;
         for(std::shared_ptr<Primitive<DIM>> p : primitives){
             volume += p->signedVolume();
@@ -241,14 +237,15 @@ namespace fcpw{
     }
 
     template <int DIM, int W>
-    inline int SbvhSimd<DIM, W>::intersect(Ray<DIM>& r, Interaction<DIM>& i, bool countHits) const{
+    inline int BvhSimd<DIM, W>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, bool checkOcclusion, bool countHits) const{
+        LOG(FATAL) << "Not yet implemented";
         return 0;
     }
 
 /* ---- CPQ ---- */
 
     template <int DIM, int W>
-    inline void SbvhSimd<DIM, W>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const{
+    inline bool BvhSimd<DIM, W>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const{
         #ifdef PROFILE
             PROFILE_SCOPED();
         #endif
@@ -257,7 +254,7 @@ namespace fcpw{
         SimdType resVec[2];
         SimdType leafVec[2];
 
-        todo.emplace(BvhTraversal(0, minDouble));
+        todo.emplace(BvhTraversal(0, minFloat));
         while(!todo.empty()){
 
             // pop off the next node to work on
@@ -296,7 +293,7 @@ namespace fcpw{
                             pi.indices[k] = leafNode.indices[k];
                         }
                         // parallelTriangleOverlap(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
-                        parallelTriangleOverlap2(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
+                        parallelTriangleOverlap(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
 
                         float bestDistance;
                         float bestPoint[DIM];
@@ -322,17 +319,6 @@ namespace fcpw{
             }
         }
         LOG_IF(FATAL, i.primitive == nullptr) << "Primitive is null!";
-        // LOG(INFO) << "Query done";
-    }
-
-    template <int DIM, int W>
-    inline BoundingBox<DIM> SbvhSimd<DIM, W>::traverse(int& curIndex, int gotoIndex) const{
-        return BoundingBox<DIM>();
-    }
-
-    template <int DIM, int W>
-    inline void SbvhSimd<DIM, W>::getBoxList(int curIndex, int topDepth, int bottomDepth,
-    std::vector<Vector<DIM>>& boxVertices, std::vector<std::vector<int>>& boxEdges,
-    std::vector<Vector<DIM>>& curBoxVertices, std::vector<std::vector<int>>& curBoxEdges) const{
+        return s.r2 != maxFloat;
     }
 }// namespace fcpw

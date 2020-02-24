@@ -2,6 +2,7 @@
 #include "accelerators/baseline.h"
 #include "accelerators/bvh.h"
 #include "accelerators/sbvh.h"
+#include "accelerators/bvh_simd.h"
 #ifdef BENCHMARK_EMBREE
 	#include "accelerators/embree_bvh.h"
 #endif
@@ -167,6 +168,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 			case AggregateType::Bvh:
 				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i]);
 				break;
+			// heuristics
 			case AggregateType::Bvh_SAH:
 				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 1);
 				break;
@@ -179,8 +181,19 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 			case AggregateType::Bvh_Overlap_Vol:
 				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 4);
 				break;
+			// sbvh
 			case AggregateType::Sbvh:
 				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i], 4, 3, 32, false);
+				break;
+			// SIMD parallelism
+			case AggregateType::SSEBvh:
+				(std::make_shared<Bvh<DIM>>(objects[i], 4))->convert(4, objectAggregates[i]);
+				break;
+			case AggregateType::AVXBvh:
+				(std::make_shared<Bvh<DIM>>(objects[i], 8))->convert(8, objectAggregates[i]);
+				break;
+			case AggregateType::AVX512Bvh:
+				(std::make_shared<Bvh<DIM>>(objects[i], 16))->convert(16, objectAggregates[i]);
 				break;
 			default:
 				objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);

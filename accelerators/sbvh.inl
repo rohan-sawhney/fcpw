@@ -557,7 +557,7 @@ namespace fcpw{
     }
 
     template <int DIM>
-    inline void Bvh<DIM>::convert(int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh){
+    inline void Sbvh<DIM>::convert(const int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh){
         
     }
 

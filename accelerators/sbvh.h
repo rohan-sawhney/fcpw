@@ -23,9 +23,11 @@ namespace fcpw{
         // gets ray intersection point
         int intersect(Ray<DIM>&r, std::vector<Interaction<DIM>>& is, bool checkOcclusion=false, bool countHits=false) const;
 
-        bool applyClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, int pos) const;
+        void convert(const int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh);
 
         protected:
+
+        bool applyClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, int pos) const;
 
         // constructs SBVH
         void build();
