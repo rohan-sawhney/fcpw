@@ -292,23 +292,23 @@ void run()
 		std::cout << "Running performance tests..." << std::endl;
 
 		std::vector<AggregateType> aggregateTypes({
-			AggregateType::Baseline,
+			AggregateType::Baseline, 
+			AggregateType::Sbvh,
 			AggregateType::Bvh,
 			AggregateType::Bvh_SAH,
 			AggregateType::Bvh_Vol,
 			AggregateType::Bvh_Overlap_SAH,
-			AggregateType::Bvh_Overlap_Vol,
-			AggregateType::Sbvh
+			AggregateType::Bvh_Overlap_Vol
 		});
 
 		std::vector<std::string> aggregateNames({
 			"Baseline",
+			"Sbvh",
 			"Bvh",
 			"Bvh with Surface Area Heuristic",
 			"Bvh with Volume Heuristic",
 			"Bvh with Overlap Surface Area Heuristic",
-			"Bvh with Overlap Volume Heuristic",
-			"Sbvh"
+			"Bvh with Overlap Volume Heuristic"
 		});
 
 		for(int i = 1; i < aggregateTypes.size(); i++){

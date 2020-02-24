@@ -16,7 +16,7 @@ template <int DIM>
 class Bvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4, int splittingMethod_=0, int binCount_=16);
+	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4, int splittingMethod_=0, int binCount_=32, bool makeBvh=true);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -34,6 +34,9 @@ public:
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const;
 
+	// applies closest point to leaves
+	virtual bool applyClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, int pos) const;
+
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
@@ -44,7 +47,7 @@ protected:
 	// members
 	std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<BvhFlatNode<DIM>> flatTree;
-	int nNodes, nLeafs, leafSize, splittingMethod, binCount, depth;
+	int nNodes, nLeaves, leafSize, splittingMethod, binCount, depth;
 };
 
 } // namespace fcpw

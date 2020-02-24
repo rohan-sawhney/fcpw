@@ -15,28 +15,30 @@ struct BvhBuildEntry {
 };
 
 template <int DIM>
-inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_, int splittingMethod_, int binCount_):
+inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_, int splittingMethod_, int binCount_, bool makeBvh):
 nNodes(0),
-nLeafs(0),
+nLeaves(0),
 leafSize(leafSize_),
 primitives(primitives_),
 splittingMethod(splittingMethod_),
 binCount(binCount_),
 depth(0)
 {
-	using namespace std::chrono;
-	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+	if(makeBvh){
+		using namespace std::chrono;
+		high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-	build();
+		build();
 
-	high_resolution_clock::time_point t2 = high_resolution_clock::now();
-	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << "Built Bvh with "
-			  << nNodes << " nodes, "
-			  << nLeafs << " leaves, "
-			  << primitives.size() << " primitives, "
-			  << depth << " depth in "
-			  << timeSpan.count() << " seconds" << std::endl;
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+		std::cout << "Built Bvh with "
+				<< nNodes << " nodes, "
+				<< nLeaves << " leaves, "
+				<< primitives.size() << " primitives, "
+				<< depth << " depth in "
+				<< timeSpan.count() << " seconds" << std::endl;
+	}
 }
 
 template <int DIM>
@@ -106,7 +108,7 @@ inline void Bvh<DIM>::build()
 		// size, then this will become a leaf (signified by rightOffset == 0)
 		if (nPrimitives <= leafSize) {
 			node.rightOffset = 0;
-			nLeafs++;
+			nLeaves++;
 		}
 
 		buildNodes.emplace_back(node);
@@ -321,6 +323,12 @@ inline int Bvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 }
 
 template <int DIM>
+inline bool Bvh<DIM>::applyClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, int pos) const{
+	const std::shared_ptr<Primitive<DIM>>& primitive = primitives[pos];
+	return primitive->findClosestPoint(s, i);
+}
+
+template <int DIM>
 inline bool Bvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
 {
 #ifdef PROFILE
@@ -354,8 +362,7 @@ inline bool Bvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>&
 			for (int p = 0; p < node.nPrimitives; p++) {
 				// TODO: CREATE A NEW FUNCTION WHICH IS CALLED HERE FOR WHAT HAPPENS WHEN BVH REACHES A LEAF NODE, OVERRIDE THIS IN SBVH (MAINTAIN LOGIC BETWEEN BVH AND SBVH IN PLACES WHERE LOGIC SHOULDN'T BE DIFFERENT)
 				Interaction<DIM> c;
-				const std::shared_ptr<Primitive<DIM>>& prim = primitives[node.start + p];
-				bool found = prim->findClosestPoint(s, c);
+				bool found = applyClosestPoint(s, c, node.start + p);
 
 				// keep the closest point only
 				if (found) {

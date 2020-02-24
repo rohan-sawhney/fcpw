@@ -2,7 +2,7 @@
 
 #include "primitive.h"
 
-#define COST_TRAVERSAL 1.0
+#define COST_TRAVERSAL 0.125
 #define COST_OPERATION 1.0
 
 namespace fcpw{
@@ -12,6 +12,7 @@ namespace fcpw{
     struct BvhFlatNode{
         BoundingBox<DIM> bbox;
         int start, nPrimitives, rightOffset, parentIndex, siblingIndex;
+        bool isOverlapping;
     };
 
     // contains information about optimal split location and dimension

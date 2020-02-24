@@ -180,7 +180,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 4);
 				break;
 			case AggregateType::Sbvh:
-				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i], 4, 2);
+				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i], 4, 3, 32, false);
 				break;
 			default:
 				objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);

@@ -1,7 +1,6 @@
 #pragma once
 
-#include "bvh_common.h"
-// #include "sbvh_simd.h"
+#include "bvh.h"
 
 namespace fcpw{
     
@@ -14,32 +13,19 @@ namespace fcpw{
     };
 
     template <int DIM>
-    class Sbvh: public Aggregate<DIM>{
+    class Sbvh: public Bvh<DIM>{
         // friend class SbvhSimd;
 
         public:
         // constructor
-	    Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4, int splittingMethod_=0, int binCount_=16, bool doUnsplitting_=false, bool fillLeaves_=false);
-
-        // gets bounding box of SBVH
-        BoundingBox<DIM> boundingBox() const;
-        
-        // gets centroid of bounding box of SBVH
-        Vector<DIM> centroid() const;
-
-        // gets surface area of bounding box of SBVH
-        float surfaceArea() const;
-
-        // gets signed volume of bounding box of SBVH
-        float signedVolume() const;
+	    Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4, int splittingMethod_=0, int binCount_=32, bool doUnsplitting_=false, bool fillLeaves_=false);
 
         // gets ray intersection point
         int intersect(Ray<DIM>&r, std::vector<Interaction<DIM>>& is, bool checkOcclusion=false, bool countHits=false) const;
 
-        // gets closest point
-        bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
+        bool applyClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, int pos) const;
 
-        private:
+        protected:
 
         // constructs SBVH
         void build();
@@ -51,14 +37,12 @@ namespace fcpw{
         SbvhSplit<DIM> splitProbabilityHeuristic(std::vector<ReferenceWrapper<DIM>>& references, BoundingBox<DIM> bc, BoundingBox<DIM> bb, int binCount, costFunction<DIM> cost);
 
         // member variables
-        std::vector<std::shared_ptr<Primitive<DIM>>> primitives;
-        int splittingMethod, leafSize, nNodes, binCount, nLeaves, depth, nReferences, nPrimitives;
-        bool fillLeaves, doUnsplitting;
-
-        public:
-        // THE FOLLOWING ARE ONLY PUBLIC UNTIL I CAN FIGURE OUT CLASS FRIENDSHIP
         std::vector<ReferenceWrapper<DIM>> references;
-        std::vector<BvhFlatNode<DIM>> flatTree;
+        int nReferences, nPrimitives;
+        bool fillLeaves, doUnsplitting;
+        
+        // debug
+        int nSpatialSplits, nObjectSplits;
     };
 }
 
