@@ -31,7 +31,7 @@ template <int DIM>
 class BoundingBox {
 public:
 	// constructor
-	BoundingBox() {
+	BoundingBox(bool isTight_): isTight(isTight_) {
 		for (int i = 0; i < DIM; i++) {
 			pMin(i) = maxFloat;
 			pMax(i) = minFloat;
@@ -39,7 +39,8 @@ public:
 	}
 
 	// constructor
-	BoundingBox(const Vector<DIM>& p): pMin(p), pMax(p) {}
+	BoundingBox(const Vector<DIM>& p, bool isTight_):
+				pMin(p), pMax(p), isTight(isTight_) {}
 
 	// expands volume to include point
 	void expandToInclude(const Vector<DIM>& p) {
@@ -55,6 +56,8 @@ public:
 			if (pMin(i) > b.pMin(i)) pMin(i) = b.pMin(i);
 			if (pMax(i) < b.pMax(i)) pMax(i) = b.pMax(i);
 		}
+
+		if (!b.isTight) isTight = false;
 	}
 
 	// returns box extent
@@ -171,7 +174,7 @@ public:
 
 	// computes transformed box
 	BoundingBox<DIM> transform(const Transform<float, DIM, Affine>& t) const {
-		BoundingBox<DIM> b;
+		BoundingBox<DIM> b(false);
 		int nCorners = 1 << DIM;
 
 		for (int i = 0; i < nCorners; i++) {
@@ -192,6 +195,7 @@ public:
 
 	// members
 	Vector<DIM> pMin, pMax;
+	bool isTight;
 };
 
 template <>

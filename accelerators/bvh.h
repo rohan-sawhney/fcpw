@@ -14,6 +14,10 @@ namespace fcpw {
 
 template <int DIM>
 struct BvhFlatNode {
+	// constructor
+	BvhFlatNode(): bbox(false), start(0), nPrimitives(0), rightOffset(0) {}
+
+	// members
 	BoundingBox<DIM> bbox;
 	int start, nPrimitives, rightOffset;
 };

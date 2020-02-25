@@ -23,7 +23,7 @@ BoundingBox<3> Triangle::boundingBox() const
 	const Vector3f& pb = soup->positions[indices[1]];
 	const Vector3f& pc = soup->positions[indices[2]];
 
-	BoundingBox<3> box(pa);
+	BoundingBox<3> box(pa, true);
 	box.expandToInclude(pb);
 	box.expandToInclude(pc);
 

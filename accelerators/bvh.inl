@@ -56,12 +56,12 @@ inline void Bvh<DIM>::build()
 
 	// precompute bounding boxes and centroids
 	int nPrimitives = (int)primitives.size();
-	std::vector<BoundingBox<DIM>> primitiveBoxes(nPrimitives);
-	std::vector<Vector<DIM>> primitiveCentroids(nPrimitives);
+	std::vector<BoundingBox<DIM>> primitiveBoxes;
+	std::vector<Vector<DIM>> primitiveCentroids;
 
 	for (int i = 0; i < nPrimitives; i++) {
-		primitiveBoxes[i] = primitives[i]->boundingBox();
-		primitiveCentroids[i] = primitives[i]->centroid();
+		primitiveBoxes.emplace_back(primitives[i]->boundingBox());
+		primitiveCentroids.emplace_back(primitives[i]->centroid());
 	}
 
 	// push the root
@@ -86,7 +86,7 @@ inline void Bvh<DIM>::build()
 		node.rightOffset = Untouched;
 
 		// calculate the bounding box for this node
-		BoundingBox<DIM> bb, bc;
+		BoundingBox<DIM> bb(true), bc(true);
 		for (int p = start; p < end; p++) {
 			bb.expandToInclude(primitiveBoxes[p]);
 			bc.expandToInclude(primitiveCentroids[p]);
@@ -158,7 +158,7 @@ inline void Bvh<DIM>::build()
 template <int DIM>
 inline BoundingBox<DIM> Bvh<DIM>::boundingBox() const
 {
-	return flatTree.size() > 0 ? flatTree[0].bbox : BoundingBox<DIM>();
+	return flatTree.size() > 0 ? flatTree[0].bbox : BoundingBox<DIM>(false);
 }
 
 template <int DIM>
