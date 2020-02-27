@@ -59,7 +59,6 @@ namespace fcpw{
         std::stack<BvhTraversal> nodeWorkingSet;
         std::vector<BvhSimdFlatNode<DIM, W>> buildNodes;
         std::vector<BvhSimdLeafNode<DIM, W>> buildLeaves;
-        LOG(INFO) << "Size of flat node for dimension " << DIM << " and vector width " << W << ": " << sizeof(BvhSimdFlatNode<DIM, W>);
 
         int maxDepth = W == 4 ? 2 : (W == 8 ? 3 : (W == 16 ? 4 : 0));
         LOG_IF(FATAL, maxDepth == 0) << "BvhSimd::build(): Provided width for SIMD is invalid";
@@ -116,13 +115,20 @@ namespace fcpw{
 
                 // connect popped off node to associated build node
                 if(curNode.rightOffset == 0){
-                    // if node is leaf, link and move on
+                    // if node is leaf, construct the parallel leaf, link and move on
+
+                    float tripoints[3][DIM][W];
                     nLeaves ++;
                     buildLeaves.emplace_back(BvhSimdLeafNode<DIM, W>());
                     BvhSimdLeafNode<DIM, W>& leafNode = buildLeaves.back();
                     for(int i = 0; i < W; i++){
                         if(i >= curNode.nPrimitives){
                             leafNode.indices[i] = -1;
+                            for(int j = 0; j < DIM; j++){
+                                tripoints[0][j][i] = 0.;
+                                tripoints[1][j][i] = 0.;
+                                tripoints[2][j][i] = 0.;
+                            }
                             continue;
                         }
                         leafNode.indices[i] = references[curNode.start + i].index;
@@ -137,9 +143,12 @@ namespace fcpw{
                             const Vector3f& pc = vertices[2];
 
                             for(int j = 0; j < DIM; j++){
-                                leafNode.pa[j][i] = pa(j);
-                                leafNode.pb[j][i] = pb(j);
-                                leafNode.pc[j][i] = pc(j);
+                                tripoints[0][j][i] = pa(j);
+                                tripoints[1][j][i] = pb(j);
+                                tripoints[2][j][i] = pc(j);
+                                // leafNode.pa[j][i] = pa(j);
+                                // leafNode.pb[j][i] = pb(j);
+                                // leafNode.pc[j][i] = pc(j);
                                 // leafNode.minBoxes[j][i] = references[curNode.start + i].bbox.pMin(j);
                                 // leafNode.maxBoxes[j][i] = references[curNode.start + i].bbox.pMax(j);
                             }
@@ -148,6 +157,8 @@ namespace fcpw{
                             LOG(FATAL) << "Non triangular primitives not handled at the moment";
                         }
                     }
+
+                    leafNode.initPoints(tripoints);
 
                     parentNode.indices[tempCounter] = buildLeaves.size() - 1;
                     parentNode.isLeaf[tempCounter] = true;
@@ -158,6 +169,7 @@ namespace fcpw{
                     parentNode.indices[tempCounter] = simdTreeIndex;
                     parentNode.isLeaf[tempCounter] = false;
                 }
+
             }
 
             // push grandchildren of node on top of processing stack (leftmost grandchild goes to top of stack)
@@ -198,18 +210,6 @@ namespace fcpw{
 
     template <int DIM, int W>
     inline BoundingBox<DIM> BvhSimd<DIM, W>::boundingBox() const{
-        // BoundingBox<DIM> bbox = BoundingBox<DIM>();
-        // BvhSimdFlatNode<DIM>& root = flatTree[0];
-        // for(int i = 0; i < W; i++){
-        //     Vector<DIM> pMin = Vector<DIM>();
-        //     Vector<DIM> pMax = Vector<DIM>();
-        //     for(int j = 0; j < DIM; j++){
-        //         pMin(j) = root.minBoxes[j][i];
-        //         pMax(j) = root.maxBoxes[j][i];
-        //     }
-        //     bbox.expandToInclude(pMin);
-        //     bbox.expandToInclude(pMax);
-        // }
         return bbox;
     }
 
@@ -292,19 +292,20 @@ namespace fcpw{
                         for(int k = 0; k < W; k++){
                             pi.indices[k] = leafNode.indices[k];
                         }
-                        // parallelTriangleOverlap(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
-                        parallelTriangleOverlap(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
+                        parallelTriangleOverlap2(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
 
                         float bestDistance;
                         float bestPoint[DIM];
-                        int bestIndex;
+                        int bestIndex; // = findClosestFromLeaf(s, leafNode);
                         pi.getBest(bestDistance, bestPoint, bestIndex);
+
                         // LOG(INFO) << "Node indices: " << leafNode.indices[0] << " " << leafNode.indices[1] << " " << leafNode.indices[2] << " " << leafNode.indices[3] << " Best index: " << bestIndex << " Best distance: " << bestDistance << " Current radius: " << s.r2;
                         bool updatedDistances = false;
 
-                        if(bestDistance < (float)s.r2){
-                            updatedDistances = true;
+                        if(bestIndex != -1 && bestDistance < (float)s.r2){
+                            // updatedDistances = true;
                             s.r2 = (float)bestDistance;
+                            // i = c;
                             i.p = Vector<DIM>();
                             for(int k = 0; k < DIM; k++){
                                 i.p(k) = (float)bestPoint[k];
@@ -313,7 +314,7 @@ namespace fcpw{
                             i.d = std::sqrt(s.r2);
                             i.primitive = primitives[bestIndex].get();
                         }
-                        LOG_IF(FATAL, updatedDistances && i.primitive == nullptr) << "Primitive is null!";
+                        // LOG_IF(FATAL, updatedDistances && i.primitive == nullptr) << "Primitive is null!";
                     }
                 }
             }

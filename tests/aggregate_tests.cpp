@@ -193,6 +193,12 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 				bool found2 = aggregate2->findClosestPoint(s2, c2);
 
 				if (found1 != found2 || c1 != c2) {
+					Interaction<DIM> c3;
+					BoundingSphere<DIM> s3(queryPoints[i], maxFloat);
+					bool found3 = c2.primitive->findClosestPoint(s3, c3);
+					LOG_IF(INFO, found2 != found3 || c2 != c3) << "d1: " << c1.d << " d2: " << c2.d << " d3: " << c3.d;
+					LOG_IF(INFO, found2 != found3 || c2 != c3) << "p1: " << c1.p << " p2: " << c2.p << " p3: " << c3.p;
+					LOG_IF(FATAL, found2 != found3 || c2 != c3) << "Found closest primitive on aggregate 2 doesn't match up to aggregate 2";
 					LOG(INFO) << "d1: " << c1.d << " d2: " << c2.d;
 					LOG(INFO) << "p1: " << c1.p << " p2: " << c2.p;
 					LOG(FATAL) << "Closest points do not match!";
@@ -349,54 +355,6 @@ void run()
 				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
 			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
 		}
-
-		// // build bvh aggregate and compare results with baseline
-		// std::cout << "Testing Bvh results against Baseline" << std::endl;
-		// Scene<DIM> bvhScene;
-		// bvhScene.loadFiles(true, false);
-		// bvhScene.buildAggregate(AggregateType::Bvh);
-		// testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
-		// testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
-
-		// // build bvh aggregate with surface area heuristic and compare results with baseline
-		// std::cout << "Testing Bvh with Surface Area Heuristic results against Baseline" << std::endl;
-		// Scene<DIM> bvhSAHScene;
-		// bvhSAHScene.loadFiles(true, false);
-		// bvhSAHScene.buildAggregate(AggregateType::Bvh_SAH);
-		// testIntersectionQueries<DIM>(scene.aggregate, bvhSAHScene.aggregate, queryPoints, randomDirections);
-		// testClosestPointQueries<DIM>(scene.aggregate, bvhSAHScene.aggregate, queryPoints);
-		
-		// // build bvh aggregate with volume heuristic and compare results with baseline
-		// std::cout << "Testing Bvh with Volume Heuristic results against Baseline" << std::endl;
-		// Scene<DIM> bvhVolScene;
-		// bvhVolScene.loadFiles(true, false);
-		// bvhVolScene.buildAggregate(AggregateType::Bvh_Vol);
-		// testIntersectionQueries<DIM>(scene.aggregate, bvhVolScene.aggregate, queryPoints, randomDirections);
-		// testClosestPointQueries<DIM>(scene.aggregate, bvhVolScene.aggregate, queryPoints);
-
-		// // build bvh aggregate with overlap surface area heuristic and compare results with baseline
-		// std::cout << "Testing Bvh with Overlap Surface Area Heuristic results against Baseline" << std::endl;
-		// Scene<DIM> bvhOSAHScene;
-		// bvhOSAHScene.loadFiles(true, false);
-		// bvhOSAHScene.buildAggregate(AggregateType::Bvh_Overlap_SAH);
-		// testIntersectionQueries<DIM>(scene.aggregate, bvhOSAHScene.aggregate, queryPoints, randomDirections);
-		// testClosestPointQueries<DIM>(scene.aggregate, bvhOSAHScene.aggregate, queryPoints);
-
-		// // build bvh aggregate with overlap volume heuristic and compare results with baseline
-		// std::cout << "Testing Bvh with Overlap Volume results against Baseline" << std::endl;
-		// Scene<DIM> bvhOVolScene;
-		// bvhOVolScene.loadFiles(true, false);
-		// bvhOVolScene.buildAggregate(AggregateType::Bvh_Overlap_Vol);
-		// testIntersectionQueries<DIM>(scene.aggregate, bvhOVolScene.aggregate, queryPoints, randomDirections);
-		// testClosestPointQueries<DIM>(scene.aggregate, bvhOVolScene.aggregate, queryPoints);
-
-		// // build sbvh aggregate and compare results with baseline
-		// std::cout << "Testing Sbvh results against Baseline" << std::endl;
-		// Scene<DIM> sbvhScene;
-		// sbvhScene.loadFiles(true, false);
-		// sbvhScene.buildAggregate(AggregateType::Sbvh);
-		// testIntersectionQueries<DIM>(scene.aggregate, sbvhScene.aggregate, queryPoints, randomDirections);
-		// testClosestPointQueries<DIM>(scene.aggregate, sbvhScene.aggregate, queryPoints);
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate and compare results with baseline

@@ -40,6 +40,26 @@ namespace fcpw{
 
         private:
 
+        // debug for simd triangle closest point
+        int findClosestFromLeaf(BoundingSphere<DIM>& s, const BvhSimdLeafNode<DIM, W>& leaf) const{
+            int res = -1;
+            float bestDist = s.r2;
+            for(int i = 0; i < W; i++){
+                int primIndex = leaf.indices[i];
+                if(primIndex == -1){
+                    continue;
+                }
+                const std::shared_ptr<Primitive<DIM>>& primitive = primitives[primIndex];
+                Interaction<DIM> c;
+                bool temp = primitive->findClosestPoint(s, c);
+                if(temp && c.d * c.d < bestDist){
+                    bestDist = c.d * c.d;
+                    res = primIndex;
+                }
+            }
+            return res;
+        }
+
         // constructs mbvh
         void build(const std::vector<BvhFlatNode<DIM>>& nodes, const std::vector<ReferenceWrapper<DIM>>& references);
 

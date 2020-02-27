@@ -60,14 +60,15 @@ namespace fcpw{
                 bvhSplitHeuristic = sbvhSplitHeuristic = "Surface Area";
                 break;
         }
-        LOG(INFO) << "Sbvh created with "
+        std::cout << "Sbvh created with "
                     << Bvh<DIM>::nNodes << " nodes, "
                     << Bvh<DIM>::nLeaves << " leaves, "
                     << Bvh<DIM>::primitives.size() << " primitives, "
                     << Bvh<DIM>::depth << " depth, in "
-                    << buildTime << " seconds, "
-                    << "using the " << bvhSplitHeuristic << " heuristic for the Bvh and the " << sbvhSplitHeuristic << " heuristic for the Sbvh";
-        LOG(INFO) << "Number of spatial splits: " << nSpatialSplits << " Number of object splits: " << nObjectSplits << " Ratio of spatial splits to object splits: " << (nObjectSplits == 0 ? "NAN" : std::to_string((float)nSpatialSplits / nObjectSplits));
+                    << buildTime << " seconds, using the "
+                    << bvhSplitHeuristic << " heuristic for the Bvh and the "
+                    << sbvhSplitHeuristic << " heuristic for the Sbvh" << std::endl;
+        // LOG(INFO) << "Number of spatial splits: " << nSpatialSplits << " Number of object splits: " << nObjectSplits << " Ratio of spatial splits to object splits: " << (nObjectSplits == 0 ? "NAN" : std::to_string((float)nSpatialSplits / nObjectSplits));
     }
     //The following is adapted from the RadeonRays SDK in order to better integrate it with our datatypes
 
