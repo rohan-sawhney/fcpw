@@ -3,55 +3,9 @@
 #include "immintrin.h"
 #include <array>
 #include "bounding_volumes.h"
-#include "common/simd/sse.h"
-#include "common/math/vec2.h"
-#include "common/math/vec3.h"
-#include "common/math/vec4.h"
-
-// #include "common/simd/avx.h"
+#include "simd.h"
 
 namespace fcpw{
-
-    template<int W>
-    struct UndefinedSIMDType{};
-
-    template <int W>
-    struct IntrinsicType{
-        using type = UndefinedSIMDType<W>;
-        static_assert((W == 4) || (W == 8) || (W == 16), "Provided SIMD width is not a valid SIMD width");
-        inline void init(float inits[], type toInit){
-            LOG(INFO) << "Provided SIMD width is not a valid SIMD width";
-        }
-    };
-
-    template <>
-    struct IntrinsicType<4>{
-        using type = __m128;
-    };
-
-    template <>
-    struct IntrinsicType<8>{
-        using type = __m256;
-    };
-
-    template <>
-    struct IntrinsicType<16>{
-        using type = __m512;
-    };
-
-    inline void initSimd(const float inits[4], __m128& vec){
-        vec = _mm_set_ps(inits[3], inits[2], inits[1], inits[0]);
-    }
-    inline void initSimd(const float inits[8], __m256& vec){
-        vec = _mm256_set_ps(inits[7], inits[6], inits[5], inits[4],
-                            inits[3], inits[2], inits[1], inits[0]);
-    }
-    inline void initSimd(const float inits[16], __m512& vec){
-        vec = _mm512_set_ps(inits[15], inits[14], inits[13], inits[12],
-                            inits[11], inits[10], inits[9], inits[8],
-                            inits[7], inits[6], inits[5], inits[4],
-                            inits[3], inits[2], inits[1], inits[0]);
-    }
 
     // TEMP NOTE: prep for simd optimized bvhs
     template <int DIM, int W>
@@ -330,117 +284,6 @@ namespace fcpw{
         }
     }
 
-    // The following are taken and adapted from the following citation:
-    /*
-    Evan Shellshear and Robin Ytterlid, Fast Distance Queries for Triangles, Lines, and Points using SSE Instructions, Journal of Computer Graphics Techniques (JCGT), vol. 3, no. 4, 86-110, 2014
-
-    http://jcgt.org/published/0003/04/05/   */
-
-    struct sseb
-    {
-        sseb(__m128 m128_) : m128(m128_){}
-        __m128 m128;
-        void operator |=(const sseb& a){
-            m128 = _mm_or_ps(a.m128, m128);
-        }
-    };
-    const sseb operator &(const sseb& a, const sseb& b){
-        return sseb(_mm_and_ps(a.m128, b.m128));
-    }
-    const sseb operator |(const sseb& a, const sseb& b){
-        return sseb(_mm_or_ps(a.m128, b.m128));
-    }
-    const sseb operator ^(const sseb& a, const sseb& b){
-        return sseb(_mm_xor_ps(a.m128, b.m128));
-    }
-    bool all(const sseb& b){
-        return _mm_movemask_ps(b.m128) == 0xf;
-    }
-    bool any(const sseb& b){
-        return _mm_movemask_ps(b.m128) != 0x0;
-    }
-    bool none(const sseb& b){
-        return _mm_movemask_ps(b.m128) == 0x0;
-    }
-    sseb andnot(const sseb& a, const sseb& b){
-        return sseb(_mm_andnot_ps(a.m128, b.m128));
-    }
-
-    struct ssef{
-        ssef(__m128 m128_) : m128(m128_){}
-        __m128 m128;
-    };
-    const ssef operator +(const ssef& a, const ssef&b){
-        return ssef(_mm_add_ps(a.m128, b.m128));
-    }
-    const ssef operator -(const ssef& a, const ssef&b){
-        return ssef(_mm_sub_ps(a.m128, b.m128));
-    }
-    const ssef operator *(const ssef& a, const ssef&b){
-        return ssef(_mm_mul_ps(a.m128, b.m128));
-    }
-    const ssef operator /(const ssef& a, const ssef&b){
-        return ssef(_mm_div_ps(a.m128, b.m128));
-    }
-    const sseb operator >=(const ssef& a, const ssef&b){
-        return sseb(_mm_cmpge_ps(a.m128, b.m128));
-    }
-    const sseb operator >(const ssef& a, const ssef&b){
-        return sseb(_mm_cmpgt_ps(a.m128, b.m128));
-    }
-    const sseb operator <=(const ssef& a, const ssef&b){
-        return sseb(_mm_cmple_ps(a.m128, b.m128));
-    }
-    const sseb operator <(const ssef& a, const ssef&b){
-        return sseb(_mm_cmplt_ps(a.m128, b.m128));
-    }
-    const ssef min(const ssef& a, const ssef&b){
-        return ssef(_mm_min_ps(a.m128, b.m128));
-    }
-    const ssef max(const ssef& a, const ssef&b){
-        return ssef(_mm_max_ps(a.m128, b.m128));
-    }
-    const ssef sqr(const ssef& a){
-        return ssef(_mm_mul_ps(a.m128, a.m128));
-    }
-    const ssef sqrt(const ssef& a){
-        return ssef(_mm_sqrt_ps(a.m128));
-    }
-    const ssef select(const sseb& mask, const ssef& t, const ssef& f){
-        return ssef(_mm_blendv_ps(f.m128, t.m128, mask.m128));
-    }
-    static const __m128 vecZero = _mm_setzero_ps();
-    static const __m128 vecOne = _mm_set1_ps(0xffff);
-
-	typedef sseb simdBool;
-	typedef ssef simdFloat;
-
-	//typedef avxf simdFloat;
-	//typedef avxb simdBool;
-	//typedef avxi simdInt;
-
-	typedef embree::Vec3<simdBool>	simdBoolVec;
-	typedef embree::Vec3<simdFloat> simdFloatVec;
-
-	typedef std::array<simdFloatVec, 3>		simdTriangle_type;
-	typedef std::array<simdFloatVec, 2>		simdLine_type;
-	typedef simdFloatVec					simdPoint_type;
-
-    inline simdFloat length2(const embree::Vec3<simdFloat>& a){
-        return ssef(embree::dot(a, a));
-    }
-
-    __forceinline const simdFloatVec select(const simdBool& s, const simdFloatVec& t, const simdFloatVec& f) {
-		return simdFloatVec(select(s, t.x, f.x), select(s, t.y, f.y), select(s, t.z, f.z));
-	}
-
-	__forceinline const simdLine_type select(const simdBool& s, const simdLine_type& t, const simdLine_type& f) {
-		const simdFloatVec start(select(s, t[0].x, f[0].x), select(s, t[0].y, f[0].y), select(s, t[0].z, f[0].z));
-		const simdFloatVec end(select(s, t[1].x, f[1].x), select(s, t[1].y, f[1].y), select(s, t[1].z, f[1].z));
-		const simdLine_type result = { start, end };
-		return result;
-	}
-
     const simdFloat simdTriPoint2(simdFloatVec& oTriPoint, const simdTriangle_type& iTri, const simdPoint_type& iPoint){
 		// Check if P in vertex region outside A
 		const simdFloatVec ab = iTri[1] - iTri[0];
@@ -448,7 +291,7 @@ namespace fcpw{
 		const simdFloatVec ap = iPoint - iTri[0];
 		const simdFloat d1 = dot(ab, ap);
 		const simdFloat d2 = dot(ac, ap);
-		const simdBool mask1 = (d1 <= simdFloat(vecZero)) & (d2 <= simdFloat(vecZero));
+		const simdBool mask1 = (d1 <= simdFloat(vecZero().vec)) & (d2 <= simdFloat(vecZero().vec));
 		oTriPoint = iTri[0];
 		simdBool exit(mask1);
 		if (all(exit))
@@ -458,7 +301,7 @@ namespace fcpw{
 		const simdFloatVec bp = iPoint - iTri[1];
 		const simdFloat d3 = dot(ab, bp);
 		const simdFloat d4 = dot(ac, bp);
-		const simdBool mask2 = (d3 >= simdFloat(vecZero)) & (d4 <= d3);
+		const simdBool mask2 = (d3 >= simdFloat(vecZero().vec)) & (d4 <= d3);
 		exit |= mask2;
 		oTriPoint = select(mask2, iTri[1], oTriPoint);
 		if (all(exit))
@@ -468,7 +311,7 @@ namespace fcpw{
 		const simdFloatVec cp = iPoint - iTri[2];
 		const simdFloat d5 = dot(ab, cp);
 		const simdFloat d6 = dot(ac, cp);
-		const simdBool mask3 = (d6 >= simdFloat(vecZero)) & (d5 <= d6);
+		const simdBool mask3 = (d6 >= simdFloat(vecZero().vec)) & (d5 <= d6);
 		exit |= mask3;
 		oTriPoint = select(mask3, iTri[2], oTriPoint);
 		if (all(exit))
@@ -476,7 +319,7 @@ namespace fcpw{
 
 		// Check if P in edge region of AB, if so return projection of P onto AB
 		const simdFloat vc = d1*d4 - d3*d2;
-		const simdBool mask4 = (vc <= simdFloat(vecZero)) & (d1 >= simdFloat(vecZero)) & (d3 <= simdFloat(vecZero));
+		const simdBool mask4 = (vc <= simdFloat(vecZero().vec)) & (d1 >= simdFloat(vecZero().vec)) & (d3 <= simdFloat(vecZero().vec));
 		exit |= mask4;
 		const simdFloat v1 = d1 / (d1 - d3);
 		const simdFloatVec answer1 = iTri[0] + v1 * ab;
@@ -486,7 +329,7 @@ namespace fcpw{
 
 		// Check if P in edge region of AC, if so return projection of P onto AC
 		const simdFloat vb = d5*d2 - d1*d6;
-		const simdBool mask5 = (vb <= simdFloat(vecZero)) & (d2 >= simdFloat(vecZero)) & (d6 <= simdFloat(vecZero));
+		const simdBool mask5 = (vb <= simdFloat(vecZero().vec)) & (d2 >= simdFloat(vecZero().vec)) & (d6 <= simdFloat(vecZero().vec));
 		exit |= mask5;
 		const simdFloat w1 = d2 / (d2 - d6);
 		const simdFloatVec answer2 = iTri[0] + w1 * ac;
@@ -496,7 +339,7 @@ namespace fcpw{
 
 		// Check if P in edge region of BC, if so return projection of P onto BC
 		const simdFloat va = d3*d6 - d5*d4;
-		const simdBool mask6 = (va <= simdFloat(vecZero)) & ((d4 - d3) >= simdFloat(vecZero)) & ((d5 - d6) >= simdFloat(vecZero));
+		const simdBool mask6 = (va <= simdFloat(vecZero().vec)) & ((d4 - d3) >= simdFloat(vecZero().vec)) & ((d5 - d6) >= simdFloat(vecZero().vec));
 		exit |= mask6;
 		simdFloat w2 = (d4 - d3) / ((d4 - d3) + (d5 - d6));
 		const simdFloatVec answer3 = iTri[1] + w2 * (iTri[2] - iTri[1]);
@@ -559,16 +402,16 @@ namespace fcpw{
         simdPoint_type sc;
 
 
-        sc = embree::Vec3<simdFloat>(ssef(_mm_set1_ps(s.c(0))), ssef(_mm_set1_ps(s.c(1))), ssef(_mm_set1_ps(s.c(2))));
-        tri[0] = embree::Vec3<simdFloat>(ssef(pa[0]), ssef(pa[1]), ssef(pa[2]));
-        tri[1] = embree::Vec3<simdFloat>(ssef(pb[0]), ssef(pb[1]), ssef(pb[2]));
-        tri[2] = embree::Vec3<simdFloat>(ssef(pc[0]), ssef(pc[1]), ssef(pc[2]));
+        sc = embree::Vec3<simdFloat>(vecf<W>(_mm_set1_ps(s.c(0))), vecf<W>(_mm_set1_ps(s.c(1))), vecf<W>(_mm_set1_ps(s.c(2))));
+        tri[0] = embree::Vec3<simdFloat>(vecf<W>(pa[0]), vecf<W>(pa[1]), vecf<W>(pa[2]));
+        tri[1] = embree::Vec3<simdFloat>(vecf<W>(pb[0]), vecf<W>(pb[1]), vecf<W>(pb[2]));
+        tri[2] = embree::Vec3<simdFloat>(vecf<W>(pc[0]), vecf<W>(pc[1]), vecf<W>(pc[2]));
         simdFloat res = simdTriPoint2(resPts, tri, sc);
 
-        i.distances = res.m128;
-        i.points[0] = resPts.x.m128;
-        i.points[1] = resPts.y.m128;
-        i.points[2] = resPts.z.m128;
+        i.distances = res.vec;
+        i.points[0] = resPts.x.vec;
+        i.points[1] = resPts.y.vec;
+        i.points[2] = resPts.z.vec;
     }
 
 } //namespace fcpw
