@@ -320,7 +320,7 @@ void run()
 		std::cout << "Running performance tests..." << std::endl;
 
 		// temporarily skip baseline because it's slow
-		for(int i = 1; i < aggregateTypes.size(); i++){
+		for(int i = 7; i < aggregateTypes.size(); i++){
 			if(i != 0){
 				// build new aggregate
 				scene.buildAggregate(aggregateTypes[i]);
@@ -329,6 +329,7 @@ void run()
 			if(aggregateTypes[i] != AggregateType::SSEBvh)
 				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, aggregateNames[i]);
 			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, aggregateNames[i]);
+			std::cout << std::endl;
 		}
 
 #ifdef BENCHMARK_EMBREE
@@ -345,7 +346,7 @@ void run()
 		// build baseline aggregate
 		scene.buildAggregate(AggregateType::Baseline);
 
-		for(int i = 1; i < aggregateTypes.size(); i++){
+		for(int i = 7; i < aggregateTypes.size(); i++){
 			// build bvh aggregate and compare results with baseline
 			std::cout << "Testing " << aggregateNames[i] << " results against Baseline" << std::endl;
 			Scene<DIM> bvhScene;
@@ -354,6 +355,7 @@ void run()
 			if(aggregateTypes[i] != AggregateType::SSEBvh)
 				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
 			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+			std::cout << std::endl;
 		}
 
 #ifdef BENCHMARK_EMBREE

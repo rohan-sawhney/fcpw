@@ -69,6 +69,7 @@ namespace fcpw{
         std::vector<BvhSimdFlatNode<DIM, W>> flatTree;
         std::vector<BvhSimdLeafNode<DIM, W>> leaves;
         BoundingBox<DIM> bbox;
+        float averageLeafSize;
     };
 } // namespace fcpw
 

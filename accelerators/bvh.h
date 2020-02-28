@@ -17,7 +17,7 @@ template <int DIM>
 class Bvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4, int splittingMethod_=0, int binCount_=32, bool makeBvh=true);
+	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4, int splittingMethod_=0, int binCount_=32, bool packLeaves=false, bool makeBvh=true);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -46,7 +46,7 @@ protected:
 	virtual bool applyClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, int pos) const;
 
 	// builds binary tree
-	void build();
+	void build(bool packLeaves=false);
 
 	// members
 	std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;

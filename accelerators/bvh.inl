@@ -15,7 +15,7 @@ struct BvhBuildEntry {
 };
 
 template <int DIM>
-inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_, int splittingMethod_, int binCount_, bool makeBvh):
+inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_, int splittingMethod_, int binCount_, bool packLeaves, bool makeBvh):
 nNodes(0),
 nLeaves(0),
 leafSize(leafSize_),
@@ -28,7 +28,7 @@ depth(0)
 		using namespace std::chrono;
 		high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-		build();
+		build(packLeaves);
 
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
 		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
@@ -42,7 +42,7 @@ depth(0)
 }
 
 template <int DIM>
-inline void Bvh<DIM>::build()
+inline void Bvh<DIM>::build(bool packLeaves)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -158,7 +158,7 @@ inline void Bvh<DIM>::build()
 		}
 		if(splittingMethod != 0){
 			std::vector<ReferenceWrapper<DIM>> refs(references.begin() + start, references.begin() + end);
-			BvhSplit split = probabilityHeuristic(refs, bc, bb, binCount, cost);
+			BvhSplit split = probabilityHeuristic(refs, bc, bb, binCount, cost, (packLeaves ? leafSize : 0));
 			splitCoord = split.split;
 			splitDim = split.axis;
 		}

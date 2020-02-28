@@ -94,7 +94,7 @@ namespace fcpw{
 
     // probability heuristic object splitting
     template <int DIM>
-    inline BvhSplit probabilityHeuristic(const std::vector<ReferenceWrapper<DIM>>& references, const BoundingBox<DIM>& bc, const BoundingBox<DIM>& bb, const int binCount, costFunction<DIM> cost){
+    inline BvhSplit probabilityHeuristic(const std::vector<ReferenceWrapper<DIM>>& references, const BoundingBox<DIM>& bc, const BoundingBox<DIM>& bb, const int binCount, costFunction<DIM> cost, int leafMod=0){
         
         // setup container for multiple splits
         std::vector<BvhSplit> results;
@@ -173,7 +173,13 @@ namespace fcpw{
                 loCount += bins[i].count;
 
                 // get cost for current split and compare
-                float tempCost = cost(loBox, hiBox, bb, loCount, hiCount, (bb.volume() < epsilon));
+                float tempCost;
+                if(leafMod == 0){
+                    tempCost = cost(loBox, hiBox, bb, loCount, hiCount, (bb.volume() < epsilon));
+                }
+                else{
+                    tempCost = ((loCount % leafMod == 0) || (hiCount % leafMod == 0)) ? cost(loBox, hiBox, bb, loCount, hiCount, (bb.volume() < epsilon)) : maxFloat;
+                }
                 if(tempCost < res.cost){
                     // update if current split better than prior splits
                     res.cost = tempCost;
