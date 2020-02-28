@@ -75,10 +75,10 @@ namespace fcpw{
     template <>
     struct vecb<8>
     {
-        vecb(__m256 m256_) : m256(m256_){}
-        __m256 m256;
+        vecb(__m256 vec_) : vec(vec_){}
+        __m256 vec;
         void operator |=(const vecb<8>& a){
-            m256 = _mm256_or_ps(a.m256, m256);
+            vec = _mm256_or_ps(a.vec, vec);
         }
     };
 
@@ -94,9 +94,19 @@ namespace fcpw{
 
     template <>
     struct vecf<8>{
-        vecf(__m256 m256_) : m256(m256_){}
-        __m256 m256;
+        vecf(__m256 vec_) : vec(vec_){}
+        __m256 vec;
     };
+
+    template <int W>
+    inline const vecf<W> vecZero(){
+        return vecf<W>();
+    }
+
+    template <int W>
+    inline const vecf<W> vecOne(){
+        return vecf<W>();
+    }
 
     // SSE bool operators
 
@@ -167,38 +177,119 @@ namespace fcpw{
     static const __m128 sseZero = _mm_setzero_ps();
     static const __m128 sseOne = _mm_set1_ps(0xffff);
 
+    template <>
     inline const vecf<4> vecZero(){
         return vecf<4>(sseZero);
     }
+    template <>
     inline const vecf<4> vecOne(){
         return vecf<4>(sseOne);
     }
 
+    // AVX bool operators
 
-    // template <int W>
-	using simdBool  = vecb<4>;
-    using simdFloat = vecf<4>;
+    inline const vecb<8> operator &(const vecb<8>& a, const vecb<8>& b){
+        return vecb<8>(_mm256_and_ps(a.vec, b.vec));
+    }
+    inline const vecb<8> operator |(const vecb<8>& a, const vecb<8>& b){
+        return vecb<8>(_mm256_or_ps(a.vec, b.vec));
+    }
+    inline const vecb<8> operator ^(const vecb<8>& a, const vecb<8>& b){
+        return vecb<8>(_mm256_xor_ps(a.vec, b.vec));
+    }
+    inline bool all(const vecb<8>& b){
+        return _mm256_movemask_ps(b.vec) == 0xff;
+    }
+    inline bool any(const vecb<8>& b){
+        return _mm256_movemask_ps(b.vec) != 0x00;
+    }
+    inline bool none(const vecb<8>& b){
+        return _mm256_movemask_ps(b.vec) == 0x00;
+    }
+    inline vecb<8> andnot(const vecb<8>& a, const vecb<8>& b){
+        return vecb<8>(_mm256_andnot_ps(a.vec, b.vec));
+    }   
+
+    // AVX float operators
+
+    inline const vecf<8> operator +(const vecf<8>& a, const vecf<8>&b){
+        return vecf<8>(_mm256_add_ps(a.vec, b.vec));
+    }
+    inline const vecf<8> operator -(const vecf<8>& a, const vecf<8>&b){
+        return vecf<8>(_mm256_sub_ps(a.vec, b.vec));
+    }
+    inline const vecf<8> operator *(const vecf<8>& a, const vecf<8>&b){
+        return vecf<8>(_mm256_mul_ps(a.vec, b.vec));
+    }
+    inline const vecf<8> operator /(const vecf<8>& a, const vecf<8>&b){
+        return vecf<8>(_mm256_div_ps(a.vec, b.vec));
+    }
+    inline const vecb<8> operator >=(const vecf<8>& a, const vecf<8>&b){
+        return vecb<8>(_mm256_cmp_ps(a.vec, b.vec, _CMP_GE_OS));
+    }
+    inline const vecb<8> operator >(const vecf<8>& a, const vecf<8>&b){
+        return vecb<8>(_mm256_cmp_ps(a.vec, b.vec, _CMP_GT_OS));
+    }
+    inline const vecb<8> operator <=(const vecf<8>& a, const vecf<8>&b){
+        return vecb<8>(_mm256_cmp_ps(a.vec, b.vec, _CMP_LE_OS));
+    }
+    inline const vecb<8> operator <(const vecf<8>& a, const vecf<8>&b){
+        return vecb<8>(_mm256_cmp_ps(a.vec, b.vec, _CMP_LT_OS));
+    }
+    inline const vecf<8> min(const vecf<8>& a, const vecf<8>&b){
+        return vecf<8>(_mm256_min_ps(a.vec, b.vec));
+    }
+    inline const vecf<8> max(const vecf<8>& a, const vecf<8>&b){
+        return vecf<8>(_mm256_max_ps(a.vec, b.vec));
+    }
+    inline const vecf<8> sqr(const vecf<8>& a){
+        return vecf<8>(_mm256_mul_ps(a.vec, a.vec));
+    }
+    inline const vecf<8> sqrt(const vecf<8>& a){
+        return vecf<8>(_mm256_sqrt_ps(a.vec));
+    }
+    inline const vecf<8> select(const vecb<8>& mask, const vecf<8>& t, const vecf<8>& f){
+        return vecf<8>(_mm256_blendv_ps(f.vec, t.vec, mask.vec));
+    }
+    
+    static const __m256 avxZero = _mm256_setzero_ps();
+    static const __m256 avxOne = _mm256_set1_ps(0xffff);
+
+    template <>
+    inline const vecf<8> vecZero(){
+        return vecf<8>(avxZero);
+    }
+    template <>
+    inline const vecf<8> vecOne(){
+        return vecf<8>(avxOne);
+    }
+
+
+    template <int W>
+	using simdBool  = vecb<W>;
+    template <int W>
+    using simdFloat = vecf<W>;
 
 	//typedef avxf simdFloat;
 	//typedef avxb simdBool;
 	//typedef avxi simdInt;
 
-	typedef embree::Vec3<simdBool>	simdBoolVec;
-	typedef embree::Vec3<simdFloat> simdFloatVec;
+	typedef embree::Vec3<simdBool<4>>	simdBoolVec;
+	typedef embree::Vec3<simdFloat<4>> simdFloatVec;
 
 	typedef std::array<simdFloatVec, 3>		simdTriangle_type;
 	typedef std::array<simdFloatVec, 2>		simdLine_type;
 	typedef simdFloatVec					simdPoint_type;
 
-    inline simdFloat length2(const embree::Vec3<simdFloat>& a){
+    inline simdFloat<4> length2(const embree::Vec3<simdFloat<4>>& a){
         return vecf<4>(embree::dot(a, a));
     }
 
-    __forceinline const simdFloatVec select(const simdBool& s, const simdFloatVec& t, const simdFloatVec& f) {
+    __forceinline const simdFloatVec select(const simdBool<4>& s, const simdFloatVec& t, const simdFloatVec& f) {
 		return simdFloatVec(select(s, t.x, f.x), select(s, t.y, f.y), select(s, t.z, f.z));
 	}
 
-	__forceinline const simdLine_type select(const simdBool& s, const simdLine_type& t, const simdLine_type& f) {
+	__forceinline const simdLine_type select(const simdBool<4>& s, const simdLine_type& t, const simdLine_type& f) {
 		const simdFloatVec start(select(s, t[0].x, f[0].x), select(s, t[0].y, f[0].y), select(s, t[0].z, f[0].z));
 		const simdFloatVec end(select(s, t[1].x, f[1].x), select(s, t[1].y, f[1].y), select(s, t[1].z, f[1].z));
 		const simdLine_type result = { start, end };

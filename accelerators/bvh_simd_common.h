@@ -284,24 +284,25 @@ namespace fcpw{
         }
     }
 
-    const simdFloat simdTriPoint2(simdFloatVec& oTriPoint, const simdTriangle_type& iTri, const simdPoint_type& iPoint){
+    template <int W>
+    const simdFloat<W> simdTriPoint2(simdFloatVec& oTriPoint, const simdTriangle_type& iTri, const simdPoint_type& iPoint){
 		// Check if P in vertex region outside A
 		const simdFloatVec ab = iTri[1] - iTri[0];
 		const simdFloatVec ac = iTri[2] - iTri[0];
 		const simdFloatVec ap = iPoint - iTri[0];
-		const simdFloat d1 = dot(ab, ap);
-		const simdFloat d2 = dot(ac, ap);
-		const simdBool mask1 = (d1 <= simdFloat(vecZero().vec)) & (d2 <= simdFloat(vecZero().vec));
+		const simdFloat<W> d1 = dot(ab, ap);
+		const simdFloat<W> d2 = dot(ac, ap);
+		const simdBool<W> mask1 = (d1 <= simdFloat<W>(vecZero<4>().vec)) & (d2 <= simdFloat<W>(vecZero<4>().vec));
 		oTriPoint = iTri[0];
-		simdBool exit(mask1);
+		simdBool<W> exit(mask1);
 		if (all(exit))
 			return length2(oTriPoint - iPoint);  // barycentric coordinates (1,0,0)
 
 		// Check if P in vertex region outside B
 		const simdFloatVec bp = iPoint - iTri[1];
-		const simdFloat d3 = dot(ab, bp);
-		const simdFloat d4 = dot(ac, bp);
-		const simdBool mask2 = (d3 >= simdFloat(vecZero().vec)) & (d4 <= d3);
+		const simdFloat<W> d3 = dot(ab, bp);
+		const simdFloat<W> d4 = dot(ac, bp);
+		const simdBool<W> mask2 = (d3 >= simdFloat<W>(vecZero<4>().vec)) & (d4 <= d3);
 		exit |= mask2;
 		oTriPoint = select(mask2, iTri[1], oTriPoint);
 		if (all(exit))
@@ -309,50 +310,50 @@ namespace fcpw{
 
 		// Check if P in vertex region outside C
 		const simdFloatVec cp = iPoint - iTri[2];
-		const simdFloat d5 = dot(ab, cp);
-		const simdFloat d6 = dot(ac, cp);
-		const simdBool mask3 = (d6 >= simdFloat(vecZero().vec)) & (d5 <= d6);
+		const simdFloat<W> d5 = dot(ab, cp);
+		const simdFloat<W> d6 = dot(ac, cp);
+		const simdBool<W> mask3 = (d6 >= simdFloat<W>(vecZero<4>().vec)) & (d5 <= d6);
 		exit |= mask3;
 		oTriPoint = select(mask3, iTri[2], oTriPoint);
 		if (all(exit))
 			return length2(oTriPoint - iPoint);  // barycentric coordinates (0,0,1)
 
 		// Check if P in edge region of AB, if so return projection of P onto AB
-		const simdFloat vc = d1*d4 - d3*d2;
-		const simdBool mask4 = (vc <= simdFloat(vecZero().vec)) & (d1 >= simdFloat(vecZero().vec)) & (d3 <= simdFloat(vecZero().vec));
+		const simdFloat<W> vc = d1*d4 - d3*d2;
+		const simdBool<W> mask4 = (vc <= simdFloat<W>(vecZero<4>().vec)) & (d1 >= simdFloat<W>(vecZero<4>().vec)) & (d3 <= simdFloat<W>(vecZero<4>().vec));
 		exit |= mask4;
-		const simdFloat v1 = d1 / (d1 - d3);
+		const simdFloat<W> v1 = d1 / (d1 - d3);
 		const simdFloatVec answer1 = iTri[0] + v1 * ab;
 		oTriPoint = select(mask4, answer1, oTriPoint);
 		if (all(exit))
 			return length2(oTriPoint - iPoint);  // barycentric coordinates (1-v,v,0)
 
 		// Check if P in edge region of AC, if so return projection of P onto AC
-		const simdFloat vb = d5*d2 - d1*d6;
-		const simdBool mask5 = (vb <= simdFloat(vecZero().vec)) & (d2 >= simdFloat(vecZero().vec)) & (d6 <= simdFloat(vecZero().vec));
+		const simdFloat<W> vb = d5*d2 - d1*d6;
+		const simdBool<W> mask5 = (vb <= simdFloat<W>(vecZero<4>().vec)) & (d2 >= simdFloat<W>(vecZero<4>().vec)) & (d6 <= simdFloat<W>(vecZero<4>().vec));
 		exit |= mask5;
-		const simdFloat w1 = d2 / (d2 - d6);
+		const simdFloat<W> w1 = d2 / (d2 - d6);
 		const simdFloatVec answer2 = iTri[0] + w1 * ac;
 		oTriPoint = select(mask5, answer2, oTriPoint);
 		if (all(exit))
 			return length2(oTriPoint - iPoint);  // barycentric coordinates (1-w,0,w)
 
 		// Check if P in edge region of BC, if so return projection of P onto BC
-		const simdFloat va = d3*d6 - d5*d4;
-		const simdBool mask6 = (va <= simdFloat(vecZero().vec)) & ((d4 - d3) >= simdFloat(vecZero().vec)) & ((d5 - d6) >= simdFloat(vecZero().vec));
+		const simdFloat<W> va = d3*d6 - d5*d4;
+		const simdBool<W> mask6 = (va <= simdFloat<W>(vecZero<4>().vec)) & ((d4 - d3) >= simdFloat<W>(vecZero<4>().vec)) & ((d5 - d6) >= simdFloat<W>(vecZero<4>().vec));
 		exit |= mask6;
-		simdFloat w2 = (d4 - d3) / ((d4 - d3) + (d5 - d6));
+		simdFloat<W> w2 = (d4 - d3) / ((d4 - d3) + (d5 - d6));
 		const simdFloatVec answer3 = iTri[1] + w2 * (iTri[2] - iTri[1]);
 		oTriPoint = select(mask6, answer3, oTriPoint);
 		if (all(exit))
 			return length2(oTriPoint - iPoint); // barycentric coordinates (0,1-w,w)
 
 		// P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-		const simdFloat denom = simdFloat(_mm_set1_ps(1)) / (va + vb + vc);
-		const simdFloat v2 = vb * denom;
-		const simdFloat w3 = vc * denom;
+		const simdFloat<W> denom = simdFloat<W>(_mm_set1_ps(1)) / (va + vb + vc);
+		const simdFloat<W> v2 = vb * denom;
+		const simdFloat<W> w3 = vc * denom;
 		const simdFloatVec answer4 = iTri[0] + ab * v2 + ac * w3;
-		const simdBool mask7 = andnot(exit, length2(answer4 - iPoint) < length2(oTriPoint - iPoint));
+		const simdBool<W> mask7 = andnot(exit, length2(answer4 - iPoint) < length2(oTriPoint - iPoint));
 		oTriPoint = select(mask7, answer4, oTriPoint);
 		return length2(oTriPoint - iPoint);  // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
 	}
@@ -402,11 +403,11 @@ namespace fcpw{
         simdPoint_type sc;
 
 
-        sc = embree::Vec3<simdFloat>(vecf<W>(_mm_set1_ps(s.c(0))), vecf<W>(_mm_set1_ps(s.c(1))), vecf<W>(_mm_set1_ps(s.c(2))));
-        tri[0] = embree::Vec3<simdFloat>(vecf<W>(pa[0]), vecf<W>(pa[1]), vecf<W>(pa[2]));
-        tri[1] = embree::Vec3<simdFloat>(vecf<W>(pb[0]), vecf<W>(pb[1]), vecf<W>(pb[2]));
-        tri[2] = embree::Vec3<simdFloat>(vecf<W>(pc[0]), vecf<W>(pc[1]), vecf<W>(pc[2]));
-        simdFloat res = simdTriPoint2(resPts, tri, sc);
+        sc = embree::Vec3<simdFloat<W>>(vecf<W>(_mm_set1_ps(s.c(0))), vecf<W>(_mm_set1_ps(s.c(1))), vecf<W>(_mm_set1_ps(s.c(2))));
+        tri[0] = embree::Vec3<simdFloat<W>>(vecf<W>(pa[0]), vecf<W>(pa[1]), vecf<W>(pa[2]));
+        tri[1] = embree::Vec3<simdFloat<W>>(vecf<W>(pb[0]), vecf<W>(pb[1]), vecf<W>(pb[2]));
+        tri[2] = embree::Vec3<simdFloat<W>>(vecf<W>(pc[0]), vecf<W>(pc[1]), vecf<W>(pc[2]));
+        simdFloat<W> res = simdTriPoint2<W>(resPts, tri, sc);
 
         i.distances = res.vec;
         i.points[0] = resPts.x.vec;
