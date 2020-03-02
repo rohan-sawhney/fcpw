@@ -276,26 +276,26 @@ namespace fcpw{
             // do overlap test
             // NOTE: might be good to separate this into closest and furthest distance functions
             // so that furthest doesn't need to be done if query is out of range
-            parallelOverlap(node.minBoxes, node.maxBoxes, s, resVec[0], resVec[1]);
+            parallelOverlap<DIM, SimdType, W>(node.minBoxes, node.maxBoxes, s, resVec[0], resVec[1]);
 
-            // int ordering[W];
-            // float unpackedMin[W];
-            // for(int j = 0; j < W; j++){
-            //     ordering[j] = j;
-            // }
+            int ordering[W];
+            float unpackedMin[W];
+            for(int j = 0; j < W; j++){
+                ordering[j] = j;
+            }
 
-            // // temp bubble sort ordering
-            // bool isSorted = false;
-            // while(!isSorted){
-            //     isSorted = true;
-            //     for(int j = 0; node.indices[j + 1] != -1 && j < W - 1; j++){
-            //         if(unpackedMin[j] > unpackedMin[j + 1]){
-            //             isSorted = false;
-            //             std::swap(unpackedMin[j], unpackedMin[j + 1]);
-            //             std::swap(ordering[j], ordering[j + 1]);
-            //         }
-            //     }
-            // }
+            // temp bubble sort ordering
+            bool isSorted = false;
+            while(!isSorted){
+                isSorted = true;
+                for(int j = 0; node.indices[j + 1] != -1 && j < W - 1; j++){
+                    if(unpackedMin[j] > unpackedMin[j + 1]){
+                        isSorted = false;
+                        std::swap(unpackedMin[j], unpackedMin[j + 1]);
+                        std::swap(ordering[j], ordering[j + 1]);
+                    }
+                }
+            }
             
             // process overlapped nodes NOTE: ADD IN ORDERING ONCE THAT IS AVAILABLE
             for(int j = 0; node.indices[j] != -1 && j < W; j++){
@@ -316,7 +316,7 @@ namespace fcpw{
                         for(int k = 0; k < W; k++){
                             pi.indices[k] = leafNode.indices[k];
                         }
-                        parallelTriangleOverlap2(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
+                        parallelTriangleOverlap(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
 
                         float bestDistance;
                         float bestPoint[DIM];

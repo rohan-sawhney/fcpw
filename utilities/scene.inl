@@ -183,7 +183,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 				break;
 			// sbvh
 			case AggregateType::Sbvh:
-				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i], 4, 3, 32, false);
+				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i], 4, 0, 32, false);
 				break;
 			// SIMD parallelism
 			case AggregateType::SSEBvh:

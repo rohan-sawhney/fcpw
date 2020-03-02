@@ -301,7 +301,7 @@ void run()
 		AggregateType::Bvh_Vol,
 		AggregateType::Bvh_Overlap_SAH,
 		AggregateType::Bvh_Overlap_Vol,
-		AggregateType::Sbvh,
+		// AggregateType::Sbvh,
 		AggregateType::SSEBvh
 	});
 
@@ -312,15 +312,18 @@ void run()
 		"Bvh with Volume Heuristic",
 		"Bvh with Overlap Surface Area Heuristic",
 		"Bvh with Overlap Volume Heuristic",
-		"Sbvh",
+		// "Sbvh",
 		"Bvh using SSE"
 	});
+
+	int startAggregate = 6;
+	int endAggregate = aggregateTypes.size();
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
 
 		// temporarily skip baseline because it's slow
-		for(int i = 7; i < aggregateTypes.size(); i++){
+		for(int i = startAggregate; i < endAggregate; i++){
 			if(i != 0){
 				// build new aggregate
 				scene.buildAggregate(aggregateTypes[i]);
@@ -346,7 +349,7 @@ void run()
 		// build baseline aggregate
 		scene.buildAggregate(AggregateType::Baseline);
 
-		for(int i = 7; i < aggregateTypes.size(); i++){
+		for(int i = startAggregate; i < endAggregate; i++){
 			// build bvh aggregate and compare results with baseline
 			std::cout << "Testing " << aggregateNames[i] << " results against Baseline" << std::endl;
 			Scene<DIM> bvhScene;

@@ -104,13 +104,32 @@ namespace fcpw{
         }
     }
 
-    template <int DIM, class T>
+    template <int W>
+    inline void simdBoxOverlap(simdFloat<W>& closestDistances, simdFloat<W>& furthestDistances, const simdPoint_type<W>& iPoint, const simdBox_type<W>& iBoxes){
+        closestDistances = length2(max(max(iBoxes[0] - iPoint, iPoint - iBoxes[1]), zeroVector<W>()));
+        furthestDistances = length2(max(iPoint - iBoxes[0], iBoxes[1] - iPoint));
+    }
+
+    template <int DIM, class T, int W>
     inline void parallelOverlap(const T boxMins[DIM], const T boxMaxs[DIM], BoundingSphere<DIM>& s, T& d2Min, T& d2Max){
         float sPos[DIM];
         for(int i = 0; i < DIM; i++){
             sPos[i] = (float)s.c(i);
         }
-        parallelComputeSquaredDistance(DIM, boxMins, boxMaxs, sPos, s.r2, d2Min, d2Max);
+        simdBox_type<W> boxes;
+        simdPoint_type<W> sc;
+        simdFloat<W> closestDists = vecZero<W>();
+        simdFloat<W> furthestDists = vecZero<W>();
+
+        sc = embree::Vec3<simdFloat<W>>(vecf<W>(_mm_set1_ps(s.c(0))), vecf<W>(_mm_set1_ps(s.c(1))), vecf<W>(_mm_set1_ps(s.c(2))));
+        boxes[0] = embree::Vec3<simdFloat<W>>(vecf<W>(boxMins[0]), vecf<W>(boxMins[1]), vecf<W>(boxMins[2]));
+        boxes[1] = embree::Vec3<simdFloat<W>>(vecf<W>(boxMaxs[0]), vecf<W>(boxMaxs[1]), vecf<W>(boxMaxs[2]));
+
+        simdBoxOverlap(closestDists, furthestDists, sc, boxes);
+
+        d2Min = closestDists.vec;
+        d2Max = furthestDists.vec;
+        // parallelComputeSquaredDistance(DIM, boxMins, boxMaxs, sPos, s.r2, d2Min, d2Max);
     }
 
     // parallel triangle computation function
@@ -285,11 +304,11 @@ namespace fcpw{
     }
 
     template <int W>
-    const simdFloat<W> simdTriPoint2(simdFloatVec& oTriPoint, const simdTriangle_type& iTri, const simdPoint_type& iPoint){
+    const simdFloat<W> simdTriPoint2(simdFloatVec<W>& oTriPoint, const simdTriangle_type<W>& iTri, const simdPoint_type<W>& iPoint){
 		// Check if P in vertex region outside A
-		const simdFloatVec ab = iTri[1] - iTri[0];
-		const simdFloatVec ac = iTri[2] - iTri[0];
-		const simdFloatVec ap = iPoint - iTri[0];
+		const simdFloatVec<W> ab = iTri[1] - iTri[0];
+		const simdFloatVec<W> ac = iTri[2] - iTri[0];
+		const simdFloatVec<W> ap = iPoint - iTri[0];
 		const simdFloat<W> d1 = dot(ab, ap);
 		const simdFloat<W> d2 = dot(ac, ap);
 		const simdBool<W> mask1 = (d1 <= simdFloat<W>(vecZero<4>().vec)) & (d2 <= simdFloat<W>(vecZero<4>().vec));
@@ -299,7 +318,7 @@ namespace fcpw{
 			return length2(oTriPoint - iPoint);  // barycentric coordinates (1,0,0)
 
 		// Check if P in vertex region outside B
-		const simdFloatVec bp = iPoint - iTri[1];
+		const simdFloatVec<W> bp = iPoint - iTri[1];
 		const simdFloat<W> d3 = dot(ab, bp);
 		const simdFloat<W> d4 = dot(ac, bp);
 		const simdBool<W> mask2 = (d3 >= simdFloat<W>(vecZero<4>().vec)) & (d4 <= d3);
@@ -309,7 +328,7 @@ namespace fcpw{
 			return length2(oTriPoint - iPoint);  // barycentric coordinates (0,1,0)
 
 		// Check if P in vertex region outside C
-		const simdFloatVec cp = iPoint - iTri[2];
+		const simdFloatVec<W> cp = iPoint - iTri[2];
 		const simdFloat<W> d5 = dot(ab, cp);
 		const simdFloat<W> d6 = dot(ac, cp);
 		const simdBool<W> mask3 = (d6 >= simdFloat<W>(vecZero<4>().vec)) & (d5 <= d6);
@@ -323,7 +342,7 @@ namespace fcpw{
 		const simdBool<W> mask4 = (vc <= simdFloat<W>(vecZero<4>().vec)) & (d1 >= simdFloat<W>(vecZero<4>().vec)) & (d3 <= simdFloat<W>(vecZero<4>().vec));
 		exit |= mask4;
 		const simdFloat<W> v1 = d1 / (d1 - d3);
-		const simdFloatVec answer1 = iTri[0] + v1 * ab;
+		const simdFloatVec<W> answer1 = iTri[0] + v1 * ab;
 		oTriPoint = select(mask4, answer1, oTriPoint);
 		if (all(exit))
 			return length2(oTriPoint - iPoint);  // barycentric coordinates (1-v,v,0)
@@ -333,7 +352,7 @@ namespace fcpw{
 		const simdBool<W> mask5 = (vb <= simdFloat<W>(vecZero<4>().vec)) & (d2 >= simdFloat<W>(vecZero<4>().vec)) & (d6 <= simdFloat<W>(vecZero<4>().vec));
 		exit |= mask5;
 		const simdFloat<W> w1 = d2 / (d2 - d6);
-		const simdFloatVec answer2 = iTri[0] + w1 * ac;
+		const simdFloatVec<W> answer2 = iTri[0] + w1 * ac;
 		oTriPoint = select(mask5, answer2, oTriPoint);
 		if (all(exit))
 			return length2(oTriPoint - iPoint);  // barycentric coordinates (1-w,0,w)
@@ -343,7 +362,7 @@ namespace fcpw{
 		const simdBool<W> mask6 = (va <= simdFloat<W>(vecZero<4>().vec)) & ((d4 - d3) >= simdFloat<W>(vecZero<4>().vec)) & ((d5 - d6) >= simdFloat<W>(vecZero<4>().vec));
 		exit |= mask6;
 		simdFloat<W> w2 = (d4 - d3) / ((d4 - d3) + (d5 - d6));
-		const simdFloatVec answer3 = iTri[1] + w2 * (iTri[2] - iTri[1]);
+		const simdFloatVec<W> answer3 = iTri[1] + w2 * (iTri[2] - iTri[1]);
 		oTriPoint = select(mask6, answer3, oTriPoint);
 		if (all(exit))
 			return length2(oTriPoint - iPoint); // barycentric coordinates (0,1-w,w)
@@ -352,7 +371,7 @@ namespace fcpw{
 		const simdFloat<W> denom = simdFloat<W>(_mm_set1_ps(1)) / (va + vb + vc);
 		const simdFloat<W> v2 = vb * denom;
 		const simdFloat<W> w3 = vc * denom;
-		const simdFloatVec answer4 = iTri[0] + ab * v2 + ac * w3;
+		const simdFloatVec<W> answer4 = iTri[0] + ab * v2 + ac * w3;
 		const simdBool<W> mask7 = andnot(exit, length2(answer4 - iPoint) < length2(oTriPoint - iPoint));
 		oTriPoint = select(mask7, answer4, oTriPoint);
 		return length2(oTriPoint - iPoint);  // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
@@ -383,24 +402,24 @@ namespace fcpw{
         }
     };
 
-    template <int DIM, int W, class T>
-    inline void parallelTriangleOverlap(const T pa[DIM], const T pb[DIM], const T pc[DIM], BoundingSphere<DIM>& s, ParallelInteraction<DIM, W>& i){
-        float sPos[DIM];
-        for(int j = 0; j < DIM; j++){
-            sPos[j] = (float)s.c(j);
-        }
-        parallelComputeTriangleDistance(DIM, pa, pb, pc, sPos, i.distances, i.points, i.indices);
-    }
+    // template <int DIM, int W, class T>
+    // inline void parallelTriangleOverlap(const T pa[DIM], const T pb[DIM], const T pc[DIM], BoundingSphere<DIM>& s, ParallelInteraction<DIM, W>& i){
+    //     float sPos[DIM];
+    //     for(int j = 0; j < DIM; j++){
+    //         sPos[j] = (float)s.c(j);
+    //     }
+    //     parallelComputeTriangleDistance(DIM, pa, pb, pc, sPos, i.distances, i.points, i.indices);
+    // }
 
     template <int W, class T>
-    inline void parallelTriangleOverlap2(const T pa[3], const T pb[3], const T pc[3], BoundingSphere<3>& s, ParallelInteraction<3, W>& i){
+    inline void parallelTriangleOverlap(const T pa[3], const T pb[3], const T pc[3], BoundingSphere<3>& s, ParallelInteraction<3, W>& i){
         float sPos[3];
         for(int j = 0; j < 3; j++){
             sPos[j] = (float)s.c(j);
         }
-        simdFloatVec resPts;
-        simdTriangle_type tri;
-        simdPoint_type sc;
+        simdFloatVec<W> resPts;
+        simdTriangle_type<W> tri;
+        simdPoint_type<W> sc;
 
 
         sc = embree::Vec3<simdFloat<W>>(vecf<W>(_mm_set1_ps(s.c(0))), vecf<W>(_mm_set1_ps(s.c(1))), vecf<W>(_mm_set1_ps(s.c(2))));

@@ -130,7 +130,7 @@ namespace fcpw{
     }
     inline vecb<4> andnot(const vecb<4>& a, const vecb<4>& b){
         return vecb<4>(_mm_andnot_ps(a.vec, b.vec));
-    }   
+    }
 
     // SSE float operators
 
@@ -173,7 +173,7 @@ namespace fcpw{
     inline const vecf<4> select(const vecb<4>& mask, const vecf<4>& t, const vecf<4>& f){
         return vecf<4>(_mm_blendv_ps(f.vec, t.vec, mask.vec));
     }
-    
+
     static const __m128 sseZero = _mm_setzero_ps();
     static const __m128 sseOne = _mm_set1_ps(0xffff);
 
@@ -208,7 +208,7 @@ namespace fcpw{
     }
     inline vecb<8> andnot(const vecb<8>& a, const vecb<8>& b){
         return vecb<8>(_mm256_andnot_ps(a.vec, b.vec));
-    }   
+    }
 
     // AVX float operators
 
@@ -251,7 +251,7 @@ namespace fcpw{
     inline const vecf<8> select(const vecb<8>& mask, const vecf<8>& t, const vecf<8>& f){
         return vecf<8>(_mm256_blendv_ps(f.vec, t.vec, mask.vec));
     }
-    
+
     static const __m256 avxZero = _mm256_setzero_ps();
     static const __m256 avxOne = _mm256_set1_ps(0xffff);
 
@@ -274,25 +274,40 @@ namespace fcpw{
 	//typedef avxb simdBool;
 	//typedef avxi simdInt;
 
-	typedef embree::Vec3<simdBool<4>>	simdBoolVec;
-	typedef embree::Vec3<simdFloat<4>> simdFloatVec;
+    template <int W>
+    using simdBoolVec   = embree::Vec3<vecb<W>>;
+    template <int W>
+    using simdFloatVec  = embree::Vec3<vecf<W>>;
 
-	typedef std::array<simdFloatVec, 3>		simdTriangle_type;
-	typedef std::array<simdFloatVec, 2>		simdLine_type;
-	typedef simdFloatVec					simdPoint_type;
+    template <int W>
+    using simdTriangle_type = std::array<simdFloatVec<W>, 3>;
+    template <int W>
+    using simdLine_type     = std::array<simdFloatVec<W>, 2>;
+    template <int W>
+    using simdPoint_type    = simdFloatVec<W>;
+    template <int W>
+    using simdBox_type      = std::array<simdFloatVec<W>, 2>;
 
-    inline simdFloat<4> length2(const embree::Vec3<simdFloat<4>>& a){
-        return vecf<4>(embree::dot(a, a));
+    template <int W>
+    inline simdFloat<W> length2(const embree::Vec3<simdFloat<W>>& a){
+        return vecf<W>(embree::dot(a, a));
     }
 
-    __forceinline const simdFloatVec select(const simdBool<4>& s, const simdFloatVec& t, const simdFloatVec& f) {
-		return simdFloatVec(select(s, t.x, f.x), select(s, t.y, f.y), select(s, t.z, f.z));
+    template <int W>
+    inline const simdFloatVec<W> zeroVector(){
+        return embree::Vec3<simdFloat<W>>(vecZero<W>(), vecZero<W>(), vecZero<W>());
+    }
+
+    template <int W>
+    __forceinline const simdFloatVec<W> select(const simdBool<W>& s, const simdFloatVec<W>& t, const simdFloatVec<W>& f) {
+		return simdFloatVec<W>(select(s, t.x, f.x), select(s, t.y, f.y), select(s, t.z, f.z));
 	}
 
-	__forceinline const simdLine_type select(const simdBool<4>& s, const simdLine_type& t, const simdLine_type& f) {
-		const simdFloatVec start(select(s, t[0].x, f[0].x), select(s, t[0].y, f[0].y), select(s, t[0].z, f[0].z));
-		const simdFloatVec end(select(s, t[1].x, f[1].x), select(s, t[1].y, f[1].y), select(s, t[1].z, f[1].z));
-		const simdLine_type result = { start, end };
+    template <int W>
+	__forceinline const simdLine_type<W> select(const simdBool<W>& s, const simdLine_type<W>& t, const simdLine_type<W>& f) {
+		const simdFloatVec<W> start(select(s, t[0].x, f[0].x), select(s, t[0].y, f[0].y), select(s, t[0].z, f[0].z));
+		const simdFloatVec<W> end(select(s, t[1].x, f[1].x), select(s, t[1].y, f[1].y), select(s, t[1].z, f[1].z));
+		const simdLine_type<W> result = { start, end };
 		return result;
 	}
 
