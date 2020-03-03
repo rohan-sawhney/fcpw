@@ -166,34 +166,20 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 	for (int i = 0; i < nObjects; i++) {
 		switch(aggregateType){
 			case AggregateType::Bvh:
-				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i]);
-				break;
-			// heuristics
-			case AggregateType::Bvh_SAH:
-				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 1);
-				break;
-			case AggregateType::Bvh_Vol:
-				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 2);
-				break;
-			case AggregateType::Bvh_Overlap_SAH:
-				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 3);
-				break;
-			case AggregateType::Bvh_Overlap_Vol:
-				objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], 4, 4);
+				switch(simdType){
+					case(SimdClass::SSE):
+					// case(SimdClass::AVX):
+					// case(SimdClass::AVX512):
+						(std::make_shared<Bvh<DIM>>(objects[i], leafSize, bvhSplitMethod, bins, true))->convert(leafSize, objectAggregates[i]);
+						break;
+					default:
+						objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i], leafSize, bvhSplitMethod, bins, false);
+						break;
+				}
 				break;
 			// sbvh
 			case AggregateType::Sbvh:
-				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i], 4, 0, 32, false);
-				break;
-			// SIMD parallelism
-			case AggregateType::SSEBvh:
-				(std::make_shared<Bvh<DIM>>(objects[i], 4, 4, 32, true))->convert(4, objectAggregates[i]);
-				break;
-			case AggregateType::AVXBvh:
-				(std::make_shared<Bvh<DIM>>(objects[i], 8))->convert(8, objectAggregates[i]);
-				break;
-			case AggregateType::AVX512Bvh:
-				(std::make_shared<Bvh<DIM>>(objects[i], 16))->convert(16, objectAggregates[i]);
+				objectAggregates[i] = std::make_shared<Sbvh<DIM>>(objects[i], leafSize, 0, bins, false);
 				break;
 			default:
 				objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);
@@ -227,7 +213,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 
 	} else if (aggregateType == AggregateType::Bvh) {
 		// build bvh aggregate
-		aggregate = std::make_shared<Bvh<DIM>>(objectInstances);
+		aggregate = std::make_shared<Bvh<DIM>>(objectInstances, leafSize, bvhSplitMethod, bins);
 
 	} else if (aggregateType == AggregateType::Sbvh) {
 		// build sbvh aggregate
@@ -236,6 +222,44 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 		// build baseline aggregate
 		aggregate = std::make_shared<Baseline<DIM>>(objectInstances);
 	}
+}
+
+template <int DIM>
+inline void Scene<DIM>::setSplitMethod(uint splitMethod){
+	bvhSplitMethod = splitMethod;
+}
+
+template <int DIM>
+inline void Scene<DIM>::setSimdType(uint simdClass){
+	switch(simdClass){
+		case 1:
+			simdType = SimdClass::SSE;
+			leafSize = 4;
+			break;
+		case 2:
+			simdType = SimdClass::AVX;
+			leafSize = 8;
+			break;
+		case 3:
+			simdType = SimdClass::AVX512;
+			leafSize = 16;
+			break;
+		default:
+			simdType = SimdClass::None;
+			break;
+	}
+}
+
+template <int DIM>
+inline void Scene<DIM>::setLeafSize(uint leafNum){
+	if(simdType == SimdClass::None){
+		leafSize = leafNum;
+	}
+}
+
+template <int DIM>
+inline void Scene<DIM>::setBinSize(uint binSize){
+	bins = binSize;
 }
 
 #ifdef BENCHMARK_EMBREE

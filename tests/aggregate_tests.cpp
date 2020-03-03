@@ -296,13 +296,8 @@ void run()
 
 	std::vector<AggregateType> aggregateTypes({
 		AggregateType::Baseline, 
-		AggregateType::Bvh,
-		AggregateType::Bvh_SAH,
-		AggregateType::Bvh_Vol,
-		AggregateType::Bvh_Overlap_SAH,
-		AggregateType::Bvh_Overlap_Vol,
+		AggregateType::Bvh
 		// AggregateType::Sbvh,
-		AggregateType::SSEBvh
 	});
 
 	std::vector<std::string> aggregateNames({
@@ -316,23 +311,53 @@ void run()
 		"Bvh using SSE"
 	});
 
-	int startAggregate = 6;
+	std::vector<std::string> bvhNames({
+		"Bvh with Midpoint Heuristic",
+		"Bvh with Surface Area Heuristic",
+		"Bvh with Volume Heuristic",
+		"Bvh with Overlap Surface Area Heuristic",
+		"Bvh with Overlap Volume Heuristic"
+	});
+
+	int startAggregate = 1;
 	int endAggregate = aggregateTypes.size();
+
+	bool doSIMDTests = true;
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
+		int bvhHeuristicStart = 4;
+		int bvhHeuristicEnd = 5;
+		scene.setBinSize(32);
+		scene.setLeafSize(4);
+		scene.setSimdType(0);
 
-		// temporarily skip baseline because it's slow
 		for(int i = startAggregate; i < endAggregate; i++){
-			if(i != 0){
-				// build new aggregate
-				scene.buildAggregate(aggregateTypes[i]);
+			AggregateType aggregateType = aggregateTypes[i];
+			switch(aggregateType){
+				// benchmark queries
+				case(AggregateType::Bvh):
+					for(int j = bvhHeuristicStart; j < bvhHeuristicEnd; j++){
+						scene.setSplitMethod(j);
+						scene.setSimdType(0);
+						scene.buildAggregate(aggregateType);
+						timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, bvhNames[j]);
+						timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhNames[j]);
+						std::cout << std::endl;
+						if(doSIMDTests){
+							scene.setSimdType(1);
+							scene.buildAggregate(aggregateType);
+							timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhNames[j] + " with SSE");
+							std::cout << std::endl;
+						}
+					}
+					break;
+				default:
+					scene.buildAggregate(aggregateType);
+					timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
+					timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
+					break;
 			}
-			// benchmark queries
-			if(aggregateTypes[i] != AggregateType::SSEBvh)
-				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, aggregateNames[i]);
-			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, aggregateNames[i]);
-			std::cout << std::endl;
 		}
 
 #ifdef BENCHMARK_EMBREE
@@ -355,7 +380,7 @@ void run()
 			Scene<DIM> bvhScene;
 			bvhScene.loadFiles(true, false);
 			bvhScene.buildAggregate(aggregateTypes[i]);
-			if(aggregateTypes[i] != AggregateType::SSEBvh)
+			if(aggregateTypes[i] != AggregateType::Bvh)
 				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
 			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
 			std::cout << std::endl;

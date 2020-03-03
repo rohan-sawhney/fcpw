@@ -21,6 +21,15 @@ namespace fcpw{
         SimdType minBoxes[DIM];
         SimdType maxBoxes[DIM];
         int indices[W];
+        char sortOrder[DIM];
+        bool isLeaf[W];
+    };
+
+    template <int W>
+    struct TestNode{
+        simdBox_type<W> boxes;
+        int indices[W];
+        char sortOrder[3];
         bool isLeaf[W];
     };
 
@@ -45,64 +54,13 @@ namespace fcpw{
         }
     };
 
+    template <int W>
+    struct TestLeafNode{
+        simdTriangle_type<W> triangles;
+        int indices[W];
+    };
+
     /* ---- Vectorized Functions ---- */
-
-    // parallel bbox overlap test
-    template <class T>
-    inline void parallelComputeSquaredDistance(const int dim, const T boxMins[], const T boxMaxs[], const float sPos[], const float& sRad, T& d2Min, T& d2Max){
-        LOG(FATAL) << "Provided type is not a SIMD float vector type";
-    }
-
-    template <>
-    inline void parallelComputeSquaredDistance<__m512>(const int dim, const __m512 boxMins[], const __m512 boxMaxs[], const float sPos[], const float& sRad, __m512& d2Min, __m512& d2Max){
-        d2Min = _mm512_setzero_ps();
-        d2Max = _mm512_setzero_ps();
-        __m512 temp;
-        __m512 pos;
-        for(int i = 0; i < dim; i++){
-            pos = _mm512_set1_ps((float)sPos[i]);
-            temp = _mm512_max_ps(_mm512_sub_ps(boxMins[i], pos), _mm512_max_ps(_mm512_setzero_ps(), _mm512_sub_ps(pos, boxMaxs[i])));
-            d2Min = _mm512_add_ps(d2Min, _mm512_mul_ps(temp, temp));
-
-            temp = _mm512_max_ps(_mm512_sub_ps(boxMins[i], pos), _mm512_sub_ps(pos, boxMaxs[i]));
-            d2Max = _mm512_add_ps(d2Max, _mm512_mul_ps(temp, temp));
-        }
-    }
-    
-    template <>
-    inline void parallelComputeSquaredDistance<__m256>(const int dim, const __m256 boxMins[], const __m256 boxMaxs[], const float sPos[], const float& sRad, __m256& d2Min, __m256& d2Max){
-        d2Min = _mm256_setzero_ps();
-        d2Max = _mm256_setzero_ps();
-        __m256 temp;
-        __m256 pos;
-        for(int i = 0; i < dim; i++){
-            pos = _mm256_set1_ps((float)sPos[i]);
-            temp = _mm256_max_ps(_mm256_sub_ps(boxMins[i], pos), _mm256_max_ps(_mm256_setzero_ps(), _mm256_sub_ps(pos, boxMaxs[i])));
-            d2Min = _mm256_add_ps(d2Min, _mm256_mul_ps(temp, temp));
-
-            temp = _mm256_max_ps(_mm256_sub_ps(boxMins[i], pos), _mm256_sub_ps(pos, boxMaxs[i]));
-            d2Max = _mm256_add_ps(d2Max, _mm256_mul_ps(temp, temp));
-        }
-    }
-    
-    template <>
-    inline void parallelComputeSquaredDistance<__m128>(const int dim, const __m128 boxMins[], const __m128 boxMaxs[], const float sPos[], const float& sRad, __m128& d2Min, __m128& d2Max){
-        d2Min = _mm_setzero_ps();
-        d2Max = _mm_setzero_ps();
-        __m128 temp, pos, maxDif, minDif;
-        for(int i = 0; i < dim; i++){
-            pos = _mm_set1_ps((float)sPos[i]);
-            minDif = _mm_sub_ps(boxMins[i], pos);
-            maxDif = _mm_sub_ps(pos, boxMaxs[i]);
-            temp = _mm_max_ps(minDif, _mm_max_ps(_mm_setzero_ps(), maxDif));
-            d2Min = _mm_add_ps(d2Min, _mm_mul_ps(temp, temp));
-
-            minDif = _mm_xor_ps(minDif, _mm_set1_ps(-0.));
-            maxDif = _mm_xor_ps(maxDif, _mm_set1_ps(-0.));
-            temp = _mm_max_ps(minDif, maxDif);
-            d2Max = _mm_add_ps(d2Max, _mm_mul_ps(temp, temp));
-        }
-    }
 
     template <int W>
     inline void simdBoxOverlap(simdFloat<W>& closestDistances, simdFloat<W>& furthestDistances, const simdPoint_type<W>& iPoint, const simdBox_type<W>& iBoxes){
@@ -129,178 +87,6 @@ namespace fcpw{
 
         d2Min = closestDists.vec;
         d2Max = furthestDists.vec;
-        // parallelComputeSquaredDistance(DIM, boxMins, boxMaxs, sPos, s.r2, d2Min, d2Max);
-    }
-
-    // parallel triangle computation function
-    template <class T>
-    inline void parallelComputeTriangleDistance(const int dim, const T pa[], const T pb[], const T pc[], const float x[], T& d, T pt[], int idx[]){
-        LOG(FATAL) << "Provided type is not a SIMD float vector type";
-    }
-
-    template <>
-    inline void parallelComputeTriangleDistance<__m128>(const int dim, const __m128 pa[], const __m128 pb[], const __m128 pc[], const float x[], __m128& d, __m128 pt[], int idx[]){
-        __m128 px[dim];
-        __m128 temp;
-        for(int i = 0; i < dim; i++){
-            px[i] = _mm_set1_ps(x[i]);
-        }
-        __m128 exit = _mm_set_ps(idx[3] != -1 ? 0x00000000 : 0x11111111, idx[2] != -1 ? 0x00000000 : 0x11111111, idx[1] != -1 ? 0x00000000 : 0x11111111, idx[0] != -1 ? 0x00000000 : 0x11111111);
-
-        // check barycentric coord (1, 0, 0)
-        __m128 d1 = _mm_setzero_ps();
-        __m128 d2 = _mm_setzero_ps();
-        __m128 ab[dim], ac[dim];
-        __m128 vx;
-        for(int i = 0; i < dim; i++){
-            ab[i] = _mm_sub_ps(pb[i], pa[i]);
-            ac[i] = _mm_sub_ps(pc[i], pa[i]);
-            vx = _mm_sub_ps(px[i], pa[i]);
-            d1 = _mm_add_ps(_mm_mul_ps(ab[i], vx), d1);
-            d2 = _mm_add_ps(_mm_mul_ps(ac[i], vx), d2);
-        }
-        __m128 mask = _mm_and_ps(_mm_cmple_ps(d1, _mm_setzero_ps()),_mm_cmple_ps(d2, _mm_setzero_ps()));
-        if(_mm_movemask_ps(mask) != 0xf){
-            exit = _mm_or_ps(exit, mask);
-            for(int i = 0; i < dim; i++){
-                pt[i] = _mm_blendv_ps(pt[i], pa[i], mask);
-            }
-            if(_mm_movemask_ps(exit) == 0xf){
-                d = _mm_setzero_ps();
-                for(int i = 0; i < dim; i++){
-                    temp = _mm_sub_ps(pt[i], px[i]);
-                    d = _mm_add_ps(d, _mm_mul_ps(temp, temp));
-                }
-                return;
-            }
-        }
-
-        // exit = mask;
-        // for(int i = 0; i < dim; i++){
-        //     pt[i] = pa[i];
-        // }
-        // if(_mm_movemask_ps(exit) == 0xf) continue;
-
-        // check barycentric coord (0, 1, 0)
-        __m128 d3 = _mm_setzero_ps();
-        __m128 d4 = _mm_setzero_ps();
-        for(int i = 0; i < dim; i++){
-            vx = _mm_sub_ps(px[i], pb[i]);
-            d3 = _mm_add_ps(_mm_mul_ps(ab[i], vx), d3);
-            d4 = _mm_add_ps(_mm_mul_ps(ac[i], vx), d4);
-        }
-        mask = _mm_and_ps(_mm_cmpge_ps(d3, _mm_setzero_ps()),_mm_cmple_ps(d4, d3));
-        if(_mm_movemask_ps(mask) != 0xf){
-            exit = _mm_or_ps(exit, mask);
-            for(int i = 0; i < dim; i++){
-                pt[i] = _mm_blendv_ps(pt[i], pb[i], mask);
-            }
-            if(_mm_movemask_ps(exit) == 0xf){
-                d = _mm_setzero_ps();
-                for(int i = 0; i < dim; i++){
-                    temp = _mm_sub_ps(pt[i], px[i]);
-                    d = _mm_add_ps(d, _mm_mul_ps(temp, temp));
-                }
-                return;
-            }
-        }
-
-        // check barycentric coord (0, 0, 1)
-        __m128 d5 = _mm_setzero_ps();
-        __m128 d6 = _mm_setzero_ps();
-        for(int i = 0; i < dim; i++){
-            vx = _mm_sub_ps(px[i], pc[i]);
-            d5 = _mm_add_ps(_mm_mul_ps(ab[i], vx), d5);
-            d6 = _mm_add_ps(_mm_mul_ps(ac[i], vx), d6);
-        }
-        mask = _mm_and_ps(_mm_cmpge_ps(d6, _mm_setzero_ps()),_mm_cmple_ps(d5, d6));
-        if(_mm_movemask_ps(mask) != 0xf){
-            exit = _mm_or_ps(exit, mask);
-            for(int i = 0; i < dim; i++){
-                pt[i] = _mm_blendv_ps(pt[i], pc[i], mask);
-            }
-            if(_mm_movemask_ps(exit) == 0xf){
-                d = _mm_setzero_ps();
-                for(int i = 0; i < dim; i++){
-                    temp = _mm_sub_ps(pt[i], px[i]);
-                    d = _mm_add_ps(d, _mm_mul_ps(temp, temp));
-                }
-                return;
-            }
-        }
-
-        // check barycentric coord (1 - v, v, 0)
-        __m128 v;
-        __m128 vc = _mm_sub_ps(_mm_mul_ps(d1, d4), _mm_mul_ps(d3, d2));
-        mask = _mm_and_ps(_mm_cmple_ps(vc, _mm_setzero_ps()),_mm_and_ps(_mm_cmpge_ps(d1, _mm_setzero_ps()), _mm_cmple_ps(d3, _mm_setzero_ps())));
-        if(_mm_movemask_ps(mask) != 0xf){
-            exit = _mm_or_ps(exit, mask);
-            v = _mm_div_ps(d1, _mm_sub_ps(d1, d3));
-            for(int i = 0; i < dim; i++){
-                pt[i] = _mm_blendv_ps(pt[i], _mm_add_ps(pa[i], _mm_mul_ps(v, ab[i])), mask);
-            }
-            if(_mm_movemask_ps(exit) == 0xf){
-                d = _mm_setzero_ps();
-                for(int i = 0; i < dim; i++){
-                    temp = _mm_sub_ps(pt[i], px[i]);
-                    d = _mm_add_ps(d, _mm_mul_ps(temp, temp));
-                }
-                return;
-            }
-        }
-
-        // check barycentric coord (1 - w, 0, w)
-        __m128 w;
-        __m128 vb = _mm_sub_ps(_mm_mul_ps(d5, d2), _mm_mul_ps(d1, d6));
-        mask = _mm_and_ps(_mm_cmple_ps(vb, _mm_setzero_ps()),_mm_and_ps(_mm_cmpge_ps(d2, _mm_setzero_ps()), _mm_cmple_ps(d6, _mm_setzero_ps())));
-        if(_mm_movemask_ps(mask) != 0xf){
-            exit = _mm_or_ps(exit, mask);
-            w = _mm_div_ps(d2, _mm_sub_ps(d2, d6));
-            for(int i = 0; i < dim; i++){
-                pt[i] = _mm_blendv_ps(pt[i], _mm_add_ps(pa[i], _mm_mul_ps(w, ac[i])), mask);
-            }
-            if(_mm_movemask_ps(exit) == 0xf){
-                d = _mm_setzero_ps();
-                for(int i = 0; i < dim; i++){
-                    temp = _mm_sub_ps(pt[i], px[i]);
-                    d = _mm_add_ps(d, _mm_mul_ps(temp, temp));
-                }
-                return;
-            }
-        }
-
-        // check barycentric coord (0, 1 - w, w)
-        __m128 va = _mm_sub_ps(_mm_mul_ps(d3, d6), _mm_mul_ps(d5, d4));
-        mask = _mm_and_ps(_mm_cmple_ps(va, _mm_setzero_ps()),_mm_and_ps(_mm_cmpge_ps(_mm_sub_ps(d4, d3), _mm_setzero_ps()), _mm_cmpge_ps(_mm_sub_ps(d5, d6), _mm_setzero_ps())));
-        if(_mm_movemask_ps(mask) != 0xf){
-            exit = _mm_or_ps(exit, mask);
-            w = _mm_div_ps(_mm_sub_ps(d4, d3), _mm_add_ps(_mm_sub_ps(d4, d3), _mm_sub_ps(d5, d6)));
-            for(int i = 0; i < dim; i++){
-                pt[i] = _mm_blendv_ps(pt[i], _mm_add_ps(pb[i], _mm_mul_ps(w, _mm_sub_ps(pc[i], pb[i]))), mask);
-            }
-            if(_mm_movemask_ps(exit) == 0xf){
-                d = _mm_setzero_ps();
-                for(int i = 0; i < dim; i++){
-                    temp = _mm_sub_ps(pt[i], px[i]);
-                    d = _mm_add_ps(d, _mm_mul_ps(temp, temp));
-                }
-                return;
-            }
-        }
-
-        // check barycentric coord (u, v, w)
-        __m128 denom = _mm_div_ps(_mm_set1_ps(1.0), _mm_add_ps(va, _mm_add_ps(vb, vc)));
-        v = _mm_mul_ps(vb, denom);
-        w = _mm_mul_ps(vc, denom);
-        mask = _mm_xor_ps(exit, _mm_set1_ps(0xffffffff));
-        for(int i = 0; i < dim; i++){
-            pt[i] = _mm_blendv_ps(pt[i], _mm_add_ps(pa[i], _mm_add_ps(_mm_mul_ps(ab[i], v), _mm_mul_ps(ac[i], w))), mask);
-        }
-        d = _mm_setzero_ps();
-        for(int i = 0; i < dim; i++){
-            temp = _mm_sub_ps(pt[i], px[i]);
-            d = _mm_add_ps(d, _mm_mul_ps(temp, temp));
-        }
     }
 
     template <int W>
@@ -401,15 +187,6 @@ namespace fcpw{
             }
         }
     };
-
-    // template <int DIM, int W, class T>
-    // inline void parallelTriangleOverlap(const T pa[DIM], const T pb[DIM], const T pc[DIM], BoundingSphere<DIM>& s, ParallelInteraction<DIM, W>& i){
-    //     float sPos[DIM];
-    //     for(int j = 0; j < DIM; j++){
-    //         sPos[j] = (float)s.c(j);
-    //     }
-    //     parallelComputeTriangleDistance(DIM, pa, pb, pc, sPos, i.distances, i.points, i.indices);
-    // }
 
     template <int W, class T>
     inline void parallelTriangleOverlap(const T pa[3], const T pb[3], const T pc[3], BoundingSphere<3>& s, ParallelInteraction<3, W>& i){

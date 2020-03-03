@@ -19,6 +19,10 @@ namespace fcpw{
         nNodes(0), nLeaves(0), primitives(primitives_), bbox(nodes_[0].bbox),
         depth(0), nReferences(0), averageLeafSize(0), nPrimitives(primitives_.size()){
 
+        LOG(INFO) << "Size of MBVH node: " << sizeof(BvhSimdFlatNode<DIM, W>);
+        LOG(INFO) << "Size of MBVH node if using embree vectors: " << sizeof(TestNode<W>);
+        LOG(INFO) << "Size of MBVH leaf node: " << sizeof(BvhSimdLeafNode<DIM, W>);
+        LOG(INFO) << "Size of MBVH leaf node if using embree vectors: " << sizeof(TestLeafNode<W>);
         std::chrono::high_resolution_clock::time_point t_start, t_end;
         std::chrono::nanoseconds duration;
         double buildTime = 0;
@@ -299,7 +303,7 @@ namespace fcpw{
             
             // process overlapped nodes NOTE: ADD IN ORDERING ONCE THAT IS AVAILABLE
             for(int j = 0; node.indices[j] != -1 && j < W; j++){
-                int index = j;//ordering[j];
+                int index = ordering[j];
                 // only process if box is in bounds of query
                 if((float)s.r2 > resVec[0][index]){
                     // aggressively shorten if box is fully contained in query

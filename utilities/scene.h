@@ -17,14 +17,14 @@ enum class ObjectType {
 enum class AggregateType {
 	Baseline,
 	Bvh,
-	Bvh_SAH,
-	Bvh_Vol,
-	Bvh_Overlap_SAH,
-	Bvh_Overlap_Vol,
-	Sbvh,
-	SSEBvh,
-	AVXBvh,
-	AVX512Bvh
+	Sbvh
+};
+
+enum class SimdClass{
+	None,
+	SSE,
+	AVX,
+	AVX512
 };
 
 struct CsgTreeNode;
@@ -40,6 +40,18 @@ public:
 
 	// builds aggregate
 	void buildAggregate(const AggregateType& aggregateType);
+
+	// sets BVH split method
+	void setSplitMethod(uint splitMethod);
+
+	// sets leaf size
+	void setLeafSize(uint leafSize);
+
+	// set simd vector type
+	void setSimdType(uint simdType);
+
+	// set bin size
+	void setBinSize(uint binSize);
 
 #ifdef BENCHMARK_EMBREE
 	// builds embree aggregate
@@ -57,6 +69,10 @@ private:
 	// members
 	std::unordered_map<int, CsgTreeNode> csgTree;
 	std::vector<std::shared_ptr<Primitive<DIM>>> objectInstances;
+	SimdClass simdType = SimdClass::None;
+	uint bvhSplitMethod = 0;
+	uint leafSize = 4;
+	uint bins = 32;
 };
 
 } // namespace fcpw
