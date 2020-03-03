@@ -22,7 +22,7 @@ namespace fcpw{
         LOG(INFO) << "Size of MBVH node: " << sizeof(BvhSimdFlatNode<DIM, W>);
         LOG(INFO) << "Size of MBVH node if using embree vectors: " << sizeof(TestNode<W>);
         LOG(INFO) << "Size of MBVH leaf node: " << sizeof(BvhSimdLeafNode<DIM, W>);
-        LOG(INFO) << "Size of MBVH leaf node if using embree vectors: " << sizeof(TestLeafNode<W>);
+        LOG(INFO) << "Size of MBVH leaf node if using embree vectors: " << sizeof(BvhSimdLeafNode<3, W>);
         std::chrono::high_resolution_clock::time_point t_start, t_end;
         std::chrono::nanoseconds duration;
         double buildTime = 0;
@@ -282,28 +282,28 @@ namespace fcpw{
             // so that furthest doesn't need to be done if query is out of range
             parallelOverlap<DIM, SimdType, W>(node.minBoxes, node.maxBoxes, s, resVec[0], resVec[1]);
 
-            int ordering[W];
-            float unpackedMin[W];
-            for(int j = 0; j < W; j++){
-                ordering[j] = j;
-            }
+            // int ordering[W];
+            // float unpackedMin[W];
+            // for(int j = 0; j < W; j++){
+            //     ordering[j] = j;
+            // }
 
-            // temp bubble sort ordering
-            bool isSorted = false;
-            while(!isSorted){
-                isSorted = true;
-                for(int j = 0; node.indices[j + 1] != -1 && j < W - 1; j++){
-                    if(unpackedMin[j] > unpackedMin[j + 1]){
-                        isSorted = false;
-                        std::swap(unpackedMin[j], unpackedMin[j + 1]);
-                        std::swap(ordering[j], ordering[j + 1]);
-                    }
-                }
-            }
+            // // temp bubble sort ordering
+            // bool isSorted = false;
+            // while(!isSorted){
+            //     isSorted = true;
+            //     for(int j = 0; node.indices[j + 1] != -1 && j < W - 1; j++){
+            //         if(unpackedMin[j] > unpackedMin[j + 1]){
+            //             isSorted = false;
+            //             std::swap(unpackedMin[j], unpackedMin[j + 1]);
+            //             std::swap(ordering[j], ordering[j + 1]);
+            //         }
+            //     }
+            // }
             
             // process overlapped nodes NOTE: ADD IN ORDERING ONCE THAT IS AVAILABLE
             for(int j = 0; node.indices[j] != -1 && j < W; j++){
-                int index = ordering[j];
+                int index = j;//ordering[j];
                 // only process if box is in bounds of query
                 if((float)s.r2 > resVec[0][index]){
                     // aggressively shorten if box is fully contained in query
@@ -320,7 +320,8 @@ namespace fcpw{
                         for(int k = 0; k < W; k++){
                             pi.indices[k] = leafNode.indices[k];
                         }
-                        parallelTriangleOverlap(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
+                        // parallelTriangleOverlap(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
+                        parallelTriangleClosestPoint<DIM, W>(leafNode, s, pi);
 
                         float bestDistance;
                         float bestPoint[DIM];

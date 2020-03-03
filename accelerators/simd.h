@@ -49,6 +49,16 @@ namespace fcpw{
                             inits[3], inits[2], inits[1], inits[0]);
     }
 
+    inline void initSimd(const float init, __m128& vec){
+        vec = _mm_set1_ps(init);
+    }
+    inline void initSimd(const float init, __m256& vec){
+        vec = _mm256_set1_ps(init);
+    }
+    inline void initSimd(const float init, __m512& vec){
+        vec = _mm512_set1_ps(init);
+    }
+
     // The following are taken and adapted from the following citation:
     /*
     Evan Shellshear and Robin Ytterlid, Fast Distance Queries for Triangles, Lines, and Points using SSE Instructions, Journal of Computer Graphics Techniques (JCGT), vol. 3, no. 4, 86-110, 2014

@@ -41,7 +41,7 @@ namespace fcpw{
         // SimdType minBoxes[DIM];
         // SimdType maxBoxes[DIM];
         SimdType pa[DIM];
-        SimdType pb[DIM];
+        SimdType pb[DIM]; 
         SimdType pc[DIM];
         int indices[W]; // will later wrap in triangle data
 
@@ -55,9 +55,20 @@ namespace fcpw{
     };
 
     template <int W>
-    struct TestLeafNode{
+    struct BvhSimdLeafNode<3, W>{
+        using SimdType = typename IntrinsicType<W>::type;
         simdTriangle_type<W> triangles;
         int indices[W];
+
+        inline void initPoints(float pointCoords[3][3][W]){
+            for(int i = 0; i < 3; i++){
+                SimdType px, py, pz;
+                initSimd(pointCoords[i][0], px);
+                initSimd(pointCoords[i][1], py);
+                initSimd(pointCoords[i][2], pz);
+                triangles[i] = embree::Vec3<simdFloat<W>>(vecf<W>(px), vecf<W>(py), vecf<W>(pz));
+            }
+        }
     };
 
     /* ---- Vectorized Functions ---- */
@@ -188,27 +199,44 @@ namespace fcpw{
         }
     };
 
-    template <int W, class T>
-    inline void parallelTriangleOverlap(const T pa[3], const T pb[3], const T pc[3], BoundingSphere<3>& s, ParallelInteraction<3, W>& i){
-        float sPos[3];
-        for(int j = 0; j < 3; j++){
-            sPos[j] = (float)s.c(j);
-        }
-        simdFloatVec<W> resPts;
-        simdTriangle_type<W> tri;
-        simdPoint_type<W> sc;
-
-
-        sc = embree::Vec3<simdFloat<W>>(vecf<W>(_mm_set1_ps(s.c(0))), vecf<W>(_mm_set1_ps(s.c(1))), vecf<W>(_mm_set1_ps(s.c(2))));
-        tri[0] = embree::Vec3<simdFloat<W>>(vecf<W>(pa[0]), vecf<W>(pa[1]), vecf<W>(pa[2]));
-        tri[1] = embree::Vec3<simdFloat<W>>(vecf<W>(pb[0]), vecf<W>(pb[1]), vecf<W>(pb[2]));
-        tri[2] = embree::Vec3<simdFloat<W>>(vecf<W>(pc[0]), vecf<W>(pc[1]), vecf<W>(pc[2]));
-        simdFloat<W> res = simdTriPoint2<W>(resPts, tri, sc);
-
-        i.distances = res.vec;
-        i.points[0] = resPts.x.vec;
-        i.points[1] = resPts.y.vec;
-        i.points[2] = resPts.z.vec;
+    template <int DIM, int W>
+    inline void parallelTriangleClosestPoint(const BvhSimdLeafNode<DIM, W>& node, BoundingSphere<DIM>& s, ParallelInteraction<DIM, W>& pi){
+        LOG(FATAL) << "Triangle closest point not available for dimension " << DIM << " and width " << W;
     }
+
+    // template <int DIM, int W>
+    // inline void parallelTriangleClosestPointSSE(const BvhSimdLeafNode<DIM, 4>& node, BoundingSphere<DIM>& s, ParallelInteraction<DIM, 4>& pi){
+    //     LOG(FATAL) << "SSE triangle closest point not available for dimension " << DIM;
+    // }
+
+    template <int DIM, int W>
+    inline void parallelTriangleClosestPoint(const BvhSimdLeafNode<3, W>& node, BoundingSphere<3>& s, ParallelInteraction<3, W>& pi){
+        simdFloatVec<W> resPts;
+        simdPoint_type<W> sc;
+        using SimdType = typename IntrinsicType<W>::type;
+        SimdType px, py, pz;
+
+        initSimd(s.c(0), px);
+        initSimd(s.c(1), py);
+        initSimd(s.c(2), pz);
+
+        sc = embree::Vec3<simdFloat<W>>(vecf<W>(px), vecf<W>(py), vecf<W>(pz));
+        simdFloat<W> res = simdTriPoint2<W>(resPts, node.triangles, sc);
+
+        pi.distances = res.vec;
+        pi.points[0] = resPts.x.vec;
+        pi.points[1] = resPts.y.vec;
+        pi.points[2] = resPts.z.vec;
+    }
+
+    // template <int DIM>
+    // inline void parallelTriangleClosestPointAVX(const BvhSimdLeafNode<DIM, 8>& node, BoundingSphere<DIM>& s, ParallelInteraction<DIM, 8>& pi){
+    //     LOG(FATAL) << "AVX triangle closest point not available for dimension " << DIM;
+    // }
+
+    // template <int DIM>
+    // inline void parallelTriangleClosestPointAVX512(const BvhSimdLeafNode<DIM, 16>& node, BoundingSphere<DIM>& s, ParallelInteraction<DIM, 16>& pi){
+    //     LOG(FATAL) << "AVX512 triangle closest point not available for dimension " << DIM;
+    // }
 
 } //namespace fcpw
