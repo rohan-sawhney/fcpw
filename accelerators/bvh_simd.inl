@@ -12,17 +12,13 @@ namespace fcpw{
 
     template <int DIM, int W>
     inline BvhSimd<DIM, W>::BvhSimd(
-        const std::vector<BvhFlatNode<DIM>>& nodes_, 
-        const std::vector<ReferenceWrapper<DIM>>& references_, 
-        const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, 
+        const std::vector<BvhFlatNode<DIM>>& nodes_,
+        const std::vector<ReferenceWrapper<DIM>>& references_,
+        const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
         const std::string& parentDescription_):
         nNodes(0), nLeaves(0), primitives(primitives_), bbox(nodes_[0].bbox),
         depth(0), nReferences(0), averageLeafSize(0), nPrimitives(primitives_.size()){
 
-        LOG(INFO) << "Size of MBVH node: " << sizeof(BvhSimdFlatNode<DIM, W>);
-        LOG(INFO) << "Size of MBVH node if using embree vectors: " << sizeof(TestNode<W>);
-        LOG(INFO) << "Size of MBVH leaf node: " << sizeof(BvhSimdLeafNode<DIM, W>);
-        LOG(INFO) << "Size of MBVH leaf node if using embree vectors: " << sizeof(BvhSimdLeafNode<3, W>);
         std::chrono::high_resolution_clock::time_point t_start, t_end;
         std::chrono::nanoseconds duration;
         double buildTime = 0;
@@ -90,14 +86,6 @@ namespace fcpw{
             if(parentIndex == -1 || curNode.rightOffset != 0){
                 buildNodes.emplace_back(BvhSimdFlatNode<DIM, W>());
                 BvhSimdFlatNode<DIM, W>& node = buildNodes.back();
-                for(int i = 0; i < W; i++){
-                    node.indices[i] = -1;
-                    node.isLeaf[i] = false;
-                    for(int j = 0; j < DIM; j++){
-                        node.minBoxes[j][i] = 0;
-                        node.maxBoxes[j][i] = 0;
-                    }
-                }
                 nNodes ++;
             }
             int simdTreeIndex = buildNodes.size() - 1;
@@ -109,15 +97,12 @@ namespace fcpw{
                 int tempCounter = 0;
                 while(parentNode.indices[tempCounter] != -1){
                     tempCounter ++;
-                    LOG_IF(FATAL, tempCounter == W) << "Out of bounds number of child nodes!";
+                    LOG_IF(FATAL, tempCounter >= W) << "Tempcounter out of bounds";
                 }
                 BoundingBox<DIM> bbox = curNode.bbox;
 
                 // fill bbox data in node
-                for(int i = 0; i < DIM; i++){
-                    parentNode.minBoxes[i][tempCounter] = bbox.pMin(i);
-                    parentNode.maxBoxes[i][tempCounter] = bbox.pMax(i);
-                }
+                parentNode.addBounds(bbox.pMin, bbox.pMax, tempCounter);
 
                 // connect popped off node to associated build node
                 if(curNode.rightOffset == 0){
@@ -146,19 +131,14 @@ namespace fcpw{
                             std::shared_ptr<Triangle> triangle = std::dynamic_pointer_cast<Triangle>(primitive);
                             triangle->getVertices(vertices);
 
-                            const Vector3f& pa = vertices[0];
-                            const Vector3f& pb = vertices[1];
-                            const Vector3f& pc = vertices[2];
+                            // const Vector3f& pa = vertices[0];
+                            // const Vector3f& pb = vertices[1];
+                            // const Vector3f& pc = vertices[2];
 
                             for(int j = 0; j < DIM; j++){
-                                tripoints[0][j][i] = pa(j);
-                                tripoints[1][j][i] = pb(j);
-                                tripoints[2][j][i] = pc(j);
-                                // leafNode.pa[j][i] = pa(j);
-                                // leafNode.pb[j][i] = pb(j);
-                                // leafNode.pc[j][i] = pc(j);
-                                // leafNode.minBoxes[j][i] = references[curNode.start + i].bbox.pMin(j);
-                                // leafNode.maxBoxes[j][i] = references[curNode.start + i].bbox.pMax(j);
+                                tripoints[0][j][i] = vertices[0](j);
+                                tripoints[1][j][i] = vertices[1](j);
+                                tripoints[2][j][i] = vertices[2](j);
                             }
                         }
                         else{
@@ -246,7 +226,7 @@ namespace fcpw{
 
     template <int DIM, int W>
     inline int BvhSimd<DIM, W>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, bool checkOcclusion, bool countHits) const{
-        
+
         return 0;
     }
 
@@ -259,8 +239,13 @@ namespace fcpw{
         #endif
 
         std::queue<BvhTraversal> todo;
-        SimdType resVec[2];
-        SimdType leafVec[2];
+        SimdBoundingSphere<DIM, W> sbs(s);
+        ParallelOverlapResult<W> overlap;
+        ParallelInteraction<DIM, W> pi, bestInteraction;
+
+        float bestDistance;
+        float bestPoint[DIM];
+        int bestIndex;
 
         todo.emplace(BvhTraversal(0, minFloat));
         while(!todo.empty()){
@@ -278,9 +263,7 @@ namespace fcpw{
             }
 
             // do overlap test
-            // NOTE: might be good to separate this into closest and furthest distance functions
-            // so that furthest doesn't need to be done if query is out of range
-            parallelOverlap<DIM, SimdType, W>(node.minBoxes, node.maxBoxes, s, resVec[0], resVec[1]);
+            parallelOverlap<DIM, W>(node, sbs, overlap);
 
             // int ordering[W];
             // float unpackedMin[W];
@@ -300,54 +283,59 @@ namespace fcpw{
             //         }
             //     }
             // }
-            
+
             // process overlapped nodes NOTE: ADD IN ORDERING ONCE THAT IS AVAILABLE
             for(int j = 0; node.indices[j] != -1 && j < W; j++){
                 int index = j;//ordering[j];
                 // only process if box is in bounds of query
-                if((float)s.r2 > resVec[0][index]){
+                if(s.r2 > overlap.d2Min[index]){//resVec[0][index]){
                     // aggressively shorten if box is fully contained in query
-                    if((float)s.r2 > resVec[1][index]) s.r2 = (float)resVec[1][index];
+                    if(s.r2 > overlap.d2Max[index]){//resVec[1][index])
+                        s.r2 = overlap.d2Max[index];//(float)resVec[1][index];
+                    }
                     if(!node.isLeaf[index]){
                         // if interior node, add to queue
-                        if((float)s.r2 >= resVec[0][index])
-                            todo.emplace(BvhTraversal(node.indices[index], resVec[0][index]));
+                        if(s.r2 > overlap.d2Min[index]){
+                            todo.emplace(BvhTraversal(node.indices[index], overlap.d2Min[index]));//resVec[0][index]));
+                        }
                     }
                     else{
                         // if mbvh leaf, process triangles in parallel
                         const BvhSimdLeafNode<DIM, W>& leafNode = leaves[node.indices[index]];
-                        ParallelInteraction<DIM, W> pi = ParallelInteraction<DIM, W>();
                         for(int k = 0; k < W; k++){
                             pi.indices[k] = leafNode.indices[k];
                         }
-                        // parallelTriangleOverlap(leafNode.pa, leafNode.pb, leafNode.pc, s, pi);
-                        parallelTriangleClosestPoint<DIM, W>(leafNode, s, pi);
+                        parallelTriangleClosestPoint<DIM, W>(leafNode, sbs, pi);
 
-                        float bestDistance;
-                        float bestPoint[DIM];
-                        int bestIndex; // = findClosestFromLeaf(s, leafNode);
                         pi.getBest(bestDistance, bestPoint, bestIndex);
 
-                        // LOG(INFO) << "Node indices: " << leafNode.indices[0] << " " << leafNode.indices[1] << " " << leafNode.indices[2] << " " << leafNode.indices[3] << " Best index: " << bestIndex << " Best distance: " << bestDistance << " Current radius: " << s.r2;
-                        bool updatedDistances = false;
-
-                        if(bestIndex != -1 && bestDistance < (float)s.r2){
-                            // updatedDistances = true;
-                            s.r2 = (float)bestDistance;
-                            // i = c;
-                            i.p = Vector<DIM>();
-                            for(int k = 0; k < DIM; k++){
-                                i.p(k) = (float)bestPoint[k];
-                            }
-                            i.n = Vector<DIM>(); // TEMPORARY!!!!
-                            i.d = std::sqrt(s.r2);
-                            i.primitive = primitives[bestIndex].get();
+                        if(bestIndex != -1 && bestDistance < s.r2){
+                            s.r2 = bestDistance;
+                            bestInteraction = pi;
+                            // i.p = Vector<DIM>();
+                            // for(int k = 0; k < DIM; k++){
+                            //     i.p(k) = (float)bestPoint[k];
+                            // }
+                            // i.n = Vector<DIM>(); // TEMPORARY!!!!
+                            // i.d = std::sqrt(s.r2);
+                            // i.primitive = primitives[bestIndex].get();
                         }
                         // LOG_IF(FATAL, updatedDistances && i.primitive == nullptr) << "Primitive is null!";
                     }
                 }
             }
         }
+        bestInteraction.getBest(bestDistance, bestPoint, bestIndex);
+        i.p = Vector<DIM>();
+        for(int k = 0; k < DIM; k++){
+            i.p(k) = bestPoint[k];
+        }
+        i.n = Vector<DIM>(); // TEMPORARY!!!!
+        i.d = std::sqrt(s.r2);
+        i.primitive = primitives[bestIndex].get();
+        // s.r2 = maxFloat;
+        // primitives[bestIndex].get()->findClosestPoint(s, i);
+
         LOG_IF(FATAL, i.primitive == nullptr) << "Primitive is null!";
         return s.r2 != maxFloat;
     }

@@ -65,6 +65,12 @@ namespace fcpw{
 
     http://jcgt.org/published/0003/04/05/   */
 
+    static const __m128 sseZero = _mm_setzero_ps();
+    static const __m128 sseOne = _mm_set1_ps(0xffff);
+
+    static const __m256 avxZero = _mm256_setzero_ps();
+    static const __m256 avxOne = _mm256_set1_ps(0xffff);
+
     // structs
 
     template <int W>
@@ -99,12 +105,14 @@ namespace fcpw{
     template <>
     struct vecf<4>{
         vecf(__m128 vec_) : vec(vec_){}
+        vecf() : vec(sseZero){}
         __m128 vec;
     };
 
     template <>
     struct vecf<8>{
         vecf(__m256 vec_) : vec(vec_){}
+        vecf() : vec(avxZero){}
         __m256 vec;
     };
 
@@ -184,9 +192,6 @@ namespace fcpw{
         return vecf<4>(_mm_blendv_ps(f.vec, t.vec, mask.vec));
     }
 
-    static const __m128 sseZero = _mm_setzero_ps();
-    static const __m128 sseOne = _mm_set1_ps(0xffff);
-
     template <>
     inline const vecf<4> vecZero(){
         return vecf<4>(sseZero);
@@ -261,9 +266,6 @@ namespace fcpw{
     inline const vecf<8> select(const vecb<8>& mask, const vecf<8>& t, const vecf<8>& f){
         return vecf<8>(_mm256_blendv_ps(f.vec, t.vec, mask.vec));
     }
-
-    static const __m256 avxZero = _mm256_setzero_ps();
-    static const __m256 avxOne = _mm256_set1_ps(0xffff);
 
     template <>
     inline const vecf<8> vecZero(){
