@@ -3,7 +3,7 @@ project(fcpw)
 
 option(BUILD_TESTS "Build tests" ON)
 option(BENCHMARK_EMBREE "Benchmark Embree" ON)
-option(PROFILE "Profile" OFF)
+option(PROFILE "Profile" ON)
 
 ################################################################################
 # c++ version

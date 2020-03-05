@@ -44,6 +44,10 @@ public:
 	// fills vector with vertices of triangle
 	void getVertices(std::vector<Vector3f>& vertices) const;
 
+	// returns normalized vertex or edge normal if available;
+	// otherwise computes normalized triangle normal
+	Vector3f normal(int vIndex, int eIndex) const;
+
 	// members
 	std::shared_ptr<PolygonSoup<3>> soup;
 	const std::vector<int>& indices; /* a.k.a. vIndices */
@@ -52,9 +56,6 @@ public:
 	int index;
 
 private:
-	// returns normalized vertex or edge normal if available;
-	// otherwise computes normalized triangle normal
-	Vector3f normal(int vIndex, int eIndex) const;
 };
 
 // reads soup from obj file

@@ -323,11 +323,11 @@ void run()
 	int endAggregate = aggregateTypes.size();
 
 	bool doSIMDTests = true;
+	const int bvhHeuristicStart = 4;
+	const int bvhHeuristicEnd = 5;
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
-		int bvhHeuristicStart = 4;
-		int bvhHeuristicEnd = 5;
 		scene.setBinSize(32);
 		scene.setLeafSize(4);
 		scene.setSimdType(0);
@@ -376,14 +376,44 @@ void run()
 
 		for(int i = startAggregate; i < endAggregate; i++){
 			// build bvh aggregate and compare results with baseline
-			std::cout << "Testing " << aggregateNames[i] << " results against Baseline" << std::endl;
 			Scene<DIM> bvhScene;
 			bvhScene.loadFiles(true, false);
-			bvhScene.buildAggregate(aggregateTypes[i]);
-			if(aggregateTypes[i] != AggregateType::Bvh)
-				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
-			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
-			std::cout << std::endl;
+			AggregateType aggregateType = aggregateTypes[i];
+			switch(aggregateType){
+				// benchmark queries
+				case(AggregateType::Bvh):
+					for(int j = bvhHeuristicStart; j < bvhHeuristicEnd; j++){
+						std::cout << "Testing " << bvhNames[i] << " results against Baseline" << std::endl;
+						bvhScene.setSplitMethod(j);
+						bvhScene.setSimdType(0);
+						bvhScene.buildAggregate(aggregateType);
+						testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
+						testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+						std::cout << std::endl;
+						if(doSIMDTests){
+							std::cout << "Testing vectorized " << bvhNames[i] << " results against Baseline" << std::endl;
+							bvhScene.setSimdType(1);
+							bvhScene.buildAggregate(aggregateType);
+							testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+							std::cout << std::endl;
+						}
+					}
+					break;
+				default:
+					bvhScene.buildAggregate(aggregateType);
+					testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
+					testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+					break;
+			}
+
+			// std::cout << "Testing " << aggregateNames[i] << " results against Baseline" << std::endl;
+			// Scene<DIM> bvhScene;
+			// bvhScene.loadFiles(true, false);
+			// bvhScene.buildAggregate(aggregateTypes[i]);
+			// if(aggregateTypes[i] != AggregateType::Bvh)
+			// 	testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
+			// testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+			// std::cout << std::endl;
 		}
 
 #ifdef BENCHMARK_EMBREE

@@ -18,6 +18,9 @@ namespace fcpw{
         const std::string& parentDescription_):
         nNodes(0), nLeaves(0), primitives(primitives_), bbox(nodes_[0].bbox),
         depth(0), nReferences(0), averageLeafSize(0), nPrimitives(primitives_.size()){
+        
+        LOG(INFO) << "Size of leaf node: " << sizeof(BvhSimdLeafNode<DIM, W>);
+        LOG(INFO) << "Size of leaf node: " << sizeof(BvhSimdLeafNode<DIM, W>);
 
         std::chrono::high_resolution_clock::time_point t_start, t_end;
         std::chrono::nanoseconds duration;
@@ -241,11 +244,14 @@ namespace fcpw{
         std::queue<BvhTraversal> todo;
         SimdBoundingSphere<DIM, W> sbs(s);
         ParallelOverlapResult<W> overlap;
-        ParallelInteraction<DIM, W> pi, bestInteraction;
+        ParallelInteraction<DIM, W> pi;//, bestInteraction;
 
         float bestDistance;
         float bestPoint[DIM];
         int bestIndex;
+        int overallBest;
+        float dMax, dMin;
+        float prevRad = s.r2;
 
         todo.emplace(BvhTraversal(0, minFloat));
         while(!todo.empty()){
@@ -265,39 +271,23 @@ namespace fcpw{
             // do overlap test
             parallelOverlap<DIM, W>(node, sbs, overlap);
 
-            // int ordering[W];
-            // float unpackedMin[W];
-            // for(int j = 0; j < W; j++){
-            //     ordering[j] = j;
-            // }
-
-            // // temp bubble sort ordering
-            // bool isSorted = false;
-            // while(!isSorted){
-            //     isSorted = true;
-            //     for(int j = 0; node.indices[j + 1] != -1 && j < W - 1; j++){
-            //         if(unpackedMin[j] > unpackedMin[j + 1]){
-            //             isSorted = false;
-            //             std::swap(unpackedMin[j], unpackedMin[j + 1]);
-            //             std::swap(ordering[j], ordering[j + 1]);
-            //         }
-            //     }
-            // }
+            // ordering: is there a faster way to access it? access adds time!
+            // only way it'll be useful is if I can get more benefit from sorting
+            // which may be difficult as even indexing adds "significant" time usage
 
             // process overlapped nodes NOTE: ADD IN ORDERING ONCE THAT IS AVAILABLE
             for(int j = 0; node.indices[j] != -1 && j < W; j++){
-                int index = j;//ordering[j];
+                int index = j;
+                dMax = overlap.d2Max.vec[index];
+                dMin = overlap.d2Min.vec[index];
+                // aggressively shorten if box is fully contained in query
+                if(s.r2 > dMax){//resVec[1][index])
+                    s.r2 = dMax;//(float)resVec[1][index];
+                }
                 // only process if box is in bounds of query
-                if(s.r2 > overlap.d2Min[index]){//resVec[0][index]){
-                    // aggressively shorten if box is fully contained in query
-                    if(s.r2 > overlap.d2Max[index]){//resVec[1][index])
-                        s.r2 = overlap.d2Max[index];//(float)resVec[1][index];
-                    }
+                if(s.r2 > dMin){//resVec[0][index]){
                     if(!node.isLeaf[index]){
-                        // if interior node, add to queue
-                        if(s.r2 > overlap.d2Min[index]){
-                            todo.emplace(BvhTraversal(node.indices[index], overlap.d2Min[index]));//resVec[0][index]));
-                        }
+                        todo.emplace(BvhTraversal(node.indices[index], dMin));//resVec[0][index]));
                     }
                     else{
                         // if mbvh leaf, process triangles in parallel
@@ -311,30 +301,19 @@ namespace fcpw{
 
                         if(bestIndex != -1 && bestDistance < s.r2){
                             s.r2 = bestDistance;
-                            bestInteraction = pi;
-                            // i.p = Vector<DIM>();
-                            // for(int k = 0; k < DIM; k++){
-                            //     i.p(k) = (float)bestPoint[k];
-                            // }
-                            // i.n = Vector<DIM>(); // TEMPORARY!!!!
-                            // i.d = std::sqrt(s.r2);
-                            // i.primitive = primitives[bestIndex].get();
+                            i.p = Vector<DIM>();
+                            for(int k = 0; k < DIM; k++){
+                                i.p(k) = (float)bestPoint[k];
+                            }
+                            i.n = Vector<DIM>(); // TEMPORARY!!!!
+                            i.d = std::sqrt(s.r2);
+                            i.primitive = primitives[bestIndex].get();
                         }
                         // LOG_IF(FATAL, updatedDistances && i.primitive == nullptr) << "Primitive is null!";
                     }
                 }
             }
         }
-        bestInteraction.getBest(bestDistance, bestPoint, bestIndex);
-        i.p = Vector<DIM>();
-        for(int k = 0; k < DIM; k++){
-            i.p(k) = bestPoint[k];
-        }
-        i.n = Vector<DIM>(); // TEMPORARY!!!!
-        i.d = std::sqrt(s.r2);
-        i.primitive = primitives[bestIndex].get();
-        // s.r2 = maxFloat;
-        // primitives[bestIndex].get()->findClosestPoint(s, i);
 
         LOG_IF(FATAL, i.primitive == nullptr) << "Primitive is null!";
         return s.r2 != maxFloat;

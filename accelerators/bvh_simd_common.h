@@ -21,7 +21,7 @@ namespace fcpw{
         SimdType minBoxes[DIM];
         SimdType maxBoxes[DIM];
         int indices[W];
-        char sortOrder[DIM];
+        char sortOrder[DIM][W];
         bool isLeaf[W];
 
         BvhSimdFlatNode(){
@@ -31,6 +31,14 @@ namespace fcpw{
                 indices[i] = -1;
                 isLeaf[i] = false;
             }
+            for(char i = 0; i < DIM; i++)
+            for(char j = 0; j < W; j++){
+                sortOrder[i][j] = j;
+            }
+        }
+
+        __forceinline char getOrdering(char dim, char x) const{
+            return sortOrder[dim][x];
         }
 
         inline void addBounds(const Vector<DIM>& pMin, const Vector<DIM>& pMax, int index){
@@ -45,7 +53,7 @@ namespace fcpw{
     struct BvhSimdFlatNode<3, W>{
         simdBox_type<W> boxes;
         int indices[W];
-        char sortOrder[3];
+        char sortOrder[3][W];
         bool isLeaf[W];
 
         BvhSimdFlatNode(){
@@ -55,6 +63,14 @@ namespace fcpw{
                 indices[i] = -1;
                 isLeaf[i] = false;
             }
+            for(int i = 0; i < 3; i++)
+            for(int j = 0; j < W; j++){
+                sortOrder[i][j] = j;
+            }
+        }
+
+        __forceinline char getOrdering(char dim, char x) const{
+            return sortOrder[dim][x];
         }
 
         inline void addBounds(const Vector<3>& pMin, const Vector<3>& pMax, int index){
@@ -181,9 +197,8 @@ namespace fcpw{
 
     template <int W>
     struct ParallelOverlapResult{
-        using SimdType = typename IntrinsicType<W>::type;
-        SimdType d2Min;
-        SimdType d2Max;
+        simdFloat<W> d2Min;
+        simdFloat<W> d2Max;
     };
 
     template <int DIM, int W>
@@ -211,6 +226,30 @@ namespace fcpw{
         }
     };
 
+    template <int W>
+    struct ParallelInteraction<3, W>{
+        simdFloat<W> distances;
+        simdFloatVec<W> points;
+        int indices[W];
+
+        void getBest(float& distance, float point[3], int& index){
+            distance = distances.vec[0];
+            index = indices[0];
+            for(int i = 0; i < 3; i++){
+                point[i] = points[i].vec[0];
+            }
+            for(int i = 1; indices[i] != -1 && i < W; i++){
+                if(distance > distances.vec[i]){
+                    distance = distances.vec[i];
+                    index = indices[i];
+                    for(int j = 0; j < 3; j++){
+                        point[j] = points[j].vec[i];
+                    }
+                }
+            }
+        }
+    };
+
     /* ---- Vectorized Functions ---- */
 
     template <int W>
@@ -225,14 +264,8 @@ namespace fcpw{
     }
 
     template <int DIM, int W>
-    void parallelOverlap(const BvhSimdFlatNode<3, W>& node, SimdBoundingSphere<3, W>& sbs, ParallelOverlapResult<W>& result){      
-        simdFloat<W> closestDists = vecZero<W>();
-        simdFloat<W> furthestDists = vecZero<W>();
-
-        simdBoxOverlap(closestDists, furthestDists, sbs.c, node.boxes);
-
-        result.d2Min = closestDists.vec;
-        result.d2Max = furthestDists.vec;
+    inline void parallelOverlap(const BvhSimdFlatNode<3, W>& node, SimdBoundingSphere<3, W>& sbs, ParallelOverlapResult<W>& result){      
+        simdBoxOverlap(result.d2Min, result.d2Max, sbs.c, node.boxes);
     }
 
     template <int W>
@@ -316,13 +349,7 @@ namespace fcpw{
 
     template <int DIM, int W>
     inline void parallelTriangleClosestPoint(const BvhSimdLeafNode<3, W>& node, SimdBoundingSphere<3, W>& s, ParallelInteraction<3, W>& pi){
-        simdFloatVec<W> resPts;
-        simdFloat<W> res = simdTriPoint2<W>(resPts, node.triangles, s.c);
-
-        pi.distances = res.vec;
-        pi.points[0] = resPts.x.vec;
-        pi.points[1] = resPts.y.vec;
-        pi.points[2] = resPts.z.vec;
+        pi.distances = simdTriPoint2<W>(pi.points, node.triangles, s.c);
     }
 
 } //namespace fcpw
