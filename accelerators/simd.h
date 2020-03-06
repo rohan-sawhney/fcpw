@@ -8,6 +8,7 @@
 
 namespace fcpw{
 
+    // translation from simd width to simd type via partial template specialization
     template<int W>
     struct UndefinedSIMDType{};
 
@@ -35,13 +36,16 @@ namespace fcpw{
         using type = __m512;
     };
 
+    // inits an sse vector
     inline void initSimd(const float inits[4], __m128& vec){
         vec = _mm_set_ps(inits[3], inits[2], inits[1], inits[0]);
     }
+    // inits an avx vector
     inline void initSimd(const float inits[8], __m256& vec){
         vec = _mm256_set_ps(inits[7], inits[6], inits[5], inits[4],
                             inits[3], inits[2], inits[1], inits[0]);
     }
+    // inits an avx512 vector
     inline void initSimd(const float inits[16], __m512& vec){
         vec = _mm512_set_ps(inits[15], inits[14], inits[13], inits[12],
                             inits[11], inits[10], inits[9], inits[8],
@@ -49,12 +53,15 @@ namespace fcpw{
                             inits[3], inits[2], inits[1], inits[0]);
     }
 
+    // inits an sse vector with a constant value
     inline void initSimd(const float init, __m128& vec){
         vec = _mm_set1_ps(init);
     }
+    // inits an avx vector with a constant value
     inline void initSimd(const float init, __m256& vec){
         vec = _mm256_set1_ps(init);
     }
+    // inits an avx512 vector with a constant value
     inline void initSimd(const float init, __m512& vec){
         vec = _mm512_set1_ps(init);
     }
@@ -276,20 +283,19 @@ namespace fcpw{
         return vecf<8>(avxOne);
     }
 
+    // typedefs to contain embree vectors
 
     template <int W>
 	using simdBool  = vecb<W>;
     template <int W>
     using simdFloat = vecf<W>;
 
-	//typedef avxf simdFloat;
-	//typedef avxb simdBool;
-	//typedef avxi simdInt;
-
     template <int W>
     using simdBoolVec   = embree::Vec3<vecb<W>>;
     template <int W>
     using simdFloatVec  = embree::Vec3<vecf<W>>;
+
+    // typedefs encoding geometric quantities (3d)
 
     template <int W>
     using simdTriangle_type = std::array<simdFloatVec<W>, 3>;
@@ -300,16 +306,19 @@ namespace fcpw{
     template <int W>
     using simdBox_type      = std::array<simdFloatVec<W>, 2>;
 
+    // returns squared length of vector
     template <int W>
     inline simdFloat<W> length2(const embree::Vec3<simdFloat<W>>& a){
         return vecf<W>(embree::dot(a, a));
     }
 
+    // returns zero vector
     template <int W>
     inline const simdFloatVec<W> zeroVector(){
         return embree::Vec3<simdFloat<W>>(vecZero<W>(), vecZero<W>(), vecZero<W>());
     }
 
+    // given some simd boolean vector and two simd float 3d vectors, merges float vectors into one depending on bool vector
     template <int W>
     __forceinline const simdFloatVec<W> select(const simdBool<W>& s, const simdFloatVec<W>& t, const simdFloatVec<W>& f) {
 		return simdFloatVec<W>(select(s, t.x, f.x), select(s, t.y, f.y), select(s, t.z, f.z));

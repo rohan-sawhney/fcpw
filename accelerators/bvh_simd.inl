@@ -19,9 +19,11 @@ namespace fcpw{
         nNodes(0), nLeaves(0), primitives(primitives_), bbox(nodes_[0].bbox),
         depth(0), nReferences(0), averageLeafSize(0), nPrimitives(primitives_.size()){
         
-        LOG(INFO) << "Size of leaf node: " << sizeof(BvhSimdLeafNode<DIM, W>);
+        // just here for me to check on node size for caching reasons (this machine has cache length of 64, too small for optimal flatnode)
+        LOG(INFO) << "Size of interior node: " << sizeof(BvhSimdFlatNode<DIM, W>);
         LOG(INFO) << "Size of leaf node: " << sizeof(BvhSimdLeafNode<DIM, W>);
 
+        // build and time build of mbvh
         std::chrono::high_resolution_clock::time_point t_start, t_end;
         std::chrono::nanoseconds duration;
         double buildTime = 0;
@@ -32,6 +34,7 @@ namespace fcpw{
         duration = t_end - t_start;
         buildTime = (double)(duration.count()) / std::chrono::nanoseconds::period::den;
 
+        // output mbvh data
         averageLeafSize /= nLeaves;
 
         std::string simdMethod;
@@ -60,14 +63,17 @@ namespace fcpw{
 
     template <int DIM, int W>
     inline void BvhSimd<DIM, W>::build(const std::vector<BvhFlatNode<DIM>>& nodes, const std::vector<ReferenceWrapper<DIM>>& references){
+        // useful containers
         std::stack<BvhSimdBuildNode> todo;
         std::stack<BvhTraversal> nodeWorkingSet;
         std::vector<BvhSimdFlatNode<DIM, W>> buildNodes;
         std::vector<BvhSimdLeafNode<DIM, W>> buildLeaves;
 
+        // computes furthest depth from any given node to traverse depending on vector width
         int maxDepth = W == 4 ? 2 : (W == 8 ? 3 : (W == 16 ? 4 : 0));
         LOG_IF(FATAL, maxDepth == 0) << "BvhSimd::build(): Provided width for SIMD is invalid";
 
+        // push root node
         todo.emplace(BvhSimdBuildNode(0, -1, 0));
 
         // NEED TO INTEGRATE TRAVERSAL ORDER SOMEHOW INTO THIS
@@ -85,10 +91,11 @@ namespace fcpw{
             int toBuildDepth = toBuild.depth;
             const BvhFlatNode<DIM>& curNode = nodes[nodeIndex];
 
-            // construct a new tree node
+            // construct a new flattened tree node
             if(parentIndex == -1 || curNode.rightOffset != 0){
                 buildNodes.emplace_back(BvhSimdFlatNode<DIM, W>());
                 BvhSimdFlatNode<DIM, W>& node = buildNodes.back();
+                node.centroid = curNode.bbox.centroid();
                 nNodes ++;
             }
             int simdTreeIndex = buildNodes.size() - 1;
@@ -112,12 +119,14 @@ namespace fcpw{
                     // if node is leaf, construct the parallel leaf, link and move on
 
                     averageLeafSize += (float)curNode.nPrimitives;
-
+                    
+                    // fill triangle vertex info and feed into new parallel leaf node
                     float tripoints[3][DIM][W];
                     nLeaves ++;
                     buildLeaves.emplace_back(BvhSimdLeafNode<DIM, W>());
                     BvhSimdLeafNode<DIM, W>& leafNode = buildLeaves.back();
                     for(int i = 0; i < W; i++){
+                        // if in node with less than vector width amount of primitives, fill rest of vectors with null info
                         if(i >= curNode.nPrimitives){
                             leafNode.indices[i] = -1;
                             for(int j = 0; j < DIM; j++){
@@ -127,16 +136,14 @@ namespace fcpw{
                             }
                             continue;
                         }
+
                         leafNode.indices[i] = references[curNode.start + i].index;
                         const std::shared_ptr<Primitive<DIM>>& primitive = primitives[leafNode.indices[i]];
+                        // 3d: fill triangle data
                         if(DIM == 3){
                             std::vector<Vector3f> vertices;
                             std::shared_ptr<Triangle> triangle = std::dynamic_pointer_cast<Triangle>(primitive);
                             triangle->getVertices(vertices);
-
-                            // const Vector3f& pa = vertices[0];
-                            // const Vector3f& pb = vertices[1];
-                            // const Vector3f& pc = vertices[2];
 
                             for(int j = 0; j < DIM; j++){
                                 tripoints[0][j][i] = vertices[0](j);
@@ -149,21 +156,22 @@ namespace fcpw{
                         }
                     }
 
+                    // fill triangle vertices data to leaf node
                     leafNode.initPoints(tripoints);
 
+                    // link leaf node to parent node
                     parentNode.indices[tempCounter] = buildLeaves.size() - 1;
                     parentNode.isLeaf[tempCounter] = true;
                     continue;
                 }
                 else{
-                    // link node to build node
+                    // link interior node to parent node
                     parentNode.indices[tempCounter] = simdTreeIndex;
                     parentNode.isLeaf[tempCounter] = false;
                 }
-
             }
 
-            // push grandchildren of node on top of processing stack (leftmost grandchild goes to top of stack)
+            // push grandchildren [or whatever depth depending on vector width] of node on top of processing stack (leftmost grandchild goes to top of stack)
             nodeWorkingSet.emplace(BvhTraversal(nodeIndex, 0, 0));
             while(!nodeWorkingSet.empty()){
                 // pop off node for processing
@@ -187,6 +195,7 @@ namespace fcpw{
             }
         }
 
+        // place tree and leaf nodes onto heap
         flatTree.clear();
         flatTree.reserve(nNodes);
         for(int n = 0; n < buildNodes.size(); n++){
@@ -241,10 +250,11 @@ namespace fcpw{
             PROFILE_SCOPED();
         #endif
 
+        // useful variables
         std::queue<BvhTraversal> todo;
         SimdBoundingSphere<DIM, W> sbs(s);
         ParallelOverlapResult<W> overlap;
-        ParallelInteraction<DIM, W> pi;//, bestInteraction;
+        ParallelInteraction<DIM, W> pi;
 
         float bestDistance;
         float bestPoint[DIM];
@@ -253,17 +263,22 @@ namespace fcpw{
         float dMax, dMin;
         float prevRad = s.r2;
 
+        // enqueue root node
         todo.emplace(BvhTraversal(0, minFloat));
+
+        // work through tree
         while(!todo.empty()){
 
             // pop off the next node to work on
             BvhTraversal traversal = todo.front();
             todo.pop();
 
+            // parse info about next node to work on
             int ni = traversal.i;
             float near = traversal.d;
             const BvhSimdFlatNode<DIM, W>& node = flatTree[ni];
 
+            // skip node if it is outside query radius
             if(near > s.r2){
                 continue;
             }
@@ -271,23 +286,23 @@ namespace fcpw{
             // do overlap test
             parallelOverlap<DIM, W>(node, sbs, overlap);
 
-            // ordering: is there a faster way to access it? access adds time!
-            // only way it'll be useful is if I can get more benefit from sorting
-            // which may be difficult as even indexing adds "significant" time usage
-
             // process overlapped nodes NOTE: ADD IN ORDERING ONCE THAT IS AVAILABLE
             for(int j = 0; node.indices[j] != -1 && j < W; j++){
+                // would be for better ordering
                 int index = j;
                 dMax = overlap.d2Max.vec[index];
                 dMin = overlap.d2Min.vec[index];
-                // aggressively shorten if box is fully contained in query
-                if(s.r2 > dMax){//resVec[1][index])
-                    s.r2 = dMax;//(float)resVec[1][index];
+
+                // shorten if box is fully contained in query
+                if(s.r2 > dMax){
+                    s.r2 = dMax;
                 }
+
                 // only process if box is in bounds of query
-                if(s.r2 > dMin){//resVec[0][index]){
+                if(s.r2 > dMin){
                     if(!node.isLeaf[index]){
-                        todo.emplace(BvhTraversal(node.indices[index], dMin));//resVec[0][index]));
+                        // if interior node, enqueue traversal to this node
+                        todo.emplace(BvhTraversal(node.indices[index], dMin));
                     }
                     else{
                         // if mbvh leaf, process triangles in parallel
@@ -295,10 +310,14 @@ namespace fcpw{
                         for(int k = 0; k < W; k++){
                             pi.indices[k] = leafNode.indices[k];
                         }
+
+                        // get closest point to all 4 children in parallel
                         parallelTriangleClosestPoint<DIM, W>(leafNode, sbs, pi);
 
+                        // get info of closest point from parallel interaction
                         pi.getBest(bestDistance, bestPoint, bestIndex);
 
+                        // if found best closest point beats out previous, update interaction
                         if(bestIndex != -1 && bestDistance < s.r2){
                             s.r2 = bestDistance;
                             i.p = Vector<DIM>();
@@ -309,13 +328,12 @@ namespace fcpw{
                             i.d = std::sqrt(s.r2);
                             i.primitive = primitives[bestIndex].get();
                         }
-                        // LOG_IF(FATAL, updatedDistances && i.primitive == nullptr) << "Primitive is null!";
                     }
                 }
             }
         }
 
-        LOG_IF(FATAL, i.primitive == nullptr) << "Primitive is null!";
+        // return if we got a closest point
         return s.r2 != maxFloat;
     }
 }// namespace fcpw

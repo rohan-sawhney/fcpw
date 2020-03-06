@@ -88,6 +88,9 @@ public:
 
 	// checks for overlap with sphere
 	bool overlaps(const BoundingSphere<DIM>& s, float& d2Min, float& d2Max) const {
+		#ifdef PROFILE
+			PROFILE_SCOPED();
+		#endif
 		computeSquaredDistance(s.c, d2Min, d2Max);
 		return d2Min <= s.r2;
 	}
@@ -104,6 +107,9 @@ public:
 
 	// checks for ray intersection
 	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
+		#ifdef PROFILE
+			PROFILE_SCOPED();
+		#endif
 		float t0 = 0.0f;
 		float t1 = r.tMax;
 		const Vector<DIM>& o = r.o;

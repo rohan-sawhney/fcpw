@@ -21,9 +21,11 @@ namespace fcpw{
         SimdType minBoxes[DIM];
         SimdType maxBoxes[DIM];
         int indices[W];
+        Vector<DIM> centroid;
         char sortOrder[DIM][W];
         bool isLeaf[W];
 
+        // constructor
         BvhSimdFlatNode(){
             minBoxes = vecZero<W>().vec;
             maxBoxes = vecZero<W>().vec;
@@ -37,25 +39,51 @@ namespace fcpw{
             }
         }
 
+        // gets ordering based on dimension and iterator position
         __forceinline char getOrdering(char dim, char x) const{
             return sortOrder[dim][x];
         }
 
+        // adds a bounding box to this node at index in node
         inline void addBounds(const Vector<DIM>& pMin, const Vector<DIM>& pMax, int index){
             for(int i = 0; i < DIM; i++){
                 minBoxes[i][index] = pMin(i);
                 maxBoxes[i][index] = pMax(i);
             }
         }
+
+        // sets presorted order based on all 3 axes
+        inline void setSortOrder(){
+            float midpoints[W];
+            for(int i = 0; i < DIM; i++){
+                for(int j = 0; indices[j] != -1 && j < W; j++){
+                    midpoints[j] = (minBoxes[i][j] + maxBoxes[i][j]) * .5;
+                }
+                bool isSorted = false;
+                while(!isSorted){
+                    isSorted = true;
+                    for(int j = 0; indices[j] != -1 && j < W - 1; j++){
+                        if(midpoints[j] > midpoints[j + 1]){
+                            isSorted = false;
+                            std::swap(midpoints[j], midpoints[j + 1]);
+                            std::swap(sortOrder[i][j], sortOrder[i][j + 1]);
+                        }
+                    }
+                }
+            }
+        }
     };
 
+    // template partial specialization to use Embree vectors (over just structure of arrays)
     template <int W>
     struct BvhSimdFlatNode<3, W>{
         simdBox_type<W> boxes;
         int indices[W];
+        Vector<3> centroid;
         char sortOrder[3][W];
         bool isLeaf[W];
 
+        // constructor
         BvhSimdFlatNode(){
             boxes[0] = embree::Vec3<simdFloat<W>>(vecZero<W>(), vecZero<W>(), vecZero<W>());
             boxes[1] = embree::Vec3<simdFloat<W>>(vecZero<W>(), vecZero<W>(), vecZero<W>());
@@ -63,10 +91,14 @@ namespace fcpw{
                 indices[i] = -1;
                 isLeaf[i] = false;
             }
-            for(int i = 0; i < 3; i++)
-            for(int j = 0; j < W; j++){
+            for(char i = 0; i < 3; i++)
+            for(char j = 0; j < W; j++){
                 sortOrder[i][j] = j;
             }
+            // junk code, ordering based on bitvectors (maybe revisit?)
+            // for(int i = 0; i < 3; i++){
+            //     sortOrder[i] = 27;
+            // }
         }
 
         __forceinline char getOrdering(char dim, char x) const{
@@ -79,9 +111,29 @@ namespace fcpw{
                 boxes[1][i].vec[index] = pMax(i);
             }
         }
+
+        inline void setSortOrder(){
+            float midpoints[W];
+            for(int i = 0; i < 3; i++){
+                for(int j = 0; indices[j] != -1 && j < W; j++){
+                    midpoints[j] = (boxes[0][i][j] + boxes[1][i][j]) * .5;
+                }
+                bool isSorted = false;
+                while(!isSorted){
+                    isSorted = true;
+                    for(int j = 0; indices[j] != -1 && j < W - 1; j++){
+                        if(midpoints[j] > midpoints[j + 1]){
+                            isSorted = false;
+                            std::swap(midpoints[j], midpoints[j + 1]);
+                            std::swap(sortOrder[i][j], sortOrder[i][j + 1]);
+                        }
+                    }
+                }
+            }
+        }
     };
 
-    // triangles only
+    // triangles only bvh simd leaf node
     template <int DIM, int W>
     struct BvhSimdLeafNode{
         using SimdType = typename IntrinsicType<W>::type;
@@ -93,6 +145,7 @@ namespace fcpw{
         SimdType pc[DIM];
         int indices[W]; // will later wrap in triangle data
 
+        // initializes triangle points
         inline void initPoints(float pointCoords[3][DIM][W]){
             for(int i = 0; i < DIM; i++){
                 initSimd(pointCoords[0][i], pa[i]);
@@ -102,12 +155,14 @@ namespace fcpw{
         }
     };
 
+    // template partial specialization for embree vectors
     template <int W>
     struct BvhSimdLeafNode<3, W>{
         using SimdType = typename IntrinsicType<W>::type;
         simdTriangle_type<W> triangles;
         int indices[W];
 
+        // initializes triangle points
         inline void initPoints(float pointCoords[3][3][W]){
             for(int i = 0; i < 3; i++){
                 SimdType px, py, pz;
@@ -119,6 +174,7 @@ namespace fcpw{
         }
     };
 
+    // parallel bounding sphere
     template <int DIM, int W>
     struct SimdBoundingSphere{
         using SimdType = typename IntrinsicType<W>::type;
@@ -153,6 +209,7 @@ namespace fcpw{
         SimdType r2;
     };
 
+    // embree parallel bounding sphere
     template <int W>
     struct SimdBoundingSphere<3, W>{
         using SimdType = typename IntrinsicType<W>::type;
@@ -195,12 +252,14 @@ namespace fcpw{
         simdFloat<W> r2;
     };
 
+    // parallel overlap results with bounding boxes
     template <int W>
     struct ParallelOverlapResult{
         simdFloat<W> d2Min;
         simdFloat<W> d2Max;
     };
 
+    // parallel triangle closest point results
     template <int DIM, int W>
     struct ParallelInteraction{
         using SimdType = typename IntrinsicType<W>::type;
@@ -209,23 +268,22 @@ namespace fcpw{
         int indices[W];
 
         void getBest(float& distance, float point[DIM], int& index){
+            int loc = 0;
             distance = distances[0];
-            index = indices[0];
-            for(int i = 0; i < DIM; i++){
-                point[i] = points[i][0];
-            }
             for(int i = 1; indices[i] != -1 && i < W; i++){
                 if(distance > distances[i]){
                     distance = distances[i];
-                    index = indices[i];
-                    for(int j = 0; j < DIM; j++){
-                        point[j] = points[j][i];
-                    }
+                    loc = i;
                 }
+            }
+            index = indices[loc];
+            for(int j = 0; j < DIM; j++){
+                point[j] = points[j][loc];
             }
         }
     };
 
+    // parallel triangle closest point results using embree vectors
     template <int W>
     struct ParallelInteraction<3, W>{
         simdFloat<W> distances;
@@ -233,6 +291,9 @@ namespace fcpw{
         int indices[W];
 
         void getBest(float& distance, float point[3], int& index){
+            #ifdef PROFILE
+                PROFILE_SCOPED();
+            #endif
             distance = distances.vec[0];
             index = indices[0];
             for(int i = 0; i < 3; i++){
@@ -252,24 +313,35 @@ namespace fcpw{
 
     /* ---- Vectorized Functions ---- */
 
+    // embree bounding sphere - AABB closest and furthest point computations
     template <int W>
-    inline void simdBoxOverlap(simdFloat<W>& closestDistances, simdFloat<W>& furthestDistances, const simdPoint_type<W>& iPoint, const simdBox_type<W>& iBoxes){
+    void simdBoxOverlap(simdFloat<W>& closestDistances, simdFloat<W>& furthestDistances, const simdPoint_type<W>& iPoint, const simdBox_type<W>& iBoxes){
+        #ifdef PROFILE
+            PROFILE_SCOPED();
+        #endif
         closestDistances = length2(max(max(iBoxes[0] - iPoint, iPoint - iBoxes[1]), zeroVector<W>()));
         furthestDistances = length2(max(iPoint - iBoxes[0], iBoxes[1] - iPoint));
     }
 
+    // wrapper for bounding sphere - AABB closest point function
     template <int DIM, int W>
-    inline void parallelOverlap(const BvhSimdFlatNode<DIM, W>& node, SimdBoundingSphere<DIM, W>& sbs, ParallelOverlapResult<W>& result){        
+    void parallelOverlap(const BvhSimdFlatNode<DIM, W>& node, SimdBoundingSphere<DIM, W>& sbs, ParallelOverlapResult<W>& result){        
         LOG(FATAL) << "Not yet implemented for dimension " << DIM;
     }
 
+    // function overloading for embree vectors
     template <int DIM, int W>
-    inline void parallelOverlap(const BvhSimdFlatNode<3, W>& node, SimdBoundingSphere<3, W>& sbs, ParallelOverlapResult<W>& result){      
+    void parallelOverlap(const BvhSimdFlatNode<3, W>& node, SimdBoundingSphere<3, W>& sbs, ParallelOverlapResult<W>& result){      
         simdBoxOverlap(result.d2Min, result.d2Max, sbs.c, node.boxes);
     }
 
+    // embree point - triangle closest point computation
+    // NOTE: will need to somehow get the important info to get triangle normals here
     template <int W>
-    inline simdFloat<W> simdTriPoint2(simdFloatVec<W>& oTriPoint, const simdTriangle_type<W>& iTri, const simdPoint_type<W>& iPoint){
+    simdFloat<W> simdTriPoint2(simdFloatVec<W>& oTriPoint, const simdTriangle_type<W>& iTri, const simdPoint_type<W>& iPoint){
+        #ifdef PROFILE
+            PROFILE_SCOPED();
+        #endif
 		// Check if P in vertex region outside A
 		const simdFloatVec<W> ab = iTri[1] - iTri[0];
 		const simdFloatVec<W> ac = iTri[2] - iTri[0];
@@ -342,13 +414,15 @@ namespace fcpw{
 		return length2(oTriPoint - iPoint);  // = u*a + v*b + w*c, u = va * denom = 1.0f - v - w
 	}
 
+    // wrapper for parallel triangle closest point
     template <int DIM, int W>
-    inline void parallelTriangleClosestPoint(const BvhSimdLeafNode<DIM, W>& node, SimdBoundingSphere<DIM, W>& s, ParallelInteraction<DIM, W>& pi){
+    void parallelTriangleClosestPoint(const BvhSimdLeafNode<DIM, W>& node, SimdBoundingSphere<DIM, W>& s, ParallelInteraction<DIM, W>& pi){
         LOG(FATAL) << "Triangle closest point not available for dimension " << DIM << " and width " << W;
     }
 
+    // embree triangle closest point
     template <int DIM, int W>
-    inline void parallelTriangleClosestPoint(const BvhSimdLeafNode<3, W>& node, SimdBoundingSphere<3, W>& s, ParallelInteraction<3, W>& pi){
+    void parallelTriangleClosestPoint(const BvhSimdLeafNode<3, W>& node, SimdBoundingSphere<3, W>& s, ParallelInteraction<3, W>& pi){
         pi.distances = simdTriPoint2<W>(pi.points, node.triangles, s.c);
     }
 

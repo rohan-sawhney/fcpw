@@ -325,6 +325,7 @@ void run()
 	bool doSIMDTests = true;
 	const int bvhHeuristicStart = 4;
 	const int bvhHeuristicEnd = 5;
+	bool doSingleTiming = false;
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
@@ -341,8 +342,10 @@ void run()
 						scene.setSplitMethod(j);
 						scene.setSimdType(0);
 						scene.buildAggregate(aggregateType);
-						timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, bvhNames[j]);
-						timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhNames[j]);
+						if(doSingleTiming){
+							timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, bvhNames[j]);
+							timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhNames[j]);
+						}
 						std::cout << std::endl;
 						if(doSIMDTests){
 							scene.setSimdType(1);
@@ -360,12 +363,12 @@ void run()
 			}
 		}
 
-#ifdef BENCHMARK_EMBREE
-		// build embree bvh aggregate & benchmark queries
-		scene.buildEmbreeAggregate();
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
-#endif
+// #ifdef BENCHMARK_EMBREE
+// 		// build embree bvh aggregate & benchmark queries
+// 		scene.buildEmbreeAggregate();
+// 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
+// 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
+// #endif
 	}
 
 	if (checkCorrectness) {
