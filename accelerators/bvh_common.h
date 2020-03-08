@@ -31,16 +31,35 @@ namespace fcpw{
     };
 
     // wrapper for class encoding traversal in a BVH
-    struct BvhTraversal {
+    struct BvhTraversalDepth {
         // constructor
-        BvhTraversal(int i_, float d_): i(i_), d(d_) {
-            depth = 0;
+        BvhTraversalDepth(int i_): i(i_), depth(0) {
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         }
 
-        BvhTraversal(int i_, float d_, int depth_): i(i_), d(d_), depth(depth_) {}
+        BvhTraversalDepth(int i_, int depth_): i(i_), depth(depth_) {
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
+        }
 
         // members
         int i, depth; // node index
+    };
+
+        // wrapper for class encoding traversal in a BVH
+    struct BvhTraversal {
+        // constructor
+        BvhTraversal(int i_, float d_): i(i_), d(d_) {
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
+        }
+
+        // members
+        int i; // node index
         float d; // minimum distance (parametric, squared, ...) to this node
     };
 

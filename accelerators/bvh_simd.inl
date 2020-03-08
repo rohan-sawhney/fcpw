@@ -65,7 +65,7 @@ namespace fcpw{
     inline void BvhSimd<DIM, W>::build(const std::vector<BvhFlatNode<DIM>>& nodes, const std::vector<ReferenceWrapper<DIM>>& references){
         // useful containers
         std::stack<BvhSimdBuildNode> todo;
-        std::stack<BvhTraversal> nodeWorkingSet;
+        std::stack<BvhTraversalDepth> nodeWorkingSet;
         std::vector<BvhSimdFlatNode<DIM, W>> buildNodes;
         std::vector<BvhSimdLeafNode<DIM, W>> buildLeaves;
 
@@ -172,10 +172,10 @@ namespace fcpw{
             }
 
             // push grandchildren [or whatever depth depending on vector width] of node on top of processing stack (leftmost grandchild goes to top of stack)
-            nodeWorkingSet.emplace(BvhTraversal(nodeIndex, 0, 0));
+            nodeWorkingSet.emplace(BvhTraversalDepth(nodeIndex, 0));
             while(!nodeWorkingSet.empty()){
                 // pop off node for processing
-                BvhTraversal traversal = nodeWorkingSet.top();
+                BvhTraversalDepth traversal = nodeWorkingSet.top();
                 nodeWorkingSet.pop();
 
                 // parse node
@@ -185,8 +185,8 @@ namespace fcpw{
                 // process node
                 if(d < maxDepth && nodes[ni].rightOffset != 0){
                     // node is not leaf and not grandchild, continue down tree
-                    nodeWorkingSet.emplace(BvhTraversal(ni + 1, 0, d + 1));
-                    nodeWorkingSet.emplace(BvhTraversal(ni + nodes[ni].rightOffset, 0, d + 1));
+                    nodeWorkingSet.emplace(BvhTraversalDepth(ni + 1, d + 1));
+                    nodeWorkingSet.emplace(BvhTraversalDepth(ni + nodes[ni].rightOffset, d + 1));
                 }
                 else{
                     // node is grandchild or leaf node (but not grandchild), push onto todo set
@@ -245,6 +245,77 @@ namespace fcpw{
 /* ---- CPQ ---- */
 
     template <int DIM, int W>
+    inline void processInteriorNode(std::queue<BvhTraversal>& queue, const BvhSimdFlatNode<DIM, W>& node, int& index, float& dMin){
+        #ifdef PROFILE
+            PROFILE_SCOPED();
+        #endif
+        queue.emplace(BvhTraversal(node.indices[index], dMin));
+    }
+
+    template <int DIM, int W>
+    inline void processLeafNode(const BvhSimdFlatNode<DIM, W>& node, const std::vector<BvhSimdLeafNode<DIM, W>>& leaves, ParallelInteraction<DIM, W>& pi, SimdBoundingSphere<DIM, W>& sbs, BoundingSphere<DIM>& s, Interaction<DIM>& i, const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, const int& index){
+        #ifdef PROFILE
+            PROFILE_SCOPED();
+        #endif
+
+        float bestDistance;
+        float bestPoint[DIM];
+        int bestIndex;
+
+        // if mbvh leaf, process triangles in parallel
+        const BvhSimdLeafNode<DIM, W>& leafNode = leaves[node.indices[index]];
+        for(int k = 0; k < W; k++){
+            pi.indices[k] = leafNode.indices[k];
+        }
+
+        // get closest point to all 4 children in parallel
+        parallelTriangleClosestPoint<DIM, W>(leafNode, sbs, pi);
+
+        // get info of closest point from parallel interaction
+        pi.getBest(bestDistance, bestPoint, bestIndex);
+
+        // if found best closest point beats out previous, update interaction
+        if(bestIndex != -1 && bestDistance < s.r2){
+            s.r2 = bestDistance;
+            i.p = Vector<DIM>();
+            for(int k = 0; k < DIM; k++){
+                i.p(k) = (float)bestPoint[k];
+            }
+            i.n = Vector<DIM>(); // TEMPORARY!!!!
+            i.d = std::sqrt(s.r2);
+            i.primitive = primitives[bestIndex].get();
+        }
+    }
+
+    inline void parseFlatNode(std::queue<BvhTraversal>& todo, int& ni, float& near){
+        #ifdef PROFILE
+            PROFILE_SCOPED();
+        #endif
+        // pop off the next node to work on
+        BvhTraversal traversal = todo.front();
+        todo.pop();
+
+        // parse info about next node to work on
+        ni = traversal.i;
+        near = traversal.d;
+    }
+
+    template <int DIM, int W>
+    inline void parseOverlap(const ParallelOverlapResult<W>& overlap, const int& index, float& dMax, float& dMin, BoundingSphere<DIM>& s){
+        #ifdef PROFILE
+            PROFILE_SCOPED();
+        #endif
+        // would be for better ordering
+        dMax = overlap.d2Max.vec[index];
+        dMin = overlap.d2Min.vec[index];
+
+        // shorten if box is fully contained in query
+        if(s.r2 > dMax){
+            s.r2 = dMax;
+        }
+    }
+
+    template <int DIM, int W>
     inline bool BvhSimd<DIM, W>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const{
         #ifdef PROFILE
             PROFILE_SCOPED();
@@ -256,9 +327,6 @@ namespace fcpw{
         ParallelOverlapResult<W> overlap;
         ParallelInteraction<DIM, W> pi;
 
-        float bestDistance;
-        float bestPoint[DIM];
-        int bestIndex;
         int overallBest;
         float dMax, dMin;
         float prevRad = s.r2;
@@ -268,14 +336,18 @@ namespace fcpw{
 
         // work through tree
         while(!todo.empty()){
+            int ni;
+            float near;
 
-            // pop off the next node to work on
-            BvhTraversal traversal = todo.front();
-            todo.pop();
+            parseFlatNode(todo, ni, near);
 
-            // parse info about next node to work on
-            int ni = traversal.i;
-            float near = traversal.d;
+            // // pop off the next node to work on
+            // BvhTraversal traversal = todo.front();
+            // todo.pop();
+
+            // // parse info about next node to work on
+            // int ni = traversal.i;
+            // float near = traversal.d;
             const BvhSimdFlatNode<DIM, W>& node = flatTree[ni];
 
             // skip node if it is outside query radius
@@ -288,46 +360,48 @@ namespace fcpw{
 
             // process overlapped nodes NOTE: ADD IN ORDERING ONCE THAT IS AVAILABLE
             for(int j = 0; node.indices[j] != -1 && j < W; j++){
-                // would be for better ordering
-                int index = j;
-                dMax = overlap.d2Max.vec[index];
-                dMin = overlap.d2Min.vec[index];
+                // // would be for better ordering
+                // dMax = overlap.d2Max.vec[j];
+                // dMin = overlap.d2Min.vec[j];
 
-                // shorten if box is fully contained in query
-                if(s.r2 > dMax){
-                    s.r2 = dMax;
-                }
+                // // shorten if box is fully contained in query
+                // if(s.r2 > dMax){
+                //     s.r2 = dMax;
+                // }
+                parseOverlap(overlap, j, dMax, dMin, s);
 
                 // only process if box is in bounds of query
                 if(s.r2 > dMin){
-                    if(!node.isLeaf[index]){
+                    if(!node.isLeaf[j]){
                         // if interior node, enqueue traversal to this node
-                        todo.emplace(BvhTraversal(node.indices[index], dMin));
+                        // todo.emplace(BvhTraversal(node.indices[j], dMin));
+                        processInteriorNode(todo, node, j, dMin);
                     }
                     else{
-                        // if mbvh leaf, process triangles in parallel
-                        const BvhSimdLeafNode<DIM, W>& leafNode = leaves[node.indices[index]];
-                        for(int k = 0; k < W; k++){
-                            pi.indices[k] = leafNode.indices[k];
-                        }
+                        processLeafNode(node, leaves, pi, sbs, s, i, primitives, j);
+                        // // if mbvh leaf, process triangles in parallel
+                        // const BvhSimdLeafNode<DIM, W>& leafNode = leaves[node.indices[j]];
+                        // for(int k = 0; k < W; k++){
+                        //     pi.indices[k] = leafNode.indices[k];
+                        // }
 
-                        // get closest point to all 4 children in parallel
-                        parallelTriangleClosestPoint<DIM, W>(leafNode, sbs, pi);
+                        // // get closest point to all 4 children in parallel
+                        // parallelTriangleClosestPoint<DIM, W>(leafNode, sbs, pi);
 
-                        // get info of closest point from parallel interaction
-                        pi.getBest(bestDistance, bestPoint, bestIndex);
+                        // // get info of closest point from parallel interaction
+                        // pi.getBest(bestDistance, bestPoint, bestIndex);
 
-                        // if found best closest point beats out previous, update interaction
-                        if(bestIndex != -1 && bestDistance < s.r2){
-                            s.r2 = bestDistance;
-                            i.p = Vector<DIM>();
-                            for(int k = 0; k < DIM; k++){
-                                i.p(k) = (float)bestPoint[k];
-                            }
-                            i.n = Vector<DIM>(); // TEMPORARY!!!!
-                            i.d = std::sqrt(s.r2);
-                            i.primitive = primitives[bestIndex].get();
-                        }
+                        // // if found best closest point beats out previous, update interaction
+                        // if(bestIndex != -1 && bestDistance < s.r2){
+                        //     s.r2 = bestDistance;
+                        //     i.p = Vector<DIM>();
+                        //     for(int k = 0; k < DIM; k++){
+                        //         i.p(k) = (float)bestPoint[k];
+                        //     }
+                        //     i.n = Vector<DIM>(); // TEMPORARY!!!!
+                        //     i.d = std::sqrt(s.r2);
+                        //     i.primitive = primitives[bestIndex].get();
+                        // }
                     }
                 }
             }

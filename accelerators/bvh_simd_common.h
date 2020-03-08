@@ -291,9 +291,9 @@ namespace fcpw{
         int indices[W];
 
         void getBest(float& distance, float point[3], int& index){
-            #ifdef PROFILE
-                PROFILE_SCOPED();
-            #endif
+            // #ifdef PROFILE
+            //     PROFILE_SCOPED();
+            // #endif
             distance = distances.vec[0];
             index = indices[0];
             for(int i = 0; i < 3; i++){
@@ -316,9 +316,9 @@ namespace fcpw{
     // embree bounding sphere - AABB closest and furthest point computations
     template <int W>
     void simdBoxOverlap(simdFloat<W>& closestDistances, simdFloat<W>& furthestDistances, const simdPoint_type<W>& iPoint, const simdBox_type<W>& iBoxes){
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         closestDistances = length2(max(max(iBoxes[0] - iPoint, iPoint - iBoxes[1]), zeroVector<W>()));
         furthestDistances = length2(max(iPoint - iBoxes[0], iBoxes[1] - iPoint));
     }
@@ -326,12 +326,18 @@ namespace fcpw{
     // wrapper for bounding sphere - AABB closest point function
     template <int DIM, int W>
     void parallelOverlap(const BvhSimdFlatNode<DIM, W>& node, SimdBoundingSphere<DIM, W>& sbs, ParallelOverlapResult<W>& result){        
+        #ifdef PROFILE
+            PROFILE_SCOPED();
+        #endif
         LOG(FATAL) << "Not yet implemented for dimension " << DIM;
     }
 
     // function overloading for embree vectors
     template <int DIM, int W>
     void parallelOverlap(const BvhSimdFlatNode<3, W>& node, SimdBoundingSphere<3, W>& sbs, ParallelOverlapResult<W>& result){      
+        #ifdef PROFILE
+            PROFILE_SCOPED();
+        #endif
         simdBoxOverlap(result.d2Min, result.d2Max, sbs.c, node.boxes);
     }
 
@@ -339,9 +345,9 @@ namespace fcpw{
     // NOTE: will need to somehow get the important info to get triangle normals here
     template <int W>
     simdFloat<W> simdTriPoint2(simdFloatVec<W>& oTriPoint, const simdTriangle_type<W>& iTri, const simdPoint_type<W>& iPoint){
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
 		// Check if P in vertex region outside A
 		const simdFloatVec<W> ab = iTri[1] - iTri[0];
 		const simdFloatVec<W> ac = iTri[2] - iTri[0];
@@ -417,12 +423,18 @@ namespace fcpw{
     // wrapper for parallel triangle closest point
     template <int DIM, int W>
     void parallelTriangleClosestPoint(const BvhSimdLeafNode<DIM, W>& node, SimdBoundingSphere<DIM, W>& s, ParallelInteraction<DIM, W>& pi){
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         LOG(FATAL) << "Triangle closest point not available for dimension " << DIM << " and width " << W;
     }
 
     // embree triangle closest point
     template <int DIM, int W>
     void parallelTriangleClosestPoint(const BvhSimdLeafNode<3, W>& node, SimdBoundingSphere<3, W>& s, ParallelInteraction<3, W>& pi){
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         pi.distances = simdTriPoint2<W>(pi.points, node.triangles, s.c);
     }
 
