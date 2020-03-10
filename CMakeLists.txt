@@ -11,7 +11,17 @@ option(ENABLE_SSE "Enables SSE4.2 instructions" ON)
 option(ENABLE_AVX "Enables AVX2 instructions" OFF)
 option(ENABLE_AVX512 "Enables AVX512 instructions" OFF)
 if(ENABLE_AVX OR ENABLE_AVX512)
-	option(OPTIMIZE_FOR_NATIVE "Build with -march=native" OFF)
+	option(OPTIMIZE_FOR_NATIVE "Build with -march=native" ON)
+endif()
+
+if(ENABLE_SSE)
+	add_definitions(-DENABLE_SSE)
+endif()
+if(ENABLE_AVX)
+	add_definitions(-DENABLE_AVX)
+endif()
+if(ENABLE_AVX512)
+	add_definitions(-DENABLE_AVX512)
 endif()
 
 ################################################################################

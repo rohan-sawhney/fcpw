@@ -348,7 +348,7 @@ void run()
 						}
 						std::cout << std::endl;
 						if(doSIMDTests){
-							scene.setSimdType(2);
+							scene.setSimdType(1);
 							scene.buildAggregate(aggregateType);
 							timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhNames[j] + " with SSE");
 							std::cout << std::endl;
@@ -363,12 +363,12 @@ void run()
 			}
 		}
 
-// #ifdef BENCHMARK_EMBREE
-// 		// build embree bvh aggregate & benchmark queries
-// 		scene.buildEmbreeAggregate();
-// 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
-// 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
-// #endif
+#ifdef BENCHMARK_EMBREE
+		// build embree bvh aggregate & benchmark queries
+		scene.buildEmbreeAggregate();
+		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
+		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
+#endif
 	}
 
 	if (checkCorrectness) {
