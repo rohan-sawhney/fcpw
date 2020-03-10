@@ -3,13 +3,30 @@ project(fcpw)
 
 option(BUILD_TESTS "Build tests" ON)
 option(BENCHMARK_EMBREE "Benchmark Embree" ON)
-option(PROFILE "Profile" ON)
+option(PROFILE "Profile" OFF)
+
+################################################################################
+# SIMD options
+option(ENABLE_SSE "Enables SSE4.2 instructions" ON)
+option(ENABLE_AVX "Enables AVX2 instructions" OFF)
+option(ENABLE_AVX512 "Enables AVX512 instructions" OFF)
+if(ENABLE_AVX OR ENABLE_AVX512)
+	option(OPTIMIZE_FOR_NATIVE "Build with -march=native" OFF)
+endif()
 
 ################################################################################
 # c++ version
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+
+################################################################################
+# avx instruction enabling
+include(CheckCXXCompilerFlag)
+CHECK_CXX_COMPILER_FLAG("-march=native" COMPILER_SUPPORTS_MARCH_NATIVE)
+if(COMPILER_SUPPORTS_MARCH_NATIVE AND OPTIMIZE_FOR_NATIVE)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native")
+endif()
 
 ################################################################################
 # submodule check

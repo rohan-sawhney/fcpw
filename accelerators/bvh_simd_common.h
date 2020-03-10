@@ -27,8 +27,8 @@ namespace fcpw{
 
         // constructor
         BvhSimdFlatNode(){
-            minBoxes = vecZero<W>().vec;
-            maxBoxes = vecZero<W>().vec;
+            minBoxes = vecZero<W>().V.vec;
+            maxBoxes = vecZero<W>().V.vec;
             for(int i = 0; i < W; i++){
                 indices[i] = -1;
                 isLeaf[i] = false;
@@ -107,8 +107,8 @@ namespace fcpw{
 
         inline void addBounds(const Vector<3>& pMin, const Vector<3>& pMax, int index){
             for(int i = 0; i < 3; i++){
-                boxes[0][i].vec[index] = pMin(i);
-                boxes[1][i].vec[index] = pMax(i);
+                boxes[0][i].V.vec[index] = pMin(i);
+                boxes[1][i].V.vec[index] = pMax(i);
             }
         }
 
@@ -236,8 +236,8 @@ namespace fcpw{
         inline void getMinRad(){
             float minRad = maxFloat;
             for(int i = 0; i < W; i++){
-                if(r2.vec[i] < minRad){
-                    minRad = r2.vec[i];
+                if(r2.V.vec[i] < minRad){
+                    minRad = r2.V.vec[i];
                 }
             }
         }
@@ -294,17 +294,17 @@ namespace fcpw{
             // #ifdef PROFILE
             //     PROFILE_SCOPED();
             // #endif
-            distance = distances.vec[0];
+            distance = distances.V.vec[0];
             index = indices[0];
             for(int i = 0; i < 3; i++){
-                point[i] = points[i].vec[0];
+                point[i] = points[i].V.vec[0];
             }
             for(int i = 1; indices[i] != -1 && i < W; i++){
-                if(distance > distances.vec[i]){
-                    distance = distances.vec[i];
+                if(distance > distances.V.vec[i]){
+                    distance = distances.V.vec[i];
                     index = indices[i];
                     for(int j = 0; j < 3; j++){
-                        point[j] = points[j].vec[i];
+                        point[j] = points[j].V.vec[i];
                     }
                 }
             }
@@ -354,7 +354,7 @@ namespace fcpw{
 		const simdFloatVec<W> ap = iPoint - iTri[0];
 		const simdFloat<W> d1 = dot(ab, ap);
 		const simdFloat<W> d2 = dot(ac, ap);
-		const simdBool<W> mask1 = (d1 <= simdFloat<W>(vecZero<4>().vec)) & (d2 <= simdFloat<W>(vecZero<4>().vec));
+		const simdBool<W> mask1 = (d1 <= vecZero<W>()) & (d2 <= vecZero<W>());
 		oTriPoint = iTri[0];
 		simdBool<W> exit(mask1);
 		if (all(exit))
@@ -364,7 +364,7 @@ namespace fcpw{
 		const simdFloatVec<W> bp = iPoint - iTri[1];
 		const simdFloat<W> d3 = dot(ab, bp);
 		const simdFloat<W> d4 = dot(ac, bp);
-		const simdBool<W> mask2 = (d3 >= simdFloat<W>(vecZero<4>().vec)) & (d4 <= d3);
+		const simdBool<W> mask2 = (d3 >= vecZero<W>()) & (d4 <= d3);
 		exit |= mask2;
 		oTriPoint = select(mask2, iTri[1], oTriPoint);
 		if (all(exit))
@@ -374,7 +374,7 @@ namespace fcpw{
 		const simdFloatVec<W> cp = iPoint - iTri[2];
 		const simdFloat<W> d5 = dot(ab, cp);
 		const simdFloat<W> d6 = dot(ac, cp);
-		const simdBool<W> mask3 = (d6 >= simdFloat<W>(vecZero<4>().vec)) & (d5 <= d6);
+		const simdBool<W> mask3 = (d6 >= vecZero<W>()) & (d5 <= d6);
 		exit |= mask3;
 		oTriPoint = select(mask3, iTri[2], oTriPoint);
 		if (all(exit))
@@ -382,7 +382,7 @@ namespace fcpw{
 
 		// Check if P in edge region of AB, if so return projection of P onto AB
 		const simdFloat<W> vc = d1*d4 - d3*d2;
-		const simdBool<W> mask4 = (vc <= simdFloat<W>(vecZero<4>().vec)) & (d1 >= simdFloat<W>(vecZero<4>().vec)) & (d3 <= simdFloat<W>(vecZero<4>().vec));
+		const simdBool<W> mask4 = (vc <= vecZero<W>()) & (d1 >= vecZero<W>()) & (d3 <= vecZero<W>());
 		exit |= mask4;
 		const simdFloat<W> v1 = d1 / (d1 - d3);
 		const simdFloatVec<W> answer1 = iTri[0] + v1 * ab;
@@ -392,7 +392,7 @@ namespace fcpw{
 
 		// Check if P in edge region of AC, if so return projection of P onto AC
 		const simdFloat<W> vb = d5*d2 - d1*d6;
-		const simdBool<W> mask5 = (vb <= simdFloat<W>(vecZero<4>().vec)) & (d2 >= simdFloat<W>(vecZero<4>().vec)) & (d6 <= simdFloat<W>(vecZero<4>().vec));
+		const simdBool<W> mask5 = (vb <= vecZero<W>()) & (d2 >= vecZero<W>()) & (d6 <= vecZero<W>());
 		exit |= mask5;
 		const simdFloat<W> w1 = d2 / (d2 - d6);
 		const simdFloatVec<W> answer2 = iTri[0] + w1 * ac;
@@ -402,7 +402,7 @@ namespace fcpw{
 
 		// Check if P in edge region of BC, if so return projection of P onto BC
 		const simdFloat<W> va = d3*d6 - d5*d4;
-		const simdBool<W> mask6 = (va <= simdFloat<W>(vecZero<4>().vec)) & ((d4 - d3) >= simdFloat<W>(vecZero<4>().vec)) & ((d5 - d6) >= simdFloat<W>(vecZero<4>().vec));
+		const simdBool<W> mask6 = (va <= vecZero<W>()) & ((d4 - d3) >= vecZero<W>()) & ((d5 - d6) >= vecZero<W>());
 		exit |= mask6;
 		simdFloat<W> w2 = (d4 - d3) / ((d4 - d3) + (d5 - d6));
 		const simdFloatVec<W> answer3 = iTri[1] + w2 * (iTri[2] - iTri[1]);
@@ -411,7 +411,7 @@ namespace fcpw{
 			return length2(oTriPoint - iPoint); // barycentric coordinates (0,1-w,w)
 
 		// P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-		const simdFloat<W> denom = simdFloat<W>(_mm_set1_ps(1)) / (va + vb + vc);
+		const simdFloat<W> denom = vecOne<W>() / (va + vb + vc);
 		const simdFloat<W> v2 = vb * denom;
 		const simdFloat<W> w3 = vc * denom;
 		const simdFloatVec<W> answer4 = iTri[0] + ab * v2 + ac * w3;

@@ -411,8 +411,10 @@ inline bool Bvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>&
 	return !notFound;
 }
 
+// converts bvh into mbvh of provided width
 template <int DIM>
 inline void Bvh<DIM>::convert(const int simdWidth, std::shared_ptr<Aggregate<DIM>>& mbvh){
+	// designed to work with SBVH as well, so operates on reference wrappers
 	std::vector<ReferenceWrapper<DIM>> references;
 	for(int i = 0; i < primitives.size(); i++){
 		references.emplace_back(ReferenceWrapper<DIM>(primitives[i]->boundingBox(), i));
@@ -421,16 +423,20 @@ inline void Bvh<DIM>::convert(const int simdWidth, std::shared_ptr<Aggregate<DIM
 	LOG_IF(FATAL, simdWidth < leafSize) << "Bvh::convert: SIMD width is smaller than max size of leaves in tree";
 	LOG_IF(INFO, simdWidth != leafSize) << "Bvh::convert: For optimal performance, it is recommended to set max size of leaves in tree to the size of the desired SIMD width";
 	switch(simdWidth){
-		case 4:
+		case 4: // SSE
 			mbvh = std::make_shared<BvhSimd<DIM, 4>>(flatTree, references, primitives, " constructed from a Bvh");
 			break;
-		case 8:
-			mbvh = std::make_shared<BvhSimd<DIM, 4>>(flatTree, references, primitives, " constructed from a Bvh");
+		#ifdef ENABLE_AVX
+		case 8: // AVX
+			mbvh = std::make_shared<BvhSimd<DIM, 8>>(flatTree, references, primitives, " constructed from a Bvh");
 			break;
-		case 16:
-			mbvh = std::make_shared<BvhSimd<DIM, 4>>(flatTree, references, primitives, " constructed from a Bvh");
+		#endif
+		#ifdef ENABLE_AVX512
+		case 16: // AVX512
+			mbvh = std::make_shared<BvhSimd<DIM, 16>>(flatTree, references, primitives, " constructed from a Bvh");
 			break;
-		default:
+		#endif
+		default: // invalid width
 			LOG_IF(FATAL, simdWidth != 4 && simdWidth != 8 && simdWidth != 16) << "Bvh::convert: Requested SIMD is not a valid SIMD width";
 	}
 }

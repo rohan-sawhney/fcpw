@@ -306,8 +306,10 @@ namespace fcpw{
             PROFILE_SCOPED();
         #endif
         // would be for better ordering
-        dMax = overlap.d2Max.vec[index];
-        dMin = overlap.d2Min.vec[index];
+        // dMax = overlap.d2Max.vec[index];
+        // dMin = overlap.d2Min.vec[index];
+        dMax = overlap.d2Max.V.v[index];
+        dMin = overlap.d2Min.V.v[index];
 
         // shorten if box is fully contained in query
         if(s.r2 > dMax){

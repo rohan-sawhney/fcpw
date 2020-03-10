@@ -325,7 +325,7 @@ void run()
 	bool doSIMDTests = true;
 	const int bvhHeuristicStart = 4;
 	const int bvhHeuristicEnd = 5;
-	bool doSingleTiming = false;
+	bool doSingleTiming = true;
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
@@ -348,7 +348,7 @@ void run()
 						}
 						std::cout << std::endl;
 						if(doSIMDTests){
-							scene.setSimdType(1);
+							scene.setSimdType(2);
 							scene.buildAggregate(aggregateType);
 							timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhNames[j] + " with SSE");
 							std::cout << std::endl;

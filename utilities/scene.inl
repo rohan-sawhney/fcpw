@@ -168,7 +168,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 			case AggregateType::Bvh:
 				switch(simdType){
 					case(SimdClass::SSE):
-					// case(SimdClass::AVX):
+					case(SimdClass::AVX):
 					// case(SimdClass::AVX512):
 						(std::make_shared<Bvh<DIM>>(objects[i], leafSize, bvhSplitMethod, bins, true))->convert(leafSize, objectAggregates[i]);
 						break;
