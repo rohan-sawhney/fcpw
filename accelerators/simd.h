@@ -4,7 +4,7 @@
 #include "common/math/vec2.h"
 #include "common/math/vec3.h"
 #include "common/math/vec4.h"
-#include "common/simd/avx.h"
+// #include "common/simd/avx.h"
 
 namespace fcpw{
 
@@ -174,6 +174,12 @@ namespace fcpw{
         return vecf<W>();
     }
 
+    template <int W>
+    inline const vecf<W> vecInit(const float f){
+        LOG(FATAL) << "Invalid simd width";
+        return vecf<W>();
+    }
+
     // SSE bool operators
 
     inline const vecb<4> operator &(const vecb<4>& a, const vecb<4>& b){
@@ -247,6 +253,11 @@ namespace fcpw{
     template <>
     inline const vecf<4> vecOne(){
         return vecf<4>(sseOne);
+    }
+
+    template <>
+    inline const vecf<4> vecInit(const float f){
+        return vecf<4>(_mm_set1_ps(f));
     }
 
     // AVX bool operators
@@ -324,6 +335,11 @@ namespace fcpw{
         return vecf<8>(avxOne);
     }
 
+    template <>
+    inline const vecf<8> vecInit(const float f){
+        return vecf<8>(_mm256_set1_ps(f));
+    }
+
     // AVX512 bool operators
 
     inline const vecb<16> operator &(const vecb<16>& a, const vecb<16>& b){
@@ -397,6 +413,11 @@ namespace fcpw{
     template <>
     inline const vecf<16> vecOne(){
         return vecf<16>(avx512One);
+    }
+
+    template <>
+    inline const vecf<16> vecInit(const float f){
+        return vecf<16>(_mm512_set1_ps(f));
     }
 
     // typedefs to contain embree vectors

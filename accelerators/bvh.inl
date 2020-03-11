@@ -22,7 +22,8 @@ leafSize(leafSize_),
 primitives(primitives_),
 splittingMethod(splittingMethod_),
 binCount(binCount_),
-depth(0)
+depth(0),
+totalCost(0)
 {
 	if(makeBvh){
 		using namespace std::chrono;
@@ -37,7 +38,8 @@ depth(0)
 				<< nLeaves << " leaves, "
 				<< primitives.size() << " primitives, "
 				<< depth << " depth in "
-				<< timeSpan.count() << " seconds" << std::endl;
+				<< timeSpan.count() << " seconds "
+				<< totalCost << " total cost" << std::endl;
 	}
 }
 
@@ -157,10 +159,27 @@ inline void Bvh<DIM>::build(bool packLeaves)
 				LOG(FATAL) << "Method number " << splittingMethod << " is an invalid splitting method";
 		}
 		if(splittingMethod != 0){
+			bool costIsInfinite = true;
+			int tempBinCount = binCount;
+			BvhSplit split;
 			std::vector<ReferenceWrapper<DIM>> refs(references.begin() + start, references.begin() + end);
-			BvhSplit split = probabilityHeuristic(refs, bc, bb, binCount, cost, (packLeaves ? leafSize : 0));
-			splitCoord = split.split;
+			while(costIsInfinite){
+				costIsInfinite = false;
+
+				split = probabilityHeuristic(refs, bc, bb, tempBinCount, cost, (packLeaves ? leafSize : 0));
+				if(split.cost >= maxFloat){
+					if(references.size() > tempBinCount){
+						tempBinCount *= 2;
+						costIsInfinite = true;
+					}
+					else{
+						split = probabilityHeuristic(refs, bc, bb, tempBinCount, cost);
+					}
+				}
+			}
 			splitDim = split.axis;
+			splitCoord = split.split;
+			totalCost += split.cost;
 		}
 
 		// partition the list of primitives on this split

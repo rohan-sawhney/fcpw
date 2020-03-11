@@ -246,17 +246,17 @@ namespace fcpw{
 
     template <int DIM, int W>
     inline void processInteriorNode(std::queue<BvhTraversal>& queue, const BvhSimdFlatNode<DIM, W>& node, int& index, float& dMin){
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         queue.emplace(BvhTraversal(node.indices[index], dMin));
     }
 
     template <int DIM, int W>
     inline void processLeafNode(const BvhSimdFlatNode<DIM, W>& node, const std::vector<BvhSimdLeafNode<DIM, W>>& leaves, ParallelInteraction<DIM, W>& pi, SimdBoundingSphere<DIM, W>& sbs, BoundingSphere<DIM>& s, Interaction<DIM>& i, const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, const int& index){
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
 
         float bestDistance;
         float bestPoint[DIM];
@@ -288,9 +288,9 @@ namespace fcpw{
     }
 
     inline void parseFlatNode(std::queue<BvhTraversal>& todo, int& ni, float& near){
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         // pop off the next node to work on
         BvhTraversal traversal = todo.front();
         todo.pop();
@@ -302,9 +302,9 @@ namespace fcpw{
 
     template <int DIM, int W>
     inline void parseOverlap(const ParallelOverlapResult<W>& overlap, const int& index, float& dMax, float& dMin, BoundingSphere<DIM>& s){
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         // would be for better ordering
         // dMax = overlap.d2Max.vec[index];
         // dMin = overlap.d2Min.vec[index];

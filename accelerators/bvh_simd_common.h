@@ -326,18 +326,18 @@ namespace fcpw{
     // wrapper for bounding sphere - AABB closest point function
     template <int DIM, int W>
     void parallelOverlap(const BvhSimdFlatNode<DIM, W>& node, SimdBoundingSphere<DIM, W>& sbs, ParallelOverlapResult<W>& result){        
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         LOG(FATAL) << "Not yet implemented for dimension " << DIM;
     }
 
     // function overloading for embree vectors
     template <int DIM, int W>
     void parallelOverlap(const BvhSimdFlatNode<3, W>& node, SimdBoundingSphere<3, W>& sbs, ParallelOverlapResult<W>& result){      
-        #ifdef PROFILE
-            PROFILE_SCOPED();
-        #endif
+        // #ifdef PROFILE
+        //     PROFILE_SCOPED();
+        // #endif
         simdBoxOverlap(result.d2Min, result.d2Max, sbs.c, node.boxes);
     }
 
@@ -411,7 +411,7 @@ namespace fcpw{
 			return length2(oTriPoint - iPoint); // barycentric coordinates (0,1-w,w)
 
 		// P inside face region. Compute Q through its barycentric coordinates (u,v,w)
-		const simdFloat<W> denom = vecOne<W>() / (va + vb + vc);
+		const simdFloat<W> denom = vecInit<W>(1) / (va + vb + vc);
 		const simdFloat<W> v2 = vb * denom;
 		const simdFloat<W> w3 = vc * denom;
 		const simdFloatVec<W> answer4 = iTri[0] + ab * v2 + ac * w3;

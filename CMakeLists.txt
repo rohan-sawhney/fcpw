@@ -3,12 +3,12 @@ project(fcpw)
 
 option(BUILD_TESTS "Build tests" ON)
 option(BENCHMARK_EMBREE "Benchmark Embree" ON)
-option(PROFILE "Profile" OFF)
+option(PROFILE "Profile" ON)
 
 ################################################################################
 # SIMD options
 option(ENABLE_SSE "Enables SSE4.2 instructions" ON)
-option(ENABLE_AVX "Enables AVX2 instructions" OFF)
+option(ENABLE_AVX "Enables AVX2 instructions" ON)
 option(ENABLE_AVX512 "Enables AVX512 instructions" OFF)
 if(ENABLE_AVX OR ENABLE_AVX512)
 	option(OPTIMIZE_FOR_NATIVE "Build with -march=native" ON)

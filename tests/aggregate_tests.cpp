@@ -319,13 +319,34 @@ void run()
 		"Bvh with Overlap Volume Heuristic"
 	});
 
+	std::vector<std::string> simdNames({
+		"SSE",
+		"AVX",
+		"AVX512"
+	});
+
 	int startAggregate = 1;
 	int endAggregate = aggregateTypes.size();
 
 	bool doSIMDTests = true;
+	bool doEmbreeTests = false;
 	const int bvhHeuristicStart = 4;
 	const int bvhHeuristicEnd = 5;
 	bool doSingleTiming = true;
+	bool doSSE = true;
+	bool doAVX = false;
+	bool doAVX512 = false;
+
+	std::vector<int> simdTypes;
+#ifdef ENABLE_SSE
+	if(doSSE) simdTypes.emplace_back(1);
+#endif
+#ifdef ENABLE_AVX
+	if(doAVX) simdTypes.emplace_back(2);
+#endif
+#ifdef ENABLE_AVX512
+	if(doAVX512) simdTypes.emplace_back(3);
+#endif
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
@@ -348,10 +369,12 @@ void run()
 						}
 						std::cout << std::endl;
 						if(doSIMDTests){
-							scene.setSimdType(1);
-							scene.buildAggregate(aggregateType);
-							timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhNames[j] + " with SSE");
-							std::cout << std::endl;
+							for(int k : simdTypes){
+								scene.setSimdType(k);
+								scene.buildAggregate(aggregateType);
+								timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhNames[j] + " with " + simdNames[k - 1]);
+								std::cout << std::endl;
+							}
 						}
 					}
 					break;
@@ -365,9 +388,11 @@ void run()
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
-		scene.buildEmbreeAggregate();
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
+		if(doEmbreeTests){
+			scene.buildEmbreeAggregate();
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
+		}
 #endif
 	}
 
@@ -394,11 +419,13 @@ void run()
 						testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
 						std::cout << std::endl;
 						if(doSIMDTests){
-							std::cout << "Testing vectorized " << bvhNames[i] << " results against Baseline" << std::endl;
-							bvhScene.setSimdType(1);
-							bvhScene.buildAggregate(aggregateType);
-							testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
-							std::cout << std::endl;
+							for(int k : simdTypes){
+								std::cout << "Testing vectorized " << bvhNames[i] << " results against Baseline" << std::endl;
+								bvhScene.setSimdType(k);
+								bvhScene.buildAggregate(aggregateType);
+								testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+								std::cout << std::endl;
+							}
 						}
 					}
 					break;

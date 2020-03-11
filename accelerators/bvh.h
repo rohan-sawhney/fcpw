@@ -52,6 +52,7 @@ protected:
 	std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<BvhFlatNode<DIM>> flatTree;
 	int nNodes, nLeaves, leafSize, splittingMethod, binCount, depth;
+	float totalCost;
 };
 
 } // namespace fcpw
