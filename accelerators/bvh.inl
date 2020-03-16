@@ -168,13 +168,7 @@ inline void Bvh<DIM>::build(bool packLeaves)
 
 				split = probabilityHeuristic(refs, bc, bb, tempBinCount, cost, (packLeaves ? leafSize : 0));
 				if(split.cost >= maxFloat){
-					if(references.size() > tempBinCount){
-						tempBinCount *= 2;
-						costIsInfinite = true;
-					}
-					else{
-						split = probabilityHeuristic(refs, bc, bb, tempBinCount, cost);
-					}
+					split = probabilityHeuristic(refs, bc, bb, tempBinCount, cost);
 				}
 			}
 			splitDim = split.axis;
