@@ -95,7 +95,7 @@ inline float computeSplit(const CostHeuristic& costHeuristic,
 		const int nBuckets = 8;
 		Vector<DIM> extent = node.bbox.extent();
 		std::vector<std::pair<BoundingBox<DIM>, int>> buckets(nBuckets,
-							std::make_pair(BoundingBox<DIM>(false), 0));
+							std::make_pair(BoundingBox<DIM>(true), 0));
 
 		// find the best split across all three dimensions
 		for (int dim = 0; dim < DIM; dim++) {
@@ -105,7 +105,7 @@ inline float computeSplit(const CostHeuristic& costHeuristic,
 			// bin primitives into buckets
 			float bucketWidth = extent(dim)/nBuckets;
 			for (int b = 0; b < nBuckets; b++) {
-				buckets[b].first = BoundingBox<DIM>(false);
+				buckets[b].first = BoundingBox<DIM>(true);
 				buckets[b].second = 0;
 			}
 
@@ -119,7 +119,7 @@ inline float computeSplit(const CostHeuristic& costHeuristic,
 			// evaluate split costs
 			for (int b = 1; b < nBuckets; b++) {
 				// compute left and right child boxes for this particular split
-				BoundingBox<DIM> bboxLeft(false), bboxRight(false);
+				BoundingBox<DIM> bboxLeft(true), bboxRight(true);
 				int nPrimitivesLeft = 0, nPrimitivesRight = 0;
 
 				for (int i = 0; i < b; i++) {
