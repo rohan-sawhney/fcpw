@@ -1,6 +1,6 @@
 #pragma once
 
-#include "primitive.h"
+#include "csg_node.h"
 #include "geometry/triangles.h"
 #include <unordered_map>
 
@@ -23,7 +23,12 @@ enum class AggregateType {
 	Bvh_OverlapVolume = 5
 };
 
-struct CsgTreeNode;
+struct CsgTreeNode {
+	int child1, child2;
+	bool isLeafChild1, isLeafChild2;
+	BooleanOperation operation;
+};
+
 std::vector<std::pair<std::string, LoadingOption>> files;
 std::string instanceFilename = "";
 std::string csgFilename = "";

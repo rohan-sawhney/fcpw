@@ -1,4 +1,3 @@
-#include "csg_node.h"
 #include "accelerators/baseline.h"
 #include "accelerators/bvh.h"
 #ifdef BENCHMARK_EMBREE
@@ -62,12 +61,6 @@ inline void loadInstanceTransforms(
 	// close file
 	in.close();
 }
-
-struct CsgTreeNode {
-	int child1, child2;
-	bool isLeafChild1, isLeafChild2;
-	BooleanOperation operation;
-};
 
 template <int DIM>
 inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
