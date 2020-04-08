@@ -193,6 +193,18 @@ public:
 		return b;
 	}
 
+	// returns the intersection of two bounding boxes
+	BoundingBox<DIM> intersect(const BoundingBox<DIM>& b) const {
+		BoundingBox<DIM> bIntersect(false);
+
+		for (int i = 0; i < DIM; i++) {
+			bIntersect.pMin(i) = std::max(pMin(i), b.pMin(i));
+			bIntersect.pMax(i) = std::min(pMax(i), b.pMax(i));
+		}
+
+		return bIntersect;
+	}
+
 	// members
 	Vector<DIM> pMin, pMax;
 	bool isTight;

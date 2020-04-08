@@ -151,6 +151,29 @@ inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 }
 
 template <int DIM>
+inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType,
+													 std::vector<std::shared_ptr<Primitive<DIM>>>& primitives)
+{
+	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
+		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::LongestAxisCenter);
+
+	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
+		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::SurfaceArea);
+
+	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
+		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapSurfaceArea);
+
+	} else if (aggregateType == AggregateType::Bvh_Volume) {
+		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::Volume);
+
+	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
+		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapVolume);
+	}
+
+	return std::make_shared<Baseline<DIM>>(primitives);
+}
+
+template <int DIM>
 inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 {
 	// initialize instances and aggregate
@@ -162,12 +185,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
 
 	for (int i = 0; i < nObjects; i++) {
-		if (aggregateType == AggregateType::Bvh) {
-			objectAggregates[i] = std::make_shared<Bvh<DIM>>(objects[i]);
-
-		} else {
-			objectAggregates[i] = std::make_shared<Baseline<DIM>>(objects[i]);
-		}
+		objectAggregates[i] = makeAggregate<DIM>(aggregateType, objects[i]);
 	}
 
 	// build object instances
@@ -194,13 +212,9 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 		// build csg aggregate if csg tree is specified
 		aggregate = buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
 
-	} else if (aggregateType == AggregateType::Bvh) {
-		// build bvh aggregate
-		aggregate = std::make_shared<Bvh<DIM>>(objectInstances);
-
 	} else {
-		// build baseline aggregate
-		aggregate = std::make_shared<Baseline<DIM>>(objectInstances);
+		// make aggregate
+		aggregate = makeAggregate<DIM>(aggregateType, objectInstances);
 	}
 }
 

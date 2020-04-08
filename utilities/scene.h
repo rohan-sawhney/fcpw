@@ -15,8 +15,12 @@ enum class ObjectType {
 };
 
 enum class AggregateType {
-	Baseline,
-	Bvh
+	Baseline = 0,
+	Bvh_LongestAxisCenter = 1,
+	Bvh_SurfaceArea = 2,
+	Bvh_OverlapSurfaceArea = 3,
+	Bvh_Volume = 4,
+	Bvh_OverlapVolume = 5
 };
 
 struct CsgTreeNode;

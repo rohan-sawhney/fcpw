@@ -5,12 +5,20 @@
 namespace fcpw {
 // source: https://github.com/brandonpelfrey/Fast-BVH
 // TODO:
-// - implement more tree construction heuristics (sah, volume ratio, volume overlap)
 // - implement sbvh
 // - implement mbvh with vectorization
+// - build a spatial data structure on top of bvh
 // - estimate closest point radius (i.e., conversative guess of spherical region containing query point)
 // - implement "queueless" closest point traversal
 // - try bottom up closest point traversal strategy
+
+enum class CostHeuristic {
+	LongestAxisCenter,
+	SurfaceArea,
+	OverlapSurfaceArea,
+	Volume,
+	OverlapVolume
+};
 
 template <int DIM>
 struct BvhFlatNode {
@@ -26,7 +34,8 @@ template <int DIM>
 class Bvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_=4);
+	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
+		const CostHeuristic& costHeuristic_, int leafSize_=4);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -49,7 +58,7 @@ public:
 
 protected:
 	// builds binary tree
-	void build();
+	void build(const CostHeuristic& costHeuristic);
 
 	// members
 	int nNodes, nLeafs, leafSize;

@@ -293,6 +293,10 @@ void run()
 	std::vector<fcpw::Vector<DIM>> queryPoints, randomDirections;
 	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
 
+	std::vector<std::string> bvhTypes({"Bvh_LongestAxisCenter", "Bvh_SurfaceArea",
+									   "Bvh_OverlapSurfaceArea", "Bvh_Volume",
+									   "Bvh_OverlapVolume"});
+
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
 
@@ -300,10 +304,12 @@ void run()
 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
 
-		// build bvh aggregate & benchmark queries
-		scene.buildAggregate(AggregateType::Bvh);
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Bvh");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Bvh");
+		// build bvh aggregates and benchmark queries
+		for (int bvh = 1; bvh < 6; bvh++) {
+			scene.buildAggregate(static_cast<AggregateType>(bvh));
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, bvhTypes[bvh - 1]);
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhTypes[bvh - 1]);
+		}
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
@@ -319,13 +325,16 @@ void run()
 		// build baseline aggregate
 		scene.buildAggregate(AggregateType::Baseline);
 
-		// build bvh aggregate and compare results with baseline
-		std::cout << "Testing Bvh results against Baseline" << std::endl;
+		// build bvh aggregates and compare results with baseline
 		Scene<DIM> bvhScene;
 		bvhScene.loadFiles(true, false);
-		bvhScene.buildAggregate(AggregateType::Bvh);
-		testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
-		testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+
+		for (int bvh = 1; bvh < 6; bvh++) {
+			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
+			bvhScene.buildAggregate(static_cast<AggregateType>(bvh));
+			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
+			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+		}
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate and compare results with baseline
@@ -340,7 +349,7 @@ void run()
 
 	if (vizScene) {
 		// build bvh aggregate
-		scene.buildAggregate(AggregateType::Bvh);
+		scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter);
 
 		// isolate interior points among query points
 		std::vector<fcpw::Vector<DIM>> interiorPoints;

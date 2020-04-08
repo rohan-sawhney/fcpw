@@ -23,7 +23,8 @@ struct BvhTraversal {
 };
 
 template <int DIM>
-inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_, int leafSize_):
+inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
+					 const CostHeuristic& costHeuristic_, int leafSize_):
 nNodes(0),
 nLeafs(0),
 leafSize(leafSize_),
@@ -32,7 +33,7 @@ primitives(primitives_)
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-	build();
+	build(costHeuristic_);
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
@@ -44,7 +45,118 @@ primitives(primitives_)
 }
 
 template <int DIM>
-inline void Bvh<DIM>::build()
+inline float computeSplitCost(const CostHeuristic& costHeuristic,
+							  const BoundingBox<DIM>& bboxLeft,
+							  const BoundingBox<DIM>& bboxRight,
+							  const BoundingBox<DIM>& bboxParent,
+							  int nPrimitivesLeft, int nPrimitivesRight)
+{
+	float cost = maxFloat;
+	if (costHeuristic == CostHeuristic::SurfaceArea) {
+		cost = (nPrimitivesLeft*bboxLeft.surfaceArea() +
+				nPrimitivesRight*bboxRight.surfaceArea())/bboxParent.surfaceArea();
+
+	} else if (costHeuristic == CostHeuristic::OverlapSurfaceArea) {
+		// cost can be negative, but that's a good thing, because the more negative the cost
+		// the further apart the left and right boxes should be
+		BoundingBox<DIM> bboxIntersected = bboxLeft.intersect(bboxRight);
+		cost = (nPrimitivesLeft/bboxRight.surfaceArea() +
+				nPrimitivesRight/bboxLeft.surfaceArea())*bboxIntersected.surfaceArea();
+
+	} else if (costHeuristic == CostHeuristic::Volume) {
+		cost = (nPrimitivesLeft*bboxLeft.volume() +
+				nPrimitivesRight*bboxRight.volume())/bboxParent.volume();
+
+	} else if (costHeuristic == CostHeuristic::OverlapVolume) {
+		// cost can be negative, but that's a good thing, because the more negative the cost
+		// the further apart the left and right boxes should be
+		BoundingBox<DIM> bboxIntersected = bboxLeft.intersect(bboxRight);
+		cost = (nPrimitivesLeft/bboxRight.volume() +
+				nPrimitivesRight/bboxLeft.volume())*bboxIntersected.volume();
+	}
+
+	return cost;
+}
+
+template <int DIM>
+inline float computeSplit(const CostHeuristic& costHeuristic,
+						  const BvhFlatNode<DIM>& node,
+						  const BoundingBox<DIM>& nodeCentroidBox,
+						  const std::vector<BoundingBox<DIM>>& primitiveBoxes,
+						  const std::vector<Vector<DIM>>& primitiveCentroids,
+						  int& splitDim, float& splitCoord)
+{
+	float splitCost = maxFloat;
+	splitDim = -1;
+	splitCoord = 0.0f;
+
+	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
+		// initialize buckets
+		const int nBuckets = 8;
+		Vector<DIM> extent = node.bbox.extent();
+		std::vector<std::pair<BoundingBox<DIM>, int>> buckets(nBuckets,
+							std::make_pair(BoundingBox<DIM>(false), 0));
+
+		// find the best split across all three dimensions
+		for (int dim = 0; dim < DIM; dim++) {
+			// ignore flat dimension
+			if (extent(dim) < 1e-6) continue;
+
+			// bin primitives into buckets
+			float bucketWidth = extent(dim)/nBuckets;
+			for (int b = 0; b < nBuckets; b++) {
+				buckets[b].first = BoundingBox<DIM>(false);
+				buckets[b].second = 0;
+			}
+
+			for (int p = node.start; p < node.start + node.nPrimitives; p++) {
+				int bucketIndex = (int)((primitiveCentroids[p](dim) - node.bbox.pMin(dim))/bucketWidth);
+				bucketIndex = clamp(bucketIndex, 0, nBuckets - 1);
+				buckets[bucketIndex].first.expandToInclude(primitiveBoxes[p]);
+				buckets[bucketIndex].second += 1;
+			}
+
+			// evaluate split costs
+			for (int b = 1; b < nBuckets; b++) {
+				// compute left and right child boxes for this particular split
+				BoundingBox<DIM> bboxLeft(false), bboxRight(false);
+				int nPrimitivesLeft = 0, nPrimitivesRight = 0;
+
+				for (int i = 0; i < b; i++) {
+					bboxLeft.expandToInclude(buckets[i].first);
+					nPrimitivesLeft += buckets[i].second;
+				}
+
+				for (int i = b; i < nBuckets; i++) {
+					bboxRight.expandToInclude(buckets[i].first);
+					nPrimitivesRight += buckets[i].second;
+				}
+
+				// compute split cost based on heuristic
+				float cost = computeSplitCost(costHeuristic, bboxLeft, bboxRight, node.bbox,
+											  nPrimitivesLeft, nPrimitivesRight);
+				float coord = node.bbox.pMin(dim) + b*bucketWidth;
+
+				if (cost < splitCost) {
+					splitCost = cost;
+					splitDim = dim;
+					splitCoord = coord;
+				}
+			}
+		}
+	}
+
+	// if no split dimension was chosen, fallback to LongestAxisCenter heuristic
+	if (splitDim == -1) {
+		splitDim = nodeCentroidBox.maxDimension();
+		splitCoord = (nodeCentroidBox.pMin[splitDim] + nodeCentroidBox.pMax[splitDim])*0.5f;
+	}
+
+	return splitCost;
+}
+
+template <int DIM>
+inline void Bvh<DIM>::build(const CostHeuristic& costHeuristic)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -120,11 +232,11 @@ inline void Bvh<DIM>::build()
 			continue;
 		}
 
-		// set the split dimensions
-		int splitDim = bc.maxDimension();
-
-		// split on the center of the longest axis
-		float splitCoord = (bc.pMin[splitDim] + bc.pMax[splitDim])*0.5;
+		// choose splitDim and splitCoord based on cost heuristic
+		int splitDim;
+		float splitCoord;
+		float splitCost = computeSplit<DIM>(costHeuristic, node, bc, primitiveBoxes,
+											primitiveCentroids, splitDim, splitCoord);
 
 		// partition the list of primitives on this split
 		int mid = start;
