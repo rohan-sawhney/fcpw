@@ -131,7 +131,7 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	float det = v1.dot(p);
 
 	// ray and triangle are parallel if det is close to 0
-	if (std::fabsf(det) < epsilon) return false;
+	if (std::fabs(det) < epsilon) return false;
 	float invDet = 1.0f/det;
 
 	Vector3f s = r.o - pa;

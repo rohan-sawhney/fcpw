@@ -388,7 +388,7 @@ inline bool EmbreeBvh<3>::findClosestPoint(BoundingSphere<3>& s,
 	query.x = s.c(0);
 	query.y = s.c(1);
 	query.z = s.c(2);
-	query.radius = std::sqrtf(s.r2);
+	query.radius = std::sqrt(s.r2);
 	query.time = 0.0f;
 
 	// perform query
