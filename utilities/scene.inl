@@ -1,5 +1,5 @@
 #include "accelerators/baseline.h"
-#include "accelerators/bvh.h"
+#include "accelerators/sbvh.h"
 #ifdef BENCHMARK_EMBREE
 	#include "accelerators/embree_bvh.h"
 #endif

@@ -5,8 +5,7 @@
 namespace fcpw {
 // source: https://github.com/brandonpelfrey/Fast-BVH
 // TODO:
-// - implement sbvh
-// - implement mbvh with vectorization
+// - implement mbvh/qbvh with vectorization (try enoki?)
 // - build a spatial data structure on top of bvh
 // - estimate closest point radius (i.e., conversative guess of spherical region containing query point)
 // - implement "queueless" closest point traversal
