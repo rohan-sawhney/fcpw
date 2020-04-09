@@ -79,12 +79,12 @@ inline float computeSplitCost(const CostHeuristic& costHeuristic,
 }
 
 template <int DIM>
-inline float computeSplit(const CostHeuristic& costHeuristic,
-						  const BoundingBox<DIM>& nodeBoundingBox,
-						  const BoundingBox<DIM>& nodeCentroidBox,
-						  const std::vector<BoundingBox<DIM>>& primitiveBoxes,
-						  const std::vector<Vector<DIM>>& primitiveCentroids,
-						  int nodeStart, int nodeEnd, int& splitDim, float& splitCoord)
+inline float computeObjectSplit(const CostHeuristic& costHeuristic,
+								const BoundingBox<DIM>& nodeBoundingBox,
+								const BoundingBox<DIM>& nodeCentroidBox,
+								const std::vector<BoundingBox<DIM>>& primitiveBoxes,
+								const std::vector<Vector<DIM>>& primitiveCentroids,
+								int nodeStart, int nodeEnd, int& splitDim, float& splitCoord)
 {
 	float splitCost = maxFloat;
 	splitDim = -1;
@@ -237,8 +237,9 @@ inline void Bvh<DIM>::build(const CostHeuristic& costHeuristic)
 		// choose splitDim and splitCoord based on cost heuristic
 		int splitDim;
 		float splitCoord;
-		float splitCost = computeSplit<DIM>(costHeuristic, bb, bc, primitiveBoxes, primitiveCentroids,
-											start, end, splitDim, splitCoord);
+		float splitCost = computeObjectSplit<DIM>(costHeuristic, bb, bc,
+												  primitiveBoxes, primitiveCentroids,
+												  start, end, splitDim, splitCoord);
 
 		// partition the list of primitives on this split
 		int mid = start;
@@ -421,9 +422,7 @@ inline bool Bvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>&
 		const BvhFlatNode<DIM>& node(flatTree[ni]);
 
 		// if this node is further than the closest found primitive, continue
-		if (near > s.r2) {
-			continue;
-		}
+		if (near > s.r2) continue;
 
 		// is leaf -> compute squared distance
 		if (node.rightOffset == 0) {

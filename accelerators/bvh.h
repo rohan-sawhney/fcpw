@@ -3,7 +3,7 @@
 #include "primitive.h"
 
 namespace fcpw {
-// source: https://github.com/brandonpelfrey/Fast-BVH
+// modified version of https://github.com/brandonpelfrey/Fast-BVH
 // TODO:
 // - implement mbvh/qbvh with vectorization (try enoki?)
 // - build a spatial data structure on top of bvh
