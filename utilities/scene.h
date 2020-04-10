@@ -20,7 +20,9 @@ enum class AggregateType {
 	Bvh_SurfaceArea = 2,
 	Bvh_OverlapSurfaceArea = 3,
 	Bvh_Volume = 4,
-	Bvh_OverlapVolume = 5
+	Bvh_OverlapVolume = 5,
+	Sbvh_SurfaceArea = 6,
+	Sbvh_Volume = 7
 };
 
 struct CsgTreeNode {

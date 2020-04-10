@@ -161,6 +161,12 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
 		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapVolume);
+
+	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea);
+
+	} else if (aggregateType == AggregateType::Sbvh_Volume) {
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume);
 	}
 
 	return std::make_shared<Baseline<DIM>>(primitives);

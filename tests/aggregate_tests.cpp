@@ -295,7 +295,8 @@ void run()
 
 	std::vector<std::string> bvhTypes({"Bvh_LongestAxisCenter", "Bvh_SurfaceArea",
 									   "Bvh_OverlapSurfaceArea", "Bvh_Volume",
-									   "Bvh_OverlapVolume"});
+									   "Bvh_OverlapVolume", "Sbvh_SurfaceArea",
+									   "Sbvh_Volume"});
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
@@ -305,7 +306,7 @@ void run()
 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
 
 		// build bvh aggregates and benchmark queries
-		for (int bvh = 1; bvh < 6; bvh++) {
+		for (int bvh = 1; bvh < 8; bvh++) {
 			scene.buildAggregate(static_cast<AggregateType>(bvh));
 			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, bvhTypes[bvh - 1]);
 			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhTypes[bvh - 1]);
@@ -329,7 +330,7 @@ void run()
 		Scene<DIM> bvhScene;
 		bvhScene.loadFiles(true, false);
 
-		for (int bvh = 1; bvh < 6; bvh++) {
+		for (int bvh = 1; bvh < 8; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
 			bvhScene.buildAggregate(static_cast<AggregateType>(bvh));
 			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
