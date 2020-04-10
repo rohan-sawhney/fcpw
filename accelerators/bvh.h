@@ -22,11 +22,11 @@ enum class CostHeuristic {
 template <int DIM>
 struct BvhFlatNode {
 	// constructor
-	BvhFlatNode(): bbox(false), start(0), nPrimitives(0), rightOffset(0) {}
+	BvhFlatNode(): bbox(false), start(0), nReferences(0), rightOffset(0) {}
 
 	// members
 	BoundingBox<DIM> bbox;
-	int start, nPrimitives, rightOffset;
+	int start, nReferences, rightOffset;
 };
 
 template <int DIM>
@@ -56,13 +56,21 @@ public:
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 protected:
+	// helper function to build binary tree
+	void buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+						std::vector<Vector<DIM>>& referenceCentroids,
+						std::vector<BvhFlatNode<DIM>>& buildNodes,
+						int parent, int start, int end);
+
 	// builds binary tree
-	void build(const CostHeuristic& costHeuristic);
+	void build();
 
 	// members
+	CostHeuristic costHeuristic;
 	int nNodes, nLeafs, leafSize;
-	std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
+	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<BvhFlatNode<DIM>> flatTree;
+	std::vector<int> references;
 };
 
 } // namespace fcpw

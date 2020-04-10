@@ -3,16 +3,6 @@
 
 namespace fcpw {
 
-struct BvhBuildEntry {
-	// constructor
-	BvhBuildEntry(int parent_, int start_, int end_):
-				  parent(parent_), start(start_), end(end_) {}
-
-	// members
-	int parent; // if non-zero then this is the index of the parent (used in offsets)
-	int start, end; // the range of primitives in the primitive list covered by this node
-};
-
 struct BvhTraversal {
 	// constructor
 	BvhTraversal(int i_, float d_): i(i_), d(d_) {}
@@ -25,6 +15,7 @@ struct BvhTraversal {
 template <int DIM>
 inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 					 const CostHeuristic& costHeuristic_, int leafSize_):
+costHeuristic(costHeuristic_),
 nNodes(0),
 nLeafs(0),
 leafSize(leafSize_),
@@ -33,7 +24,7 @@ primitives(primitives_)
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-	build(costHeuristic_);
+	build();
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
@@ -49,30 +40,30 @@ inline float computeSplitCost(const CostHeuristic& costHeuristic,
 							  const BoundingBox<DIM>& bboxLeft,
 							  const BoundingBox<DIM>& bboxRight,
 							  float parentSurfaceArea, float parentVolume,
-							  int nPrimitivesLeft, int nPrimitivesRight)
+							  int nReferencesLeft, int nReferencesRight)
 {
 	float cost = maxFloat;
 	if (costHeuristic == CostHeuristic::SurfaceArea) {
-		cost = (nPrimitivesLeft*bboxLeft.surfaceArea() +
-				nPrimitivesRight*bboxRight.surfaceArea())/parentSurfaceArea;
+		cost = (nReferencesLeft*bboxLeft.surfaceArea() +
+				nReferencesRight*bboxRight.surfaceArea())/parentSurfaceArea;
 
 	} else if (costHeuristic == CostHeuristic::OverlapSurfaceArea) {
 		// cost can be negative, but that's a good thing, because the more negative the cost
 		// the further apart the left and right boxes should be
 		BoundingBox<DIM> bboxIntersected = bboxLeft.intersect(bboxRight);
-		cost = (nPrimitivesLeft/bboxRight.surfaceArea() +
-				nPrimitivesRight/bboxLeft.surfaceArea())*bboxIntersected.surfaceArea();
+		cost = (nReferencesLeft/bboxRight.surfaceArea() +
+				nReferencesRight/bboxLeft.surfaceArea())*bboxIntersected.surfaceArea();
 
 	} else if (costHeuristic == CostHeuristic::Volume) {
-		cost = (nPrimitivesLeft*bboxLeft.volume() +
-				nPrimitivesRight*bboxRight.volume())/parentVolume;
+		cost = (nReferencesLeft*bboxLeft.volume() +
+				nReferencesRight*bboxRight.volume())/parentVolume;
 
 	} else if (costHeuristic == CostHeuristic::OverlapVolume) {
 		// cost can be negative, but that's a good thing, because the more negative the cost
 		// the further apart the left and right boxes should be
 		BoundingBox<DIM> bboxIntersected = bboxLeft.intersect(bboxRight);
-		cost = (nPrimitivesLeft/bboxRight.volume() +
-				nPrimitivesRight/bboxLeft.volume())*bboxIntersected.volume();
+		cost = (nReferencesLeft/bboxRight.volume() +
+				nReferencesRight/bboxLeft.volume())*bboxIntersected.volume();
 	}
 
 	return cost;
@@ -82,8 +73,8 @@ template <int DIM>
 inline float computeObjectSplit(const CostHeuristic& costHeuristic,
 								const BoundingBox<DIM>& nodeBoundingBox,
 								const BoundingBox<DIM>& nodeCentroidBox,
-								const std::vector<BoundingBox<DIM>>& primitiveBoxes,
-								const std::vector<Vector<DIM>>& primitiveCentroids,
+								const std::vector<BoundingBox<DIM>>& referenceBoxes,
+								const std::vector<Vector<DIM>>& referenceCentroids,
 								int nodeStart, int nodeEnd, int& splitDim, float& splitCoord)
 {
 	float splitCost = maxFloat;
@@ -104,7 +95,7 @@ inline float computeObjectSplit(const CostHeuristic& costHeuristic,
 			// ignore flat dimension
 			if (extent(dim) < 1e-6) continue;
 
-			// bin primitives into buckets
+			// bin references into buckets
 			float bucketWidth = extent(dim)/nBuckets;
 			for (int b = 0; b < nBuckets; b++) {
 				buckets[b].first = BoundingBox<DIM>(true);
@@ -112,9 +103,9 @@ inline float computeObjectSplit(const CostHeuristic& costHeuristic,
 			}
 
 			for (int p = nodeStart; p < nodeEnd; p++) {
-				int bucketIndex = (int)((primitiveCentroids[p](dim) - nodeBoundingBox.pMin(dim))/bucketWidth);
+				int bucketIndex = (int)((referenceCentroids[p](dim) - nodeBoundingBox.pMin(dim))/bucketWidth);
 				bucketIndex = clamp(bucketIndex, 0, nBuckets - 1);
-				buckets[bucketIndex].first.expandToInclude(primitiveBoxes[p]);
+				buckets[bucketIndex].first.expandToInclude(referenceBoxes[p]);
 				buckets[bucketIndex].second += 1;
 			}
 
@@ -122,21 +113,21 @@ inline float computeObjectSplit(const CostHeuristic& costHeuristic,
 			for (int b = 1; b < nBuckets; b++) {
 				// compute left and right child boxes for this particular split
 				BoundingBox<DIM> bboxLeft(true), bboxRight(true);
-				int nPrimitivesLeft = 0, nPrimitivesRight = 0;
+				int nReferencesLeft = 0, nReferencesRight = 0;
 
 				for (int i = 0; i < b; i++) {
 					bboxLeft.expandToInclude(buckets[i].first);
-					nPrimitivesLeft += buckets[i].second;
+					nReferencesLeft += buckets[i].second;
 				}
 
 				for (int i = b; i < nBuckets; i++) {
 					bboxRight.expandToInclude(buckets[i].first);
-					nPrimitivesRight += buckets[i].second;
+					nReferencesRight += buckets[i].second;
 				}
 
 				// compute split cost based on heuristic
 				float cost = computeSplitCost(costHeuristic, bboxLeft, bboxRight, surfaceArea,
-											  volume, nPrimitivesLeft, nPrimitivesRight);
+											  volume, nReferencesLeft, nReferencesRight);
 				float coord = nodeBoundingBox.pMin(dim) + b*bucketWidth;
 
 				if (cost < splitCost) {
@@ -158,112 +149,113 @@ inline float computeObjectSplit(const CostHeuristic& costHeuristic,
 }
 
 template <int DIM>
-inline void Bvh<DIM>::build(const CostHeuristic& costHeuristic)
+inline void Bvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+									 std::vector<Vector<DIM>>& referenceCentroids,
+									 std::vector<BvhFlatNode<DIM>>& buildNodes,
+									 int parent, int start, int end)
+{
+	const int Untouched    = 0xffffffff;
+	const int TouchedTwice = 0xfffffffd;
+
+	// add node to tree
+	BvhFlatNode<DIM> node;
+	int currentNodeIndex = nNodes;
+	int nReferences = end - start;
+
+	nNodes++;
+	node.start = start;
+	node.nReferences = nReferences;
+	node.rightOffset = Untouched;
+
+	// calculate the bounding box for this node
+	BoundingBox<DIM> bb(true), bc(true);
+	for (int p = start; p < end; p++) {
+		bb.expandToInclude(referenceBoxes[p]);
+		bc.expandToInclude(referenceCentroids[p]);
+	}
+
+	node.bbox = bb;
+
+	// if the number of references at this point is less than the leaf
+	// size, then this will become a leaf (signified by rightOffset == 0)
+	if (nReferences <= leafSize) {
+		node.rightOffset = 0;
+		nLeafs++;
+	}
+
+	buildNodes.emplace_back(node);
+
+	// child touches parent...
+	// special case: don't do this for the root
+	if (parent != 0xfffffffc) {
+		buildNodes[parent].rightOffset--;
+
+		// when this is the second touch, this is the right child;
+		// the right child sets up the offset for the flat tree
+		if (buildNodes[parent].rightOffset == TouchedTwice) {
+			buildNodes[parent].rightOffset = nNodes - 1 - parent;
+		}
+	}
+
+	// if this is a leaf, no need to subdivide
+	if (node.rightOffset == 0) return;
+
+	// choose splitDim and splitCoord based on cost heuristic
+	int splitDim;
+	float splitCoord;
+	float splitCost = computeObjectSplit<DIM>(costHeuristic, bb, bc,
+											  referenceBoxes, referenceCentroids,
+											  start, end, splitDim, splitCoord);
+
+	// partition the list of references on this split
+	int mid = start;
+	for (int i = start; i < end; i++) {
+		if (referenceCentroids[i][splitDim] < splitCoord) {
+			std::swap(references[i], references[mid]);
+			std::swap(referenceBoxes[i], referenceBoxes[mid]);
+			std::swap(referenceCentroids[i], referenceCentroids[mid]);
+			mid++;
+		}
+	}
+
+	// if we get a bad split, just choose the center...
+	if (mid == start || mid == end) {
+		mid = start + (end - start)/2;
+	}
+
+	// push left and right children
+	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
+				   currentNodeIndex, start, mid);
+	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
+				   currentNodeIndex, mid, end);
+}
+
+template <int DIM>
+inline void Bvh<DIM>::build()
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
-	std::stack<BvhBuildEntry> todo;
-	const int Untouched    = 0xffffffff;
-	const int TouchedTwice = 0xfffffffd;
-
 	// precompute bounding boxes and centroids
-	int nPrimitives = (int)primitives.size();
-	std::vector<BoundingBox<DIM>> primitiveBoxes;
-	std::vector<Vector<DIM>> primitiveCentroids;
+	int nReferences = (int)primitives.size();
+	std::vector<BoundingBox<DIM>> referenceBoxes;
+	std::vector<Vector<DIM>> referenceCentroids;
 
-	for (int i = 0; i < nPrimitives; i++) {
-		primitiveBoxes.emplace_back(primitives[i]->boundingBox());
-		primitiveCentroids.emplace_back(primitives[i]->centroid());
+	for (int i = 0; i < nReferences; i++) {
+		referenceBoxes.emplace_back(primitives[i]->boundingBox());
+		referenceCentroids.emplace_back(primitives[i]->centroid());
+		references.emplace_back(i);
 	}
 
-	// push the root
-	todo.emplace(BvhBuildEntry(0xfffffffc, 0, nPrimitives));
-
-	BvhFlatNode<DIM> node;
 	std::vector<BvhFlatNode<DIM>> buildNodes;
-	buildNodes.reserve(nPrimitives*2);
+	buildNodes.reserve(nReferences*2);
 
-	while (!todo.empty()) {
-		// pop the next item off the stack
-		BvhBuildEntry buildEntry = todo.top();
-		todo.pop();
-
-		int start = buildEntry.start;
-		int end = buildEntry.end;
-		int nPrimitives = end - start;
-
-		nNodes++;
-		node.start = start;
-		node.nPrimitives = nPrimitives;
-		node.rightOffset = Untouched;
-
-		// calculate the bounding box for this node
-		BoundingBox<DIM> bb(true), bc(true);
-		for (int p = start; p < end; p++) {
-			bb.expandToInclude(primitiveBoxes[p]);
-			bc.expandToInclude(primitiveCentroids[p]);
-		}
-
-		node.bbox = bb;
-
-		// if the number of primitives at this point is less than the leaf
-		// size, then this will become a leaf (signified by rightOffset == 0)
-		if (nPrimitives <= leafSize) {
-			node.rightOffset = 0;
-			nLeafs++;
-		}
-
-		buildNodes.emplace_back(node);
-
-		// child touches parent...
-		// special case: don't do this for the root
-		if (buildEntry.parent != 0xfffffffc) {
-			buildNodes[buildEntry.parent].rightOffset--;
-
-			// when this is the second touch, this is the right child;
-			// the right child sets up the offset for the flat tree
-			if (buildNodes[buildEntry.parent].rightOffset == TouchedTwice) {
-				buildNodes[buildEntry.parent].rightOffset = nNodes - 1 - buildEntry.parent;
-			}
-		}
-
-		// if this is a leaf, no need to subdivide
-		if (node.rightOffset == 0) {
-			continue;
-		}
-
-		// choose splitDim and splitCoord based on cost heuristic
-		int splitDim;
-		float splitCoord;
-		float splitCost = computeObjectSplit<DIM>(costHeuristic, bb, bc,
-												  primitiveBoxes, primitiveCentroids,
-												  start, end, splitDim, splitCoord);
-
-		// partition the list of primitives on this split
-		int mid = start;
-		for (int i = start; i < end; i++) {
-			if (primitiveCentroids[i][splitDim] < splitCoord) {
-				std::swap(primitives[i], primitives[mid]);
-				std::swap(primitiveBoxes[i], primitiveBoxes[mid]);
-				std::swap(primitiveCentroids[i], primitiveCentroids[mid]);
-				mid++;
-			}
-		}
-
-		// if we get a bad split, just choose the center...
-		if (mid == start || mid == end) {
-			mid = start + (end - start)/2;
-		}
-
-		// push right and left children
-		todo.emplace(BvhBuildEntry(nNodes - 1, mid, end));
-		todo.emplace(BvhBuildEntry(nNodes - 1, start, mid));
-	}
+	// build tree recursively
+	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
+				   0xfffffffc, 0, nReferences);
 
 	// copy the temp node data to a flat array
-	flatTree.clear();
 	flatTree.reserve(nNodes);
 	for (int n = 0; n < nNodes; n++) {
 		flatTree.emplace_back(buildNodes[n]);
@@ -335,9 +327,9 @@ inline int Bvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 
 		// is leaf -> intersect
 		if (node.rightOffset == 0) {
-			for (int p = 0; p < node.nPrimitives; p++) {
+			for (int p = 0; p < node.nReferences; p++) {
 				std::vector<Interaction<DIM>> cs;
-				const std::shared_ptr<Primitive<DIM>>& prim = primitives[node.start + p];
+				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
 				int hit = prim->intersect(r, cs, checkOcclusion, countHits);
 
 				// keep the closest intersection only
@@ -426,9 +418,9 @@ inline bool Bvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>&
 
 		// is leaf -> compute squared distance
 		if (node.rightOffset == 0) {
-			for (int p = 0; p < node.nPrimitives; p++) {
+			for (int p = 0; p < node.nReferences; p++) {
 				Interaction<DIM> c;
-				const std::shared_ptr<Primitive<DIM>>& prim = primitives[node.start + p];
+				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
 				bool found = prim->findClosestPoint(s, c);
 
 				// keep the closest point only
