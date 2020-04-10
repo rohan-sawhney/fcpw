@@ -73,6 +73,41 @@ inline float computeSplitCost(const CostHeuristic& costHeuristic,
 }
 
 template <int DIM>
+inline void evaluateBucketSplitCosts(const CostHeuristic& costHeuristic,
+									 const BoundingBox<DIM>& nodeBoundingBox,
+									 const std::vector<std::pair<BoundingBox<DIM>, int>>& buckets,
+									 int nBuckets, float bucketWidth, float surfaceArea, float volume,
+									 int dim, float& splitCost, int& splitDim, float& splitCoord)
+{
+	for (int b = 1; b < nBuckets; b++) {
+		// compute left and right child boxes for this particular split
+		BoundingBox<DIM> bboxLeft(true), bboxRight(true);
+		int nReferencesLeft = 0, nReferencesRight = 0;
+
+		for (int i = 0; i < b; i++) {
+			bboxLeft.expandToInclude(buckets[i].first);
+			nReferencesLeft += buckets[i].second;
+		}
+
+		for (int i = b; i < nBuckets; i++) {
+			bboxRight.expandToInclude(buckets[i].first);
+			nReferencesRight += buckets[i].second;
+		}
+
+		// compute split cost based on heuristic
+		float cost = computeSplitCost(costHeuristic, bboxLeft, bboxRight, surfaceArea,
+									  volume, nReferencesLeft, nReferencesRight);
+		float coord = nodeBoundingBox.pMin(dim) + b*bucketWidth;
+
+		if (cost < splitCost) {
+			splitCost = cost;
+			splitDim = dim;
+			splitCoord = coord;
+		}
+	}
+}
+
+template <int DIM>
 inline float computeObjectSplit(const CostHeuristic& costHeuristic,
 								const BoundingBox<DIM>& nodeBoundingBox,
 								const BoundingBox<DIM>& nodeCentroidBox,
@@ -112,33 +147,10 @@ inline float computeObjectSplit(const CostHeuristic& costHeuristic,
 				buckets[bucketIndex].second += 1;
 			}
 
-			// evaluate split costs
-			for (int b = 1; b < nBuckets; b++) {
-				// compute left and right child boxes for this particular split
-				BoundingBox<DIM> bboxLeft(true), bboxRight(true);
-				int nReferencesLeft = 0, nReferencesRight = 0;
-
-				for (int i = 0; i < b; i++) {
-					bboxLeft.expandToInclude(buckets[i].first);
-					nReferencesLeft += buckets[i].second;
-				}
-
-				for (int i = b; i < nBuckets; i++) {
-					bboxRight.expandToInclude(buckets[i].first);
-					nReferencesRight += buckets[i].second;
-				}
-
-				// compute split cost based on heuristic
-				float cost = computeSplitCost(costHeuristic, bboxLeft, bboxRight, surfaceArea,
-											  volume, nReferencesLeft, nReferencesRight);
-				float coord = nodeBoundingBox.pMin(dim) + b*bucketWidth;
-
-				if (cost < splitCost) {
-					splitCost = cost;
-					splitDim = dim;
-					splitCoord = coord;
-				}
-			}
+			// evaluate bucket split costs
+			evaluateBucketSplitCosts<DIM>(costHeuristic, nodeBoundingBox, buckets,
+										  nBuckets, bucketWidth, surfaceArea, volume,
+										  dim, splitCost, splitDim, splitCoord);
 		}
 	}
 
@@ -150,6 +162,10 @@ inline float computeObjectSplit(const CostHeuristic& costHeuristic,
 
 	return splitCost;
 }
+
+// computeSpatialSplit
+// splitReference
+// performSpatialSplit
 
 template <int DIM>
 inline void Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,

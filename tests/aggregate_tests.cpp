@@ -302,8 +302,8 @@ void run()
 		std::cout << "Running performance tests..." << std::endl;
 
 		// benchmark baseline queries
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
+		//timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
+		//timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
 
 		// build bvh aggregates and benchmark queries
 		for (int bvh = 1; bvh < 8; bvh++) {
