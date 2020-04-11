@@ -1,9 +1,11 @@
 #pragma once
 
 #include "primitive.h"
+#include <tuple>
 
 namespace fcpw {
-// modified version of https://github.com/brandonpelfrey/Fast-BVH
+// modified version of https://github.com/brandonpelfrey/Fast-BVH and
+// https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
 // TODO:
 // - implement mbvh/qbvh with vectorization (try enoki?)
 // - build a spatial data structure on top of bvh
@@ -35,7 +37,7 @@ public:
 	// constructor
 	Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 		 const CostHeuristic& costHeuristic_, float splitAlpha_=1e-5,
-		 int leafSize_=4, int nBuckets_=8);
+		 int leafSize_=4, int nBuckets_=8, int nBins_=8);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -64,6 +66,11 @@ protected:
 							 const std::vector<Vector<DIM>>& referenceCentroids,
 							 int nodeStart, int nodeEnd, int& splitDim, float& splitCoord);
 
+	// performs object split
+	int performObjectSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
+						   std::vector<Vector<DIM>>& referenceCentroids,
+						   int nodeStart, int nodeEnd, int splitDim, float splitCoord);
+
 	// helper function to build binary tree
 	void buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 						std::vector<Vector<DIM>>& referenceCentroids,
@@ -76,8 +83,9 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	float splitAlpha;
-	int nNodes, nLeafs, leafSize, nBuckets;
-	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes;
+	int nNodes, nLeafs, leafSize, nBuckets, nBins;
+	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes, rightBinBoxes;
+	std::vector<std::tuple<BoundingBox<DIM>, int, int>> bins;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<SbvhFlatNode<DIM>> flatTree;
 	std::vector<int> references;

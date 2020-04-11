@@ -15,15 +15,18 @@ struct SbvhTraversal {
 template <int DIM>
 inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 					   const CostHeuristic& costHeuristic_, float splitAlpha_,
-					   int leafSize_, int nBuckets_):
+					   int leafSize_, int nBuckets_, int nBins_):
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),
 nNodes(0),
 nLeafs(0),
 leafSize(leafSize_),
 nBuckets(nBuckets_),
+nBins(nBins_),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(true), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(true), 0)),
+rightBinBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(true), 0)),
+bins(nBins, std::make_tuple(BoundingBox<DIM>(true), 0, 0)),
 primitives(primitives_)
 {
 	using namespace std::chrono;
@@ -147,9 +150,28 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 	return splitCost;
 }
 
-// splitReference
-// computeSpatialSplit
-// performSpatialSplit
+template <int DIM>
+int Sbvh<DIM>::performObjectSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
+								  std::vector<Vector<DIM>>& referenceCentroids,
+								  int nodeStart, int nodeEnd, int splitDim, float splitCoord)
+{
+	int mid = nodeStart;
+	for (int i = nodeStart; i < nodeEnd; i++) {
+		if (referenceCentroids[i][splitDim] < splitCoord) {
+			std::swap(references[i], references[mid]);
+			std::swap(referenceBoxes[i], referenceBoxes[mid]);
+			std::swap(referenceCentroids[i], referenceCentroids[mid]);
+			mid++;
+		}
+	}
+
+	// if we get a bad split, just choose the center...
+	if (mid == nodeStart || mid == nodeEnd) {
+		mid = nodeStart + (nodeEnd - nodeStart)/2;
+	}
+
+	return mid;
+}
 
 template <int DIM>
 inline void Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
@@ -210,20 +232,8 @@ inline void Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBo
 										 start, end, splitDim, splitCoord);
 
 	// partition the list of references on this split
-	int mid = start;
-	for (int i = start; i < end; i++) {
-		if (referenceCentroids[i][splitDim] < splitCoord) {
-			std::swap(references[i], references[mid]);
-			std::swap(referenceBoxes[i], referenceBoxes[mid]);
-			std::swap(referenceCentroids[i], referenceCentroids[mid]);
-			mid++;
-		}
-	}
-
-	// if we get a bad split, just choose the center...
-	if (mid == start || mid == end) {
-		mid = start + (end - start)/2;
-	}
+	int mid = performObjectSplit(referenceBoxes, referenceCentroids,
+								 start, end, splitDim, splitCoord);
 
 	// push left and right children
 	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
