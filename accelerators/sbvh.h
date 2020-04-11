@@ -34,8 +34,8 @@ class Sbvh: public Aggregate<DIM> {
 public:
 	// constructor
 	Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-		 const CostHeuristic& costHeuristic_, int leafSize_=4,
-		 float splitAlpha_=1e-5);
+		 const CostHeuristic& costHeuristic_, float splitAlpha_=1e-5,
+		 int leafSize_=4, int nBuckets_=8);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -57,6 +57,13 @@ public:
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 protected:
+	// computes object split
+	float computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
+							 const BoundingBox<DIM>& nodeCentroidBox,
+							 const std::vector<BoundingBox<DIM>>& referenceBoxes,
+							 const std::vector<Vector<DIM>>& referenceCentroids,
+							 int nodeStart, int nodeEnd, int& splitDim, float& splitCoord);
+
 	// helper function to build binary tree
 	void buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 						std::vector<Vector<DIM>>& referenceCentroids,
@@ -68,8 +75,9 @@ protected:
 
 	// members
 	CostHeuristic costHeuristic;
-	int nNodes, nLeafs, leafSize;
 	float splitAlpha;
+	int nNodes, nLeafs, leafSize, nBuckets;
+	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<SbvhFlatNode<DIM>> flatTree;
 	std::vector<int> references;

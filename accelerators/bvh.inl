@@ -3,7 +3,7 @@ namespace fcpw {
 template <int DIM>
 inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 					 const CostHeuristic& costHeuristic_, int leafSize_):
-sbvh(primitives_, costHeuristic_, leafSize_, 1.0f)
+sbvh(primitives_, costHeuristic_, 1.0f, leafSize_)
 {
 
 }
