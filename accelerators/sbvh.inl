@@ -18,6 +18,8 @@ inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_
 					   int leafSize_, int nBuckets_, int nBins_):
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),
+rootSurfaceArea(0.0f),
+rootVolume(0.0f),
 nNodes(0),
 nLeafs(0),
 leafSize(leafSize_),
@@ -57,22 +59,22 @@ inline float computeSplitCost(const CostHeuristic& costHeuristic,
 				nReferencesRight*bboxRight.surfaceArea())/parentSurfaceArea;
 
 	} else if (costHeuristic == CostHeuristic::OverlapSurfaceArea) {
-		// cost can be negative, but that's a good thing, because the more negative the cost
-		// the further apart the left and right boxes should be
+		// set the cost to be negative if the left and right boxes don't overlap at all
 		BoundingBox<DIM> bboxIntersected = bboxLeft.intersect(bboxRight);
 		cost = (nReferencesLeft/bboxRight.surfaceArea() +
-				nReferencesRight/bboxLeft.surfaceArea())*bboxIntersected.surfaceArea();
+				nReferencesRight/bboxLeft.surfaceArea())*std::fabs(bboxIntersected.surfaceArea());
+		if (!bboxIntersected.isValid()) cost *= -1;
 
 	} else if (costHeuristic == CostHeuristic::Volume) {
 		cost = (nReferencesLeft*bboxLeft.volume() +
 				nReferencesRight*bboxRight.volume())/parentVolume;
 
 	} else if (costHeuristic == CostHeuristic::OverlapVolume) {
-		// cost can be negative, but that's a good thing, because the more negative the cost
-		// the further apart the left and right boxes should be
+		// set the cost to be negative if the left and right boxes don't overlap at all
 		BoundingBox<DIM> bboxIntersected = bboxLeft.intersect(bboxRight);
 		cost = (nReferencesLeft/bboxRight.volume() +
-				nReferencesRight/bboxLeft.volume())*bboxIntersected.volume();
+				nReferencesRight/bboxLeft.volume())*std::fabs(bboxIntersected.volume());
+		if (!bboxIntersected.isValid()) cost *= -1;
 	}
 
 	return cost;
@@ -151,9 +153,9 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 }
 
 template <int DIM>
-int Sbvh<DIM>::performObjectSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
-								  std::vector<Vector<DIM>>& referenceCentroids,
-								  int nodeStart, int nodeEnd, int splitDim, float splitCoord)
+inline int Sbvh<DIM>::performObjectSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
+										 std::vector<Vector<DIM>>& referenceCentroids,
+										 int nodeStart, int nodeEnd, int splitDim, float splitCoord)
 {
 	int mid = nodeStart;
 	for (int i = nodeStart; i < nodeEnd; i++) {
@@ -225,15 +227,15 @@ inline void Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBo
 	// if this is a leaf, no need to subdivide
 	if (node.rightOffset == 0) return;
 
-	// choose splitDim and splitCoord based on cost heuristic
-	int splitDim;
-	float splitCoord;
-	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
-										 start, end, splitDim, splitCoord);
+	// compute an object split
+	int objectSplitDim;
+	float objectSplitCoord;
+	float objectSplitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
+											   start, end, objectSplitDim, objectSplitCoord);
 
 	// partition the list of references on this split
 	int mid = performObjectSplit(referenceBoxes, referenceCentroids,
-								 start, end, splitDim, splitCoord);
+								 start, end, objectSplitDim, objectSplitCoord);
 
 	// push left and right children
 	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
@@ -253,15 +255,20 @@ inline void Sbvh<DIM>::build()
 	int nReferences = (int)primitives.size();
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
+	BoundingBox<DIM> bboxRoot(true);
 
 	for (int i = 0; i < nReferences; i++) {
 		referenceBoxes.emplace_back(primitives[i]->boundingBox());
 		referenceCentroids.emplace_back(primitives[i]->centroid());
+		bboxRoot.expandToInclude(referenceBoxes[i]);
 		references.emplace_back(i);
 	}
 
 	std::vector<SbvhFlatNode<DIM>> buildNodes;
 	buildNodes.reserve(nReferences*2);
+
+	rootSurfaceArea = bboxRoot.surfaceArea();
+	rootVolume = bboxRoot.volume();
 
 	// build tree recursively
 	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,

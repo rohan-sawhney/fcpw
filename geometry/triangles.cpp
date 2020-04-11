@@ -263,7 +263,7 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 
 	int vIndex = -1;
 	int eIndex = -1;
-	double d = findClosestPointOnTriangle(pa, pb, pc, s.c, i.p, i.uv, vIndex, eIndex);
+	float d = findClosestPointOnTriangle(pa, pb, pc, s.c, i.p, i.uv, vIndex, eIndex);
 
 	if (d*d <= s.r2) {
 		i.d = d;

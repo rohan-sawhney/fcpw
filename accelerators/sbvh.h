@@ -82,7 +82,7 @@ protected:
 
 	// members
 	CostHeuristic costHeuristic;
-	float splitAlpha;
+	float splitAlpha, rootSurfaceArea, rootVolume;
 	int nNodes, nLeafs, leafSize, nBuckets, nBins;
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes, rightBinBoxes;
 	std::vector<std::tuple<BoundingBox<DIM>, int, int>> bins;

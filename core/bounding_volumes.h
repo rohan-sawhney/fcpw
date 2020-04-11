@@ -132,6 +132,15 @@ public:
 		return true;
 	}
 
+	// checks whether bounding box is valid
+	bool isValid() const {
+		for (int i = 0; i < DIM; i++) {
+			if (pMax(i) < pMin(i)) return false;
+		}
+
+		return true;
+	}
+
 	// returns max dimension
 	int maxDimension() const {
 		Vector<DIM> e = extent();
