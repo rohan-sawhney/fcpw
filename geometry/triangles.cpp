@@ -112,6 +112,34 @@ Vector3f Triangle::normal(int vIndex, int eIndex) const
 	return normal(true);
 }
 
+void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
+					 BoundingBox<3>& bboxRight) const
+{
+	bboxLeft = BoundingBox<3>(true);
+	bboxRight = BoundingBox<3>(true);
+
+	for (int i = 0; i < 3; i++) {
+		const Vector3f& pa = soup->positions[indices[i]];
+		const Vector3f& pb = soup->positions[indices[(i + 1)%3]];
+		float paCoord = pa(dim);
+		float pbCoord = pb(dim);
+
+		// insert pa into the box it belongs to
+		if (paCoord <= splitCoord) bboxLeft.expandToInclude(pa);
+		if (paCoord >= splitCoord) bboxRight.expandToInclude(pa);
+
+		// check if this edge intersects plane
+		if ((paCoord < splitCoord && pbCoord > splitCoord) ||
+			(paCoord > splitCoord && pbCoord < splitCoord)) {
+			// add the point lying on the plane to both the left and right boxes
+			float t = clamp((splitCoord - paCoord)/(pbCoord - paCoord), 0.0f, 1.0f);
+			Vector3f p = pa + t*(pb - pa);
+			bboxLeft.expandToInclude(p);
+			bboxRight.expandToInclude(p);
+		}
+	}
+}
+
 int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 						bool checkOcclusion, bool countHits) const
 {

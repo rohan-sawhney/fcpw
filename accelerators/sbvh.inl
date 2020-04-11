@@ -85,11 +85,13 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 										   const BoundingBox<DIM>& nodeCentroidBox,
 										   const std::vector<BoundingBox<DIM>>& referenceBoxes,
 										   const std::vector<Vector<DIM>>& referenceCentroids,
-										   int nodeStart, int nodeEnd, int& splitDim, float& splitCoord)
+										   int nodeStart, int nodeEnd, int& splitDim, float& splitCoord,
+										   BoundingBox<DIM>& bboxIntersected)
 {
 	float splitCost = maxFloat;
 	splitDim = -1;
 	splitCoord = 0.0f;
+	bboxIntersected = BoundingBox<DIM>(false);
 
 	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
 		Vector<DIM> extent = nodeBoundingBox.extent();
@@ -138,6 +140,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 					splitCost = cost;
 					splitDim = dim;
 					splitCoord = nodeBoundingBox.pMin(dim) + b*bucketWidth;
+					bboxIntersected = bboxLeft.intersect(bboxRight);
 				}
 			}
 		}
@@ -176,10 +179,114 @@ inline int Sbvh<DIM>::performObjectSplit(std::vector<BoundingBox<DIM>>& referenc
 }
 
 template <int DIM>
-inline void Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
-									  std::vector<Vector<DIM>>& referenceCentroids,
-									  std::vector<SbvhFlatNode<DIM>>& buildNodes,
-									  int parent, int start, int end)
+inline void Sbvh<DIM>::splitReference(int referenceIndex, int dim, float splitCoord,
+									  const BoundingBox<DIM>& bboxReference,
+									  BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight) const
+{
+	// split primitive along the provided coordinate and axis
+	primitives[referenceIndex]->split(dim, splitCoord, bboxLeft, bboxRight);
+
+	// intersect with bounds
+	bboxLeft = bboxLeft.intersect(bboxReference);
+	bboxRight = bboxRight.intersect(bboxReference);
+}
+
+template <int DIM>
+inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
+											const std::vector<BoundingBox<DIM>>& referenceBoxes,
+											int nodeStart, int nodeEnd, int& splitDim, float& splitCoord)
+{
+	float splitCost = maxFloat;
+	splitDim = -1;
+	splitCoord = 0.0f;
+
+	Vector<DIM> extent = nodeBoundingBox.extent();
+	float surfaceArea = nodeBoundingBox.surfaceArea();
+	float volume = nodeBoundingBox.volume();
+
+	// find the best split across all three dimensions
+	for (int dim = 0; dim < DIM; dim++) {
+		// ignore flat dimension
+		if (extent(dim) < 1e-6) continue;
+
+		// bin references
+		float binWidth = extent(dim)/nBins;
+		for (int b = 0; b < nBins; b++) {
+			std::get<0>(bins[b]) = BoundingBox<DIM>(true);
+			std::get<1>(bins[b]) = 0;
+			std::get<2>(bins[b]) = 0;
+		}
+
+		for (int p = nodeStart; p < nodeEnd; p++) {
+			// find the bins the reference is contained in
+			int firstBinIndex = (int)((referenceBoxes[p].pMin(dim) - nodeBoundingBox.pMin(dim))/binWidth);
+			int lastBinIndex = (int)((referenceBoxes[p].pMax(dim) - nodeBoundingBox.pMin(dim))/binWidth);
+			firstBinIndex = clamp(firstBinIndex, 0, nBins - 1);
+			lastBinIndex = clamp(lastBinIndex, 0, nBins - 1);
+			BoundingBox<DIM> bboxReference = referenceBoxes[p];
+
+			// loop over those bins, splitting the reference and growing the bin boxes
+			for (int b = firstBinIndex; b < lastBinIndex; b++) {
+				BoundingBox<DIM> bboxLeft(true), bboxRight(true);
+				float coord = nodeBoundingBox.pMin(dim) + (b + 1)*binWidth;
+				splitReference(references[p], dim, coord, bboxReference, bboxLeft, bboxRight);
+				std::get<0>(bins[b]).expandToInclude(bboxLeft);
+				bboxReference = bboxRight;
+			}
+
+			std::get<0>(bins[lastBinIndex]).expandToInclude(bboxReference);
+			std::get<1>(bins[firstBinIndex]) += 1; // increment number of entries
+			std::get<2>(bins[lastBinIndex]) += 1; // increment number of exits
+		}
+
+		// sweep right to left to build right bin bounding boxes
+		BoundingBox<DIM> bboxRight(true);
+		for (int b = nBins - 1; b > 0; b--) {
+			bboxRight.expandToInclude(std::get<0>(bins[b]));
+			rightBinBoxes[b].first = bboxRight;
+			rightBinBoxes[b].second = std::get<2>(bins[b]);
+			if (b != nBins - 1) rightBinBoxes[b].second += rightBinBoxes[b + 1].second;
+		}
+
+		// evaluate bin split costs
+		BoundingBox<DIM> bboxLeft(true);
+		int nReferencesLeft = 0;
+		for (int b = 1; b < nBins; b++) {
+			bboxLeft.expandToInclude(std::get<0>(bins[b - 1]));
+			nReferencesLeft += std::get<1>(bins[b - 1]);
+			float cost = computeSplitCost(costHeuristic, bboxLeft, rightBinBoxes[b].first,
+										  surfaceArea, volume, nReferencesLeft,
+										  rightBinBoxes[b].second);
+
+			if (cost < splitCost) {
+				splitCost = cost;
+				splitDim = dim;
+				splitCoord = nodeBoundingBox.pMin(dim) + b*binWidth;
+			}
+		}
+	}
+
+	return splitCost;
+}
+
+template <int DIM>
+inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
+										  std::vector<Vector<DIM>>& referenceCentroids,
+										  int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
+										  int& nReferencesAdded)
+{
+	nReferencesAdded = 0;
+	// TODO
+	nodeEnd += nReferencesAdded;
+
+	return 0;
+}
+
+template <int DIM>
+inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+									 std::vector<Vector<DIM>>& referenceCentroids,
+									 std::vector<SbvhFlatNode<DIM>>& buildNodes,
+									 int parent, int start, int end)
 {
 	const int Untouched    = 0xffffffff;
 	const int TouchedTwice = 0xfffffffd;
@@ -225,23 +332,53 @@ inline void Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBo
 	}
 
 	// if this is a leaf, no need to subdivide
-	if (node.rightOffset == 0) return;
+	if (node.rightOffset == 0) return 0;
 
-	// compute an object split
-	int objectSplitDim;
-	float objectSplitCoord;
-	float objectSplitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
-											   start, end, objectSplitDim, objectSplitCoord);
+	// compute object split
+	int splitDim;
+	float splitCoord;
+	BoundingBox<DIM> bboxIntersected(false);
+	bool isObjectSplitBetter = true;
+	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
+										 start, end, splitDim, splitCoord, bboxIntersected);
 
-	// partition the list of references on this split
-	int mid = performObjectSplit(referenceBoxes, referenceCentroids,
-								 start, end, objectSplitDim, objectSplitCoord);
+	// compute spatial split if intersected box is valid and not too small compared to the scene
+	if ((costHeuristic == CostHeuristic::SurfaceArea &&
+		 bboxIntersected.surfaceArea() > splitAlpha*rootSurfaceArea) ||
+		(costHeuristic == CostHeuristic::Volume &&
+		 bboxIntersected.volume() > splitAlpha*rootVolume)) {
+		int spatialSplitDim;
+		float spatialSplitCoord;
+		float spatialSplitCost = computeSpatialSplit(bb, referenceBoxes, start, end,
+													 spatialSplitDim, spatialSplitCoord);
+
+		if (spatialSplitCost < splitCost) {
+			// TODO: uncomment after implementing performSpatialSplit
+			// isObjectSplitBetter = false;
+			// splitDim = spatialSplitDim;
+			// splitCoord = spatialSplitCoord;
+			// splitCost = spatialSplitCost;
+		}
+	}
+
+	// partition the list of references on split
+	int nReferencesAdded = 0;
+	int mid = isObjectSplitBetter ? performObjectSplit(referenceBoxes, referenceCentroids,
+														start, end, splitDim, splitCoord) :
+									performSpatialSplit(referenceBoxes, referenceCentroids,
+														splitDim, splitCoord, start, end,
+														nReferencesAdded);
 
 	// push left and right children
-	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
-				   currentNodeIndex, start, mid);
-	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
-				   currentNodeIndex, mid, end);
+	int nReferencesAddedLeft = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
+											  currentNodeIndex, start, mid);
+	int nReferencesAddedRight = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
+											   currentNodeIndex, mid + nReferencesAddedLeft,
+											   end + nReferencesAddedLeft);
+	int nTotalReferencesAdded = nReferencesAdded + nReferencesAddedLeft + nReferencesAddedRight;
+	buildNodes[currentNodeIndex].nReferences += nTotalReferencesAdded;
+
+	return nTotalReferencesAdded;
 }
 
 template <int DIM>

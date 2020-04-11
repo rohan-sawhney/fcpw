@@ -64,18 +64,35 @@ protected:
 							 const BoundingBox<DIM>& nodeCentroidBox,
 							 const std::vector<BoundingBox<DIM>>& referenceBoxes,
 							 const std::vector<Vector<DIM>>& referenceCentroids,
-							 int nodeStart, int nodeEnd, int& splitDim, float& splitCoord);
+							 int nodeStart, int nodeEnd, int& splitDim, float& splitCoord,
+							 BoundingBox<DIM>& bboxIntersected);
 
 	// performs object split
 	int performObjectSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
 						   std::vector<Vector<DIM>>& referenceCentroids,
 						   int nodeStart, int nodeEnd, int splitDim, float splitCoord);
 
+	// splits reference
+	void splitReference(int referenceIndex, int dim, float splitCoord,
+						const BoundingBox<DIM>& bboxReference,
+						BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight) const;
+
+	// computes spatial split
+	float computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
+							  const std::vector<BoundingBox<DIM>>& referenceBoxes,
+							  int nodeStart, int nodeEnd, int& splitDim, float& splitCoord);
+
+	// performs spatial split
+	int performSpatialSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
+							std::vector<Vector<DIM>>& referenceCentroids,
+							int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
+							int& nReferencesAdded);
+
 	// helper function to build binary tree
-	void buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
-						std::vector<Vector<DIM>>& referenceCentroids,
-						std::vector<SbvhFlatNode<DIM>>& buildNodes,
-						int parent, int start, int end);
+	int buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+					   std::vector<Vector<DIM>>& referenceCentroids,
+					   std::vector<SbvhFlatNode<DIM>>& buildNodes,
+					   int parent, int start, int end);
 
 	// builds binary tree
 	void build();

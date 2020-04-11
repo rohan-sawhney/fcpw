@@ -28,6 +28,10 @@ public:
 	// returns signed volume
 	virtual float signedVolume() const = 0;
 
+	// splits the primitive along the provided coordinate and axis
+	virtual void split(int dim, float splitCoord, BoundingBox<DIM>& bboxLeft,
+					   BoundingBox<DIM>& bboxRight) const = 0;
+
 	// intersects with ray
 	virtual int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 						  bool checkOcclusion=false, bool countHits=false) const = 0;
@@ -94,6 +98,25 @@ public:
 		LOG_IF(FATAL, i.distanceInfo == DistanceInfo::Bounded)
 							  << "Cannot clamp to boundary since exact distance isn't available";
 		x = i.p;
+	}
+
+	// splits the primitive along the provided coordinate and axis
+	void split(int dim, float splitCoord, BoundingBox<DIM>& bboxLeft,
+			   BoundingBox<DIM>& bboxRight) const {
+		BoundingBox<DIM> bbox = this->boundingBox();
+
+		if (bbox.pMin(dim) <= splitCoord) {
+			bboxLeft = bbox;
+			bboxLeft.pMax(dim) = splitCoord;
+		}
+
+		if (bbox.pMax(dim) >= splitCoord) {
+			bboxRight = bbox;
+			bboxRight.pMin(dim) = splitCoord;
+		}
+
+		bboxLeft.isTight = false;
+		bboxRight.isTight = false;
 	}
 };
 
