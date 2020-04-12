@@ -187,8 +187,8 @@ inline void Sbvh<DIM>::splitReference(int referenceIndex, int dim, float splitCo
 	primitives[referenceIndex]->split(dim, splitCoord, bboxLeft, bboxRight);
 
 	// intersect with bounds
-	bboxLeft = bboxLeft.intersect(bboxReference);
-	bboxRight = bboxRight.intersect(bboxReference);
+	if (bboxLeft.isValid()) bboxLeft = bboxLeft.intersect(bboxReference);
+	if (bboxRight.isValid()) bboxRight = bboxRight.intersect(bboxReference);
 }
 
 template <int DIM>
