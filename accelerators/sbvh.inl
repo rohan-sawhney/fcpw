@@ -25,10 +25,10 @@ nLeafs(0),
 leafSize(leafSize_),
 nBuckets(nBuckets_),
 nBins(nBins_),
-buckets(nBuckets, std::make_pair(BoundingBox<DIM>(true), 0)),
-rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(true), 0)),
-rightBinBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(true), 0)),
-bins(nBins, std::make_tuple(BoundingBox<DIM>(true), 0, 0)),
+buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+rightBinBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0)),
 primitives(primitives_)
 {
 	using namespace std::chrono;
@@ -91,7 +91,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 	float splitCost = maxFloat;
 	splitDim = -1;
 	splitCoord = 0.0f;
-	bboxIntersected = BoundingBox<DIM>(false);
+	bboxIntersected = BoundingBox<DIM>();
 
 	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
 		Vector<DIM> extent = nodeBoundingBox.extent();
@@ -106,7 +106,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 			// bin references into buckets
 			float bucketWidth = extent(dim)/nBuckets;
 			for (int b = 0; b < nBuckets; b++) {
-				buckets[b].first = BoundingBox<DIM>(true);
+				buckets[b].first = BoundingBox<DIM>();
 				buckets[b].second = 0;
 			}
 
@@ -118,7 +118,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 			}
 
 			// sweep right to left to build right bucket bounding boxes
-			BoundingBox<DIM> bboxRight(true);
+			BoundingBox<DIM> bboxRight;
 			for (int b = nBuckets - 1; b > 0; b--) {
 				bboxRight.expandToInclude(buckets[b].first);
 				rightBucketBoxes[b].first = bboxRight;
@@ -127,7 +127,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 			}
 
 			// evaluate bucket split costs
-			BoundingBox<DIM> bboxLeft(true);
+			BoundingBox<DIM> bboxLeft;
 			int nReferencesLeft = 0;
 			for (int b = 1; b < nBuckets; b++) {
 				bboxLeft.expandToInclude(buckets[b - 1].first);
@@ -212,7 +212,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 		// bin references
 		float binWidth = extent(dim)/nBins;
 		for (int b = 0; b < nBins; b++) {
-			std::get<0>(bins[b]) = BoundingBox<DIM>(true);
+			std::get<0>(bins[b]) = BoundingBox<DIM>();
 			std::get<1>(bins[b]) = 0;
 			std::get<2>(bins[b]) = 0;
 		}
@@ -227,7 +227,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 
 			// loop over those bins, splitting the reference and growing the bin boxes
 			for (int b = firstBinIndex; b < lastBinIndex; b++) {
-				BoundingBox<DIM> bboxLeft(true), bboxRight(true);
+				BoundingBox<DIM> bboxLeft, bboxRight;
 				float coord = nodeBoundingBox.pMin(dim) + (b + 1)*binWidth;
 				splitReference(references[p], dim, coord, bboxReference, bboxLeft, bboxRight);
 				std::get<0>(bins[b]).expandToInclude(bboxLeft);
@@ -240,7 +240,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 		}
 
 		// sweep right to left to build right bin bounding boxes
-		BoundingBox<DIM> bboxRight(true);
+		BoundingBox<DIM> bboxRight;
 		for (int b = nBins - 1; b > 0; b--) {
 			bboxRight.expandToInclude(std::get<0>(bins[b]));
 			rightBinBoxes[b].first = bboxRight;
@@ -249,7 +249,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 		}
 
 		// evaluate bin split costs
-		BoundingBox<DIM> bboxLeft(true);
+		BoundingBox<DIM> bboxLeft;
 		int nReferencesLeft = 0;
 		for (int b = 1; b < nBins; b++) {
 			bboxLeft.expandToInclude(std::get<0>(bins[b - 1]));
@@ -313,7 +313,7 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 
 	while (leftEnd < rightStart) {
 		// split reference
-		BoundingBox<DIM> bboxLeft(true), bboxRight(true);
+		BoundingBox<DIM> bboxLeft, bboxRight;
 		splitReference(references[leftEnd], splitDim, splitCoord,
 					   referenceBoxes[leftEnd], bboxLeft, bboxRight);
 
@@ -363,7 +363,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	node.rightOffset = Untouched;
 
 	// calculate the bounding box for this node
-	BoundingBox<DIM> bb(true), bc(true);
+	BoundingBox<DIM> bb, bc;
 	for (int p = start; p < end; p++) {
 		bb.expandToInclude(referenceBoxes[p]);
 		bc.expandToInclude(referenceCentroids[p]);
@@ -398,7 +398,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	// compute object split
 	int splitDim;
 	float splitCoord;
-	BoundingBox<DIM> bboxIntersected(false);
+	BoundingBox<DIM> bboxIntersected;
 	bool isObjectSplitBetter = true;
 	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
 										 start, end, splitDim, splitCoord, bboxIntersected);
@@ -452,7 +452,7 @@ inline void Sbvh<DIM>::build()
 	int nReferences = (int)primitives.size();
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
-	BoundingBox<DIM> bboxRoot(true);
+	BoundingBox<DIM> bboxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
 		referenceBoxes.emplace_back(primitives[i]->boundingBox());
@@ -481,7 +481,7 @@ inline void Sbvh<DIM>::build()
 template <int DIM>
 inline BoundingBox<DIM> Sbvh<DIM>::boundingBox() const
 {
-	return flatTree.size() > 0 ? flatTree[0].bbox : BoundingBox<DIM>(false);
+	return flatTree.size() > 0 ? flatTree[0].bbox : BoundingBox<DIM>();
 }
 
 template <int DIM>

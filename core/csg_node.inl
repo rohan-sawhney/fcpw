@@ -6,8 +6,7 @@ inline CsgNode<DIM>::CsgNode(const std::shared_ptr<Primitive<DIM>>& left_,
 							 const BooleanOperation& operation_):
 left(left_),
 right(right_),
-operation(operation_),
-box(false)
+operation(operation_)
 {
 	LOG_IF(FATAL, left == nullptr || right == nullptr) << "Children cannot be null";
 	LOG(INFO) << "Boolean Operation: " << (operation == BooleanOperation::Union ? "Union" :
@@ -39,7 +38,6 @@ inline void CsgNode<DIM>::computeBoundingBox()
 		BoundingBox<DIM> rightBox = right->boundingBox();
 		box.expandToInclude(leftBox);
 		box.expandToInclude(rightBox);
-		box.isTight = leftBox.isTight && rightBox.isTight;
 	}
 }
 

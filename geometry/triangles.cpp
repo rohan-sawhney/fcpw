@@ -23,7 +23,7 @@ BoundingBox<3> Triangle::boundingBox() const
 	const Vector3f& pb = soup->positions[indices[1]];
 	const Vector3f& pc = soup->positions[indices[2]];
 
-	BoundingBox<3> box(pa, true);
+	BoundingBox<3> box(pa);
 	box.expandToInclude(pb);
 	box.expandToInclude(pc);
 
@@ -115,8 +115,8 @@ Vector3f Triangle::normal(int vIndex, int eIndex) const
 void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 					 BoundingBox<3>& bboxRight) const
 {
-	bboxLeft = BoundingBox<3>(true);
-	bboxRight = BoundingBox<3>(true);
+	bboxLeft = BoundingBox<3>();
+	bboxRight = BoundingBox<3>();
 
 	for (int i = 0; i < 3; i++) {
 		const Vector3f& pa = soup->positions[indices[i]];

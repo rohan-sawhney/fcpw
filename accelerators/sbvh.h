@@ -24,7 +24,7 @@ enum class CostHeuristic {
 template <int DIM>
 struct SbvhFlatNode {
 	// constructor
-	SbvhFlatNode(): bbox(false), start(0), nReferences(0), rightOffset(0) {}
+	SbvhFlatNode(): start(0), nReferences(0), rightOffset(0) {}
 
 	// members
 	BoundingBox<DIM> bbox;

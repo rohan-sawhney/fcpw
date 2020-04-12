@@ -108,13 +108,11 @@ public:
 		if (bbox.pMin(dim) <= splitCoord) {
 			bboxLeft = bbox;
 			bboxLeft.pMax(dim) = splitCoord;
-			bboxLeft.isTight = false;
 		}
 
 		if (bbox.pMax(dim) >= splitCoord) {
 			bboxRight = bbox;
 			bboxRight.pMin(dim) = splitCoord;
-			bboxRight.isTight = false;
 		}
 	}
 };

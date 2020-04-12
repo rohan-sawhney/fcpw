@@ -10,7 +10,7 @@ primitives(primitives_)
 template <int DIM>
 inline BoundingBox<DIM> Baseline<DIM>::boundingBox() const
 {
-	BoundingBox<DIM> bb(true);
+	BoundingBox<DIM> bb;
 	for (int p = 0; p < (int)primitives.size(); p++) {
 		bb.expandToInclude(primitives[p]->boundingBox());
 	}
