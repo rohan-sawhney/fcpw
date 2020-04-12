@@ -187,8 +187,8 @@ inline void Sbvh<DIM>::splitReference(int referenceIndex, int dim, float splitCo
 	primitives[referenceIndex]->split(dim, splitCoord, bboxLeft, bboxRight);
 
 	// intersect with bounds
-	if (bboxLeft.isValid()) bboxLeft = bboxLeft.intersect(bboxReference);
-	if (bboxRight.isValid()) bboxRight = bboxRight.intersect(bboxReference);
+	bboxLeft = bboxLeft.intersect(bboxReference);
+	bboxRight = bboxRight.intersect(bboxReference);
 }
 
 template <int DIM>
@@ -276,10 +276,71 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 										  int& nReferencesAdded)
 {
 	nReferencesAdded = 0;
-	// TODO
 	nodeEnd += nReferencesAdded;
 
 	return 0;
+	/*
+	// categorize references into the following buckets:
+	// [leftStart, leftEnd),
+	// [leftEnd, rightStart) -> duplicates
+	// [rightStart, reference.size())
+	int leftStart = nodeStart;
+	int leftEnd = nodeStart;
+	int rightStart = nodeEnd;
+	int rightEnd = nodeEnd;
+
+	for (int i = leftStart; i < rightEnd; i++) {
+		if (referenceBoxes[i].pMax(splitDim) <= splitCoord) {
+			std::swap(references[i], references[leftEnd]);
+			std::swap(referenceBoxes[i], referenceBoxes[leftEnd]);
+			std::swap(referenceCentroids[i], referenceCentroids[leftEnd]);
+			leftEnd++;
+		}
+	}
+
+	for (int i = leftEnd; i < rightEnd; i++) {
+		if (referenceBoxes[i].pMin(splitDim) >= splitCoord) {
+			rightStart--;
+			std::swap(references[i], references[rightStart]);
+			std::swap(referenceBoxes[i], referenceBoxes[rightStart]);
+			std::swap(referenceCentroids[i], referenceCentroids[rightStart]);
+		}
+	}
+
+	// split or unsplit staddling references; TODO: unsplit
+	int nReferencesEnd = (int)references.size();
+	nReferencesAdded = 0;
+
+	while (leftEnd < rightStart) {
+		// split reference
+		BoundingBox<DIM> bboxLeft(true), bboxRight(true);
+		splitReference(references[leftEnd], splitDim, splitCoord,
+					   referenceBoxes[leftEnd], bboxLeft, bboxRight);
+
+		// modify this reference box to contain the left split box
+		referenceBoxes[leftEnd] = bboxLeft;
+		referenceCentroids[leftEnd] = bboxLeft.centroid();
+
+		// add right split box
+		references.emplace_back(references[leftEnd]);
+		referenceBoxes.emplace_back(bboxRight);
+		referenceCentroids.emplace_back(bboxRight.centroid());
+
+		nReferencesAdded++;
+		leftEnd++;
+	}
+
+	// swap references between [nodeEnd, nodeEnd + nReferencesAdded) and
+	// [nReferencesEnd, nReferencesEnd + nReferencesAdded)
+	for (int i = 0; i < nReferencesAdded; i++) {
+		std::swap(references[nodeEnd + i], references[nReferencesEnd + i]);
+		std::swap(referenceBoxes[nodeEnd + i], referenceBoxes[nReferencesEnd + i]);
+		std::swap(referenceCentroids[nodeEnd + i], referenceCentroids[nReferencesEnd + i]);
+	}
+
+	nodeEnd += nReferencesAdded;
+	return leftEnd;
+	*/
 }
 
 template <int DIM>
@@ -353,7 +414,6 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 													 spatialSplitDim, spatialSplitCoord);
 
 		if (spatialSplitCost < splitCost) {
-			// TODO: uncomment after implementing performSpatialSplit
 			// isObjectSplitBetter = false;
 			// splitDim = spatialSplitDim;
 			// splitCoord = spatialSplitCoord;
