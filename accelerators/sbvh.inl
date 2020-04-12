@@ -132,15 +132,18 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 			for (int b = 1; b < nBuckets; b++) {
 				bboxLeft.expandToInclude(buckets[b - 1].first);
 				nReferencesLeft += buckets[b - 1].second;
-				float cost = computeSplitCost(costHeuristic, bboxLeft, rightBucketBoxes[b].first,
-											  surfaceArea, volume, nReferencesLeft,
-											  rightBucketBoxes[b].second);
 
-				if (cost < splitCost) {
-					splitCost = cost;
-					splitDim = dim;
-					splitCoord = nodeBoundingBox.pMin(dim) + b*bucketWidth;
-					bboxIntersected = bboxLeft.intersect(bboxRight);
+				if (nReferencesLeft > 0 && rightBucketBoxes[b].second > 0) {
+					float cost = computeSplitCost(costHeuristic, bboxLeft, rightBucketBoxes[b].first,
+												  surfaceArea, volume, nReferencesLeft,
+												  rightBucketBoxes[b].second);
+
+					if (cost < splitCost) {
+						splitCost = cost;
+						splitDim = dim;
+						splitCoord = nodeBoundingBox.pMin(dim) + b*bucketWidth;
+						bboxIntersected = bboxLeft.intersect(bboxRight);
+					}
 				}
 			}
 		}
@@ -254,14 +257,17 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 		for (int b = 1; b < nBins; b++) {
 			bboxLeft.expandToInclude(std::get<0>(bins[b - 1]));
 			nReferencesLeft += std::get<1>(bins[b - 1]);
-			float cost = computeSplitCost(costHeuristic, bboxLeft, rightBinBoxes[b].first,
-										  surfaceArea, volume, nReferencesLeft,
-										  rightBinBoxes[b].second);
 
-			if (cost < splitCost) {
-				splitCost = cost;
-				splitDim = dim;
-				splitCoord = nodeBoundingBox.pMin(dim) + b*binWidth;
+			if (nReferencesLeft > 0 && rightBinBoxes[b].second > 0) {
+				float cost = computeSplitCost(costHeuristic, bboxLeft, rightBinBoxes[b].first,
+											  surfaceArea, volume, nReferencesLeft,
+											  rightBinBoxes[b].second);
+
+				if (cost < splitCost) {
+					splitCost = cost;
+					splitDim = dim;
+					splitCoord = nodeBoundingBox.pMin(dim) + b*binWidth;
+				}
 			}
 		}
 	}
