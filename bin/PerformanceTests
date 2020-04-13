@@ -64,6 +64,7 @@ then
 	touch ${logfile}
 fi
 
+start=$(date +%s)
 for filename in $SOURCE/*.obj; do
 	filenamelen=$((${#filename}-$srclen-objlen))
 	meshname="${filename:${srclen}:${filenamelen}}"
@@ -83,5 +84,9 @@ for filename in $SOURCE/*.obj; do
 	done
 	echo
 done
+
+end=$(date +%s)
+runtime=$((end-start))
+echo "In total took $runtime seconds to complete tests on $SOURCE"
 
 cd ../bin
