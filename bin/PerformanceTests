@@ -5,6 +5,7 @@
 #p: num threads
 #e: executable name
 #d: output data format
+# if permissions are off, in bash enter "chmod u+x PerformanceTests" to give ownership of this file to the user
 SOURCE=""
 NQUERIES=10
 NTRIALS=1
