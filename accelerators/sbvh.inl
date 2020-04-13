@@ -281,11 +281,6 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 										  int splitDim, float splitCoord, int nodeStart,
 										  int& nodeEnd, int& nReferencesAdded)
 {
-	nReferencesAdded = 0;
-	nodeEnd += nReferencesAdded;
-
-	return 0;
-	/*
 	// categorize references into the following buckets:
 	// [leftStart, leftEnd),
 	// [leftEnd, rightStart) -> duplicates
@@ -327,26 +322,17 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 		referenceBoxes[leftEnd] = bboxLeft;
 		referenceCentroids[leftEnd] = bboxLeft.centroid();
 
-		// add right split box
-		references.emplace_back(references[leftEnd]);
-		referenceBoxes.emplace_back(bboxRight);
-		referenceCentroids.emplace_back(bboxRight.centroid());
+		// add right split box; TODO: optimize
+		references.insert(references.begin() + nodeEnd + nReferencesAdded, references[leftEnd]);
+		referenceBoxes.insert(referenceBoxes.begin() + nodeEnd + nReferencesAdded, bboxRight);
+		referenceCentroids.insert(referenceCentroids.begin() + nodeEnd + nReferencesAdded, bboxRight.centroid());
 
 		nReferencesAdded++;
 		leftEnd++;
 	}
 
-	// swap references between [nodeEnd, nodeEnd + nReferencesAdded) and
-	// [nReferencesEnd, nReferencesEnd + nReferencesAdded)
-	for (int i = 0; i < nReferencesAdded; i++) {
-		std::swap(references[nodeEnd + i], references[nReferencesEnd + i]);
-		std::swap(referenceBoxes[nodeEnd + i], referenceBoxes[nReferencesEnd + i]);
-		std::swap(referenceCentroids[nodeEnd + i], referenceCentroids[nReferencesEnd + i]);
-	}
-
 	nodeEnd += nReferencesAdded;
 	return leftEnd;
-	*/
 }
 
 template <int DIM>
