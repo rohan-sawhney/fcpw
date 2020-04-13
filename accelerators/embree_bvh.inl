@@ -4,7 +4,7 @@ namespace fcpw {
 
 template <int DIM>
 inline EmbreeBvh<DIM>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-								 const std::shared_ptr<PolygonSoup<DIM>>& soup_):
+								 const std::shared_ptr<PolygonSoup<DIM>>& soup_, bool silenceBvh_):
 Baseline<DIM>(primitives_),
 soup(soup_)
 {
@@ -210,7 +210,7 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 
 template <>
 inline EmbreeBvh<3>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<3>>>& primitives_,
-							   const std::shared_ptr<PolygonSoup<3>>& soup_):
+							   const std::shared_ptr<PolygonSoup<3>>& soup_, bool silenceBvh_):
 Baseline<3>(primitives_),
 soup(soup_)
 {
@@ -269,9 +269,11 @@ soup(soup_)
 	// print bvh stats
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << "Built Embree Bvh with "
-			  << primitives.size() << " primitives in "
-			  << timeSpan.count() << " seconds" << std::endl;
+	if(!silenceBvh_){
+		std::cout << "Built Embree Bvh with "
+				  << primitives.size() << " primitives in "
+				  << timeSpan.count() << " seconds" << std::endl;
+	}
 }
 
 template <>

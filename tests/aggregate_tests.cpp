@@ -15,6 +15,7 @@ static bool vizScene = false;
 static bool plotInteriorPoints = false;
 static bool checkCorrectness = false;
 static bool checkPerformance = false;
+static bool outputAsCSV = false;
 static int nQueries = 10000;
 static progschj::ThreadPool pool;
 static int nThreads = 8;
@@ -77,9 +78,14 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+	if(outputAsCSV){
+		std::cout << timeSpan.count() << ",";
+	}
+	else{
 	std::cout << rayOrigins.size() << " intersection queries took "
 			  << timeSpan.count() << " seconds with "
 			  << aggregateType << " aggregate" << std::endl;
+	}
 }
 
 template <int DIM>
@@ -114,9 +120,14 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << queryPoints.size() << " closest point queries took "
-			  << timeSpan.count() << " seconds with "
-			  << aggregateType << " aggregate" << std::endl;
+	if(outputAsCSV){
+		std::cout << timeSpan.count() << ",";
+	}
+	else{
+		std::cout << queryPoints.size() << " closest point queries took "
+				  << timeSpan.count() << " seconds with "
+				  << aggregateType << " aggregate" << std::endl;
+	}
 }
 
 template <int DIM>
@@ -285,6 +296,7 @@ void run()
 {
 	// build baseline scene
 	Scene<DIM> scene;
+	scene.isQuiet = outputAsCSV;
 	scene.loadFiles(true, false);
 	scene.buildAggregate(AggregateType::Baseline);
 
@@ -299,7 +311,7 @@ void run()
 									   "Sbvh_Volume"});
 
 	if (checkPerformance) {
-		std::cout << "Running performance tests..." << std::endl;
+		if(!outputAsCSV) std::cout << "Running performance tests..." << std::endl;
 
 		// benchmark baseline queries
 		//timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
@@ -318,6 +330,7 @@ void run()
 		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
 		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
 #endif
+		if(outputAsCSV) std::cout << std::endl;
 	}
 
 	if (checkCorrectness) {
@@ -373,6 +386,7 @@ int main(int argc, const char *argv[]) {
 	args::Flag plotInteriorPoints(group, "bool", "plot interior points", {"plotInteriorPoints"});
 	args::Flag checkCorrectness(group, "bool", "check aggregate correctness", {"checkCorrectness"});
 	args::Flag checkPerformance(group, "bool", "check aggregate performance", {"checkPerformance"});
+	args::Flag outputAsCSV(group, "bool", "output results in a CSV friendly format", {"outputAsCSV"});
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
 	args::ValueFlag<int> nQueries(parser, "integer", "number of queries", {"nQueries"});
 	args::ValueFlag<int> nThreads(parser, "integer", "nThreads", {"nThreads"});
@@ -414,6 +428,7 @@ int main(int argc, const char *argv[]) {
 	if (plotInteriorPoints) ::plotInteriorPoints = args::get(plotInteriorPoints);
 	if (checkCorrectness) ::checkCorrectness = args::get(checkCorrectness);
 	if (checkPerformance) ::checkPerformance = args::get(checkPerformance);
+	if (outputAsCSV) ::outputAsCSV = args::get(outputAsCSV);
 	if (nQueries) ::nQueries = args::get(nQueries);
 	if (nThreads) ::nThreads = args::get(nThreads);
 	if (triangleFilenames) {

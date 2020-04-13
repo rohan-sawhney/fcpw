@@ -9,7 +9,7 @@ class Bvh: public Sbvh<DIM> {
 public:
 	// constructor
 	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-		const CostHeuristic& costHeuristic_, int leafSize_=4);
+		const CostHeuristic& costHeuristic_, int leafSize_=4, bool silenceOutput_=false);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;

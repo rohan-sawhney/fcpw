@@ -11,6 +11,12 @@ Sbvh<DIM>(primitives_, costHeuristic_, 1.0f, leafSize_)
 template <int DIM>
 inline BoundingBox<DIM> Bvh<DIM>::boundingBox() const
 {
+
+}
+
+template <int DIM>
+inline BoundingBox<DIM> Bvh<DIM>::boundingBox() const
+{
 	return Sbvh<DIM>::boundingBox();
 }
 

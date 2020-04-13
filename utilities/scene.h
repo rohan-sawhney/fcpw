@@ -55,6 +55,7 @@ public:
 	std::vector<std::vector<Transform<float, DIM, Affine>>> instanceTransforms;
 	std::vector<ObjectType> objectTypes;
 	std::shared_ptr<Aggregate<DIM>> aggregate;
+	bool isQuiet = false;
 
 private:
 	// members

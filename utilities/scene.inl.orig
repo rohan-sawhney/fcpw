@@ -170,6 +170,7 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::Volume, leafSize, silenceOutput);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
+<<<<<<< HEAD
 		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapVolume);
 
 	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
@@ -177,6 +178,9 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 
 	} else if (aggregateType == AggregateType::Sbvh_Volume) {
 		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1e-5);
+=======
+		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapVolume, leafSize, silenceOutput);
+>>>>>>> added bash script for repeat logging
 	}
 
 	return std::make_shared<Baseline<DIM>>(primitives);

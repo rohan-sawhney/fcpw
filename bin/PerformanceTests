@@ -1,0 +1,87 @@
+#t: tfile folder root
+#q: num queries
+#n: num trials
+#o: outfile locationi
+#p: num threads
+#e: executable name
+#d: output data format
+SOURCE=""
+NQUERIES=10
+NTRIALS=1
+NTHREADS=1
+DEST="logs"
+EXENAME="aggregate_tests"
+OUTPUTTYPE=1
+
+while getopts "t:q:n:o:p:f:h" opt; do
+case ${opt} in
+h)
+	echo "t: tFile folder root (relative to build/ folder)"
+	echo "q: num queries"
+	echo "n: num trials"
+	echo "o: folder root for trial outputs, default is logs in build folder"
+	echo "p: num threads"
+	echo "f: output data format, 1=output into individual mesh files, 2=output into one file"
+	exit 1
+	;;
+t)
+	SOURCE=${OPTARG}
+	;;
+q)
+	NQUERIES=${OPTARG}
+	;;
+n)
+	NTRIALS=${OPTARG}
+	;;
+o)
+	DEST=${OPTARG}
+	;;
+p)
+	NTHREADS=${OPTARG}
+	;;
+f)
+	OUTPUTTYPE=${OPTARG}
+	;;
+\?)
+	echo "invalid input, use -h for help"
+	exit 1
+	;;
+esac
+done
+
+srclen=$((${#SOURCE}+1))
+objlen=4
+
+cd ../build
+rm -rf logs
+mkdir logs
+
+logfile=""
+
+if [[ $OUTPUTTYPE == 2 ]]
+then
+	logfile="${DEST}/output_log.csv"
+	touch ${logfile}
+fi
+
+for filename in $SOURCE/*.obj; do
+	filenamelen=$((${#filename}-$srclen-objlen))
+	meshname="${filename:${srclen}:${filenamelen}}"
+	echo "Doing $NTRIALS trials on $meshname"
+	if [[ $OUTPUTTYPE == 1 ]]
+	then
+		logfile="${DEST}/${meshname}_log.csv"
+		touch ${logfile}
+	fi
+	
+	count=1
+	while [ $count -le $NTRIALS ]
+	do
+		GLOG_logtostderr=1 ./$EXENAME --tFile $filename --dim=3 --nQueries=$NQUERIES --nThreads=$NTHREADS --outputAsCSV --checkPerformance >> ${logfile}
+		echo "Completed trial $count"
+		count=$(($count+1))
+	done
+	echo
+done
+
+cd ../bin

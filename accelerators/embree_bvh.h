@@ -11,7 +11,7 @@ class EmbreeBvh: public Baseline<DIM> {
 public:
 	// constructor
 	EmbreeBvh(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-			  const std::shared_ptr<PolygonSoup<DIM>>& soup_);
+			  const std::shared_ptr<PolygonSoup<DIM>>& soup_, bool silenceBvh_=false);
 
 	// destructor
 	~EmbreeBvh();
