@@ -85,8 +85,8 @@ protected:
 	// performs spatial split
 	int performSpatialSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
 							std::vector<Vector<DIM>>& referenceCentroids,
-							int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
-							int& nReferencesAdded);
+							int splitDim, float splitCoord, int nodeStart,
+							int& nodeEnd, int& nReferencesAdded);
 
 	// helper function to build binary tree
 	int buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,

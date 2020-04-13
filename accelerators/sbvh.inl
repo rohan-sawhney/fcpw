@@ -278,8 +278,8 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 template <int DIM>
 inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
 										  std::vector<Vector<DIM>>& referenceCentroids,
-										  int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
-										  int& nReferencesAdded)
+										  int splitDim, float splitCoord, int nodeStart,
+										  int& nodeEnd, int& nReferencesAdded)
 {
 	nReferencesAdded = 0;
 	nodeEnd += nReferencesAdded;
@@ -304,7 +304,7 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 		}
 	}
 
-	for (int i = leftEnd; i < rightEnd; i++) {
+	for (int i = rightEnd - 1; i >= leftEnd; i--) {
 		if (referenceBoxes[i].pMin(splitDim) >= splitCoord) {
 			rightStart--;
 			std::swap(references[i], references[rightStart]);
