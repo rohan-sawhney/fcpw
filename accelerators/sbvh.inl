@@ -309,9 +309,7 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 	}
 
 	// split or unsplit staddling references; TODO: unsplit
-	int nReferencesEnd = (int)references.size();
 	nReferencesAdded = 0;
-
 	while (leftEnd < rightStart) {
 		// split reference
 		BoundingBox<DIM> bboxLeft, bboxRight;
@@ -323,9 +321,10 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 		referenceCentroids[leftEnd] = bboxLeft.centroid();
 
 		// add right split box; TODO: optimize
-		references.insert(references.begin() + nodeEnd + nReferencesAdded, references[leftEnd]);
-		referenceBoxes.insert(referenceBoxes.begin() + nodeEnd + nReferencesAdded, bboxRight);
-		referenceCentroids.insert(referenceCentroids.begin() + nodeEnd + nReferencesAdded, bboxRight.centroid());
+		int index = nodeEnd + nReferencesAdded;
+		references.insert(references.begin() + index, references[leftEnd]);
+		referenceBoxes.insert(referenceBoxes.begin() + index, bboxRight);
+		referenceCentroids.insert(referenceCentroids.begin() + index, bboxRight.centroid());
 
 		nReferencesAdded++;
 		leftEnd++;
@@ -406,10 +405,10 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 													 spatialSplitDim, spatialSplitCoord);
 
 		if (spatialSplitCost < splitCost) {
-			// isObjectSplitBetter = false;
-			// splitDim = spatialSplitDim;
-			// splitCoord = spatialSplitCoord;
-			// splitCost = spatialSplitCost;
+			isObjectSplitBetter = false;
+			splitDim = spatialSplitDim;
+			splitCoord = spatialSplitCoord;
+			splitCost = spatialSplitCost;
 		}
 	}
 
@@ -444,7 +443,13 @@ inline void Sbvh<DIM>::build()
 	int nReferences = (int)primitives.size();
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
+	std::vector<SbvhFlatNode<DIM>> buildNodes;
 	BoundingBox<DIM> bboxRoot;
+
+	references.reserve(nReferences*2);
+	referenceBoxes.reserve(nReferences*2);
+	referenceCentroids.reserve(nReferences*2);
+	buildNodes.reserve(nReferences*2);
 
 	for (int i = 0; i < nReferences; i++) {
 		referenceBoxes.emplace_back(primitives[i]->boundingBox());
@@ -452,9 +457,6 @@ inline void Sbvh<DIM>::build()
 		bboxRoot.expandToInclude(referenceBoxes[i]);
 		references.emplace_back(i);
 	}
-
-	std::vector<SbvhFlatNode<DIM>> buildNodes;
-	buildNodes.reserve(nReferences*2);
 
 	rootSurfaceArea = bboxRoot.surfaceArea();
 	rootVolume = bboxRoot.volume();
