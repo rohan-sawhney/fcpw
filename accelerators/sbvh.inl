@@ -25,6 +25,7 @@ nLeafs(0),
 leafSize(leafSize_),
 nBuckets(nBuckets_),
 nBins(nBins_),
+memoryBudget(0),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBinBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
@@ -279,7 +280,7 @@ template <int DIM>
 inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
 										  std::vector<Vector<DIM>>& referenceCentroids,
 										  int splitDim, float splitCoord, int nodeStart,
-										  int& nodeEnd, int& nReferencesAdded)
+										  int& nodeEnd, int& nReferencesAdded, int& nTotalReferences)
 {
 	// categorize references into the following buckets:
 	// [leftStart, leftEnd),
@@ -308,6 +309,21 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 		}
 	}
 
+	// resize if memory is about to be exceeded
+	int nPossibleNewReferences = rightStart - leftEnd;
+	if (nTotalReferences + nPossibleNewReferences >= memoryBudget) {
+		memoryBudget *= 2;
+		references.resize(memoryBudget, -1);
+		referenceBoxes.resize(memoryBudget);
+		referenceCentroids.resize(memoryBudget);
+	}
+
+	if ((int)referencesToAdd.size() < nPossibleNewReferences) {
+		referencesToAdd.resize(nPossibleNewReferences);
+		referenceBoxesToAdd.resize(nPossibleNewReferences);
+		referenceCentroidsToAdd.resize(nPossibleNewReferences);
+	}
+
 	// split or unsplit staddling references; TODO: unsplit
 	nReferencesAdded = 0;
 	while (leftEnd < rightStart) {
@@ -320,17 +336,40 @@ inline int Sbvh<DIM>::performSpatialSplit(std::vector<BoundingBox<DIM>>& referen
 		referenceBoxes[leftEnd] = bboxLeft;
 		referenceCentroids[leftEnd] = bboxLeft.centroid();
 
-		// add right split box; TODO: optimize
-		int index = nodeEnd + nReferencesAdded;
-		references.insert(references.begin() + index, references[leftEnd]);
-		referenceBoxes.insert(referenceBoxes.begin() + index, bboxRight);
-		referenceCentroids.insert(referenceCentroids.begin() + index, bboxRight.centroid());
+		// add right split box
+		referencesToAdd[nReferencesAdded] = references[leftEnd];
+		referenceBoxesToAdd[nReferencesAdded] = bboxRight;
+		referenceCentroidsToAdd[nReferencesAdded] = bboxRight.centroid();
 
 		nReferencesAdded++;
 		leftEnd++;
 	}
 
+	// move entries between [nodeEnd, nTotalReferences) to
+	// [nodeEnd + nReferencesAdded, nTotalReferences + nReferencesAdded)
+	std::move_backward(references.begin() + nodeEnd,
+					   references.begin() + nTotalReferences,
+					   references.begin() + nTotalReferences + nReferencesAdded);
+	std::move_backward(referenceBoxes.begin() + nodeEnd,
+					   referenceBoxes.begin() + nTotalReferences,
+					   referenceBoxes.begin() + nTotalReferences + nReferencesAdded);
+	std::move_backward(referenceCentroids.begin() + nodeEnd,
+					   referenceCentroids.begin() + nTotalReferences,
+					   referenceCentroids.begin() + nTotalReferences + nReferencesAdded);
+
+	// copy added references to range [nodeEnd, nodeEnd + nReferencesAdded)
+	std::copy(referencesToAdd.begin(),
+			  referencesToAdd.begin() + nReferencesAdded,
+			  references.begin() + nodeEnd);
+	std::copy(referenceBoxesToAdd.begin(),
+			  referenceBoxesToAdd.begin() + nReferencesAdded,
+			  referenceBoxes.begin() + nodeEnd);
+	std::copy(referenceCentroidsToAdd.begin(),
+			  referenceCentroidsToAdd.begin() + nReferencesAdded,
+			  referenceCentroids.begin() + nodeEnd);
+
 	nodeEnd += nReferencesAdded;
+	nTotalReferences += nReferencesAdded;
 	return leftEnd;
 }
 
@@ -338,7 +377,7 @@ template <int DIM>
 inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 									 std::vector<Vector<DIM>>& referenceCentroids,
 									 std::vector<SbvhFlatNode<DIM>>& buildNodes,
-									 int parent, int start, int end)
+									 int parent, int start, int end, int& nTotalReferences)
 {
 	const int Untouched    = 0xffffffff;
 	const int TouchedTwice = 0xfffffffd;
@@ -419,14 +458,14 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 														start, end, splitDim, splitCoord) :
 									performSpatialSplit(referenceBoxes, referenceCentroids,
 														splitDim, splitCoord, start, end,
-														nReferencesAdded);
+														nReferencesAdded, nTotalReferences);
 
 	// push left and right children
 	int nReferencesAddedLeft = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
-											  currentNodeIndex, start, mid);
+											  currentNodeIndex, start, mid, nTotalReferences);
 	int nReferencesAddedRight = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
 											   currentNodeIndex, mid + nReferencesAddedLeft,
-											   end + nReferencesAddedLeft);
+											   end + nReferencesAddedLeft, nTotalReferences);
 	int nTotalReferencesAdded = nReferencesAdded + nReferencesAddedLeft + nReferencesAddedRight;
 	buildNodes[currentNodeIndex].nReferences += nTotalReferencesAdded;
 
@@ -446,16 +485,17 @@ inline void Sbvh<DIM>::build()
 	std::vector<Vector<DIM>> referenceCentroids;
 	std::vector<SbvhFlatNode<DIM>> buildNodes;
 
-	references.reserve(nReferences*2);
-	referenceBoxes.reserve(nReferences*2);
-	referenceCentroids.reserve(nReferences*2);
+	memoryBudget = nReferences*2;
+	references.resize(memoryBudget, -1);
+	referenceBoxes.resize(memoryBudget);
+	referenceCentroids.resize(memoryBudget);
 	buildNodes.reserve(nReferences*2);
 	BoundingBox<DIM> bboxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
-		references.emplace_back(i);
-		referenceBoxes.emplace_back(primitives[i]->boundingBox());
-		referenceCentroids.emplace_back(primitives[i]->centroid());
+		references[i] = i;
+		referenceBoxes[i] = primitives[i]->boundingBox();
+		referenceCentroids[i] = primitives[i]->centroid();
 		bboxRoot.expandToInclude(referenceBoxes[i]);
 	}
 
@@ -463,14 +503,25 @@ inline void Sbvh<DIM>::build()
 	rootVolume = bboxRoot.volume();
 
 	// build tree recursively
-	buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
-				   0xfffffffc, 0, nReferences);
+	int nTotalReferences = nReferences;
+	int nReferencesAdded = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
+										  0xfffffffc, 0, nReferences, nTotalReferences);
 
 	// copy the temp node data to a flat array
 	flatTree.reserve(nNodes);
 	for (int n = 0; n < nNodes; n++) {
 		flatTree.emplace_back(buildNodes[n]);
 	}
+
+	// resize references vector and clear working set
+	references.resize(nReferences + nReferencesAdded);
+	referencesToAdd.clear();
+	referenceBoxesToAdd.clear();
+	referenceCentroidsToAdd.clear();
+	buckets.clear();
+	rightBucketBoxes.clear();
+	rightBinBoxes.clear();
+	bins.clear();
 }
 
 template <int DIM>

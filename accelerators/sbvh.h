@@ -8,13 +8,15 @@ namespace fcpw {
 // https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
 // TODO:
 // - implement mbvh/qbvh with vectorization (try enoki?)
+// - Oriented bounding boxes/RSS
 // - build a spatial data structure on top of bvh
 // - estimate closest point radius (i.e., conversative guess of spherical region containing query point)
 // - implement "queueless" closest point traversal
 // - try bottom up closest point traversal strategy
 
 // TODO:
-// optimize construction
+// optimize sbvh construction
+// cap max tree depth?
 // unsplit
 
 enum class CostHeuristic {
@@ -90,13 +92,13 @@ protected:
 	int performSpatialSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
 							std::vector<Vector<DIM>>& referenceCentroids,
 							int splitDim, float splitCoord, int nodeStart,
-							int& nodeEnd, int& nReferencesAdded);
+							int& nodeEnd, int& nReferencesAdded, int& nTotalReferences);
 
 	// helper function to build binary tree
 	int buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 					   std::vector<Vector<DIM>>& referenceCentroids,
 					   std::vector<SbvhFlatNode<DIM>>& buildNodes,
-					   int parent, int start, int end);
+					   int parent, int start, int end, int& nTotalReferences);
 
 	// builds binary tree
 	void build();
@@ -104,12 +106,14 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	float splitAlpha, rootSurfaceArea, rootVolume;
-	int nNodes, nLeafs, leafSize, nBuckets, nBins;
+	int nNodes, nLeafs, leafSize, nBuckets, nBins, memoryBudget;
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes, rightBinBoxes;
 	std::vector<std::tuple<BoundingBox<DIM>, int, int>> bins;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<SbvhFlatNode<DIM>> flatTree;
-	std::vector<int> references;
+	std::vector<int> references, referencesToAdd;
+	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
+	std::vector<Vector<DIM>> referenceCentroidsToAdd;
 };
 
 } // namespace fcpw
