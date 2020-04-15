@@ -13,6 +13,10 @@ namespace fcpw {
 // - implement "queueless" closest point traversal
 // - try bottom up closest point traversal strategy
 
+// TODO:
+// optimize construction
+// unsplit
+
 enum class CostHeuristic {
 	LongestAxisCenter,
 	SurfaceArea,
@@ -36,7 +40,7 @@ class Sbvh: public Aggregate<DIM> {
 public:
 	// constructor
 	Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-		 const CostHeuristic& costHeuristic_, float splitAlpha_=1e-5,
+		 const CostHeuristic& costHeuristic_, float splitAlpha_,
 		 int leafSize_=4, int nBuckets_=8, int nBins_=8);
 
 	// returns bounding box

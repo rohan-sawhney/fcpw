@@ -395,10 +395,11 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 										 start, end, splitDim, splitCoord, bboxIntersected);
 
 	// compute spatial split if intersected box is valid and not too small compared to the scene
-	if ((costHeuristic == CostHeuristic::SurfaceArea &&
-		 bboxIntersected.surfaceArea() > splitAlpha*rootSurfaceArea) ||
-		(costHeuristic == CostHeuristic::Volume &&
-		 bboxIntersected.volume() > splitAlpha*rootVolume)) {
+	if (bboxIntersected.isValid() &&
+		((costHeuristic == CostHeuristic::SurfaceArea &&
+		  bboxIntersected.surfaceArea() > splitAlpha*rootSurfaceArea) ||
+		 (costHeuristic == CostHeuristic::Volume &&
+		  bboxIntersected.volume() > splitAlpha*rootVolume))) {
 		int spatialSplitDim;
 		float spatialSplitCoord;
 		float spatialSplitCost = computeSpatialSplit(bb, referenceBoxes, start, end,
