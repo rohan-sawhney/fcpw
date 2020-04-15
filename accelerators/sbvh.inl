@@ -142,7 +142,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 						splitCost = cost;
 						splitDim = dim;
 						splitCoord = nodeBoundingBox.pMin(dim) + b*bucketWidth;
-						bboxIntersected = bboxLeft.intersect(bboxRight);
+						bboxIntersected = bboxLeft.intersect(rightBucketBoxes[b].first);
 					}
 				}
 			}
@@ -445,18 +445,18 @@ inline void Sbvh<DIM>::build()
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
 	std::vector<SbvhFlatNode<DIM>> buildNodes;
-	BoundingBox<DIM> bboxRoot;
 
 	references.reserve(nReferences*2);
 	referenceBoxes.reserve(nReferences*2);
 	referenceCentroids.reserve(nReferences*2);
 	buildNodes.reserve(nReferences*2);
+	BoundingBox<DIM> bboxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
+		references.emplace_back(i);
 		referenceBoxes.emplace_back(primitives[i]->boundingBox());
 		referenceCentroids.emplace_back(primitives[i]->centroid());
 		bboxRoot.expandToInclude(referenceBoxes[i]);
-		references.emplace_back(i);
 	}
 
 	rootSurfaceArea = bboxRoot.surfaceArea();
