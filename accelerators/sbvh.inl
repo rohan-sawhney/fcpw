@@ -135,7 +135,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 		float surfaceArea = nodeBoundingBox.surfaceArea();
 		float volume = nodeBoundingBox.volume();
 
-		// find the best split across all three dimensions
+		// find the best split across all dimensions
 		for (int dim = 0; dim < DIM; dim++) {
 			// ignore flat dimension
 			if (extent(dim) < 1e-6) continue;
@@ -218,12 +218,12 @@ inline int Sbvh<DIM>::performObjectSplit(int nodeStart, int nodeEnd, int splitDi
 }
 
 template <int DIM>
-inline void Sbvh<DIM>::splitReference(int referenceIndex, int dim, float splitCoord,
-									  const BoundingBox<DIM>& bboxReference,
+inline void Sbvh<DIM>::splitPrimitive(const std::shared_ptr<Primitive<DIM>>& primitive, int dim,
+									  float splitCoord, const BoundingBox<DIM>& bboxReference,
 									  BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight) const
 {
 	// split primitive along the provided coordinate and axis
-	primitives[referenceIndex]->split(dim, splitCoord, bboxLeft, bboxRight);
+	primitive->split(dim, splitCoord, bboxLeft, bboxRight);
 
 	// intersect with bounds
 	bboxLeft = bboxLeft.intersect(bboxReference);
@@ -244,7 +244,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 	float surfaceArea = nodeBoundingBox.surfaceArea();
 	float volume = nodeBoundingBox.volume();
 
-	// find the best split across all three dimensions
+	// find the best split across all dimensions
 	for (int dim = 0; dim < DIM; dim++) {
 		// ignore flat dimension
 		if (extent(dim) < 1e-6) continue;
@@ -259,6 +259,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 
 		for (int p = nodeStart; p < nodeEnd; p++) {
 			// find the bins the reference is contained in
+			const std::shared_ptr<Primitive<DIM>>& primitive = primitives[references[p]];
 			int firstBinIndex = (int)((referenceBoxes[p].pMin(dim) - nodeBoundingBox.pMin(dim))/binWidth);
 			int lastBinIndex = (int)((referenceBoxes[p].pMax(dim) - nodeBoundingBox.pMin(dim))/binWidth);
 			firstBinIndex = clamp(firstBinIndex, 0, nBins - 1);
@@ -269,7 +270,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 			for (int b = firstBinIndex; b < lastBinIndex; b++) {
 				BoundingBox<DIM> bboxRefLeft, bboxRefRight;
 				float coord = nodeBoundingBox.pMin(dim) + (b + 1)*binWidth;
-				splitReference(references[p], dim, coord, bboxReference, bboxRefLeft, bboxRefRight);
+				splitPrimitive(primitive, dim, coord, bboxReference, bboxRefLeft, bboxRefRight);
 				std::get<0>(bins[b]).expandToInclude(bboxRefLeft);
 				bboxReference = bboxRefRight;
 			}
@@ -367,7 +368,7 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& bboxLeft, cons
 	while (leftEnd < rightStart) {
 		// split reference
 		BoundingBox<DIM> bboxRefLeft, bboxRefRight;
-		splitReference(references[leftEnd], splitDim, splitCoord,
+		splitPrimitive(primitives[references[leftEnd]], splitDim, splitCoord,
 					   referenceBoxes[leftEnd], bboxRefLeft, bboxRefRight);
 
 		// compute unsplitting costs

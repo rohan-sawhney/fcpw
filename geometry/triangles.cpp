@@ -115,9 +115,6 @@ Vector3f Triangle::normal(int vIndex, int eIndex) const
 void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 					 BoundingBox<3>& bboxRight) const
 {
-	bboxLeft = BoundingBox<3>();
-	bboxRight = BoundingBox<3>();
-
 	for (int i = 0; i < 3; i++) {
 		const Vector3f& pa = soup->positions[indices[i]];
 		const Vector3f& pb = soup->positions[indices[(i + 1)%3]];

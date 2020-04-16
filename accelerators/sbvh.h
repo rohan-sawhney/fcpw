@@ -9,13 +9,13 @@ namespace fcpw {
 // TODO:
 // - implement mbvh/qbvh with vectorization (try enoki?)
 // - Oriented bounding boxes/RSS
-// - build a spatial data structure on top of bvh
+// - build a spatial data structure on top of bvh to store pointers to nodes
 // - estimate closest point radius (i.e., conversative guess of spherical region containing query point)
 // - implement "queueless" closest point traversal
 // - try bottom up closest point traversal strategy
 
 // TODO:
-// - check speedup with just maxDimension as splitDim
+// - optimize splitPrimitive
 // - cap max tree depth
 
 enum class CostHeuristic {
@@ -94,8 +94,8 @@ protected:
 						   std::vector<Vector<DIM>>& referenceCentroids);
 
 	// splits reference
-	void splitReference(int referenceIndex, int dim, float splitCoord,
-						const BoundingBox<DIM>& bboxReference,
+	void splitPrimitive(const std::shared_ptr<Primitive<DIM>>& primitive, int dim,
+						float splitCoord, const BoundingBox<DIM>& bboxReference,
 						BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight) const;
 
 	// computes spatial split
