@@ -170,13 +170,13 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::Volume, leafSize, silenceOutput);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapVolume);
+		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapVolume, leafSize, silenceOutput);
 
 	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1e-5);
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1e-5, leafSize, 8, 8, silenceOutput);
 
 	} else if (aggregateType == AggregateType::Sbvh_Volume) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1e-5);
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1e-5, leafSize, 8, 8, silenceOutput);
 	}
 
 	return std::make_shared<Baseline<DIM>>(primitives);

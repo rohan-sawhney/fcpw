@@ -2,14 +2,8 @@ namespace fcpw {
 
 template <int DIM>
 inline Bvh<DIM>::Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-					 const CostHeuristic& costHeuristic_, int leafSize_):
-Sbvh<DIM>(primitives_, costHeuristic_, 1.0f, leafSize_)
-{
-
-}
-
-template <int DIM>
-inline BoundingBox<DIM> Bvh<DIM>::boundingBox() const
+					 const CostHeuristic& costHeuristic_, int leafSize_, bool silenceOutput_):
+Sbvh<DIM>(primitives_, costHeuristic_, 1.0f, leafSize_, 8, 8, silenceOutput_)
 {
 
 }

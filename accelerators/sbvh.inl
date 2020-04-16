@@ -15,7 +15,7 @@ struct SbvhTraversal {
 template <int DIM>
 inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 					   const CostHeuristic& costHeuristic_, float splitAlpha_,
-					   int leafSize_, int nBuckets_, int nBins_):
+					   int leafSize_, int nBuckets_, int nBins_, bool silenceOutput_):
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),
 rootSurfaceArea(0.0f),
@@ -39,12 +39,14 @@ primitives(primitives_)
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << "Built bvh with "
-			  << nNodes << " nodes, "
-			  << nLeafs << " leaves, "
-			  << primitives.size() << " primitives, "
-			  << references.size() << " references in "
-			  << timeSpan.count() << " seconds" << std::endl;
+	if(!silenceOutput_){
+		std::cout << "Built bvh with "
+				  << nNodes << " nodes, "
+				  << nLeafs << " leaves, "
+				  << primitives.size() << " primitives, "
+				  << references.size() << " references in "
+				  << timeSpan.count() << " seconds" << std::endl;
+	}
 }
 
 template <int DIM>
