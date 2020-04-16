@@ -122,8 +122,8 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 										   const BoundingBox<DIM>& nodeCentroidBox,
 										   const std::vector<BoundingBox<DIM>>& referenceBoxes,
 										   const std::vector<Vector<DIM>>& referenceCentroids,
-										   int nodeStart, int nodeEnd, int& splitDim, float& splitCoord,
-										   BoundingBox<DIM>& bboxIntersected)
+										   int nodeStart, int nodeEnd, int& splitDim,
+										   float& splitCoord, BoundingBox<DIM>& bboxIntersected)
 {
 	float splitCost = maxFloat;
 	splitDim = -1;
@@ -188,20 +188,20 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 	// if no split dimension was chosen, fallback to LongestAxisCenter heuristic
 	if (splitDim == -1) {
 		splitDim = nodeCentroidBox.maxDimension();
-		splitCoord = (nodeCentroidBox.pMin[splitDim] + nodeCentroidBox.pMax[splitDim])*0.5f;
+		splitCoord = (nodeCentroidBox.pMin(splitDim) + nodeCentroidBox.pMax(splitDim))*0.5f;
 	}
 
 	return splitCost;
 }
 
 template <int DIM>
-inline int Sbvh<DIM>::performObjectSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
-										 std::vector<Vector<DIM>>& referenceCentroids,
-										 int nodeStart, int nodeEnd, int splitDim, float splitCoord)
+inline int Sbvh<DIM>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
+										 std::vector<BoundingBox<DIM>>& referenceBoxes,
+										 std::vector<Vector<DIM>>& referenceCentroids)
 {
 	int mid = nodeStart;
 	for (int i = nodeStart; i < nodeEnd; i++) {
-		if (referenceCentroids[i][splitDim] < splitCoord) {
+		if (referenceCentroids[i](splitDim) < splitCoord) {
 			std::swap(references[i], references[mid]);
 			std::swap(referenceBoxes[i], referenceBoxes[mid]);
 			std::swap(referenceCentroids[i], referenceCentroids[mid]);
@@ -402,19 +402,21 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& bboxLeft, cons
 		}
 	}
 
-	// move entries between [nodeEnd, nTotalReferences) to
-	// [nodeEnd + nReferencesAdded, nTotalReferences + nReferencesAdded)
-	for (int i = nTotalReferences - 1; i >= nodeEnd; i--) {
-		references[i + nReferencesAdded] = references[i];
-		referenceBoxes[i + nReferencesAdded] = referenceBoxes[i];
-		referenceCentroids[i + nReferencesAdded] = referenceCentroids[i];
-	}
+	if (nReferencesAdded > 0) {
+		// move entries between [nodeEnd, nTotalReferences) to
+		// [nodeEnd + nReferencesAdded, nTotalReferences + nReferencesAdded)
+		for (int i = nTotalReferences - 1; i >= nodeEnd; i--) {
+			references[i + nReferencesAdded] = references[i];
+			referenceBoxes[i + nReferencesAdded] = referenceBoxes[i];
+			referenceCentroids[i + nReferencesAdded] = referenceCentroids[i];
+		}
 
-	// copy added references to range [nodeEnd, nodeEnd + nReferencesAdded)
-	for (int i = 0; i < nReferencesAdded; i++) {
-		references[nodeEnd + i] = referencesToAdd[i];
-		referenceBoxes[nodeEnd + i] = referenceBoxesToAdd[i];
-		referenceCentroids[nodeEnd + i] = referenceCentroidsToAdd[i];
+		// copy added references to range [nodeEnd, nodeEnd + nReferencesAdded)
+		for (int i = 0; i < nReferencesAdded; i++) {
+			references[nodeEnd + i] = referencesToAdd[i];
+			referenceBoxes[nodeEnd + i] = referenceBoxesToAdd[i];
+			referenceCentroids[nodeEnd + i] = referenceCentroidsToAdd[i];
+		}
 	}
 
 	nodeEnd += nReferencesAdded;
@@ -504,11 +506,10 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 
 	// partition the list of references on split
 	int nReferencesAdded = 0;
-	int mid = isObjectSplitBetter ? performObjectSplit(referenceBoxes, referenceCentroids,
-														start, end, splitDim, splitCoord) :
-									performSpatialSplit(bboxLeft, bboxRight,
-														splitDim, splitCoord, start, end,
-														nReferencesAdded, nTotalReferences,
+	int mid = isObjectSplitBetter ? performObjectSplit(start, end, splitDim, splitCoord,
+													   referenceBoxes, referenceCentroids) :
+									performSpatialSplit(bboxLeft, bboxRight, splitDim, splitCoord,
+														start, end, nReferencesAdded, nTotalReferences,
 														referenceBoxes, referenceCentroids);
 
 	// push left and right children

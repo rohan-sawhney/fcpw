@@ -4,7 +4,7 @@
 #include <tuple>
 
 namespace fcpw {
-// modified version of https://github.com/brandonpelfrey/Fast-BVH and
+// modified versions of https://github.com/brandonpelfrey/Fast-BVH and
 // https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
 // TODO:
 // - implement mbvh/qbvh with vectorization (try enoki?)
@@ -85,13 +85,13 @@ protected:
 							 const BoundingBox<DIM>& nodeCentroidBox,
 							 const std::vector<BoundingBox<DIM>>& referenceBoxes,
 							 const std::vector<Vector<DIM>>& referenceCentroids,
-							 int nodeStart, int nodeEnd, int& splitDim, float& splitCoord,
-							 BoundingBox<DIM>& bboxIntersected);
+							 int nodeStart, int nodeEnd, int& splitDim,
+							 float& splitCoord, BoundingBox<DIM>& bboxIntersected);
 
 	// performs object split
-	int performObjectSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
-						   std::vector<Vector<DIM>>& referenceCentroids,
-						   int nodeStart, int nodeEnd, int splitDim, float splitCoord);
+	int performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
+						   std::vector<BoundingBox<DIM>>& referenceBoxes,
+						   std::vector<Vector<DIM>>& referenceCentroids);
 
 	// splits reference
 	void splitReference(int referenceIndex, int dim, float splitCoord,
