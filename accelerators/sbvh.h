@@ -64,6 +64,22 @@ public:
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 protected:
+	// computes split cost based on heuristic
+	float computeSplitCost(const BoundingBox<DIM>& bboxLeft,
+						   const BoundingBox<DIM>& bboxRight,
+						   float parentSurfaceArea, float parentVolume,
+						   int nReferencesLeft, int nReferencesRight) const;
+
+	// computes unsplitting costs based on heuristic
+	void computeUnsplittingCosts(const BoundingBox<DIM>& bboxLeft,
+								 const BoundingBox<DIM>& bboxRight,
+								 const BoundingBox<DIM>& bboxReference,
+								 const BoundingBox<DIM>& bboxRefLeft,
+								 const BoundingBox<DIM>& bboxRefRight,
+								 int nReferencesLeft, int nReferencesRight,
+								 float& costDuplicate, float& costUnsplitLeft,
+								 float& costUnsplitRight) const;
+
 	// computes object split
 	float computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
 							 const BoundingBox<DIM>& nodeCentroidBox,

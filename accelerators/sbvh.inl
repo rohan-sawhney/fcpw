@@ -16,6 +16,7 @@ template <int DIM>
 inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 					   const CostHeuristic& costHeuristic_, float splitAlpha_,
 					   int leafSize_, int nBuckets_, int nBins_):
+primitives(primitives_),
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),
 rootSurfaceArea(0.0f),
@@ -29,8 +30,7 @@ memoryBudget(0),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBinBoxes(nBins, std::make_pair(BoundingBox<DIM>(), 0)),
-bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0)),
-primitives(primitives_)
+bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0))
 {
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -48,11 +48,10 @@ primitives(primitives_)
 }
 
 template <int DIM>
-inline float computeSplitCost(const CostHeuristic& costHeuristic,
-							  const BoundingBox<DIM>& bboxLeft,
-							  const BoundingBox<DIM>& bboxRight,
-							  float parentSurfaceArea, float parentVolume,
-							  int nReferencesLeft, int nReferencesRight)
+inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& bboxLeft,
+										 const BoundingBox<DIM>& bboxRight,
+										 float parentSurfaceArea, float parentVolume,
+										 int nReferencesLeft, int nReferencesRight) const
 {
 	float cost = maxFloat;
 	if (costHeuristic == CostHeuristic::SurfaceArea) {
@@ -82,15 +81,14 @@ inline float computeSplitCost(const CostHeuristic& costHeuristic,
 }
 
 template <int DIM>
-inline void computeUnsplittingCosts(const CostHeuristic& costHeuristic,
-									const BoundingBox<DIM>& bboxLeft,
-									const BoundingBox<DIM>& bboxRight,
-									const BoundingBox<DIM>& bboxReference,
-									const BoundingBox<DIM>& bboxRefLeft,
-									const BoundingBox<DIM>& bboxRefRight,
-									int nReferencesLeft, int nReferencesRight,
-									float& costDuplicate, float& costUnsplitLeft,
-									float& costUnsplitRight)
+inline void Sbvh<DIM>::computeUnsplittingCosts(const BoundingBox<DIM>& bboxLeft,
+											   const BoundingBox<DIM>& bboxRight,
+											   const BoundingBox<DIM>& bboxReference,
+											   const BoundingBox<DIM>& bboxRefLeft,
+											   const BoundingBox<DIM>& bboxRefRight,
+											   int nReferencesLeft, int nReferencesRight,
+											   float& costDuplicate, float& costUnsplitLeft,
+											   float& costUnsplitRight) const
 {
 	BoundingBox<DIM> bboxLeftUnsplit = bboxLeft;
 	BoundingBox<DIM> bboxRightUnsplit = bboxRight;
@@ -173,10 +171,8 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 				nReferencesLeft += buckets[b - 1].second;
 
 				if (nReferencesLeft > 0 && rightBucketBoxes[b].second > 0) {
-					float cost = computeSplitCost<DIM>(costHeuristic, bboxRefLeft,
-													   rightBucketBoxes[b].first,
-													   surfaceArea, volume, nReferencesLeft,
-													   rightBucketBoxes[b].second);
+					float cost = computeSplitCost(bboxRefLeft, rightBucketBoxes[b].first, surfaceArea,
+												  volume, nReferencesLeft, rightBucketBoxes[b].second);
 
 					if (cost < splitCost) {
 						splitCost = cost;
@@ -300,10 +296,8 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 			nReferencesLeft += std::get<1>(bins[b - 1]);
 
 			if (nReferencesLeft > 0 && rightBinBoxes[b].second > 0) {
-				float cost = computeSplitCost<DIM>(costHeuristic, bboxRefLeft,
-												   rightBinBoxes[b].first,
-												   surfaceArea, volume, nReferencesLeft,
-												   rightBinBoxes[b].second);
+				float cost = computeSplitCost(bboxRefLeft, rightBinBoxes[b].first, surfaceArea,
+											  volume, nReferencesLeft, rightBinBoxes[b].second);
 
 				if (cost < splitCost) {
 					splitCost = cost;
@@ -378,10 +372,9 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& bboxLeft, cons
 
 		// compute unsplitting costs
 		float costDuplicate, costUnsplitLeft, costUnsplitRight;
-		computeUnsplittingCosts<DIM>(costHeuristic, bboxLeft, bboxRight,
-									 referenceBoxes[leftEnd], bboxRefLeft, bboxRefRight,
-									 leftEnd - leftStart, rightEnd - rightStart,
-									 costDuplicate, costUnsplitLeft, costUnsplitRight);
+		computeUnsplittingCosts(bboxLeft, bboxRight, referenceBoxes[leftEnd], bboxRefLeft,
+								bboxRefRight, leftEnd - leftStart, rightEnd - rightStart,
+								costDuplicate, costUnsplitLeft, costUnsplitRight);
 
 		if (costDuplicate < costUnsplitLeft && costDuplicate < costUnsplitRight) {
 			// modify this reference box to contain the left split box
