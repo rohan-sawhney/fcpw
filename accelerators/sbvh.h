@@ -15,8 +15,6 @@ namespace fcpw {
 // - try bottom up closest point traversal strategy
 
 // TODO:
-// - unspilt
-// - get rid of centroids
 // - check speedup with just maxDimension as splitDim
 // - cap max tree depth
 
@@ -87,13 +85,15 @@ protected:
 	// computes spatial split
 	float computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
 							  const std::vector<BoundingBox<DIM>>& referenceBoxes,
-							  int nodeStart, int nodeEnd, int& splitDim, float& splitCoord);
+							  int nodeStart, int nodeEnd, int& splitDim, float& splitCoord,
+							  BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight);
 
 	// performs spatial split
-	int performSpatialSplit(std::vector<BoundingBox<DIM>>& referenceBoxes,
-							std::vector<Vector<DIM>>& referenceCentroids,
-							int splitDim, float splitCoord, int nodeStart,
-							int& nodeEnd, int& nReferencesAdded, int& nTotalReferences);
+	int performSpatialSplit(const BoundingBox<DIM>& bboxLeft, const BoundingBox<DIM>& bboxRight,
+							int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
+							int& nReferencesAdded, int& nTotalReferences,
+							std::vector<BoundingBox<DIM>>& referenceBoxes,
+							std::vector<Vector<DIM>>& referenceCentroids);
 
 	// helper function to build binary tree
 	int buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
