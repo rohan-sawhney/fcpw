@@ -15,9 +15,10 @@ namespace fcpw {
 // - try bottom up closest point traversal strategy
 
 // TODO:
-// optimize sbvh construction
-// cap max tree depth?
-// unsplit
+// - unspilt
+// - get rid of centroids
+// - check speedup with just maxDimension as splitDim
+// - cap max tree depth
 
 enum class CostHeuristic {
 	LongestAxisCenter,

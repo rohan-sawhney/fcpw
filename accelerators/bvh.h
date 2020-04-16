@@ -5,7 +5,7 @@
 namespace fcpw {
 
 template <int DIM>
-class Bvh: public Aggregate<DIM> {
+class Bvh: public Sbvh<DIM> {
 public:
 	// constructor
 	Bvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
@@ -29,10 +29,6 @@ public:
 
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
-
-protected:
-	// member
-	Sbvh<DIM> sbvh;
 };
 
 } // namespace fcpw
