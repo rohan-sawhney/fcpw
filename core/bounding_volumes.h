@@ -139,22 +139,19 @@ struct BoundingBox {
 
 	// returns max dimension
 	int maxDimension() const {
-		Vector<DIM> e = extent();
+		int maxDim = 0;
+		float maxLength = pMax(0) - pMin(0);
 
-		for (int i = 0; i < DIM - 1; i++) {
-			bool isMaxDimension = true;
+		for (int i = 1; i < DIM; i++) {
+			float length = pMax(i) - pMin(i);
 
-			for (int j = i + 1; j < DIM; j++) {
-				if (e(i) < e(j)) {
-					isMaxDimension = false;
-					break;
-				}
+			if (length > maxLength) {
+				maxLength = length;
+				maxDim = i;
 			}
-
-			if (isMaxDimension) return i;
 		}
 
-		return DIM - 1;
+		return maxDim;
 	}
 
 	// returns centroid
@@ -170,9 +167,8 @@ struct BoundingBox {
 
 	// returns volume
 	float volume() const {
-		Vector<DIM> e = extent();
 		float v = 1.0f;
-		for (int i = 0; i < DIM; i++) v *= e(i);
+		for (int i = 0; i < DIM; i++) v *= (pMax(i) - pMin(i));
 
 		return v;
 	}
