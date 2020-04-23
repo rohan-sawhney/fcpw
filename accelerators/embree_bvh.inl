@@ -237,6 +237,7 @@ soup(soup_)
 	callbackSoup = soup;
 	rtcSetGeometryPointQueryFunction(geometry, closestPointTriangleCallback);
 
+	// load geometry
 	float *vertices = (float *)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0,
 													   RTC_FORMAT_FLOAT3, 3*sizeof(float),
 													   soup->positions.size());

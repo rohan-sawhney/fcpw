@@ -643,20 +643,32 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 			for (int p = 0; p < node.nReferences; p++) {
 				std::vector<Interaction<DIM>> cs;
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
-				int hit = prim->intersect(r, cs, checkOcclusion, countHits);
 
-				// keep the closest intersection only
-				if (hit > 0) {
-					hits += hit;
-					if (countHits) {
-						is.insert(is.end(), cs.begin(), cs.end());
-
-					} else {
-						r.tMax = std::min(r.tMax, cs[0].d);
-						is[0] = cs[0];
+				// check if primitive has already been seen
+				bool seenPrim = false;
+				for (int sp = 0; sp < (int)is.size(); sp++) {
+					if (prim.get() == is[sp].primitive) {
+						seenPrim = true;
+						break;
 					}
+				}
 
-					if (checkOcclusion) return 1;
+				if (!seenPrim) {
+					int hit = prim->intersect(r, cs, checkOcclusion, countHits);
+
+					// keep the closest intersection only
+					if (hit > 0) {
+						hits += hit;
+						if (countHits) {
+							is.insert(is.end(), cs.begin(), cs.end());
+
+						} else {
+							r.tMax = std::min(r.tMax, cs[0].d);
+							is[0] = cs[0];
+						}
+
+						if (checkOcclusion) return 1;
+					}
 				}
 			}
 
@@ -694,8 +706,6 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 	}
 
 	if (countHits) {
-		// it is particularly important to remove duplicates, since primitive references
-		// in a sbvh might be contained in multiple leaves
 		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 		is = removeDuplicates<DIM>(is);
 		hits = (int)is.size();
@@ -736,13 +746,16 @@ inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>
 			for (int p = 0; p < node.nReferences; p++) {
 				Interaction<DIM> c;
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
-				bool found = prim->findClosestPoint(s, c);
 
-				// keep the closest point only
-				if (found) {
-					notFound = false;
-					s.r2 = std::min(s.r2, c.d*c.d);
-					i = c;
+				if (prim.get() != i.primitive) {
+					bool found = prim->findClosestPoint(s, c);
+
+					// keep the closest point only
+					if (found) {
+						notFound = false;
+						s.r2 = std::min(s.r2, c.d*c.d);
+						i = c;
+					}
 				}
 			}
 
