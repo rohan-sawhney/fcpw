@@ -21,7 +21,14 @@ inline BoundingBox<DIM> Baseline<DIM>::boundingBox() const
 template <int DIM>
 inline Vector<DIM> Baseline<DIM>::centroid() const
 {
-	return boundingBox().centroid();
+	Vector<DIM> c = Vector<DIM>::Zero();
+	int nPrimitives = (int)primitives.size();
+
+	for (int p = 0; p < nPrimitives; p++) {
+		c += primitives[p]->centroid();
+	}
+
+	return c/nPrimitives;
 }
 
 template <int DIM>
