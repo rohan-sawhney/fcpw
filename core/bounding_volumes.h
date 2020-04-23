@@ -28,8 +28,7 @@ struct BoundingSphere {
 };
 
 template <int DIM>
-class BoundingBox {
-public:
+struct BoundingBox {
 	// constructor
 	BoundingBox() {
 		for (int i = 0; i < DIM; i++) {

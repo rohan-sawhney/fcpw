@@ -5,8 +5,7 @@
 namespace fcpw {
 
 template <int DIM>
-class Ray {
-public:
+struct Ray {
 	// constructor
 	Ray(const Vector<DIM>& o_, const Vector<DIM>& d_, float tMax_=maxFloat):
 		o(o_), d(d_), tMax(tMax_) {

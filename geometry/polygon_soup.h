@@ -36,8 +36,7 @@ struct PolygonSoup {
 
 ////////////////////////////////////////////////////////////////////////////////
 // helper class for loading polygons from obj files
-class Index {
-public:
+struct Index {
 	Index() {}
 
 	Index(int v, int vt, int vn) : position(v), uv(vt), normal(vn) {}

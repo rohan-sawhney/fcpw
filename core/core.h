@@ -26,20 +26,25 @@ using namespace Eigen;
 template <int DIM>
 using Vector = Matrix<float, DIM, 1>;
 template <int DIM>
-class Ray;
+struct Ray;
 template <int DIM>
 struct BoundingSphere;
 template <int DIM>
-class BoundingBox;
+struct BoundingBox;
 template <int DIM>
-class Interaction;
+struct Interaction;
 template <int DIM>
 class Primitive;
+template <int DIM>
+class Aggregate;
+template <int DIM>
+class TransformedAggregate;
+template <int DIM>
+class CsgNode;
 
 static const float minFloat = std::numeric_limits<float>::lowest();
 static const float maxFloat = std::numeric_limits<float>::max();
 static const float epsilon = std::numeric_limits<float>::epsilon();
-static const float inf = std::numeric_limits<float>::infinity();
 
 template <typename T, typename U, typename V>
 inline T clamp(T val, U low, V high) {
@@ -49,37 +54,8 @@ inline T clamp(T val, U low, V high) {
 	return val;
 }
 
-template <int DIM>
-inline Vector<DIM> reflect(const Vector<DIM>& d, const Vector<DIM>& n) {
-	// NOTE: d is assumed to be going out of the surface
-	return -d + 2.0f*n.dot(d)*n;
-}
-
-inline int factorial(int n) {
-	if (n < 2) return 1;
-
-	int result = n;
-	for (int i = n - 1; i > 1; i--) {
-		result *= i;
-	}
-
-	return result;
-}
-
 inline float gamma(int n) {
 	return (n*epsilon)/(1.0f - n*epsilon);
-}
-
-inline float radians(float deg) {
-	return (M_PI/180.0f)*deg;
-}
-
-inline float degrees(float rad) {
-	return (180.0f/M_PI)*rad;
-}
-
-inline float cross2d(const Vector2f& u, const Vector2f& v) {
-	return u(0)*v(1) - u(1)*v(0);
 }
 
 inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)

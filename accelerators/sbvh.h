@@ -7,16 +7,12 @@ namespace fcpw {
 // modified versions of https://github.com/brandonpelfrey/Fast-BVH and
 // https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
 // TODO:
-// - implement mbvh/qbvh with vectorization (try enoki?)
+// - enoki + implement mbvh/qbvh
 // - Oriented bounding boxes/RSS
 // - build a spatial data structure on top of bvh to store pointers to nodes
 // - estimate closest point radius (i.e., conversative guess of spherical region containing query point)
 // - implement "queueless" closest point traversal
 // - try bottom up closest point traversal strategy
-
-// TODO:
-// - optimize splitPrimitive
-// - cap max tree depth
 
 enum class CostHeuristic {
 	LongestAxisCenter,
@@ -93,7 +89,7 @@ protected:
 						   std::vector<BoundingBox<DIM>>& referenceBoxes,
 						   std::vector<Vector<DIM>>& referenceCentroids);
 
-	// splits reference
+	// splits primitive
 	void splitPrimitive(const std::shared_ptr<Primitive<DIM>>& primitive, int dim,
 						float splitCoord, const BoundingBox<DIM>& bboxReference,
 						BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight) const;
