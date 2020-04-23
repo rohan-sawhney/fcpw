@@ -161,8 +161,18 @@ struct BoundingBox {
 
 	// returns surface area
 	float surfaceArea() const {
-		LOG(FATAL) << "BoundingBox::surfaceArea(): not implemented for dimension: " << DIM;
-		return 0.0f;
+		float sa = 0.0f;
+
+		for (int i = 0; i < DIM; i++) {
+			float a = 1.0f;
+			for (int j = 0; j < DIM; j++) {
+				if (i != j) a *= (pMax(j) - pMin(j));
+			}
+
+			sa += a;
+		}
+
+		return 2.0f*sa;
 	}
 
 	// returns volume
@@ -208,17 +218,5 @@ struct BoundingBox {
 	// members
 	Vector<DIM> pMin, pMax;
 };
-
-template <>
-inline float BoundingBox<2>::surfaceArea() const {
-	Vector2f e = extent();
-	return 2.0f*(e(0) + e(1));
-}
-
-template <>
-inline float BoundingBox<3>::surfaceArea() const {
-	Vector3f e = extent();
-	return 2.0f*(e(0)*e(1) + e(0)*e(2) + e(1)*e(2));
-}
 
 } // namespace fcpw
