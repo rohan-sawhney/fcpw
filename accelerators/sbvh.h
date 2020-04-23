@@ -101,7 +101,7 @@ protected:
 	// computes spatial split
 	float computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
 							  const std::vector<BoundingBox<DIM>>& referenceBoxes,
-							  int nodeStart, int nodeEnd, int& splitDim, float& splitCoord,
+							  int nodeStart, int nodeEnd, int splitDim, float& splitCoord,
 							  BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight);
 
 	// performs spatial split

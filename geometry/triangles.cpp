@@ -118,21 +118,56 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 	for (int i = 0; i < 3; i++) {
 		const Vector3f& pa = soup->positions[indices[i]];
 		const Vector3f& pb = soup->positions[indices[(i + 1)%3]];
-		float paCoord = pa(dim);
-		float pbCoord = pb(dim);
 
-		// insert pa into the box it belongs to
-		if (paCoord <= splitCoord) bboxLeft.expandToInclude(pa);
-		if (paCoord >= splitCoord) bboxRight.expandToInclude(pa);
+		if (pa(dim) <= splitCoord && pb(dim) <= splitCoord) {
+			const Vector3f& pc = soup->positions[indices[(i + 2)%3]];
 
-		// check if this edge intersects plane
-		if ((paCoord < splitCoord && pbCoord > splitCoord) ||
-			(paCoord > splitCoord && pbCoord < splitCoord)) {
-			// add the point lying on the plane to both the left and right boxes
-			float t = clamp((splitCoord - paCoord)/(pbCoord - paCoord), 0.0f, 1.0f);
-			Vector3f p = pa + t*(pb - pa);
-			bboxLeft.expandToInclude(p);
-			bboxRight.expandToInclude(p);
+			if (pc(dim) <= splitCoord) {
+				bboxLeft = BoundingBox<3>(pa);
+				bboxLeft.expandToInclude(pb);
+				bboxLeft.expandToInclude(pc);
+				bboxRight = BoundingBox<3>();
+
+			} else {
+				Vector3f u = pa - pc;
+				Vector3f v = pb - pc;
+				float t = clamp((splitCoord - pc(dim))/u(dim), 0.0f, 1.0f);
+				float s = clamp((splitCoord - pc(dim))/v(dim), 0.0f, 1.0f);
+
+				bboxLeft = BoundingBox<3>(pc + t*u);
+				bboxLeft.expandToInclude(pc + s*v);
+				bboxRight = bboxLeft;
+				bboxLeft.expandToInclude(pa);
+				bboxLeft.expandToInclude(pb);
+				bboxRight.expandToInclude(pc);
+			}
+
+			break;
+
+		} else if (pa(dim) >= splitCoord && pb(dim) >= splitCoord) {
+			const Vector3f& pc = soup->positions[indices[(i + 2)%3]];
+
+			if (pc(dim) >= splitCoord) {
+				bboxRight = BoundingBox<3>(pa);
+				bboxRight.expandToInclude(pb);
+				bboxRight.expandToInclude(pc);
+				bboxLeft = BoundingBox<3>();
+
+			} else {
+				Vector3f u = pa - pc;
+				Vector3f v = pb - pc;
+				float t = clamp((splitCoord - pc(dim))/u(dim), 0.0f, 1.0f);
+				float s = clamp((splitCoord - pc(dim))/v(dim), 0.0f, 1.0f);
+
+				bboxRight = BoundingBox<3>(pc + t*u);
+				bboxRight.expandToInclude(pc + s*v);
+				bboxLeft = bboxRight;
+				bboxRight.expandToInclude(pa);
+				bboxRight.expandToInclude(pb);
+				bboxLeft.expandToInclude(pc);
+			}
+
+			break;
 		}
 	}
 }

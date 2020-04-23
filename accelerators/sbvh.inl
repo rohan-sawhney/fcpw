@@ -233,80 +233,73 @@ inline void Sbvh<DIM>::splitPrimitive(const std::shared_ptr<Primitive<DIM>>& pri
 template <int DIM>
 inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
 											const std::vector<BoundingBox<DIM>>& referenceBoxes,
-											int nodeStart, int nodeEnd, int& splitDim, float& splitCoord,
+											int nodeStart, int nodeEnd, int splitDim, float& splitCoord,
 											BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight)
 {
+	// find the best split along splitDim
 	float splitCost = maxFloat;
-	splitDim = -1;
 	splitCoord = 0.0f;
 
 	Vector<DIM> extent = nodeBoundingBox.extent();
 	float surfaceArea = nodeBoundingBox.surfaceArea();
 	float volume = nodeBoundingBox.volume();
 
-	// find the best split across all dimensions
-	for (int dim = 0; dim < DIM; dim++) {
-		// ignore flat dimension
-		if (extent(dim) < 1e-6) continue;
+	// bin references
+	float binWidth = extent(splitDim)/nBins;
+	for (int b = 0; b < nBins; b++) {
+		std::get<0>(bins[b]) = BoundingBox<DIM>();
+		std::get<1>(bins[b]) = 0;
+		std::get<2>(bins[b]) = 0;
+	}
 
-		// bin references
-		float binWidth = extent(dim)/nBins;
-		for (int b = 0; b < nBins; b++) {
-			std::get<0>(bins[b]) = BoundingBox<DIM>();
-			std::get<1>(bins[b]) = 0;
-			std::get<2>(bins[b]) = 0;
+	for (int p = nodeStart; p < nodeEnd; p++) {
+		// find the bins the reference is contained in
+		const std::shared_ptr<Primitive<DIM>>& primitive = primitives[references[p]];
+		int firstBinIndex = (int)((referenceBoxes[p].pMin(splitDim) - nodeBoundingBox.pMin(splitDim))/binWidth);
+		int lastBinIndex = (int)((referenceBoxes[p].pMax(splitDim) - nodeBoundingBox.pMin(splitDim))/binWidth);
+		firstBinIndex = clamp(firstBinIndex, 0, nBins - 1);
+		lastBinIndex = clamp(lastBinIndex, 0, nBins - 1);
+		BoundingBox<DIM> bboxReference = referenceBoxes[p];
+
+		// loop over those bins, splitting the reference and growing the bin boxes
+		for (int b = firstBinIndex; b < lastBinIndex; b++) {
+			BoundingBox<DIM> bboxRefLeft, bboxRefRight;
+			float coord = nodeBoundingBox.pMin(splitDim) + (b + 1)*binWidth;
+			splitPrimitive(primitive, splitDim, coord, bboxReference, bboxRefLeft, bboxRefRight);
+			std::get<0>(bins[b]).expandToInclude(bboxRefLeft);
+			bboxReference = bboxRefRight;
 		}
 
-		for (int p = nodeStart; p < nodeEnd; p++) {
-			// find the bins the reference is contained in
-			const std::shared_ptr<Primitive<DIM>>& primitive = primitives[references[p]];
-			int firstBinIndex = (int)((referenceBoxes[p].pMin(dim) - nodeBoundingBox.pMin(dim))/binWidth);
-			int lastBinIndex = (int)((referenceBoxes[p].pMax(dim) - nodeBoundingBox.pMin(dim))/binWidth);
-			firstBinIndex = clamp(firstBinIndex, 0, nBins - 1);
-			lastBinIndex = clamp(lastBinIndex, 0, nBins - 1);
-			BoundingBox<DIM> bboxReference = referenceBoxes[p];
+		std::get<0>(bins[lastBinIndex]).expandToInclude(bboxReference);
+		std::get<1>(bins[firstBinIndex]) += 1; // increment number of entries
+		std::get<2>(bins[lastBinIndex]) += 1; // increment number of exits
+	}
 
-			// loop over those bins, splitting the reference and growing the bin boxes
-			for (int b = firstBinIndex; b < lastBinIndex; b++) {
-				BoundingBox<DIM> bboxRefLeft, bboxRefRight;
-				float coord = nodeBoundingBox.pMin(dim) + (b + 1)*binWidth;
-				splitPrimitive(primitive, dim, coord, bboxReference, bboxRefLeft, bboxRefRight);
-				std::get<0>(bins[b]).expandToInclude(bboxRefLeft);
-				bboxReference = bboxRefRight;
-			}
+	// sweep right to left to build right bin bounding boxes
+	BoundingBox<DIM> bboxRefRight;
+	for (int b = nBins - 1; b > 0; b--) {
+		bboxRefRight.expandToInclude(std::get<0>(bins[b]));
+		rightBinBoxes[b].first = bboxRefRight;
+		rightBinBoxes[b].second = std::get<2>(bins[b]);
+		if (b != nBins - 1) rightBinBoxes[b].second += rightBinBoxes[b + 1].second;
+	}
 
-			std::get<0>(bins[lastBinIndex]).expandToInclude(bboxReference);
-			std::get<1>(bins[firstBinIndex]) += 1; // increment number of entries
-			std::get<2>(bins[lastBinIndex]) += 1; // increment number of exits
-		}
+	// evaluate bin split costs
+	BoundingBox<DIM> bboxRefLeft;
+	int nReferencesLeft = 0;
+	for (int b = 1; b < nBins; b++) {
+		bboxRefLeft.expandToInclude(std::get<0>(bins[b - 1]));
+		nReferencesLeft += std::get<1>(bins[b - 1]);
 
-		// sweep right to left to build right bin bounding boxes
-		BoundingBox<DIM> bboxRefRight;
-		for (int b = nBins - 1; b > 0; b--) {
-			bboxRefRight.expandToInclude(std::get<0>(bins[b]));
-			rightBinBoxes[b].first = bboxRefRight;
-			rightBinBoxes[b].second = std::get<2>(bins[b]);
-			if (b != nBins - 1) rightBinBoxes[b].second += rightBinBoxes[b + 1].second;
-		}
+		if (nReferencesLeft > 0 && rightBinBoxes[b].second > 0) {
+			float cost = computeSplitCost(bboxRefLeft, rightBinBoxes[b].first, surfaceArea,
+										  volume, nReferencesLeft, rightBinBoxes[b].second);
 
-		// evaluate bin split costs
-		BoundingBox<DIM> bboxRefLeft;
-		int nReferencesLeft = 0;
-		for (int b = 1; b < nBins; b++) {
-			bboxRefLeft.expandToInclude(std::get<0>(bins[b - 1]));
-			nReferencesLeft += std::get<1>(bins[b - 1]);
-
-			if (nReferencesLeft > 0 && rightBinBoxes[b].second > 0) {
-				float cost = computeSplitCost(bboxRefLeft, rightBinBoxes[b].first, surfaceArea,
-											  volume, nReferencesLeft, rightBinBoxes[b].second);
-
-				if (cost < splitCost) {
-					splitCost = cost;
-					splitDim = dim;
-					splitCoord = nodeBoundingBox.pMin(dim) + b*binWidth;
-					bboxLeft = bboxRefLeft;
-					bboxRight = rightBinBoxes[b].first;
-				}
+			if (cost < splitCost) {
+				splitCost = cost;
+				splitCoord = nodeBoundingBox.pMin(splitDim) + b*binWidth;
+				bboxLeft = bboxRefLeft;
+				bboxRight = rightBinBoxes[b].first;
 			}
 		}
 	}
@@ -491,15 +484,13 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 		  bboxIntersected.surfaceArea() > splitAlpha*rootSurfaceArea) ||
 		 (costHeuristic == CostHeuristic::Volume &&
 		  bboxIntersected.volume() > splitAlpha*rootVolume))) {
-		int spatialSplitDim;
 		float spatialSplitCoord;
 		float spatialSplitCost = computeSpatialSplit(bb, referenceBoxes, start, end,
-													 spatialSplitDim, spatialSplitCoord,
+													 splitDim, spatialSplitCoord,
 													 bboxLeft, bboxRight);
 
 		if (spatialSplitCost < splitCost) {
 			isObjectSplitBetter = false;
-			splitDim = spatialSplitDim;
 			splitCoord = spatialSplitCoord;
 			splitCost = spatialSplitCost;
 		}
