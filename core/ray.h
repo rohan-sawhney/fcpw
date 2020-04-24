@@ -8,11 +8,7 @@ template <int DIM>
 struct Ray {
 	// constructor
 	Ray(const Vector<DIM>& o_, const Vector<DIM>& d_, float tMax_=maxFloat):
-		o(o_), d(d_), tMax(tMax_) {
-		for (int i = 0; i < DIM; i++) {
-			invD(i) = 1.0f/d(i);
-		}
-	}
+		o(o_), d(d_), invD(d.cwiseInverse()), tMax(tMax_) {}
 
 	// operator()
 	Vector<DIM> operator()(float t) const {
