@@ -106,8 +106,8 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	it->d = ray->tfar;
 	it->p = Vector3f(ray->org_x, ray->org_y, ray->org_z) +
 			it->d*Vector3f(ray->dir_x, ray->dir_y, ray->dir_z);
-	it->uv(0) = hit->u;
-	it->uv(1) = hit->v;
+	it->uv[0] = hit->u;
+	it->uv[1] = hit->v;
 	it->n = Vector3f(hit->Ng_x, hit->Ng_y, hit->Ng_z).normalized();
 	it->primitive = primitives[hit->primID].get();
 }
@@ -186,9 +186,9 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 	const Vector3f& pa = callbackSoup->positions[indices[0]];
 	const Vector3f& pb = callbackSoup->positions[indices[1]];
 	const Vector3f& pc = callbackSoup->positions[indices[2]];
-	embree::Vec3fa v1(pa(0), pa(1), pa(2));
-	embree::Vec3fa v2(pb(0), pb(1), pb(2));
-	embree::Vec3fa v3(pc(0), pc(1), pc(2));
+	embree::Vec3fa v1(pa[0], pa[1], pa[2]);
+	embree::Vec3fa v2(pb[0], pb[1], pb[2]);
+	embree::Vec3fa v3(pc[0], pc[1], pc[2]);
 
 	const embree::Vec3fa p = closestPointTriangle(q, v1, v2, v3);
 	float d = distance(q, p);
@@ -320,12 +320,12 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 
 	// initialize rayhit structure
 	RTCRayHit rayhit;
-	rayhit.ray.org_x = r.o(0);
-	rayhit.ray.org_y = r.o(1);
-	rayhit.ray.org_z = r.o(2);
-	rayhit.ray.dir_x = r.d(0);
-	rayhit.ray.dir_y = r.d(1);
-	rayhit.ray.dir_z = r.d(2);
+	rayhit.ray.org_x = r.o[0];
+	rayhit.ray.org_y = r.o[1];
+	rayhit.ray.org_z = r.o[2];
+	rayhit.ray.dir_x = r.d[0];
+	rayhit.ray.dir_y = r.d[1];
+	rayhit.ray.dir_z = r.d[2];
 	rayhit.ray.tnear = 0.0f;
 	rayhit.ray.tfar = r.tMax;
 	rayhit.ray.mask = 0;
@@ -360,8 +360,8 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 			auto it = is.emplace(is.end(), Interaction<3>());
 			it->d = rayhit.ray.tfar;
 			it->p = r(it->d);
-			it->uv(0) = rayhit.hit.u;
-			it->uv(1) = rayhit.hit.v;
+			it->uv[0] = rayhit.hit.u;
+			it->uv[1] = rayhit.hit.v;
 			it->n = Vector3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z).normalized();
 			it->primitive = this->primitives[rayhit.hit.primID].get();
 			r.tMax = it->d;
@@ -386,9 +386,9 @@ inline bool EmbreeBvh<3>::findClosestPoint(BoundingSphere<3>& s,
 
 	// initialize point query
 	RTCPointQuery query;
-	query.x = s.c(0);
-	query.y = s.c(1);
-	query.z = s.c(2);
+	query.x = s.c[0];
+	query.y = s.c[1];
+	query.z = s.c[2];
 	query.radius = std::sqrt(s.r2);
 	query.time = 0.0f;
 
@@ -398,9 +398,9 @@ inline bool EmbreeBvh<3>::findClosestPoint(BoundingSphere<3>& s,
 
 	if (result.geomID != RTC_INVALID_GEOMETRY_ID) {
 		// record result
-		i.p(0) = result.p.x;
-		i.p(1) = result.p.y;
-		i.p(2) = result.p.z;
+		i.p[0] = result.p.x;
+		i.p[1] = result.p.y;
+		i.p[2] = result.p.z;
 		i.d = (i.p - s.c).norm();
 		i.primitive = this->primitives[result.primID].get();
 		i.uv = static_cast<const Triangle *>(i.primitive)->barycentricCoordinates(i.p);

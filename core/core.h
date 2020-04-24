@@ -71,7 +71,7 @@ inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
 {
 	Vector<DIM> v;
 	for (int i = 0; i < DIM; i++) {
-		v(i) = uniformRealRandomNumber(a, b);
+		v[i] = uniformRealRandomNumber(a, b);
 	}
 
 	return v;

@@ -53,8 +53,8 @@ public:
 			// do two intersection tests for robustness
 			Vector<DIM> direction1 = Vector<DIM>::Zero();
 			Vector<DIM> direction2 = Vector<DIM>::Zero();
-			direction1(0) = 1;
-			direction2(1) = 1;
+			direction1[0] = 1;
+			direction2[1] = 1;
 
 			std::vector<Interaction<DIM>> is1;
 			Ray<DIM> r1(x, direction1);
@@ -105,14 +105,14 @@ public:
 			   BoundingBox<DIM>& bboxRight) const {
 		BoundingBox<DIM> bbox = this->boundingBox();
 
-		if (bbox.pMin(dim) <= splitCoord) {
+		if (bbox.pMin[dim] <= splitCoord) {
 			bboxLeft = bbox;
-			bboxLeft.pMax(dim) = splitCoord;
+			bboxLeft.pMax[dim] = splitCoord;
 		}
 
-		if (bbox.pMax(dim) >= splitCoord) {
+		if (bbox.pMax[dim] >= splitCoord) {
 			bboxRight = bbox;
-			bboxRight.pMin(dim) = splitCoord;
+			bboxRight.pMin[dim] = splitCoord;
 		}
 	}
 };
@@ -199,7 +199,7 @@ public:
 		Vector<DIM> xInv = transformInv*x;
 		if (distanceUpperBound < maxFloat) {
 			Vector<DIM> direction = Vector<DIM>::Zero();
-			direction(0) = 1;
+			direction[0] = 1;
 			distanceUpperBound = (transformInv*(x + distanceUpperBound*direction) - xInv).norm();
 		}
 

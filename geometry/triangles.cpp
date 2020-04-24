@@ -119,10 +119,10 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 		const Vector3f& pa = soup->positions[indices[i]];
 		const Vector3f& pb = soup->positions[indices[(i + 1)%3]];
 
-		if (pa(dim) <= splitCoord && pb(dim) <= splitCoord) {
+		if (pa[dim] <= splitCoord && pb[dim] <= splitCoord) {
 			const Vector3f& pc = soup->positions[indices[(i + 2)%3]];
 
-			if (pc(dim) <= splitCoord) {
+			if (pc[dim] <= splitCoord) {
 				bboxLeft = BoundingBox<3>(pa);
 				bboxLeft.expandToInclude(pb);
 				bboxLeft.expandToInclude(pc);
@@ -131,8 +131,8 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 			} else {
 				Vector3f u = pa - pc;
 				Vector3f v = pb - pc;
-				float t = clamp((splitCoord - pc(dim))/u(dim), 0.0f, 1.0f);
-				float s = clamp((splitCoord - pc(dim))/v(dim), 0.0f, 1.0f);
+				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
+				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
 				bboxLeft = BoundingBox<3>(pc + t*u);
 				bboxLeft.expandToInclude(pc + s*v);
@@ -144,10 +144,10 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 
 			break;
 
-		} else if (pa(dim) >= splitCoord && pb(dim) >= splitCoord) {
+		} else if (pa[dim] >= splitCoord && pb[dim] >= splitCoord) {
 			const Vector3f& pc = soup->positions[indices[(i + 2)%3]];
 
-			if (pc(dim) >= splitCoord) {
+			if (pc[dim] >= splitCoord) {
 				bboxRight = BoundingBox<3>(pa);
 				bboxRight.expandToInclude(pb);
 				bboxRight.expandToInclude(pc);
@@ -156,8 +156,8 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 			} else {
 				Vector3f u = pa - pc;
 				Vector3f v = pb - pc;
-				float t = clamp((splitCoord - pc(dim))/u(dim), 0.0f, 1.0f);
-				float s = clamp((splitCoord - pc(dim))/v(dim), 0.0f, 1.0f);
+				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
+				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
 				bboxRight = BoundingBox<3>(pc + t*u);
 				bboxRight.expandToInclude(pc + s*v);

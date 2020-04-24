@@ -15,7 +15,7 @@ struct BoundingSphere {
 		float tr2 = maxFloat;
 		if (r2 < maxFloat) {
 			Vector<DIM> direction = Vector<DIM>::Zero();
-			direction(0) = 1;
+			direction[0] = 1;
 			tr2 = (t*(c + std::sqrt(r2)*direction) - tc).squaredNorm();
 		}
 
@@ -133,7 +133,7 @@ struct BoundingBox {
 
 			for (int j = 0; j < DIM; j++) {
 				int idx = temp%2;
-				p(j) = idx == 0 ? pMin(j) : pMax(j);
+				p[j] = idx == 0 ? pMin[j] : pMax[j];
 				temp /= 2;
 			}
 
