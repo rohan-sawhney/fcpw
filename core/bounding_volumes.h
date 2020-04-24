@@ -30,30 +30,22 @@ struct BoundingSphere {
 template <int DIM>
 struct BoundingBox {
 	// constructor
-	BoundingBox() {
-		for (int i = 0; i < DIM; i++) {
-			pMin(i) = maxFloat;
-			pMax(i) = minFloat;
-		}
-	}
+	BoundingBox(): pMin(Vector<DIM>::Constant(maxFloat)),
+				   pMax(Vector<DIM>::Constant(minFloat)) {}
 
 	// constructor
 	BoundingBox(const Vector<DIM>& p): pMin(p), pMax(p) {}
 
 	// expands volume to include point
 	void expandToInclude(const Vector<DIM>& p) {
-		for (int i = 0; i < DIM; i++) {
-			if (pMin(i) > p(i)) pMin(i) = p(i);
-			if (pMax(i) < p(i)) pMax(i) = p(i);
-		}
+		pMin = pMin.cwiseMin(p);
+		pMax = pMax.cwiseMax(p);
 	}
 
 	// expands volume to include box
 	void expandToInclude(const BoundingBox<DIM>& b)	{
-		for (int i = 0; i < DIM; i++) {
-			if (pMin(i) > b.pMin(i)) pMin(i) = b.pMin(i);
-			if (pMax(i) < b.pMax(i)) pMax(i) = b.pMax(i);
-		}
+		pMin = pMin.cwiseMin(b.pMin);
+		pMax = pMax.cwiseMax(b.pMax);
 	}
 
 	// returns box extent
@@ -64,25 +56,16 @@ struct BoundingBox {
 	// computes min and max squared distance to point;
 	// min squared distance is 0 if point is inside box
 	void computeSquaredDistance(const Vector<DIM>& p, float& d2Min, float& d2Max) const {
-		d2Min = 0.0f;
-		d2Max = 0.0f;
-
-		for (int i = 0; i < DIM; i++) {
-			float d = std::max({pMin(i) - p(i), 0.0f, p(i) - pMax(i)});
-			d2Min += d*d;
-
-			d = std::max(p(i) - pMin(i), pMax(i) - p(i));
-			d2Max += d*d;
-		}
+		Vector<DIM> u = pMin - p;
+		Vector<DIM> v = p - pMax;
+		d2Min = u.cwiseMax(v).cwiseMax(0.0f).squaredNorm();
+		d2Max = u.cwiseMin(v).squaredNorm();
 	}
 
 	// checks whether box contains point
 	bool contains(const Vector<DIM>& p) const {
-		for (int i = 0; i < DIM; i++) {
-			if (pMin(i) > p(i) || pMax(i) < p(i)) return false;
-		}
-
-		return true;
+		return (p.array() >= pMin.array()).all() &&
+			   (p.array() <= pMax.array()).all();
 	}
 
 	// checks for overlap with sphere
@@ -91,67 +74,36 @@ struct BoundingBox {
 		return d2Min <= s.r2;
 	}
 
-	// checks for overlap with box
-	bool overlaps(const BoundingBox<DIM>& b) const {
-		for (int i = 0; i < DIM; i++) {
-			bool doesOverlap = (pMax(i) >= b.pMin(i)) && (pMin(i) <= b.pMax(i));
-			if (!doesOverlap) return false;
-		}
-
-		return true;
-	}
-
 	// checks for ray intersection
 	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
-		float t0 = 0.0f;
-		float t1 = r.tMax;
-		const Vector<DIM>& o = r.o;
-		const Vector<DIM>& invD = r.invD;
+		// slab test for ray box intersection
+		// source: http://www.jcgt.org/published/0007/03/04/paper-lowres.pdf
+		Vector<DIM> t0 = (pMin - r.o).cwiseProduct(r.invD);
+		Vector<DIM> t1 = (pMax - r.o).cwiseProduct(r.invD);
+		Vector<DIM> tNear = t0.cwiseMin(t1);
+		Vector<DIM> tFar = t0.cwiseMax(t1);
 
-		for (int i = 0; i < DIM; i++) {
-			// update interval for _i_th bounding box slab
-			float tNear = (pMin(i) - o(i))*invD(i);
-			float tFar = (pMax(i) - o(i))*invD(i);
+		tFar *= 1.0f + 2.0f*gamma(3);
+		float tNearMax = std::max(0.0f, tNear.maxCoeff());
+		float tFarMin = std::min(r.tMax, tFar.minCoeff());
+		if (tNearMax > tFarMin) return false;
 
-			// update parametric interval from slab intersection $t$ values
-			if (tNear > tFar) std::swap(tNear, tFar);
-
-			// update _tFar_ to ensure robust ray--bounds intersection
-			tFar *= 1.0f + 2.0f*gamma(3);
-			t0 = tNear > t0 ? tNear : t0;
-			t1 = tFar < t1 ? tFar : t1;
-			if (t0 > t1) return false;
-		}
-
-		tMin = t0;
-		tMax = t1;
+		tMin = tNearMax;
+		tMax = tFarMin;
 		return true;
 	}
 
 	// checks whether bounding box is valid
 	bool isValid() const {
-		for (int i = 0; i < DIM; i++) {
-			if (pMax(i) < pMin(i)) return false;
-		}
-
-		return true;
+		return (pMax.array() >= pMin.array()).all();
 	}
 
 	// returns max dimension
 	int maxDimension() const {
-		int maxDim = 0;
-		float maxLength = pMax(0) - pMin(0);
+		int index;
+		float maxLength = (pMax - pMin).maxCoeff(&index);
 
-		for (int i = 1; i < DIM; i++) {
-			float length = pMax(i) - pMin(i);
-
-			if (length > maxLength) {
-				maxLength = length;
-				maxDim = i;
-			}
-		}
-
-		return maxDim;
+		return index;
 	}
 
 	// returns centroid
@@ -161,26 +113,13 @@ struct BoundingBox {
 
 	// returns surface area
 	float surfaceArea() const {
-		float sa = 0.0f;
-
-		for (int i = 0; i < DIM; i++) {
-			float a = 1.0f;
-			for (int j = 0; j < DIM; j++) {
-				if (i != j) a *= (pMax(j) - pMin(j));
-			}
-
-			sa += a;
-		}
-
-		return 2.0f*sa;
+		Vector<DIM> e = extent().cwiseMax(1e-5); // the 1e-5 is to prevent division by zero
+		return 2.0f*(Vector<DIM>::Constant(e.prod()).cwiseQuotient(e).sum());
 	}
 
 	// returns volume
 	float volume() const {
-		float v = 1.0f;
-		for (int i = 0; i < DIM; i++) v *= (pMax(i) - pMin(i));
-
-		return v;
+		return extent().prod();
 	}
 
 	// computes transformed box
@@ -207,10 +146,8 @@ struct BoundingBox {
 	// returns the intersection of two bounding boxes
 	BoundingBox<DIM> intersect(const BoundingBox<DIM>& b) const {
 		BoundingBox<DIM> bIntersect;
-		for (int i = 0; i < DIM; i++) {
-			bIntersect.pMin(i) = std::max(pMin(i), b.pMin(i));
-			bIntersect.pMax(i) = std::min(pMax(i), b.pMax(i));
-		}
+		bIntersect.pMin = pMin.cwiseMax(b.pMin);
+		bIntersect.pMax = pMax.cwiseMin(b.pMax);
 
 		return bIntersect;
 	}

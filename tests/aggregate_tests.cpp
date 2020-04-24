@@ -30,17 +30,13 @@ void generateScatteredPointsAndRays(std::vector<fcpw::Vector<DIM>>& scatteredPoi
 									const BoundingBox<DIM>& boundingBox)
 {
 	fcpw::Vector<DIM> e = boundingBox.extent();
-	fcpw::Vector<DIM> o = fcpw::Vector<DIM>::Zero();
-	fcpw::Vector<DIM> d = fcpw::Vector<DIM>::Zero();
 
 	for (int i = 0; i < nQueries; i++) {
-		for (int j = 0; j < DIM; j++) {
-			o(j) = boundingBox.pMin(j) + e(j)*uniformRealRandomNumber();
-			d(j) = uniformRealRandomNumber(-1.0f, 1.0f);
-		}
+		fcpw::Vector<DIM> o = boundingBox.pMin + e.cwiseProduct(uniformRealRandomVector<DIM>());
+		fcpw::Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f).normalized();
 
 		scatteredPoints.emplace_back(o);
-		randomDirections.emplace_back(d.normalized());
+		randomDirections.emplace_back(d);
 	}
 }
 
