@@ -13,14 +13,14 @@ template <int DIM>
 struct Interaction {
 	// constructor
 	Interaction(): d(maxFloat), sign(0), distanceInfo(DistanceInfo::Exact), primitive(nullptr),
-				   p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()), uv(Vector<DIM - 1>::Zero()) {}
+				   p(zeroVector<DIM>()), n(zeroVector<DIM>()), uv(zeroVector<DIM - 1>()) {}
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
 		bool distancesMatch = std::fabs(d - i.d) < 1e-6;
 		if (distanceInfo == DistanceInfo::Bounded) return distancesMatch;
 
-		return distancesMatch && (p - i.p).squaredNorm() < 1e-6;
+		return distancesMatch && squaredNorm<DIM>(p - i.p) < 1e-6;
 	}
 
 	bool operator!=(const Interaction<DIM>& i) const {
@@ -29,17 +29,17 @@ struct Interaction {
 
 	// returns signed distance
 	float signedDistance(const Vector<DIM>& x) const {
-		return sign == 0 ? ((x - p).dot(n) > 0.0f ? 1.0f : -1.0f)*d : sign*d;
+		return sign == 0 ? (dot<DIM>(x - p, n) > 0.0f ? 1.0f : -1.0f)*d : sign*d;
 	}
 
 	// applies transform
 	void applyTransform(const Transform<DIM>& t,
 						const Transform<DIM>& tInv,
 						const Vector<DIM>& query) {
-		p = t*p;
-		d = (p - query).norm();
-		n = Transform<DIM>(tInv.matrix().transpose())*n;
-		n.normalize();
+		p = transformVector<DIM>(t, p);
+		d = norm<DIM>(p - query);
+		n = transformVector<DIM>(Transform<DIM>(tInv.matrix().transpose()), n);
+		n = unit<DIM>(n);
 	}
 
 	// members

@@ -18,7 +18,7 @@ struct PolygonSoup {
 	Vector<DIM> polygonCenter(int polygon) const {
 		const std::vector<int>& index = indices[polygon];
 		int N = (int)index.size();
-		Vector<DIM> sum = Vector<DIM>::Zero();
+		Vector<DIM> sum = zeroVector<DIM>();
 
 		for (int i = 0; i < (int)index.size(); i++) {
 			sum += positions[index[i]];

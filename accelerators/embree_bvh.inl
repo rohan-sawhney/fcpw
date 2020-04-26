@@ -108,7 +108,7 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 			it->d*Vector3f(ray->dir_x, ray->dir_y, ray->dir_z);
 	it->uv[0] = hit->u;
 	it->uv[1] = hit->v;
-	it->n = Vector3f(hit->Ng_x, hit->Ng_y, hit->Ng_z).normalized();
+	it->n = unit<3>(Vector3f(hit->Ng_x, hit->Ng_y, hit->Ng_z));
 	it->primitive = primitives[hit->primID].get();
 }
 
@@ -362,7 +362,7 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 			it->p = r(it->d);
 			it->uv[0] = rayhit.hit.u;
 			it->uv[1] = rayhit.hit.v;
-			it->n = Vector3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z).normalized();
+			it->n = unit<3>(Vector3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
 			it->primitive = this->primitives[rayhit.hit.primID].get();
 			r.tMax = it->d;
 			hits++;
@@ -401,7 +401,7 @@ inline bool EmbreeBvh<3>::findClosestPoint(BoundingSphere<3>& s,
 		i.p[0] = result.p.x;
 		i.p[1] = result.p.y;
 		i.p[2] = result.p.z;
-		i.d = (i.p - s.c).norm();
+		i.d = norm<3>(i.p - s.c);
 		i.primitive = this->primitives[result.primID].get();
 		i.uv = static_cast<const Triangle *>(i.primitive)->barycentricCoordinates(i.p);
 		i.n = static_cast<const Triangle *>(i.primitive)->normal(true);

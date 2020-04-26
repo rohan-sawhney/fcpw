@@ -41,7 +41,7 @@ Vector3f Triangle::centroid() const
 
 float Triangle::surfaceArea() const
 {
-	return 0.5f*normal().norm();
+	return 0.5f*norm<3>(normal());
 }
 
 float Triangle::signedVolume() const
@@ -50,7 +50,7 @@ float Triangle::signedVolume() const
 	const Vector3f& pb = soup->positions[indices[1]];
 	const Vector3f& pc = soup->positions[indices[2]];
 
-	return pa.cross(pb).dot(pc)/6.0f;
+	return dot<3>(cross(pa, pb), pc)/6.0f;
 }
 
 Vector3f Triangle::normal(bool normalize) const
@@ -62,8 +62,8 @@ Vector3f Triangle::normal(bool normalize) const
 	Vector3f v1 = pb - pa;
 	Vector3f v2 = pc - pa;
 
-	Vector3f n = v1.cross(v2)*(swapHandedness ? -1.0f : 1.0f);
-	return normalize ? n.normalized() : n;
+	Vector3f n = cross(v1, v2)*(swapHandedness ? -1.0f : 1.0f);
+	return normalize ? unit<3>(n) : n;
 }
 
 Vector2f Triangle::barycentricCoordinates(const Vector3f& p) const
@@ -76,11 +76,11 @@ Vector2f Triangle::barycentricCoordinates(const Vector3f& p) const
 	Vector3f v2 = pc - pa;
 	Vector3f v3 = p - pa;
 
-	float d11 = v1.dot(v1);
-	float d12 = v1.dot(v2);
-	float d22 = v2.dot(v2);
-	float d31 = v3.dot(v1);
-	float d32 = v3.dot(v2);
+	float d11 = dot<3>(v1, v1);
+	float d12 = dot<3>(v1, v2);
+	float d22 = dot<3>(v2, v2);
+	float d31 = dot<3>(v3, v1);
+	float d32 = dot<3>(v3, v2);
 	float denom = d11*d22 - d12*d12;
 	float v = (d22*d31 - d12*d32)/denom;
 	float w = (d11*d32 - d12*d31)/denom;
@@ -187,22 +187,22 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 
 	Vector3f v1 = pb - pa;
 	Vector3f v2 = pc - pa;
-	Vector3f p = r.d.cross(v2);
-	float det = v1.dot(p);
+	Vector3f p = cross(r.d, v2);
+	float det = dot<3>(v1, p);
 
 	// ray and triangle are parallel if det is close to 0
 	if (std::fabs(det) < epsilon) return false;
 	float invDet = 1.0f/det;
 
 	Vector3f s = r.o - pa;
-	float u = s.dot(p)*invDet;
+	float u = dot<3>(s, p)*invDet;
 	if (u < 0 || u > 1) return false;
 
-	Vector3f q = s.cross(v1);
-	float v = r.d.dot(q)*invDet;
+	Vector3f q = cross(s, v1);
+	float v = dot<3>(r.d, q)*invDet;
 	if (v < 0 || u + v > 1) return false;
 
-	float t = v2.dot(q)*invDet;
+	float t = dot<3>(v2, q)*invDet;
 	if (t > epsilon && t <= r.tMax) {
 		auto it = is.emplace(is.end(), Interaction<3>());
 		it->d = t;
@@ -227,28 +227,28 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 	Vector3f ab = pb - pa;
 	Vector3f ac = pc - pa;
 	Vector3f ax = x - pa;
-	float d1 = ab.dot(ax);
-	float d2 = ac.dot(ax);
+	float d1 = dot<3>(ab, ax);
+	float d2 = dot<3>(ac, ax);
 	if (d1 <= 0.0f && d2 <= 0.0f) {
 		// barycentric coordinates (1, 0, 0)
 		t[0] = 1.0f;
 		t[1] = 0.0f;
 		vIndex = 0;
 		pt = pa;
-		return (x - pt).norm();
+		return norm<3>(x - pt);
 	}
 
 	// check if x in vertex region outside pb
 	Vector3f bx = x - pb;
-	float d3 = ab.dot(bx);
-	float d4 = ac.dot(bx);
+	float d3 = dot<3>(ab, bx);
+	float d4 = dot<3>(ac, bx);
 	if (d3 >= 0.0f && d4 <= d3) {
 		// barycentric coordinates (0, 1, 0)
 		t[0] = 0.0f;
 		t[1] = 1.0f;
 		vIndex = 1;
 		pt = pb;
-		return (x - pt).norm();
+		return norm<3>(x - pt);
 	}
 
 	// check if x in edge region of ab, if so return projection of x onto ab
@@ -260,20 +260,20 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 		t[1] = v;
 		eIndex = 0;
 		pt = pa + v*ab;
-		return (x - pt).norm();
+		return norm<3>(x - pt);
 	}
 
 	// check if x in vertex region outside pc
 	Vector3f cx = x - pc;
-	float d5 = ab.dot(cx);
-	float d6 = ac.dot(cx);
+	float d5 = dot<3>(ab, cx);
+	float d6 = dot<3>(ac, cx);
 	if (d6 >= 0.0f && d5 <= d6) {
 		// barycentric coordinates (0, 0, 1)
 		t[0] = 0.0f;
 		t[1] = 0.0f;
 		vIndex = 2;
 		pt = pc;
-		return (x - pt).norm();
+		return norm<3>(x - pt);
 	}
 
 	// check if x in edge region of ac, if so return projection of x onto ac
@@ -285,7 +285,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 		t[1] = 0.0f;
 		eIndex = 2;
 		pt = pa + w*ac;
-		return (x - pt).norm();
+		return norm<3>(x - pt);
 	}
 
 	// check if x in edge region of bc, if so return projection of x onto bc
@@ -297,7 +297,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 		t[1] = 1.0f - w;
 		eIndex = 1;
 		pt = pb + w*(pc - pb);
-		return (x - pt).norm();
+		return norm<3>(x - pt);
 	}
 
 	// x inside face region. Compute pt through its barycentric coordinates (u, v, w)
@@ -308,7 +308,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 	t[1] = v;
 
 	pt = pa + ab*v + ac*w; //= u*a + v*b + w*c, u = va*denom = 1.0f - v - w
-	return (x - pt).norm();
+	return norm<3>(x - pt);
 }
 
 bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
@@ -361,8 +361,8 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 
 	// compute normals
 	int V = (int)soup->positions.size();
-	soup->vNormals.resize(V, Vector3f::Zero());
-	soup->eNormals.resize(E, Vector3f::Zero());
+	soup->vNormals.resize(V, zeroVector<3>());
+	soup->eNormals.resize(E, zeroVector<3>());
 
 	for (int i = 0; i < N; i++) {
 		Vector3f n = static_cast<const Triangle *>(triangles[i].get())->normal(true);
@@ -372,8 +372,8 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 		}
 	}
 
-	for (int i = 0; i < V; i++) soup->vNormals[i].normalize();
-	for (int i = 0; i < E; i++) soup->eNormals[i].normalize();
+	for (int i = 0; i < V; i++) soup->vNormals[i] = unit<3>(soup->vNormals[i]);
+	for (int i = 0; i < E; i++) soup->eNormals[i] = unit<3>(soup->eNormals[i]);
 }
 
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
@@ -399,7 +399,7 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 			float x, y, z;
 			ss >> x >> y >> z;
 
-			soup->positions.emplace_back(transform*Vector3f(x, y, z));
+			soup->positions.emplace_back(transformVector<3>(transform, Vector3f(x, y, z)));
 
 		} else if (token == "vt") {
 			float u, v;

@@ -51,8 +51,8 @@ public:
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
 		if (useRayIntersection) {
 			// do two intersection tests for robustness
-			Vector<DIM> direction1 = Vector<DIM>::Zero();
-			Vector<DIM> direction2 = Vector<DIM>::Zero();
+			Vector<DIM> direction1 = zeroVector<DIM>();
+			Vector<DIM> direction2 = zeroVector<DIM>();
 			direction1[0] = 1;
 			direction2[1] = 1;
 
@@ -77,7 +77,7 @@ public:
 	// checks whether there is a line of sight between xi and xj
 	bool hasLineOfSight(const Vector<DIM>& xi, const Vector<DIM>& xj) const {
 		Vector<DIM> direction = xj - xi;
-		float dNorm = direction.norm();
+		float dNorm = norm<DIM>(direction);
 		direction /= dNorm;
 
 		std::vector<Interaction<DIM>> is;
@@ -132,7 +132,7 @@ public:
 
 	// returns centroid
 	Vector<DIM> centroid() const {
-		return transform*aggregate->centroid();
+		return transformVector<DIM>(transform, aggregate->centroid());
 	}
 
 	// returns surface area
@@ -184,27 +184,28 @@ public:
 
 	// performs inside outside test for x
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
-		return aggregate->contains(transformInv*x, useRayIntersection);
+		return aggregate->contains(transformVector<DIM>(transformInv, x), useRayIntersection);
 	}
 
 	// checks whether there is a line of sight between xi and xj
 	bool hasLineOfSight(const Vector<DIM>& xi, const Vector<DIM>& xj) const {
-		return aggregate->hasLineOfSight(transformInv*xi, transformInv*xj);
+		return aggregate->hasLineOfSight(transformVector<DIM>(transformInv, xi),
+										 transformVector<DIM>(transformInv, xj));
 	}
 
 	// clamps x to the closest primitive this aggregate bounds
 	void clampToBoundary(Vector<DIM>& x, float distanceUpperBound) const {
 		// apply inverse transform to x and distance bound
-		Vector<DIM> xInv = transformInv*x;
+		Vector<DIM> xInv = transformVector<DIM>(transformInv, x);
 		if (distanceUpperBound < maxFloat) {
-			Vector<DIM> direction = Vector<DIM>::Zero();
+			Vector<DIM> direction = zeroVector<DIM>();
 			direction[0] = 1;
-			distanceUpperBound = (transformInv*(x + distanceUpperBound*direction) - xInv).norm();
+			distanceUpperBound = norm<DIM>(transformVector<DIM>(transformInv, x + distanceUpperBound*direction) - xInv);
 		}
 
 		// clamp in object space and apply transform to x
 		aggregate->clampToBoundary(xInv, distanceUpperBound);
-		x = transform*xInv;
+		x = transformVector<DIM>(transform, xInv);
 	}
 
 private:

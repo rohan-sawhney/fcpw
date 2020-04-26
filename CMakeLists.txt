@@ -70,11 +70,13 @@ set(FCPW_CORE_SOURCE
 	)
 
 set(FCPW_CORE_HEADERS
+	core/vector_operations.h
 	core/core.h
 	core/ray.h
 	core/bounding_volumes.h
 	core/interaction.h
 	core/primitive.h
+	core/csg_node.h
 	)
 
 file(GLOB FCPW_SOURCE

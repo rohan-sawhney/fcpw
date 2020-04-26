@@ -32,8 +32,8 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 	Vector<DIM> e = boundingBox.extent();
 
 	for (int i = 0; i < nQueries; i++) {
-		Vector<DIM> o = boundingBox.pMin + e.cwiseProduct(uniformRealRandomVector<DIM>());
-		Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f).normalized();
+		Vector<DIM> o = boundingBox.pMin + cwiseProduct<DIM>(e, uniformRealRandomVector<DIM>());
+		Vector<DIM> d = unit<DIM>(uniformRealRandomVector<DIM>(-1.0f, 1.0f));
 
 		scatteredPoints.emplace_back(o);
 		randomDirections.emplace_back(d);

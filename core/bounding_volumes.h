@@ -11,12 +11,12 @@ struct BoundingSphere {
 
 	// computes transformed sphere
 	BoundingSphere<DIM> transform(const Transform<DIM>& t) const {
-		Vector<DIM> tc = t*c;
+		Vector<DIM> tc = transformVector<DIM>(t, c);
 		float tr2 = maxFloat;
 		if (r2 < maxFloat) {
-			Vector<DIM> direction = Vector<DIM>::Zero();
+			Vector<DIM> direction = zeroVector<DIM>();
 			direction[0] = 1;
-			tr2 = (t*(c + std::sqrt(r2)*direction) - tc).squaredNorm();
+			tr2 = squaredNorm<DIM>(transformVector<DIM>(t, c + std::sqrt(r2)*direction) - tc);
 		}
 
 		return BoundingSphere<DIM>(tc, tr2);
@@ -30,22 +30,22 @@ struct BoundingSphere {
 template <int DIM>
 struct BoundingBox {
 	// constructor
-	BoundingBox(): pMin(Vector<DIM>::Constant(maxFloat)),
-				   pMax(Vector<DIM>::Constant(minFloat)) {}
+	BoundingBox(): pMin(constantVector<DIM>(maxFloat)),
+				   pMax(constantVector<DIM>(minFloat)) {}
 
 	// constructor
 	BoundingBox(const Vector<DIM>& p): pMin(p), pMax(p) {}
 
 	// expands volume to include point
 	void expandToInclude(const Vector<DIM>& p) {
-		pMin = pMin.cwiseMin(p);
-		pMax = pMax.cwiseMax(p);
+		pMin = cwiseMin<DIM>(pMin, p);
+		pMax = cwiseMax<DIM>(pMax, p);
 	}
 
 	// expands volume to include box
 	void expandToInclude(const BoundingBox<DIM>& b)	{
-		pMin = pMin.cwiseMin(b.pMin);
-		pMax = pMax.cwiseMax(b.pMax);
+		pMin = cwiseMin<DIM>(pMin, b.pMin);
+		pMax = cwiseMax<DIM>(pMax, b.pMax);
 	}
 
 	// returns box extent
@@ -58,14 +58,13 @@ struct BoundingBox {
 	void computeSquaredDistance(const Vector<DIM>& p, float& d2Min, float& d2Max) const {
 		Vector<DIM> u = pMin - p;
 		Vector<DIM> v = p - pMax;
-		d2Min = u.cwiseMax(v).cwiseMax(0.0f).squaredNorm();
-		d2Max = u.cwiseMin(v).squaredNorm();
+		d2Min = squaredNorm<DIM>(cwiseMax<DIM>(cwiseMax<DIM>(u, v), 0.0f));
+		d2Max = squaredNorm<DIM>(cwiseMin<DIM>(u, v));
 	}
 
 	// checks whether box contains point
 	bool contains(const Vector<DIM>& p) const {
-		return (p.array() >= pMin.array()).all() &&
-			   (p.array() <= pMax.array()).all();
+		return allGeq<DIM>(p, pMin) && allLeq<DIM>(p, pMax);
 	}
 
 	// checks for overlap with sphere
@@ -78,14 +77,14 @@ struct BoundingBox {
 	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
 		// slab test for ray box intersection
 		// source: http://www.jcgt.org/published/0007/03/04/paper-lowres.pdf
-		Vector<DIM> t0 = (pMin - r.o).cwiseProduct(r.invD);
-		Vector<DIM> t1 = (pMax - r.o).cwiseProduct(r.invD);
-		Vector<DIM> tNear = t0.cwiseMin(t1);
-		Vector<DIM> tFar = t0.cwiseMax(t1);
+		Vector<DIM> t0 = cwiseProduct<DIM>(pMin - r.o, r.invD);
+		Vector<DIM> t1 = cwiseProduct<DIM>(pMax - r.o, r.invD);
+		Vector<DIM> tNear = cwiseMin<DIM>(t0, t1);
+		Vector<DIM> tFar = cwiseMax<DIM>(t0, t1);
 
 		tFar *= 1.0f + 2.0f*gamma(3);
-		float tNearMax = std::max(0.0f, tNear.maxCoeff());
-		float tFarMin = std::min(r.tMax, tFar.minCoeff());
+		float tNearMax = std::max(0.0f, maxCoeff<DIM>(tNear));
+		float tFarMin = std::min(r.tMax, minCoeff<DIM>(tFar));
 		if (tNearMax > tFarMin) return false;
 
 		tMin = tNearMax;
@@ -95,13 +94,13 @@ struct BoundingBox {
 
 	// checks whether bounding box is valid
 	bool isValid() const {
-		return (pMax.array() >= pMin.array()).all();
+		return allGeq<DIM>(pMax, pMin);
 	}
 
 	// returns max dimension
 	int maxDimension() const {
 		int index;
-		float maxLength = (pMax - pMin).maxCoeff(&index);
+		float maxLength = maxCoeff<DIM>(pMax - pMin, index);
 
 		return index;
 	}
@@ -113,13 +112,13 @@ struct BoundingBox {
 
 	// returns surface area
 	float surfaceArea() const {
-		Vector<DIM> e = extent().cwiseMax(1e-5); // the 1e-5 is to prevent division by zero
-		return 2.0f*(Vector<DIM>::Constant(e.prod()).cwiseQuotient(e).sum());
+		Vector<DIM> e = cwiseMax<DIM>(extent(), 1e-5); // the 1e-5 is to prevent division by zero
+		return 2.0f*sum<DIM>(cwiseQuotient<DIM>(constantVector<DIM>(product<DIM>(e)), e));
 	}
 
 	// returns volume
 	float volume() const {
-		return extent().prod();
+		return product<DIM>(extent());
 	}
 
 	// computes transformed box
@@ -128,7 +127,7 @@ struct BoundingBox {
 		int nCorners = 1 << DIM;
 
 		for (int i = 0; i < nCorners; i++) {
-			Vector<DIM> p = Vector<DIM>::Zero();
+			Vector<DIM> p = zeroVector<DIM>();
 			int temp = i;
 
 			for (int j = 0; j < DIM; j++) {
@@ -137,7 +136,7 @@ struct BoundingBox {
 				temp /= 2;
 			}
 
-			b.expandToInclude(t*p);
+			b.expandToInclude(transformVector<DIM>(t, p));
 		}
 
 		return b;
@@ -146,8 +145,8 @@ struct BoundingBox {
 	// returns the intersection of two bounding boxes
 	BoundingBox<DIM> intersect(const BoundingBox<DIM>& b) const {
 		BoundingBox<DIM> bIntersect;
-		bIntersect.pMin = pMin.cwiseMax(b.pMin);
-		bIntersect.pMax = pMax.cwiseMin(b.pMax);
+		bIntersect.pMin = cwiseMax<DIM>(pMin, b.pMin);
+		bIntersect.pMax = cwiseMin<DIM>(pMax, b.pMax);
 
 		return bIntersect;
 	}
