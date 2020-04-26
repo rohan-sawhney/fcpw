@@ -52,7 +52,7 @@ public:
 	// members
 	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;
 	std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>> objects;
-	std::vector<std::vector<Transform<float, DIM, Affine>>> instanceTransforms;
+	std::vector<std::vector<Transform<DIM>>> instanceTransforms;
 	std::vector<ObjectType> objectTypes;
 	std::shared_ptr<Aggregate<DIM>> aggregate;
 

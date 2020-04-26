@@ -7,7 +7,7 @@ namespace fcpw {
 class Triangle: public Primitive<3> {
 public:
 	// constructor
-	Triangle(const Transform<float, 3, Affine>& transform_,
+	Triangle(const Transform<3>& transform_,
 			 const std::shared_ptr<PolygonSoup<3>>& soup_, int index_);
 
 	// returns bounding box
@@ -57,11 +57,11 @@ private:
 
 // reads soup from obj file
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
-												const Transform<float, 3, Affine>& transform);
+												const Transform<3>& transform);
 
 // reads triangle soup from obj file
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
-												const Transform<float, 3, Affine>& transform,
+												const Transform<3>& transform,
 												std::vector<std::shared_ptr<Primitive<3>>>& triangles,
 												bool computeWeightedNormals);
 

@@ -16,7 +16,7 @@ struct Ray {
 	}
 
 	// computes transformed ray
-	Ray<DIM> transform(const Transform<float, DIM, Affine>& t) const {
+	Ray<DIM> transform(const Transform<DIM>& t) const {
 		Vector<DIM> to = t*o;
 		Vector<DIM> td = t*(o + (tMax < maxFloat ? tMax : 1.0f)*d) - to;
 		float tdNorm = td.norm();

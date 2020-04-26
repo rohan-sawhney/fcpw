@@ -21,10 +21,12 @@
 
 namespace fcpw {
 
-using namespace Eigen;
-
+using Vector2f = Eigen::Vector2f;
+using Vector3f = Eigen::Vector3f;
 template <int DIM>
-using Vector = Matrix<float, DIM, 1>;
+using Vector = Eigen::Matrix<float, DIM, 1>;
+template <int DIM>
+using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
 template <int DIM>
 struct Ray;
 template <int DIM>

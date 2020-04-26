@@ -25,15 +25,15 @@ static int nThreads = 8;
 // - plot BVH scaling behavior with increasing mesh sizes
 
 template <int DIM>
-void generateScatteredPointsAndRays(std::vector<fcpw::Vector<DIM>>& scatteredPoints,
-									std::vector<fcpw::Vector<DIM>>& randomDirections,
+void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
+									std::vector<Vector<DIM>>& randomDirections,
 									const BoundingBox<DIM>& boundingBox)
 {
-	fcpw::Vector<DIM> e = boundingBox.extent();
+	Vector<DIM> e = boundingBox.extent();
 
 	for (int i = 0; i < nQueries; i++) {
-		fcpw::Vector<DIM> o = boundingBox.pMin + e.cwiseProduct(uniformRealRandomVector<DIM>());
-		fcpw::Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f).normalized();
+		Vector<DIM> o = boundingBox.pMin + e.cwiseProduct(uniformRealRandomVector<DIM>());
+		Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f).normalized();
 
 		scatteredPoints.emplace_back(o);
 		randomDirections.emplace_back(d);
@@ -42,8 +42,8 @@ void generateScatteredPointsAndRays(std::vector<fcpw::Vector<DIM>>& scatteredPoi
 
 template <int DIM>
 void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
-							 const std::vector<fcpw::Vector<DIM>>& rayOrigins,
-							 const std::vector<fcpw::Vector<DIM>>& rayDirections,
+							 const std::vector<Vector<DIM>>& rayOrigins,
+							 const std::vector<Vector<DIM>>& rayDirections,
 							 const std::string& aggregateType)
 {
 	int pCurrent = 0;
@@ -80,7 +80,7 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 template <int DIM>
 void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
-							 const std::vector<fcpw::Vector<DIM>>& queryPoints,
+							 const std::vector<Vector<DIM>>& queryPoints,
 							 const std::string& aggregateType)
 {
 	int pCurrent = 0;
@@ -118,8 +118,8 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 template <int DIM>
 void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
-							 const std::vector<fcpw::Vector<DIM>>& rayOrigins,
-							 const std::vector<fcpw::Vector<DIM>>& rayDirections)
+							 const std::vector<Vector<DIM>>& rayOrigins,
+							 const std::vector<Vector<DIM>>& rayDirections)
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
@@ -172,7 +172,7 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 template <int DIM>
 void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
-							 const std::vector<fcpw::Vector<DIM>>& queryPoints)
+							 const std::vector<Vector<DIM>>& queryPoints)
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
@@ -210,8 +210,8 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 
 template <int DIM>
 void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
-						   const std::vector<fcpw::Vector<DIM>>& queryPoints,
-						   std::vector<fcpw::Vector<DIM>>& interiorPoints)
+						   const std::vector<Vector<DIM>>& queryPoints,
+						   std::vector<Vector<DIM>>& interiorPoints)
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
@@ -244,9 +244,9 @@ void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 template <int DIM>
 void visualizeScene(const Scene<DIM>& scene,
-					const std::vector<fcpw::Vector<DIM>>& queryPoints,
-					const std::vector<fcpw::Vector<DIM>>& randomDirections,
-					const std::vector<fcpw::Vector<DIM>>& interiorPoints)
+					const std::vector<Vector<DIM>>& queryPoints,
+					const std::vector<Vector<DIM>>& randomDirections,
+					const std::vector<Vector<DIM>>& interiorPoints)
 {
 	// set a few options
 	polyscope::options::programName = "Aggregate Tests";
@@ -286,7 +286,7 @@ void run()
 
 	// generate random points and rays used to visualize csg
 	BoundingBox<DIM> boundingBox = scene.aggregate->boundingBox();
-	std::vector<fcpw::Vector<DIM>> queryPoints, randomDirections;
+	std::vector<Vector<DIM>> queryPoints, randomDirections;
 	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
 
 	std::vector<std::string> bvhTypes({"Bvh_LongestAxisCenter", "Bvh_SurfaceArea",
@@ -349,7 +349,7 @@ void run()
 		scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter);
 
 		// isolate interior points among query points
-		std::vector<fcpw::Vector<DIM>> interiorPoints;
+		std::vector<Vector<DIM>> interiorPoints;
 		if (plotInteriorPoints) isolateInteriorPoints<DIM>(scene.aggregate, queryPoints, interiorPoints);
 
 		// visualize scene
