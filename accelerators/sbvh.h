@@ -8,15 +8,15 @@ namespace fcpw {
 // https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
 // TODO:
 // - enoki + implement mbvh/qbvh
-// - for closest point queries:
+// - traversal optimization for closest point queries:
 // -- (for spatio-temporially related queries) warm start traversal from node of
-//    previous query, traversing hierarchy bottom up ; distance from previous query can
-//    be use to determine whether this is a good idea (it is a good idea when the radius
-//    is small compared to the model size)
-// -- alternatively, build spatial data structure that stores pointers to nodes
-//    (for non-spatio-temporially related queries)
+//    previous query, traversing hierarchy bottom up; distance from previous query can
+//    be use to determine whether this is a good idea (it is a good idea when the
+//    conservative radius guess is small compared to the model size)
+// -- (for non-spatio-temporially related queries) build spatial data structure that
+//    stores pointers to nodes in the tree
 // -- implement "queueless" closest point traversal
-// - for intersections:
+// - traversal optimization for intersections:
 // -- smarter traversal for incoherent rays (?)
 // -- implement "stackless" ray intersection traversal
 // - oriented bounding boxes/RSS
