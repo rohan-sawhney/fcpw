@@ -10,3 +10,6 @@
 [submodule "deps/embree"]
 	path = deps/embree
 	url = https://github.com/embree/embree.git
+[submodule "deps/enoki"]
+	path = deps/enoki
+	url = https://github.com/mitsuba-renderer/enoki.git

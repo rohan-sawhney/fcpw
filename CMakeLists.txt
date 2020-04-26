@@ -1,13 +1,18 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(fcpw)
 
+option(BUILD_ENOKI "Build enoki" ON)
 option(BUILD_TESTS "Build tests" ON)
-option(BENCHMARK_EMBREE "Benchmark Embree" ON)
+option(BENCHMARK_EMBREE "Benchmark embree" ON)
 option(PROFILE "Profile" OFF)
 
 ################################################################################
 # c++ version
-set(CMAKE_CXX_STANDARD 11)
+if(BUILD_ENOKI)
+	set(CMAKE_CXX_STANDARD 17)
+else()
+	set(CMAKE_CXX_STANDARD 11)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
@@ -36,10 +41,18 @@ endif()
 set(WITH_GFLAGS OFF CACHE BOOL "Use gflags")
 add_subdirectory(deps/glog)
 
+if(BUILD_ENOKI)
+	add_definitions(-DBUILD_ENOKI)
+	message(STATUS "Disabling embree since enoki requires C++17 support.")
+	set(BENCHMARK_EMBREE OFF CACHE BOOL "Benchmark embree" FORCE)
+	set(ENOKI_AUTODIFF ON CACHE BOOL "Enable enoki autodiff")
+	add_subdirectory(deps/enoki)
+endif()
+
 if(BENCHMARK_EMBREE)
 	add_definitions(-DBENCHMARK_EMBREE)
-	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "enable ispc functionality")
-	set(EMBREE_TUTORIALS OFF CACHE BOOL "enable embree tutorials")
+	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Enable ispc functionality")
+	set(EMBREE_TUTORIALS OFF CACHE BOOL "Enable embree tutorials")
 	add_subdirectory(deps/embree)
 endif()
 
@@ -83,6 +96,13 @@ target_include_directories(fcpw PUBLIC deps/eigen-git-mirror)
 target_include_directories(fcpw PUBLIC deps/ThreadPool)
 target_include_directories(fcpw PUBLIC core)
 
+list(APPEND ALL_FCPW_LIBS glog)
+
+if(BUILD_ENOKI)
+	target_include_directories(fcpw PUBLIC deps/enoki/include)
+	list(APPEND ALL_FCPW_LIBS enoki-autodiff)
+endif()
+
 if(BENCHMARK_EMBREE)
 	target_include_directories(fcpw PUBLIC deps/embree)
 	list(APPEND ALL_FCPW_LIBS embree)
@@ -93,7 +113,7 @@ if(PROFILE)
 	list(APPEND ALL_FCPW_LIBS profiler)
 endif()
 
-list(APPEND ALL_FCPW_LIBS fcpw glog)
+list(APPEND ALL_FCPW_LIBS fcpw)
 
 ################################################################################
 if(BUILD_TESTS)
