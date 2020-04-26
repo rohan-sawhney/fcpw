@@ -8,11 +8,19 @@ namespace fcpw {
 // https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
 // TODO:
 // - enoki + implement mbvh/qbvh
-// - Oriented bounding boxes/RSS
-// - build a spatial data structure on top of bvh to store pointers to nodes
-// - estimate closest point radius (i.e., conversative guess of spherical region containing query point)
-// - implement "queueless" closest point traversal
-// - try bottom up closest point traversal strategy
+// - for closest point queries:
+// -- (for spatio-temporially related queries) warm start traversal from node of
+//    previous query, traversing hierarchy bottom up ; distance from previous query can
+//    be use to determine whether this is a good idea (it is a good idea when the radius
+//    is small compared to the model size)
+// -- alternatively, build spatial data structure that stores pointers to nodes
+//    (for non-spatio-temporially related queries)
+// -- implement "queueless" closest point traversal
+// - for intersections:
+// -- smarter traversal for incoherent rays (?)
+// -- implement "stackless" ray intersection traversal
+// - oriented bounding boxes/RSS
+// - add support for more geometries: line segments (3d), beziers (3d), implicits, nurbs
 
 enum class CostHeuristic {
 	LongestAxisCenter,
