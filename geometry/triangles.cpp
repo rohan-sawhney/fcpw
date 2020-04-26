@@ -5,7 +5,7 @@
 
 namespace fcpw {
 
-Triangle::Triangle(const Transform<float, 3, Affine>& transform_,
+Triangle::Triangle(const Transform<3>& transform_,
 				   const std::shared_ptr<PolygonSoup<3>>& soup_, int index_):
 Primitive<3>(transform_.matrix().determinant() < 0),
 soup(soup_),
@@ -377,7 +377,7 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 }
 
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
-												const Transform<float, 3, Affine>& transform)
+												const Transform<3>& transform)
 {
 	#ifdef PROFILE
 		PROFILE_SCOPED();
@@ -436,7 +436,7 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 }
 
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
-												const Transform<float, 3, Affine>& transform,
+												const Transform<3>& transform,
 												std::vector<std::shared_ptr<Primitive<3>>>& triangles,
 												bool computeWeightedNormals)
 {

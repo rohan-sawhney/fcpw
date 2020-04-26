@@ -12,11 +12,8 @@ enum class DistanceInfo {
 template <int DIM>
 struct Interaction {
 	// constructor
-	Interaction(): d(maxFloat), sign(0), distanceInfo(DistanceInfo::Exact), primitive(nullptr) {
-		p.setZero();
-		n.setZero();
-		uv.setZero();
-	}
+	Interaction(): d(maxFloat), sign(0), distanceInfo(DistanceInfo::Exact), primitive(nullptr),
+				   p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()), uv(Vector<DIM - 1>::Zero()) {}
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
@@ -36,12 +33,12 @@ struct Interaction {
 	}
 
 	// applies transform
-	void applyTransform(const Transform<float, DIM, Affine>& t,
-						const Transform<float, DIM, Affine>& tInv,
+	void applyTransform(const Transform<DIM>& t,
+						const Transform<DIM>& tInv,
 						const Vector<DIM>& query) {
 		p = t*p;
 		d = (p - query).norm();
-		n = Transform<float, DIM, Affine>(tInv.matrix().transpose())*n;
+		n = Transform<DIM>(tInv.matrix().transpose())*n;
 		n.normalize();
 	}
 

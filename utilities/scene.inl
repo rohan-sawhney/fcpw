@@ -11,7 +11,7 @@ namespace fcpw {
 template <int DIM>
 inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(
 				const std::string& filename, const LoadingOption& loadingOption,
-				const Transform<float, DIM, Affine>& transform, bool computeWeightedNormals,
+				const Transform<DIM>& transform, bool computeWeightedNormals,
 				std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, ObjectType& objectType)
 {
 	LOG(FATAL) << "readSoupFromFile<DIM>(): Not implemented";
@@ -21,7 +21,7 @@ inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(
 template <>
 inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
 				const std::string& filename, const LoadingOption& loadingOption,
-				const Transform<float, 3, Affine>& transform, bool computeWeightedNormals,
+				const Transform<3>& transform, bool computeWeightedNormals,
 				std::vector<std::shared_ptr<Primitive<3>>>& primitives, ObjectType& objectType)
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
@@ -35,7 +35,7 @@ inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
 
 template <int DIM>
 inline void loadInstanceTransforms(
-				std::vector<std::vector<Transform<float, DIM, Affine>>>& instanceTransforms)
+				std::vector<std::vector<Transform<DIM>>>& instanceTransforms)
 {
 	// load file
 	std::ifstream in(instanceFilename);
@@ -48,14 +48,14 @@ inline void loadInstanceTransforms(
 		int object;
 		ss >> object;
 
-		Matrix<float, DIM + 1, DIM + 1> transform;
+		int nTransform = (int)instanceTransforms[object].size();
+		instanceTransforms[object].emplace_back(Transform<DIM>());
+
 		for (int i = 0; i <= DIM; i++) {
 			for (int j = 0; j <= DIM; j++) {
-				ss >> transform(i, j);
+				ss >> instanceTransforms[object][nTransform].matrix()(i, j);
 			}
 		}
-
-		instanceTransforms[object].emplace_back(Transform<float, DIM, Affine>(transform));
 	}
 
 	// close file
@@ -104,8 +104,8 @@ inline void Scene<DIM>::loadFiles(bool computeWeightedNormals, bool randomizeObj
 	objectTypes.resize(nFiles);
 
 	// generate object space transforms
-	Transform<float, DIM, Affine> Id = Transform<float, DIM, Affine>::Identity();
-	std::vector<Transform<float, DIM, Affine>> objectTransforms(nFiles, Id);
+	Transform<DIM> Id = Transform<DIM>::Identity();
+	std::vector<Transform<DIM>> objectTransforms(nFiles, Id);
 	if (randomizeObjectTransforms) {
 		for (int i = 0; i < nFiles; i++) {
 			objectTransforms[i].prescale(uniformRealRandomNumber(0.1f, 1.0f))

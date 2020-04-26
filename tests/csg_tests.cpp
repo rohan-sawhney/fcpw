@@ -14,15 +14,15 @@ static progschj::ThreadPool pool;
 static int nThreads = 8;
 
 template <int DIM>
-void generateScatteredPointsAndRays(int nPoints, std::vector<fcpw::Vector<DIM>>& scatteredPoints,
-									std::vector<fcpw::Vector<DIM>>& randomDirections,
+void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatteredPoints,
+									std::vector<Vector<DIM>>& randomDirections,
 									const BoundingBox<DIM>& boundingBox)
 {
-	fcpw::Vector<DIM> e = boundingBox.extent();
+	Vector<DIM> e = boundingBox.extent();
 
 	for (int i = 0; i < nPoints; i++) {
-		fcpw::Vector<DIM> o = boundingBox.pMin + e.cwiseProduct(uniformRealRandomVector<DIM>());
-		fcpw::Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f).normalized();
+		Vector<DIM> o = boundingBox.pMin + e.cwiseProduct(uniformRealRandomVector<DIM>());
+		Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f).normalized();
 
 		scatteredPoints.emplace_back(o);
 		randomDirections.emplace_back(d);
@@ -35,7 +35,7 @@ bool raymarch(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 			  Ray<DIM> r, Interaction<DIM>& i)
 {
 	r.tMax = 0.0f;
-	fcpw::Vector<DIM> x = r(r.tMax);
+	Vector<DIM> x = r(r.tMax);
 
 	while (boundingBox.contains(x)) {
 		Interaction<DIM> c;
@@ -56,16 +56,16 @@ bool raymarch(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 template <int DIM>
 void clampToCsg(const std::string& method,
-				const std::vector<fcpw::Vector<DIM>>& scatteredPoints,
-				const std::vector<fcpw::Vector<DIM>>& randomDirections,
+				const std::vector<Vector<DIM>>& scatteredPoints,
+				const std::vector<Vector<DIM>>& randomDirections,
 				const std::shared_ptr<Aggregate<DIM>>& aggregate,
 				const BoundingBox<DIM>& boundingBox,
-				std::vector<fcpw::Vector<DIM>>& clampedPoints)
+				std::vector<Vector<DIM>>& clampedPoints)
 {
 	int N = (int)scatteredPoints.size();
 	int pCurrent = 0;
 	int pRange = std::max(100, N/nThreads);
-	std::vector<fcpw::Vector<DIM>> hitPoints(N);
+	std::vector<Vector<DIM>> hitPoints(N);
 	std::vector<bool> didHit(N, false);
 
 	while (pCurrent < N) {
@@ -111,15 +111,15 @@ void clampToCsg(const std::string& method,
 
 template <int DIM>
 void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
-				 std::vector<fcpw::Vector<DIM>>& intersectedPoints,
-				 std::vector<fcpw::Vector<DIM>>& raymarchedPoints)
+				 std::vector<Vector<DIM>>& intersectedPoints,
+				 std::vector<Vector<DIM>>& raymarchedPoints)
 {
 	// make ui elements 100 pixels wide, instead of full width
 	ImGui::PushItemWidth(100);
 
 	if (ImGui::Button("Add Samples to Visualize CSG")) {
 		// generate random points and rays used to visualize csg
-		std::vector<fcpw::Vector<DIM>> scatteredPoints, randomDirections;
+		std::vector<Vector<DIM>> scatteredPoints, randomDirections;
 		generateScatteredPointsAndRays<DIM>(1000, scatteredPoints, randomDirections, boundingBox);
 
 		// intersect and raymarch points
@@ -140,8 +140,8 @@ void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
 
 template <int DIM>
 void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
-					std::vector<fcpw::Vector<DIM>>& intersectedPoints,
-					std::vector<fcpw::Vector<DIM>>& raymarchedPoints)
+					std::vector<Vector<DIM>>& intersectedPoints,
+					std::vector<Vector<DIM>>& raymarchedPoints)
 {
 	// set a few options
 	polyscope::options::programName = "CSG Tests";
@@ -157,12 +157,12 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 		for (int i = 0; i < (int)scene.soups.size(); i++) {
 			std::string meshName = "Polygon_Soup_" + std::to_string(i);
 			const std::vector<std::vector<int>>& indices = scene.soups[i]->indices;
-			const std::vector<fcpw::Vector<DIM>>& positions = scene.soups[i]->positions;
+			const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
 
 			if (scene.instanceTransforms[i].size() > 0) {
 				for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
 					std::string transformedMeshName = meshName + "_" + std::to_string(j);
-					std::vector<fcpw::Vector<DIM>> transformedPositions;
+					std::vector<Vector<DIM>> transformedPositions;
 
 					for (int k = 0; k < (int)positions.size(); k++) {
 						transformedPositions.emplace_back(scene.instanceTransforms[i][j]*positions[k]);
@@ -201,11 +201,11 @@ void run()
 
 	// generate random points and rays used to visualize csg
 	BoundingBox<DIM> boundingBox = scene.aggregate->boundingBox();
-	std::vector<fcpw::Vector<DIM>> scatteredPoints, randomDirections;
+	std::vector<Vector<DIM>> scatteredPoints, randomDirections;
 	generateScatteredPointsAndRays<DIM>(1000, scatteredPoints, randomDirections, boundingBox);
 
 	// intersect and raymarch points
-	std::vector<fcpw::Vector<DIM>> intersectedPoints, raymarchedPoints;
+	std::vector<Vector<DIM>> intersectedPoints, raymarchedPoints;
 	clampToCsg<DIM>("intersect", scatteredPoints, randomDirections,
 					scene.aggregate, boundingBox, intersectedPoints);
 	clampToCsg<DIM>("raymarch", scatteredPoints, randomDirections,

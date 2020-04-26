@@ -10,7 +10,7 @@ struct BoundingSphere {
 	BoundingSphere(const Vector<DIM>& c_, float r2_): c(c_), r2(r2_) {}
 
 	// computes transformed sphere
-	BoundingSphere<DIM> transform(const Transform<float, DIM, Affine>& t) const {
+	BoundingSphere<DIM> transform(const Transform<DIM>& t) const {
 		Vector<DIM> tc = t*c;
 		float tr2 = maxFloat;
 		if (r2 < maxFloat) {
@@ -123,7 +123,7 @@ struct BoundingBox {
 	}
 
 	// computes transformed box
-	BoundingBox<DIM> transform(const Transform<float, DIM, Affine>& t) const {
+	BoundingBox<DIM> transform(const Transform<DIM>& t) const {
 		BoundingBox<DIM> b;
 		int nCorners = 1 << DIM;
 

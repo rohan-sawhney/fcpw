@@ -121,8 +121,7 @@ template <int DIM>
 class TransformedAggregate: public Aggregate<DIM> {
 public:
 	// constructor
-	TransformedAggregate(const std::shared_ptr<Aggregate<DIM>>& aggregate_,
-						 const Transform<float, DIM, Affine>& transform_):
+	TransformedAggregate(const std::shared_ptr<Aggregate<DIM>>& aggregate_, const Transform<DIM>& transform_):
 						 aggregate(aggregate_), transform(transform_), transformInv(transform.inverse()),
 						 determinant(transform.matrix().determinant()), sqrtDeterminant(determinant) {}
 
@@ -211,7 +210,7 @@ public:
 private:
 	// members
 	std::shared_ptr<Aggregate<DIM>> aggregate;
-	Transform<float, DIM, Affine> transform, transformInv;
+	Transform<DIM> transform, transformInv;
 	float determinant, sqrtDeterminant;
 };
 
