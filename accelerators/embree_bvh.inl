@@ -105,7 +105,7 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	auto it = is.emplace(is.end(), Interaction<3>());
 	it->d = ray->tfar;
 	it->p = Vector3f(ray->org_x, ray->org_y, ray->org_z) +
-			it->d*Vector3f(ray->dir_x, ray->dir_y, ray->dir_z);
+			Vector3f(ray->dir_x, ray->dir_y, ray->dir_z)*it->d;
 	it->uv[0] = hit->u;
 	it->uv[1] = hit->v;
 	it->n = unit<3>(Vector3f(hit->Ng_x, hit->Ng_y, hit->Ng_z));

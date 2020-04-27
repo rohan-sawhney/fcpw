@@ -197,7 +197,7 @@ public:
 		if (distanceUpperBound < maxFloat) {
 			Vector<DIM> direction = zeroVector<DIM>();
 			direction[0] = 1;
-			distanceUpperBound = norm<DIM>(transformVector<DIM>(tInv, x + distanceUpperBound*direction) - xInv);
+			distanceUpperBound = norm<DIM>(transformVector<DIM>(tInv, x + direction*distanceUpperBound) - xInv);
 		}
 
 		// clamp in object space and apply transform to x

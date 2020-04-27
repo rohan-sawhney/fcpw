@@ -98,7 +98,7 @@ Vector2f Triangle::textureCoordinates(const Vector2f& uv) const
 		float v = uv[1];
 		float w = 1.0f - u - v;
 
-		return u*pa + v*pb + w*pc;
+		return pa*u + pb*v + pc*w;
 	}
 
 	return Vector2f(-1, -1);
@@ -133,8 +133,8 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
 				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
-				bboxLeft = BoundingBox<3>(pc + t*u);
-				bboxLeft.expandToInclude(pc + s*v);
+				bboxLeft = BoundingBox<3>(pc + u*t);
+				bboxLeft.expandToInclude(pc + v*s);
 				bboxRight = bboxLeft;
 				bboxLeft.expandToInclude(pa);
 				bboxLeft.expandToInclude(pb);
@@ -158,8 +158,8 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
 				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
-				bboxRight = BoundingBox<3>(pc + t*u);
-				bboxRight.expandToInclude(pc + s*v);
+				bboxRight = BoundingBox<3>(pc + u*t);
+				bboxRight.expandToInclude(pc + v*s);
 				bboxLeft = bboxRight;
 				bboxRight.expandToInclude(pa);
 				bboxRight.expandToInclude(pb);
@@ -258,7 +258,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 		t[0] = 1.0f - v;
 		t[1] = v;
 		eIndex = 0;
-		pt = pa + v*ab;
+		pt = pa + ab*v;
 		return norm<3>(x - pt);
 	}
 
@@ -283,7 +283,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 		t[0] = 1.0f - w;
 		t[1] = 0.0f;
 		eIndex = 2;
-		pt = pa + w*ac;
+		pt = pa + ac*w;
 		return norm<3>(x - pt);
 	}
 
@@ -295,7 +295,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 		t[0] = 0.0f;
 		t[1] = 1.0f - w;
 		eIndex = 1;
-		pt = pb + w*(pc - pb);
+		pt = pb + (pc - pb)*w;
 		return norm<3>(x - pt);
 	}
 

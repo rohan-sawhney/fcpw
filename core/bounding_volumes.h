@@ -16,7 +16,7 @@ struct BoundingSphere {
 		if (r2 < maxFloat) {
 			Vector<DIM> direction = zeroVector<DIM>();
 			direction[0] = 1;
-			tr2 = squaredNorm<DIM>(transformVector<DIM>(t, c + std::sqrt(r2)*direction) - tc);
+			tr2 = squaredNorm<DIM>(transformVector<DIM>(t, c + direction*std::sqrt(r2)) - tc);
 		}
 
 		return BoundingSphere<DIM>(tc, tr2);
