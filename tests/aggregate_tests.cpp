@@ -281,7 +281,7 @@ void run()
 {
 	// build baseline scene
 	Scene<DIM> scene;
-	scene.loadFiles(true, false);
+	scene.loadFiles(true);
 	scene.buildAggregate(AggregateType::Baseline);
 
 	// generate random points and rays used to visualize csg
@@ -324,7 +324,7 @@ void run()
 
 		// build bvh aggregates and compare results with baseline
 		Scene<DIM> bvhScene;
-		bvhScene.loadFiles(true, false);
+		bvhScene.loadFiles(true);
 
 		for (int bvh = 1; bvh < 8; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
@@ -337,7 +337,7 @@ void run()
 		// build embree bvh aggregate and compare results with baseline
 		std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
 		Scene<DIM> embreeBvhScene;
-		embreeBvhScene.loadFiles(true, false);
+		embreeBvhScene.loadFiles(true);
 		embreeBvhScene.buildEmbreeAggregate();
 		testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints, randomDirections);
 		testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints);

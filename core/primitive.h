@@ -10,8 +10,7 @@ template <int DIM>
 class Primitive {
 public:
 	// constructor
-	Primitive(): swapHandedness(false) {}
-	Primitive(bool swapHandedness_): swapHandedness(swapHandedness_) {}
+	Primitive() {}
 
 	// destructor
 	virtual ~Primitive() {}
@@ -38,9 +37,6 @@ public:
 
 	// finds closest point to sphere center
 	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const = 0;
-
-	// member
-	bool swapHandedness;
 };
 
 template <int DIM>

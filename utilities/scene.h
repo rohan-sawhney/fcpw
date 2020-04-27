@@ -39,7 +39,7 @@ template <int DIM>
 class Scene {
 public:
 	// loads files
-	void loadFiles(bool computeWeightedNormals=false, bool randomizeObjectTransforms=false);
+	void loadFiles(bool computeWeightedNormals=false);
 
 	// builds aggregate
 	void buildAggregate(const AggregateType& aggregateType);

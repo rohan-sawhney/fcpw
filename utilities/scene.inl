@@ -10,9 +10,8 @@ namespace fcpw {
 
 template <int DIM>
 inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(
-				const std::string& filename, const LoadingOption& loadingOption,
-				const Transform<DIM>& transform, bool computeWeightedNormals,
-				std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, ObjectType& objectType)
+			const std::string& filename, const LoadingOption& loadingOption, bool computeWeightedNormals,
+			std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, ObjectType& objectType)
 {
 	LOG(FATAL) << "readSoupFromFile<DIM>(): Not implemented";
 	return nullptr;
@@ -20,13 +19,12 @@ inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(
 
 template <>
 inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
-				const std::string& filename, const LoadingOption& loadingOption,
-				const Transform<3>& transform, bool computeWeightedNormals,
-				std::vector<std::shared_ptr<Primitive<3>>>& primitives, ObjectType& objectType)
+			const std::string& filename, const LoadingOption& loadingOption, bool computeWeightedNormals,
+			std::vector<std::shared_ptr<Primitive<3>>>& primitives, ObjectType& objectType)
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
 		objectType = ObjectType::Triangles;
-		return readFromOBJFile(filename, transform, primitives, computeWeightedNormals);
+		return readFromOBJFile(filename, primitives, computeWeightedNormals);
 	}
 
 	LOG(FATAL) << "readSoupFromFile<3>(): Invalid loading option";
@@ -95,7 +93,7 @@ inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 }
 
 template <int DIM>
-inline void Scene<DIM>::loadFiles(bool computeWeightedNormals, bool randomizeObjectTransforms)
+inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 {
 	int nFiles = (int)files.size();
 	soups.resize(nFiles);
@@ -103,19 +101,9 @@ inline void Scene<DIM>::loadFiles(bool computeWeightedNormals, bool randomizeObj
 	instanceTransforms.resize(nFiles);
 	objectTypes.resize(nFiles);
 
-	// generate object space transforms
-	Transform<DIM> Id = Transform<DIM>::Identity();
-	std::vector<Transform<DIM>> objectTransforms(nFiles, Id);
-	if (randomizeObjectTransforms) {
-		for (int i = 0; i < nFiles; i++) {
-			objectTransforms[i].prescale(uniformRealRandomNumber(0.1f, 1.0f))
-							   .pretranslate(uniformRealRandomVector<DIM>());
-		}
-	}
-
 	// load soups and primitives
 	for (int i = 0; i < nFiles; i++) {
-		soups[i] = readSoupFromFile<DIM>(files[i].first, files[i].second, objectTransforms[i],
+		soups[i] = readSoupFromFile<DIM>(files[i].first, files[i].second,
 										 computeWeightedNormals, objects[i], objectTypes[i]);
 	}
 

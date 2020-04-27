@@ -5,9 +5,8 @@
 
 namespace fcpw {
 
-Triangle::Triangle(const Transform<3>& transform_,
-				   const std::shared_ptr<PolygonSoup<3>>& soup_, int index_):
-Primitive<3>(transform_.matrix().determinant() < 0),
+Triangle::Triangle(const std::shared_ptr<PolygonSoup<3>>& soup_, int index_):
+Primitive<3>(),
 soup(soup_),
 indices(soup->indices[index_]),
 eIndices(soup->eIndices[index_]),
@@ -62,7 +61,7 @@ Vector3f Triangle::normal(bool normalize) const
 	Vector3f v1 = pb - pa;
 	Vector3f v2 = pc - pa;
 
-	Vector3f n = cross(v1, v2)*(swapHandedness ? -1.0f : 1.0f);
+	Vector3f n = cross(v1, v2);
 	return normalize ? unit<3>(n) : n;
 }
 
@@ -376,8 +375,7 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 	for (int i = 0; i < E; i++) soup->eNormals[i] = unit<3>(soup->eNormals[i]);
 }
 
-std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
-												const Transform<3>& transform)
+std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename)
 {
 	#ifdef PROFILE
 		PROFILE_SCOPED();
@@ -399,7 +397,7 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 			float x, y, z;
 			ss >> x >> y >> z;
 
-			soup->positions.emplace_back(transformVector<3>(transform, Vector3f(x, y, z)));
+			soup->positions.emplace_back(Vector3f(x, y, z));
 
 		} else if (token == "vt") {
 			float u, v;
@@ -436,12 +434,11 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 }
 
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
-												const Transform<3>& transform,
 												std::vector<std::shared_ptr<Primitive<3>>>& triangles,
 												bool computeWeightedNormals)
 {
 	// read soup and initialize triangles
-	std::shared_ptr<PolygonSoup<3>> soup = readFromOBJFile(filename, transform);
+	std::shared_ptr<PolygonSoup<3>> soup = readFromOBJFile(filename);
 	int N = (int)soup->indices.size();
 	soup->eIndices.resize(N); // entries will be set if vertex and edge normals are requested
 	triangles.clear();
@@ -451,7 +448,7 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
 			LOG(FATAL) << "Soup has non-triangular polygons: " << filename;
 		}
 
-		triangles.emplace_back(std::make_shared<Triangle>(transform, soup, i));
+		triangles.emplace_back(std::make_shared<Triangle>(soup, i));
 	}
 
 	// compute weighted normals if requested

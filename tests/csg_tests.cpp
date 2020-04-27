@@ -197,7 +197,7 @@ void run()
 {
 	// build scene
 	Scene<DIM> scene;
-	scene.loadFiles(true, false);
+	scene.loadFiles(true);
 	scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter);
 
 	// generate random points and rays used to visualize csg
