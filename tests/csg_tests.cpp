@@ -165,7 +165,8 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 					std::vector<Vector<DIM>> transformedPositions;
 
 					for (int k = 0; k < (int)positions.size(); k++) {
-						transformedPositions.emplace_back(scene.instanceTransforms[i][j]*positions[k]);
+						transformedPositions.emplace_back(transformVector<DIM>(
+														scene.instanceTransforms[i][j], positions[k]));
 					}
 
 					polyscope::registerSurfaceMesh(transformedMeshName, transformedPositions, indices);

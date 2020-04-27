@@ -121,46 +121,47 @@ template <int DIM>
 class TransformedAggregate: public Aggregate<DIM> {
 public:
 	// constructor
-	TransformedAggregate(const std::shared_ptr<Aggregate<DIM>>& aggregate_, const Transform<DIM>& transform_):
-						 aggregate(aggregate_), transform(transform_), transformInv(transform.inverse()),
-						 determinant(transform.matrix().determinant()), sqrtDeterminant(determinant) {}
+	TransformedAggregate(const std::shared_ptr<Aggregate<DIM>>& aggregate_,
+						 const Transform<DIM>& transform_):
+						 aggregate(aggregate_), t(transform_), tInv(t.inverse()),
+						 det(t.matrix().determinant()), sqrtDet(std::sqrt(det)) {}
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const {
-		return aggregate->boundingBox().transform(transform);
+		return aggregate->boundingBox().transform(t);
 	}
 
 	// returns centroid
 	Vector<DIM> centroid() const {
-		return transformVector<DIM>(transform, aggregate->centroid());
+		return transformVector<DIM>(t, aggregate->centroid());
 	}
 
 	// returns surface area
 	float surfaceArea() const {
 		// NOTE: this is an approximate estimate
-		return sqrtDeterminant*aggregate->surfaceArea();
+		return sqrtDet*aggregate->surfaceArea();
 	}
 
 	// returns signed volume
 	float signedVolume() const {
 		// NOTE: this is an approximate estimate
-		return determinant*aggregate->signedVolume();
+		return det*aggregate->signedVolume();
 	}
 
 	// intersects with ray
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const {
 		// apply inverse transform to ray
-		Ray<DIM> rInv = r.transform(transformInv);
+		Ray<DIM> rInv = r.transform(tInv);
 
 		// intersect
 		int hits = aggregate->intersect(rInv, is, checkOcclusion, countHits);
 
 		// apply transform to ray and interactions
-		r.tMax = rInv.transform(transform).tMax;
+		r.tMax = rInv.transform(t).tMax;
 		if (hits > 0) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].applyTransform(transform, transformInv, r.o);
+				is[i].applyTransform(t, tInv, r.o);
 			}
 		}
 
@@ -170,49 +171,49 @@ public:
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
 		// apply inverse transform to sphere
-		BoundingSphere<DIM> sInv = s.transform(transformInv);
+		BoundingSphere<DIM> sInv = s.transform(tInv);
 
 		// find closest point
 		bool found = aggregate->findClosestPoint(sInv, i);
 
 		// apply transform to sphere and interaction
-		s.r2 = sInv.transform(transform).r2;
-		if (found) i.applyTransform(transform, transformInv, s.c);
+		s.r2 = sInv.transform(t).r2;
+		if (found) i.applyTransform(t, tInv, s.c);
 
 		return found;
 	}
 
 	// performs inside outside test for x
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
-		return aggregate->contains(transformVector<DIM>(transformInv, x), useRayIntersection);
+		return aggregate->contains(transformVector<DIM>(tInv, x), useRayIntersection);
 	}
 
 	// checks whether there is a line of sight between xi and xj
 	bool hasLineOfSight(const Vector<DIM>& xi, const Vector<DIM>& xj) const {
-		return aggregate->hasLineOfSight(transformVector<DIM>(transformInv, xi),
-										 transformVector<DIM>(transformInv, xj));
+		return aggregate->hasLineOfSight(transformVector<DIM>(tInv, xi),
+										 transformVector<DIM>(tInv, xj));
 	}
 
 	// clamps x to the closest primitive this aggregate bounds
 	void clampToBoundary(Vector<DIM>& x, float distanceUpperBound) const {
 		// apply inverse transform to x and distance bound
-		Vector<DIM> xInv = transformVector<DIM>(transformInv, x);
+		Vector<DIM> xInv = transformVector<DIM>(tInv, x);
 		if (distanceUpperBound < maxFloat) {
 			Vector<DIM> direction = zeroVector<DIM>();
 			direction[0] = 1;
-			distanceUpperBound = norm<DIM>(transformVector<DIM>(transformInv, x + distanceUpperBound*direction) - xInv);
+			distanceUpperBound = norm<DIM>(transformVector<DIM>(tInv, x + distanceUpperBound*direction) - xInv);
 		}
 
 		// clamp in object space and apply transform to x
 		aggregate->clampToBoundary(xInv, distanceUpperBound);
-		x = transformVector<DIM>(transform, xInv);
+		x = transformVector<DIM>(t, xInv);
 	}
 
 private:
 	// members
 	std::shared_ptr<Aggregate<DIM>> aggregate;
-	Transform<DIM> transform, transformInv;
-	float determinant, sqrtDeterminant;
+	Transform<DIM> t, tInv;
+	float det, sqrtDet;
 };
 
 } // namespace fcpw
