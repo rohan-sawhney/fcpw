@@ -44,7 +44,7 @@ add_subdirectory(deps/glog)
 if(BUILD_ENOKI)
 	add_definitions(-DBUILD_ENOKI)
 	message(STATUS "Disabling embree since enoki requires C++17 support.")
-	set(BENCHMARK_EMBREE OFF CACHE BOOL "Benchmark embree" FORCE)
+	set(BENCHMARK_EMBREE OFF CACHE BOOL "Benchmark embree" FORCE) # TODO: enable embree with enoki
 	set(ENOKI_AUTODIFF ON CACHE BOOL "Enable enoki autodiff")
 	add_subdirectory(deps/enoki)
 endif()

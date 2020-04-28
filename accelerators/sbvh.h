@@ -7,7 +7,7 @@ namespace fcpw {
 // modified versions of https://github.com/brandonpelfrey/Fast-BVH and
 // https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
 // TODO:
-// - enoki + implement mbvh/qbvh
+// - implement mbvh/qbvh
 // - traversal optimization for closest point queries:
 // -- (for spatio-temporially related queries) warm start traversal from node of
 //    previous query, traversing hierarchy bottom up; distance from previous query can
