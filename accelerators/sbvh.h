@@ -4,23 +4,8 @@
 #include <tuple>
 
 namespace fcpw {
-// modified versions of https://github.com/brandonpelfrey/Fast-BVH and
+// modified version of https://github.com/brandonpelfrey/Fast-BVH and
 // https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
-// TODO:
-// - implement mbvh/qbvh
-// - traversal optimization for closest point queries:
-// -- (for spatio-temporially related queries) warm start traversal from node of
-//    previous query, traversing hierarchy bottom up; distance from previous query can
-//    be use to determine whether this is a good idea (it is a good idea when the
-//    conservative radius guess is small compared to the model size)
-// -- (for non-spatio-temporially related queries) build spatial data structure that
-//    stores pointers to nodes in the tree
-// -- implement "queueless" closest point traversal
-// - traversal optimization for intersections:
-// -- smarter traversal for incoherent rays (?)
-// -- implement "stackless" ray intersection traversal
-// - oriented bounding boxes/RSS
-// - add support for more geometries: line segments (3d), beziers (3d), implicits, nurbs
 
 enum class CostHeuristic {
 	LongestAxisCenter,
