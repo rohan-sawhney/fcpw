@@ -135,6 +135,8 @@ protected:
 	std::vector<int> references, referencesToAdd;
 	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
+
+	friend class Qbvh;
 };
 
 } // namespace fcpw
