@@ -1,18 +1,23 @@
 - implement mbvh/qbvh
 - traversal optimization for closest point queries:
--- (for spatio-temporially related queries) warm start traversal from node of
-	previous query, traversing hierarchy bottom up; distance from previous query can
-	be use to determine whether this is a good idea (it is a good idea when the
-	conservative radius guess is small compared to the model size)
--- (for non-spatio-temporially related queries) build spatial data structure that
-	stores pointers to nodes in the tree
+-- (for spatio-temporal (coherent) queries) warm start traversal from node of
+	previous query, traversing hierarchy bottom up; distance from previous query result
+	can be use to determine whether this is a good idea (it is a good idea when the
+	conservative radius guess is small compared to the model size); if sphere is
+	entirely contained inside current node, and the current node does not overlap
+	with its sibling, then sibling subtree can be safely pruned
+-- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
+	structure that stores pointers to nodes in the tree; bvh populates spatial data
+	structure while spatial data structure suggests which node to start queries from
 -- implement "queueless" closest point traversal
 - traversal optimization for intersections:
--- smarter traversal for incoherent rays (?)
+-- smarter traversal for incoherent rays using similar ideas to closest point queries;
+	but need to take ray origin and direction into account
 -- implement "stackless" ray intersection traversal
 - oriented bounding boxes/RSS
 - add support for more geometries:
 -- line segments (3d), beziers (3d), subdivision surfaces, implicits, nurbs
 - vectorize + parallelize bvh construction
 - packet (coherent) queries
+-- breadth first ray tracing
 - refit bvh

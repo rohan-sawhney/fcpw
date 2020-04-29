@@ -28,6 +28,10 @@ public:
 
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
+
+private:
+	// members
+	std::shared_ptr<Sbvh<DIM>> sbvh;
 };
 
 } // namespace fcpw

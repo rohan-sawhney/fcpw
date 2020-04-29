@@ -641,7 +641,6 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 		// is leaf -> intersect
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				std::vector<Interaction<DIM>> cs;
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
 
 				// check if primitive has already been seen
@@ -654,6 +653,7 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				}
 
 				if (!seenPrim) {
+					std::vector<Interaction<DIM>> cs;
 					int hit = prim->intersect(r, cs, checkOcclusion, countHits);
 
 					// keep the closest intersection only
@@ -744,10 +744,10 @@ inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>
 		// is leaf -> compute squared distance
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				Interaction<DIM> c;
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
 
 				if (prim.get() != i.primitive) {
+					Interaction<DIM> c;
 					bool found = prim->findClosestPoint(s, c);
 
 					// keep the closest point only
