@@ -637,8 +637,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 	int hits = 0;
 	if (!countHits) is.resize(1);
 	std::stack<SbvhTraversal> todo;
-	float bbhits[4];
-	int closer, other;
+	float bboxHits[4];
 
 	// "push" on the root node to the working set
 	todo.emplace(SbvhTraversal(0, minFloat));
@@ -695,19 +694,19 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 			}
 
 		} else { // not a leaf
-			bool hit0 = flatTree[ni + 1].bbox.intersect(r, bbhits[0], bbhits[1]);
-			bool hit1 = flatTree[ni + node.rightOffset].bbox.intersect(r, bbhits[2], bbhits[3]);
+			bool hit0 = flatTree[ni + 1].bbox.intersect(r, bboxHits[0], bboxHits[1]);
+			bool hit1 = flatTree[ni + node.rightOffset].bbox.intersect(r, bboxHits[2], bboxHits[3]);
 
 			// did we hit both nodes?
 			if (hit0 && hit1) {
 				// we assume that the left child is a closer hit...
-				closer = ni + 1;
-				other = ni + node.rightOffset;
+				int closer = ni + 1;
+				int other = ni + node.rightOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
-				if (bbhits[2] < bbhits[0]) {
-					std::swap(bbhits[0], bbhits[2]);
-					std::swap(bbhits[1], bbhits[3]);
+				if (bboxHits[2] < bboxHits[0]) {
+					std::swap(bboxHits[0], bboxHits[2]);
+					std::swap(bboxHits[1], bboxHits[3]);
 					std::swap(closer, other);
 				}
 
@@ -715,14 +714,14 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 				// check the farther-away node later...
 
 				// push the farther first, then the closer
-				todo.emplace(SbvhTraversal(other, bbhits[2]));
-				todo.emplace(SbvhTraversal(closer, bbhits[0]));
+				todo.emplace(SbvhTraversal(other, bboxHits[2]));
+				todo.emplace(SbvhTraversal(closer, bboxHits[0]));
 
 			} else if (hit0) {
-				todo.emplace(SbvhTraversal(ni + 1, bbhits[0]));
+				todo.emplace(SbvhTraversal(ni + 1, bboxHits[0]));
 
 			} else if (hit1) {
-				todo.emplace(SbvhTraversal(ni + node.rightOffset, bbhits[2]));
+				todo.emplace(SbvhTraversal(ni + node.rightOffset, bboxHits[2]));
 			}
 		}
 	}
@@ -755,8 +754,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	// TODO
 	bool notFound = true;
 	std::queue<SbvhTraversal> todo;
-	float bbhits[4];
-	int closer, other;
+	float bboxHits[4];
 
 	// "push" on the root node to the working set
 	todo.emplace(SbvhTraversal(0, minFloat));
@@ -793,22 +791,22 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 			}
 
 		} else { // not a leaf
-			bool hit0 = flatTree[ni + 1].bbox.overlaps(s, bbhits[0], bbhits[1]);
-			s.r2 = std::min(s.r2, bbhits[1]);
+			bool hit0 = flatTree[ni + 1].bbox.overlaps(s, bboxHits[0], bboxHits[1]);
+			s.r2 = std::min(s.r2, bboxHits[1]);
 
-			bool hit1 = flatTree[ni + node.rightOffset].bbox.overlaps(s, bbhits[2], bbhits[3]);
-			s.r2 = std::min(s.r2, bbhits[3]);
+			bool hit1 = flatTree[ni + node.rightOffset].bbox.overlaps(s, bboxHits[2], bboxHits[3]);
+			s.r2 = std::min(s.r2, bboxHits[3]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {
 				// we assume that the left child is a closer hit...
-				closer = ni + 1;
-				other = ni + node.rightOffset;
+				int closer = ni + 1;
+				int other = ni + node.rightOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
-				if (bbhits[2] < bbhits[0]) {
-					std::swap(bbhits[0], bbhits[2]);
-					std::swap(bbhits[1], bbhits[3]);
+				if (bboxHits[2] < bboxHits[0]) {
+					std::swap(bboxHits[0], bboxHits[2]);
+					std::swap(bboxHits[1], bboxHits[3]);
 					std::swap(closer, other);
 				}
 
@@ -816,14 +814,14 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 				// check the farther-away node later...
 
 				// push the closer first, then the farther
-				todo.emplace(SbvhTraversal(closer, bbhits[0]));
-				todo.emplace(SbvhTraversal(other, bbhits[2]));
+				todo.emplace(SbvhTraversal(closer, bboxHits[0]));
+				todo.emplace(SbvhTraversal(other, bboxHits[2]));
 
 			} else if (hit0) {
-				todo.emplace(SbvhTraversal(ni + 1, bbhits[0]));
+				todo.emplace(SbvhTraversal(ni + 1, bboxHits[0]));
 
 			} else if (hit1) {
-				todo.emplace(SbvhTraversal(ni + node.rightOffset, bbhits[2]));
+				todo.emplace(SbvhTraversal(ni + node.rightOffset, bboxHits[2]));
 			}
 		}
 	}
