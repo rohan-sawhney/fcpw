@@ -1,16 +1,4 @@
-#include <stack>
-#include <queue>
-
 namespace fcpw {
-
-struct SbvhTraversal {
-	// constructor
-	SbvhTraversal(int i_, float d_): i(i_), d(d_) {}
-
-	// members
-	int i; // node index
-	float d; // minimum distance (parametric, squared, ...) to this node
-};
 
 template <int DIM>
 inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
@@ -616,36 +604,15 @@ inline float Sbvh<DIM>::signedVolume() const
 }
 
 template <int DIM>
-inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-								bool checkOcclusion, bool countHits) const
+inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+													 bool checkOcclusion, bool countHits,
+													 std::stack<SbvhTraversal>& subtree,
+													 float *bboxHits, int& hits) const
 {
-	return intersectFromNode(r, is, 0, checkOcclusion, countHits);
-}
-
-template <int DIM>
-inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										int nodeStartIndex, bool checkOcclusion,
-										bool countHits) const
-{
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
-	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
-								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
-	// TODO
-	int hits = 0;
-	if (!countHits) is.resize(1);
-	std::stack<SbvhTraversal> todo;
-	float bboxHits[4];
-
-	// "push" on the root node to the working set
-	todo.emplace(SbvhTraversal(0, minFloat));
-
-	while (!todo.empty()) {
+	while (!subtree.empty()) {
 		// pop off the next node to work on
-		SbvhTraversal traversal = todo.top();
-		todo.pop();
+		SbvhTraversal traversal = subtree.top();
+		subtree.pop();
 
 		int ni = traversal.i;
 		float near = traversal.d;
@@ -688,7 +655,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 							is[0].nodeIndex = ni;
 						}
 
-						if (checkOcclusion) return 1;
+						if (checkOcclusion) return true;
 					}
 				}
 			}
@@ -714,17 +681,43 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 				// check the farther-away node later...
 
 				// push the farther first, then the closer
-				todo.emplace(SbvhTraversal(other, bboxHits[2]));
-				todo.emplace(SbvhTraversal(closer, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(other, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(closer, bboxHits[0]));
 
 			} else if (hit0) {
-				todo.emplace(SbvhTraversal(ni + 1, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(ni + 1, bboxHits[0]));
 
 			} else if (hit1) {
-				todo.emplace(SbvhTraversal(ni + node.rightOffset, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(ni + node.rightOffset, bboxHits[2]));
 			}
 		}
 	}
+
+	return false;
+}
+
+template <int DIM>
+inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+										int nodeStartIndex, bool checkOcclusion,
+										bool countHits) const
+{
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
+	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
+								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
+	// TODO
+	int hits = 0;
+	if (!countHits) is.resize(1);
+	std::stack<SbvhTraversal> subtree;
+	float bboxHits[4];
+
+	// push the root node onto the working set and process its subtree
+	subtree.emplace(SbvhTraversal(0, minFloat));
+	bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
+												  subtree, bboxHits, hits);
+	if (occluded) return 1;
 
 	if (countHits) {
 		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
@@ -736,33 +729,21 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 }
 
 template <int DIM>
-inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
+inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+								bool checkOcclusion, bool countHits) const
 {
-	return findClosestPointFromNode(s, i, 0);
+	return intersectFromNode(r, is, 0, checkOcclusion, countHits);
 }
 
 template <int DIM>
-inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												int nodeStartIndex) const
+inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+													 std::queue<SbvhTraversal>& subtree,
+													 float *bboxHits, bool& notFound) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
-	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
-								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
-	// TODO
-	bool notFound = true;
-	std::queue<SbvhTraversal> todo;
-	float bboxHits[4];
-
-	// "push" on the root node to the working set
-	todo.emplace(SbvhTraversal(0, minFloat));
-
-	while (!todo.empty()) {
+	while (!subtree.empty()) {
 		// pop off the next node to work on
-		SbvhTraversal traversal = todo.front();
-		todo.pop();
+		SbvhTraversal traversal = subtree.front();
+		subtree.pop();
 
 		int ni = traversal.i;
 		float near = traversal.d;
@@ -814,19 +795,45 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 				// check the farther-away node later...
 
 				// push the closer first, then the farther
-				todo.emplace(SbvhTraversal(closer, bboxHits[0]));
-				todo.emplace(SbvhTraversal(other, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(closer, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(other, bboxHits[2]));
 
 			} else if (hit0) {
-				todo.emplace(SbvhTraversal(ni + 1, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(ni + 1, bboxHits[0]));
 
 			} else if (hit1) {
-				todo.emplace(SbvhTraversal(ni + node.rightOffset, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(ni + node.rightOffset, bboxHits[2]));
 			}
 		}
 	}
+}
+
+template <int DIM>
+inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+												int nodeStartIndex) const
+{
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
+	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
+								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
+	// TODO
+	bool notFound = true;
+	std::queue<SbvhTraversal> subtree;
+	float bboxHits[4];
+
+	// push the root node onto the working set and process its subtree
+	subtree.emplace(SbvhTraversal(0, minFloat));
+	processSubtreeForClosestPoint(s, i, subtree, bboxHits, notFound);
 
 	return !notFound;
+}
+
+template <int DIM>
+inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
+{
+	return findClosestPointFromNode(s, i, 0);
 }
 
 } // namespace fcpw

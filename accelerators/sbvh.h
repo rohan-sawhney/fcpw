@@ -2,6 +2,8 @@
 
 #include "primitive.h"
 #include <tuple>
+#include <stack>
+#include <queue>
 
 namespace fcpw {
 // modified version of https://github.com/brandonpelfrey/Fast-BVH and
@@ -27,6 +29,15 @@ struct SbvhFlatNode {
 	bool overlapsSibling;
 };
 
+struct SbvhTraversal {
+	// constructor
+	SbvhTraversal(int i_, float d_): i(i_), d(d_) {}
+
+	// members
+	int i; // node index
+	float d; // minimum distance (parametric, squared, ...) to this node
+};
+
 template <int DIM>
 class Sbvh: public Aggregate<DIM> {
 public:
@@ -47,20 +58,20 @@ public:
 	// returns signed volume
 	float signedVolume() const;
 
+	// intersects with ray, starting the traversal at the specified node
+	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
+						  bool checkOcclusion=false, bool countHits=false) const;
+
 	// intersects with ray
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const;
 
-	// intersects with ray, starting the traversal at the specified node
-	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int nodeStartIndex,
-						  bool checkOcclusion=false, bool countHits=false) const;
+	// finds closest point to sphere center, starting the traversal at the specified node
+	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+						int startNodeIndex) const;
 
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
-
-	// finds closest point to sphere center, starting the traversal at the specified node
-	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int nodeStartIndex) const;
 
 protected:
 	// computes split cost based on heuristic
@@ -118,6 +129,17 @@ protected:
 
 	// builds binary tree
 	void build();
+
+	// processes subtree for intersection
+	bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+									   bool checkOcclusion, bool countHits,
+									   std::stack<SbvhTraversal>& subtree,
+									   float *bboxHits, int& hits) const;
+
+	// processes subtree for closest point
+	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+									   std::queue<SbvhTraversal>& subtree,
+									   float *bboxHits, bool& notFound) const;
 
 	// members
 	CostHeuristic costHeuristic;
