@@ -52,7 +52,7 @@ public:
 				  bool checkOcclusion=false, bool countHits=false) const;
 
 	// intersects with ray, starting the traversal at the specified node
-	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
+	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int nodeStartIndex,
 						  bool checkOcclusion=false, bool countHits=false) const;
 
 	// finds closest point to sphere center
@@ -60,7 +60,7 @@ public:
 
 	// finds closest point to sphere center, starting the traversal at the specified node
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int startNodeIndex) const;
+								  int nodeStartIndex) const;
 
 protected:
 	// computes split cost based on heuristic

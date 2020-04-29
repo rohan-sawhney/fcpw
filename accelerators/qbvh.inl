@@ -40,7 +40,7 @@ inline int Qbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 
 template <int DIM>
 inline int Qbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										int startNodeIndex, bool checkOcclusion,
+										int nodeStartIndex, bool checkOcclusion,
 										bool countHits) const
 {
 #ifdef PROFILE
@@ -59,7 +59,7 @@ inline bool Qbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>
 
 template <int DIM>
 inline bool Qbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												int startNodeIndex) const
+												int nodeStartIndex) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();

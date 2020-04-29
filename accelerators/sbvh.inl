@@ -624,13 +624,15 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 
 template <int DIM>
 inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										int startNodeIndex, bool checkOcclusion,
+										int nodeStartIndex, bool checkOcclusion,
 										bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
+	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
+								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	// TODO
 	int hits = 0;
 	if (!countHits) is.resize(1);
@@ -742,12 +744,14 @@ inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>
 
 template <int DIM>
 inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												int startNodeIndex) const
+												int nodeStartIndex) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
+	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
+								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	// TODO
 	bool notFound = true;
 	std::queue<SbvhTraversal> todo;
