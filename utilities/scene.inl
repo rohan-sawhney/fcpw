@@ -1,5 +1,5 @@
 #include "accelerators/baseline.h"
-#include "accelerators/bvh.h"
+#include "accelerators/sbvh.h"
 #ifdef BENCHMARK_EMBREE
 	#include "accelerators/embree_bvh.h"
 #endif
@@ -136,19 +136,19 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 													 std::vector<std::shared_ptr<Primitive<DIM>>>& primitives)
 {
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::LongestAxisCenter);
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::LongestAxisCenter, 1.0f);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::SurfaceArea);
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1.0f);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapSurfaceArea);
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapSurfaceArea, 1.0f);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::Volume);
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1.0f);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		return std::make_shared<Bvh<DIM>>(primitives, CostHeuristic::OverlapVolume);
+		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapVolume, 1.0f);
 
 	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
 		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1e-5);
