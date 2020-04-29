@@ -1,8 +1,7 @@
 namespace fcpw {
 
 template <int DIM>
-inline Qbvh<DIM>::Qbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
-sbvh(sbvh_)
+inline Qbvh<DIM>::Qbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_)
 {
 	// TODO
 }
@@ -10,25 +9,29 @@ sbvh(sbvh_)
 template <int DIM>
 inline BoundingBox<DIM> Qbvh<DIM>::boundingBox() const
 {
-	return sbvh->boundingBox();
+	// TODO
+	return BoundingBox<DIM>();
 }
 
 template <int DIM>
 inline Vector<DIM> Qbvh<DIM>::centroid() const
 {
-	return sbvh->centroid();
+	// TODO
+	return zeroVector<DIM>();
 }
 
 template <int DIM>
 inline float Qbvh<DIM>::surfaceArea() const
 {
-	return sbvh->surfaceArea();
+	// TODO
+	return 0.0f;
 }
 
 template <int DIM>
 inline float Qbvh<DIM>::signedVolume() const
 {
-	return sbvh->signedVolume();
+	// TODO
+	return 0.0f;
 }
 
 template <int DIM>
