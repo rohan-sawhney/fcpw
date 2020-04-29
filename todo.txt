@@ -1,4 +1,6 @@
 - implement mbvh/qbvh
+-- enable embree with enoki
+-- enoki settings on ubuntu (geometry-box)
 - traversal optimization for closest point queries:
 -- (for spatio-temporal (coherent) queries) warm start traversal from node of
 	previous query, traversing hierarchy bottom up; distance from previous query result

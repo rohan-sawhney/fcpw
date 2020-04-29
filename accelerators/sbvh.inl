@@ -433,6 +433,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	int nReferences = end - start;
 
 	nNodes++;
+	node.parent = parent;
 	node.start = start;
 	node.nReferences = nReferences;
 	node.rightOffset = Untouched;
@@ -512,6 +513,11 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 											   end + nReferencesAddedLeft, nTotalReferences);
 	int nTotalReferencesAdded = nReferencesAdded + nReferencesAddedLeft + nReferencesAddedRight;
 	buildNodes[currentNodeIndex].nReferences += nTotalReferencesAdded;
+
+	// check if child nodes overlap
+	SbvhFlatNode<DIM>& childLeft = buildNodes[currentNodeIndex + 1];
+	SbvhFlatNode<DIM>& childRight = buildNodes[currentNodeIndex + node.rightOffset];
+	childLeft.overlapsSibling = childRight.overlapsSibling = childLeft.bbox.overlaps(childRight.bbox);
 
 	return nTotalReferencesAdded;
 }
@@ -613,10 +619,19 @@ template <int DIM>
 inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 								bool checkOcclusion, bool countHits) const
 {
+	return intersectFromNode(r, is, 0, checkOcclusion, countHits);
+}
+
+template <int DIM>
+inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+										int startNodeIndex, bool checkOcclusion,
+										bool countHits) const
+{
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
+	// TODO
 	int hits = 0;
 	if (!countHits) is.resize(1);
 	std::stack<SbvhTraversal> todo;
@@ -645,7 +660,8 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 
 				// check if primitive has already been seen
 				bool seenPrim = false;
-				for (int sp = 0; sp < (int)is.size(); sp++) {
+				int nInteractions = (int)is.size();
+				for (int sp = 0; sp < nInteractions; sp++) {
 					if (prim.get() == is[sp].primitive) {
 						seenPrim = true;
 						break;
@@ -661,10 +677,14 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 						hits += hit;
 						if (countHits) {
 							is.insert(is.end(), cs.begin(), cs.end());
+							for (int sp = nInteractions; sp < (int)is.size(); sp++) {
+								is[sp].nodeIndex = ni;
+							}
 
 						} else {
 							r.tMax = std::min(r.tMax, cs[0].d);
 							is[0] = cs[0];
+							is[0].nodeIndex = ni;
 						}
 
 						if (checkOcclusion) return 1;
@@ -717,10 +737,18 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 template <int DIM>
 inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
 {
+	return findClosestPointFromNode(s, i, 0);
+}
+
+template <int DIM>
+inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+												int startNodeIndex) const
+{
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
+	// TODO
 	bool notFound = true;
 	std::queue<SbvhTraversal> todo;
 	float bbhits[4];
@@ -755,6 +783,7 @@ inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>
 						notFound = false;
 						s.r2 = std::min(s.r2, c.d*c.d);
 						i = c;
+						i.nodeIndex = ni;
 					}
 				}
 			}

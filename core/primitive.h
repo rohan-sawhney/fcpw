@@ -111,6 +111,22 @@ public:
 			bboxRight.pMin[dim] = splitCoord;
 		}
 	}
+
+	// intersects with ray, starting the traversal at the specified node
+	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
+						  bool checkOcclusion=false, bool countHits=false) const {
+		// this function is not relevant for certain types of aggregates (e.g. baseline),
+		// so the routine intersect function is called instead
+		return this->intersect(r, is, checkOcclusion, countHits);
+	}
+
+	// finds closest point to sphere center, starting the traversal at the specified node
+	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+								  int startNodeIndex) const {
+		// this function is not relevant for certain types of aggregates (e.g. baseline),
+		// so the routine findClosestPoint function is called instead
+		return this->findClosestPoint(s, i);
+	}
 };
 
 template <int DIM>

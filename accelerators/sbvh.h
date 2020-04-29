@@ -18,11 +18,13 @@ enum class CostHeuristic {
 template <int DIM>
 struct SbvhFlatNode {
 	// constructor
-	SbvhFlatNode(): start(0), nReferences(0), rightOffset(0) {}
+	SbvhFlatNode(): parent(-1), start(-1), nReferences(-1),
+					rightOffset(-1), overlapsSibling(false) {}
 
 	// members
 	BoundingBox<DIM> bbox;
-	int start, nReferences, rightOffset;
+	int parent, start, nReferences, rightOffset;
+	bool overlapsSibling;
 };
 
 template <int DIM>
@@ -49,8 +51,16 @@ public:
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const;
 
+	// intersects with ray, starting the traversal at the specified node
+	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
+						  bool checkOcclusion=false, bool countHits=false) const;
+
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
+
+	// finds closest point to sphere center, starting the traversal at the specified node
+	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+								  int startNodeIndex) const;
 
 protected:
 	// computes split cost based on heuristic

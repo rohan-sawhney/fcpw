@@ -73,6 +73,11 @@ struct BoundingBox {
 		return d2Min <= s.r2;
 	}
 
+	// checks for overlap with bounding box
+	bool overlaps(const BoundingBox<DIM>& b) const {
+		return allGeq<DIM>(b.pMax, pMin) && allLeq<DIM>(b.pMin, pMax);
+	}
+
 	// checks for ray intersection
 	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
 		// slab test for ray box intersection
