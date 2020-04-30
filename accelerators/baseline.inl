@@ -54,8 +54,9 @@ inline float Baseline<DIM>::signedVolume() const
 }
 
 template <int DIM>
-inline int Baseline<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-									bool checkOcclusion, bool countHits) const
+inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+											int nodeStartIndex, int& nodesVisited,
+											bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -67,6 +68,7 @@ inline int Baseline<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& 
 	for (int p = 0; p < (int)primitives.size(); p++) {
 		std::vector<Interaction<DIM>> cs;
 		int hit = primitives[p]->intersect(r, cs, checkOcclusion, countHits);
+		nodesVisited++;
 
 		if (hit > 0) {
 			hits += hit;
@@ -92,17 +94,16 @@ inline int Baseline<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& 
 }
 
 template <int DIM>
-inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-											int nodeStartIndex, int& nodesVisited,
-											bool checkOcclusion, bool countHits) const
+inline int Baseline<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+									bool checkOcclusion, bool countHits) const
 {
-	nodesVisited = (int)primitives.size();
-	return intersect(r, is, checkOcclusion, countHits);
+	int nodesVisited = 0;
+	return intersectFromNode(r, is, 0, nodesVisited, checkOcclusion, countHits);
 }
 
 template <int DIM>
-inline bool Baseline<DIM>::findClosestPoint(BoundingSphere<DIM>& s,
-											Interaction<DIM>& i) const
+inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+													int nodeStartIndex, int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -112,6 +113,7 @@ inline bool Baseline<DIM>::findClosestPoint(BoundingSphere<DIM>& s,
 	for (int p = 0; p < (int)primitives.size(); p++) {
 		Interaction<DIM> c;
 		bool found = primitives[p]->findClosestPoint(s, c);
+		nodesVisited++;
 
 		// keep the closest point only
 		if (found) {
@@ -125,11 +127,10 @@ inline bool Baseline<DIM>::findClosestPoint(BoundingSphere<DIM>& s,
 }
 
 template <int DIM>
-inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													int nodeStartIndex, int& nodesVisited) const
+inline bool Baseline<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
 {
-	nodesVisited = (int)primitives.size();
-	return findClosestPoint(s, i);
+	int nodesVisited = 0;
+	return findClosestPointFromNode(s, i, 0, nodesVisited);
 }
 
 } // namespace fcpw

@@ -88,7 +88,7 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
-	std::atomic<int> totalNodesVisited = 0;
+	std::atomic<int> totalNodesVisited(0);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	while (pCurrent < nQueries) {
@@ -136,7 +136,7 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
-	std::atomic<int> totalNodesVisited = 0;
+	std::atomic<int> totalNodesVisited(0);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	while (pCurrent < nQueries) {

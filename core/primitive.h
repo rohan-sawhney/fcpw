@@ -175,6 +175,7 @@ public:
 			}
 		}
 
+		nodesVisited++;
 		return hits;
 	}
 
@@ -199,6 +200,7 @@ public:
 		s.r2 = sInv.transform(t).r2;
 		if (found) i.applyTransform(t, tInv, s.c);
 
+		nodesVisited++;
 		return found;
 	}
 

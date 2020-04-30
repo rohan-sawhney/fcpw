@@ -128,13 +128,15 @@ inline void CsgNode<DIM>::computeInteractions(const std::vector<Interaction<DIM>
 }
 
 template <int DIM>
-inline int CsgNode<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-								   bool checkOcclusion, bool countHits) const
+inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+										   int nodeStartIndex, int& nodesVisited,
+										   bool checkOcclusion, bool countHits) const
 {
 	// TODO: optimize for checkOcclusion == true
 	int hits = 0;
 	is.clear();
 	float tMin, tMax;
+	nodesVisited++;
 
 	if (box.intersect(r, tMin, tMax)) {
 		// perform intersection query for left child
@@ -192,19 +194,20 @@ inline int CsgNode<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& i
 }
 
 template <int DIM>
-inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										   int nodeStartIndex, int& nodesVisited,
-										   bool checkOcclusion, bool countHits) const
+inline int CsgNode<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+								   bool checkOcclusion, bool countHits) const
 {
-	nodesVisited = 0;
-	return intersect(r, is, checkOcclusion, countHits);
+	int nodesVisited = 0;
+	return intersectFromNode(r, is, 0, nodesVisited, checkOcclusion, countHits);
 }
 
 template <int DIM>
-inline bool CsgNode<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
+inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+												   int nodeStartIndex, int& nodesVisited) const
 {
 	bool notFound = true;
 	float d2Min, d2Max;
+	nodesVisited++;
 
 	if (box.overlaps(s, d2Min, d2Max)) {
 		// perform closest point query on left child
@@ -284,11 +287,10 @@ inline bool CsgNode<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<D
 }
 
 template <int DIM>
-inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												   int nodeStartIndex, int& nodesVisited) const
+inline bool CsgNode<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
 {
-	nodesVisited = 0;
-	return findClosestPoint(s, i);
+	int nodesVisited = 0;
+	return findClosestPointFromNode(s, i, 0, nodesVisited);
 }
 
 } // namespace fcpw

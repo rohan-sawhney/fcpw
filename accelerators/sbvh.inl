@@ -635,6 +635,7 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 				if (!seenPrim) {
 					std::vector<Interaction<DIM>> cs;
 					int hit = prim->intersect(r, cs, checkOcclusion, countHits);
+					nodesVisited++;
 
 					// keep the closest intersection only
 					if (hit > 0) {
@@ -779,6 +780,7 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 				if (prim.get() != i.primitive) {
 					Interaction<DIM> c;
 					bool found = prim->findClosestPoint(s, c);
+					nodesVisited++;
 
 					// keep the closest point only
 					if (found) {

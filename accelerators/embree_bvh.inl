@@ -42,6 +42,15 @@ inline float EmbreeBvh<DIM>::signedVolume() const
 }
 
 template <int DIM>
+inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+											 int nodeStartIndex, int& nodesVisited,
+											 bool checkOcclusion, bool countHits) const
+{
+	return Baseline<DIM>::intersectFromNode(r, is, nodeStartIndex, nodesVisited,
+											checkOcclusion, countHits);
+}
+
+template <int DIM>
 inline int EmbreeBvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 									 bool checkOcclusion, bool countHits) const
 {
@@ -49,27 +58,16 @@ inline int EmbreeBvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>&
 }
 
 template <int DIM>
-inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-											 int nodeStartIndex, int& nodesVisited,
-											 bool checkOcclusion, bool countHits) const
-{
-	nodesVisited = -1;
-	return intersect(r, is, checkOcclusion, countHits);
-}
-
-template <int DIM>
-inline bool EmbreeBvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s,
-											 Interaction<DIM>& i) const
-{
-	return Baseline<DIM>::findClosestPoint(s, i);
-}
-
-template <int DIM>
 inline bool EmbreeBvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													 int nodeStartIndex, int& nodesVisited) const
 {
-	nodesVisited = -1;
-	return findClosestPoint(s, i);
+	return Baseline<DIM>::findClosestPointFromNode(s, i, nodeStartIndex, nodesVisited);
+}
+
+template <int DIM>
+inline bool EmbreeBvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
+{
+	return Baseline<DIM>::findClosestPoint(s, i);
 }
 
 void errorFunction(void *userPtr, enum RTCError error, const char *str)
@@ -324,8 +322,9 @@ inline float EmbreeBvh<3>::signedVolume() const
 }
 
 template <>
-inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-								   bool checkOcclusion, bool countHits) const
+inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
+										   int nodeStartIndex, int& nodesVisited,
+										   bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -334,6 +333,7 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	// initialize intersect context (RTC_INTERSECT_CONTEXT_FLAG_INCOHERENT is enabled by default)
 	IntersectContext context(this->primitives, is);
 	rtcInitIntersectContext(&context.context);
+	nodesVisited++;
 
 	// initialize rayhit structure
 	RTCRayHit rayhit;
@@ -390,8 +390,8 @@ inline int EmbreeBvh<3>::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 }
 
 template <>
-inline bool EmbreeBvh<3>::findClosestPoint(BoundingSphere<3>& s,
-										   Interaction<3>& i) const
+inline bool EmbreeBvh<3>::findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
+												   int nodeStartIndex, int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -400,6 +400,7 @@ inline bool EmbreeBvh<3>::findClosestPoint(BoundingSphere<3>& s,
 	// initialize closest point context
 	RTCPointQueryContext context;
 	rtcInitPointQueryContext(&context);
+	nodesVisited++;
 
 	// initialize point query
 	RTCPointQuery query;
