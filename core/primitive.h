@@ -114,21 +114,13 @@ public:
 
 	// intersects with ray, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
-	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
-						  bool checkOcclusion=false, bool countHits=false) const {
-		// this function is not relevant for certain types of aggregates (e.g. baseline),
-		// so the routine intersect function is called instead
-		return this->intersect(r, is, checkOcclusion, countHits);
-	}
+	virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+			int startNodeIndex, bool checkOcclusion=false, bool countHits=false) const = 0;
 
 	// finds closest point to sphere center, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
-	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int startNodeIndex) const {
-		// this function is not relevant for certain types of aggregates (e.g. baseline),
-		// so the routine findClosestPoint function is called instead
-		return this->findClosestPoint(s, i);
-	}
+	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+										  int startNodeIndex) const = 0;
 };
 
 template <int DIM>
@@ -182,6 +174,13 @@ public:
 		return hits;
 	}
 
+	// intersects with ray, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
+	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
+						  bool checkOcclusion=false, bool countHits=false) const {
+		return intersect(r, is, checkOcclusion, countHits);
+	}
+
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
 		// apply inverse transform to sphere
@@ -195,6 +194,13 @@ public:
 		if (found) i.applyTransform(t, tInv, s.c);
 
 		return found;
+	}
+
+	// finds closest point to sphere center, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
+	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+								  int startNodeIndex) const {
+		return findClosestPoint(s, i);
 	}
 
 	// performs inside outside test for x
