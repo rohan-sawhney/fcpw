@@ -36,8 +36,8 @@ inline float Qbvh<DIM>::signedVolume() const
 
 template <int DIM>
 inline int Qbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										int nodeStartIndex, bool checkOcclusion,
-										bool countHits) const
+										int nodeStartIndex, int& nodesVisited,
+										bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -51,12 +51,13 @@ template <int DIM>
 inline int Qbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 								bool checkOcclusion, bool countHits) const
 {
-	return intersectFromNode(r, is, 0, checkOcclusion, countHits);
+	int nodesVisited = 0;
+	return intersectFromNode(r, is, 0, nodesVisited, checkOcclusion, countHits);
 }
 
 template <int DIM>
 inline bool Qbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												int nodeStartIndex) const
+												int nodeStartIndex, int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -69,7 +70,8 @@ inline bool Qbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 template <int DIM>
 inline bool Qbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
 {
-	return findClosestPointFromNode(s, i, 0);
+	int nodesVisited = 0;
+	return findClosestPointFromNode(s, i, 0, nodesVisited);
 }
 
 } // namespace fcpw

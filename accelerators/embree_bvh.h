@@ -30,7 +30,8 @@ public:
 
 	// intersects with ray, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
-	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
+	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+						  int nodeStartIndex, int& nodesVisited,
 						  bool checkOcclusion=false, bool countHits=false) const;
 
 	// intersects with ray
@@ -40,7 +41,7 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int startNodeIndex) const;
+								  int nodeStartIndex, int& nodesVisited) const;
 
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;

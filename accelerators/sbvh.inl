@@ -602,7 +602,7 @@ template <int DIM>
 inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													 bool checkOcclusion, bool countHits,
 													 std::stack<SbvhTraversal>& subtree,
-													 float *boxHits, int& hits) const
+													 float *boxHits, int& hits, int& nodesVisited) const
 {
 	while (!subtree.empty()) {
 		// pop off the next node to work on
@@ -612,6 +612,7 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 		int nodeIndex = traversal.node;
 		float near = traversal.distance;
 		const SbvhFlatNode<DIM>& node(flatTree[nodeIndex]);
+		nodesVisited++;
 
 		// if this node is further than the closest found intersection, continue
 		if (!countHits && near > r.tMax) continue;
@@ -693,8 +694,8 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 
 template <int DIM>
 inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										int nodeStartIndex, bool checkOcclusion,
-										bool countHits) const
+										int nodeStartIndex, int& nodesVisited,
+										bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -711,7 +712,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 	if (flatTree[nodeStartIndex].box.intersect(r, boxHits[0], boxHits[1])) {
 		subtree.emplace(SbvhTraversal(nodeStartIndex, boxHits[0]));
 		bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
-													  subtree, boxHits, hits);
+													  subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
 	}
 
@@ -726,7 +727,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 		if (flatTree[nodeSiblingIndex].box.intersect(r, boxHits[2], boxHits[3])) {
 			subtree.emplace(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
 			bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
-														  subtree, boxHits, hits);
+														  subtree, boxHits, hits, nodesVisited);
 			if (occluded) return 1;
 		}
 
@@ -748,13 +749,14 @@ template <int DIM>
 inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 								bool checkOcclusion, bool countHits) const
 {
-	return intersectFromNode(r, is, 0, checkOcclusion, countHits);
+	int nodesVisited = 0;
+	return intersectFromNode(r, is, 0, nodesVisited, checkOcclusion, countHits);
 }
 
 template <int DIM>
 inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													 std::queue<SbvhTraversal>& subtree,
-													 float *boxHits, bool& notFound) const
+													 std::queue<SbvhTraversal>& subtree, float *boxHits,
+													 bool& notFound, int& nodesVisited) const
 {
 	while (!subtree.empty()) {
 		// pop off the next node to work on
@@ -764,6 +766,7 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 		int nodeIndex = traversal.node;
 		float near = traversal.distance;
 		const SbvhFlatNode<DIM>& node(flatTree[nodeIndex]);
+		nodesVisited++;
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
@@ -826,7 +829,7 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 
 template <int DIM>
 inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												int nodeStartIndex) const
+												int nodeStartIndex, int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -842,7 +845,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	if (flatTree[nodeStartIndex].box.overlaps(s, boxHits[0], boxHits[1])) {
 		s.r2 = std::min(s.r2, boxHits[1]);
 		subtree.emplace(SbvhTraversal(nodeStartIndex, boxHits[0]));
-		processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound);
+		processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
 	}
 
 	int nodeParentIndex = flatTree[nodeStartIndex].parent;
@@ -856,7 +859,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 		if (flatTree[nodeSiblingIndex].box.overlaps(s, boxHits[2], boxHits[3])) {
 			s.r2 = std::min(s.r2, boxHits[3]);
 			subtree.emplace(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
-			processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound);
+			processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
 		}
 
 		// update the start node index to its parent index
@@ -870,7 +873,8 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 template <int DIM>
 inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
 {
-	return findClosestPointFromNode(s, i, 0);
+	int nodesVisited = 0;
+	return findClosestPointFromNode(s, i, 0, nodesVisited);
 }
 
 } // namespace fcpw

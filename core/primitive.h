@@ -115,12 +115,13 @@ public:
 	// intersects with ray, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-			int startNodeIndex, bool checkOcclusion=false, bool countHits=false) const = 0;
+								  int nodeStartIndex, int& nodesVisited,
+								  bool checkOcclusion=false, bool countHits=false) const = 0;
 
 	// finds closest point to sphere center, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-										  int startNodeIndex) const = 0;
+										  int nodeStartIndex, int& nodesVisited) const = 0;
 };
 
 template <int DIM>
@@ -154,14 +155,17 @@ public:
 		return det*aggregate->signedVolume();
 	}
 
-	// intersects with ray
-	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-				  bool checkOcclusion=false, bool countHits=false) const {
+	// intersects with ray, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
+	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+						  int nodeStartIndex, int& nodesVisited,
+						  bool checkOcclusion=false, bool countHits=false) const {
 		// apply inverse transform to ray
 		Ray<DIM> rInv = r.transform(tInv);
 
 		// intersect
-		int hits = aggregate->intersect(rInv, is, checkOcclusion, countHits);
+		int hits = aggregate->intersectFromNode(rInv, is, nodeStartIndex,
+												nodesVisited, checkOcclusion, countHits);
 
 		// apply transform to ray and interactions
 		r.tMax = rInv.transform(t).tMax;
@@ -174,20 +178,22 @@ public:
 		return hits;
 	}
 
-	// intersects with ray, starting the traversal at the specified node;
-	// use this for spatially/temporally coherent queries
-	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
-						  bool checkOcclusion=false, bool countHits=false) const {
-		return intersect(r, is, checkOcclusion, countHits);
+	// intersects with ray
+	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+				  bool checkOcclusion=false, bool countHits=false) const {
+		int nodesVisited = 0;
+		return intersectFromNode(r, is, 0, nodesVisited, checkOcclusion, countHits);
 	}
 
-	// finds closest point to sphere center
-	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
+	// finds closest point to sphere center, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
+	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+								  int nodeStartIndex, int& nodesVisited) const {
 		// apply inverse transform to sphere
 		BoundingSphere<DIM> sInv = s.transform(tInv);
 
 		// find closest point
-		bool found = aggregate->findClosestPoint(sInv, i);
+		bool found = aggregate->findClosestPointFromNode(sInv, i, nodeStartIndex, nodesVisited);
 
 		// apply transform to sphere and interaction
 		s.r2 = sInv.transform(t).r2;
@@ -196,11 +202,10 @@ public:
 		return found;
 	}
 
-	// finds closest point to sphere center, starting the traversal at the specified node;
-	// use this for spatially/temporally coherent queries
-	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int startNodeIndex) const {
-		return findClosestPoint(s, i);
+	// finds closest point to sphere center
+	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
+		int nodesVisited = 0;
+		return findClosestPointFromNode(s, i, 0, nodesVisited);
 	}
 
 	// performs inside outside test for x

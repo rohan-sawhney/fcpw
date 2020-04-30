@@ -1,5 +1,6 @@
 #include "utilities/scene.h"
 #include <ThreadPool.h>
+#include <atomic>
 
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
@@ -24,7 +25,6 @@ static int nThreads = 8;
 // - write timings to file
 // - plot BVH scaling behavior with increasing mesh sizes
 
-// count nodes visited during traversal
 // measure speedup/slow-down by starting traversal from node
 
 template <int DIM>
@@ -88,21 +88,28 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
+	std::atomic<int> totalNodesVisited = 0;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate, &rayOrigins, &rayDirections,
+		pool.enqueue([&aggregate, &rayOrigins, &rayDirections, &totalNodesVisited,
 					  queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
 			#endif
 
+			int nodesVisitedByThread = 0;
+
 			for (int i = pCurrent; i < pEnd; i++) {
+				int nodesVisited = 0;
 				std::vector<Interaction<DIM>> cs;
 				Ray<DIM> r(rayOrigins[i], rayDirections[i]);
-				int hit = aggregate->intersectFromNode(r, cs, 0);
+				int hit = aggregate->intersectFromNode(r, cs, 0, nodesVisited);
+				nodesVisitedByThread += nodesVisited;
 			}
+
+			totalNodesVisited += nodesVisitedByThread;
 		});
 
 		pCurrent += pRange;
@@ -116,7 +123,9 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 	std::cout << rayOrigins.size() << (queriesCoherent ? " coherent" : " incoherent")
 			  << " intersection queries took "
 			  << timeSpan.count() << " seconds with "
-			  << aggregateType << " aggregate" << std::endl;
+			  << aggregateType << " aggregate; "
+			  << (totalNodesVisited/nQueries) << " nodes visited on avg per query"
+			  << std::endl;
 }
 
 template <int DIM>
@@ -127,15 +136,18 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
+	std::atomic<int> totalNodesVisited = 0;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate, &queryPoints, queriesCoherent, pCurrent, pEnd]() {
+		pool.enqueue([&aggregate, &queryPoints, &totalNodesVisited,
+					  queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
 			#endif
 
+			int nodesVisitedByThread = 0;
 			Interaction<DIM> cPrev;
 			Vector<DIM> queryPrev = zeroVector<DIM>();
 
@@ -143,13 +155,17 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 				float distPrev = norm<DIM>(queryPoints[i] - queryPrev);
 				float r2 = i == pCurrent ? maxFloat : std::pow(cPrev.d + distPrev, 2);
 
+				int nodesVisited = 0;
 				Interaction<DIM> c;
 				BoundingSphere<DIM> s(queryPoints[i], r2);
-				bool found = aggregate->findClosestPointFromNode(s, c, 0);
+				bool found = aggregate->findClosestPointFromNode(s, c, 0, nodesVisited);
+				nodesVisitedByThread += nodesVisited;
 
 				cPrev = c;
 				queryPrev = queryPoints[i];
 			}
+
+			totalNodesVisited += nodesVisitedByThread;
 		});
 
 		pCurrent += pRange;
@@ -163,7 +179,9 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 	std::cout << queryPoints.size() << (queriesCoherent ? " coherent" : " incoherent")
 			  << " closest point queries took "
 			  << timeSpan.count() << " seconds with "
-			  << aggregateType << " aggregate" << std::endl;
+			  << aggregateType << " aggregate; "
+			  << (totalNodesVisited/nQueries) << " nodes visited on avg per query"
+			  << std::endl;
 }
 
 template <int DIM>
@@ -189,9 +207,10 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 				Ray<DIM> r1(rayOrigins[i], rayDirections[i]);
 				bool hit1 = (bool)aggregate1->intersect(r1, c1);
 
+				int nodesVisited = 0;
 				std::vector<Interaction<DIM>> c2;
 				Ray<DIM> r2(rayOrigins[i], rayDirections[i]);
-				bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, 0);
+				bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, 0, nodesVisited);
 
 				if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
 					LOG(INFO) << "d1: " << c1[0].d << " d2: " << c2[0].d;
@@ -203,9 +222,10 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 				Ray<DIM> r3(rayOrigins[i], rayDirections[i]);
 				int hit3 = aggregate1->intersect(r3, c3, false, true);
 
+				nodesVisited = 0;
 				std::vector<Interaction<DIM>> c4;
 				Ray<DIM> r4(rayOrigins[i], rayDirections[i]);
-				int hit4 = aggregate2->intersectFromNode(r4, c4, 0, false, true);
+				int hit4 = aggregate2->intersectFromNode(r4, c4, 0, nodesVisited, false, true);
 
 				if (hit3 != hit4) {
 					LOG(FATAL) << "Number of intersections do not match!"
@@ -250,9 +270,10 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 				BoundingSphere<DIM> s1(queryPoints[i], maxFloat);
 				bool found1 = aggregate1->findClosestPoint(s1, c1);
 
+				int nodesVisited = 0;
 				Interaction<DIM> c2;
 				BoundingSphere<DIM> s2(queryPoints[i], r2);
-				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0);
+				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0, nodesVisited);
 
 				if (found1 != found2 || c1 != c2) {
 					LOG(INFO) << "d1: " << c1.d << " d2: " << c2.d;

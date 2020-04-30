@@ -93,9 +93,10 @@ inline int Baseline<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& 
 
 template <int DIM>
 inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-											int startNodeIndex, bool checkOcclusion,
-											bool countHits) const
+											int nodeStartIndex, int& nodesVisited,
+											bool checkOcclusion, bool countHits) const
 {
+	nodesVisited = (int)primitives.size();
 	return intersect(r, is, checkOcclusion, countHits);
 }
 
@@ -124,10 +125,10 @@ inline bool Baseline<DIM>::findClosestPoint(BoundingSphere<DIM>& s,
 }
 
 template <int DIM>
-inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s,
-													Interaction<DIM>& i,
-													int startNodeIndex) const
+inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+													int nodeStartIndex, int& nodesVisited) const
 {
+	nodesVisited = (int)primitives.size();
 	return findClosestPoint(s, i);
 }
 

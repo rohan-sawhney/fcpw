@@ -50,9 +50,10 @@ inline int EmbreeBvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>&
 
 template <int DIM>
 inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-											 int startNodeIndex, bool checkOcclusion,
-											 bool countHits) const
+											 int nodeStartIndex, int& nodesVisited,
+											 bool checkOcclusion, bool countHits) const
 {
+	nodesVisited = -1;
 	return intersect(r, is, checkOcclusion, countHits);
 }
 
@@ -64,10 +65,10 @@ inline bool EmbreeBvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s,
 }
 
 template <int DIM>
-inline bool EmbreeBvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s,
-													 Interaction<DIM>& i,
-													 int startNodeIndex) const
+inline bool EmbreeBvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+													 int nodeStartIndex, int& nodesVisited) const
 {
+	nodesVisited = -1;
 	return findClosestPoint(s, i);
 }
 

@@ -193,9 +193,10 @@ inline int CsgNode<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& i
 
 template <int DIM>
 inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										   int startNodeIndex, bool checkOcclusion,
-										   bool countHits) const
+										   int nodeStartIndex, int& nodesVisited,
+										   bool checkOcclusion, bool countHits) const
 {
+	nodesVisited = 0;
 	return intersect(r, is, checkOcclusion, countHits);
 }
 
@@ -283,10 +284,10 @@ inline bool CsgNode<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<D
 }
 
 template <int DIM>
-inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s,
-												   Interaction<DIM>& i,
-												   int startNodeIndex) const
+inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+												   int nodeStartIndex, int& nodesVisited) const
 {
+	nodesVisited = 0;
 	return findClosestPoint(s, i);
 }
 
