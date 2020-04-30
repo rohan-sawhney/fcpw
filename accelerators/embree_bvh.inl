@@ -51,23 +51,10 @@ inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interactio
 }
 
 template <int DIM>
-inline int EmbreeBvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-									 bool checkOcclusion, bool countHits) const
-{
-	return Baseline<DIM>::intersect(r, is, checkOcclusion, countHits);
-}
-
-template <int DIM>
 inline bool EmbreeBvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													 int nodeStartIndex, int& nodesVisited) const
 {
 	return Baseline<DIM>::findClosestPointFromNode(s, i, nodeStartIndex, nodesVisited);
-}
-
-template <int DIM>
-inline bool EmbreeBvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
-{
-	return Baseline<DIM>::findClosestPoint(s, i);
 }
 
 void errorFunction(void *userPtr, enum RTCError error, const char *str)

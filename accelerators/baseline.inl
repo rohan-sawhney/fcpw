@@ -94,14 +94,6 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 }
 
 template <int DIM>
-inline int Baseline<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-									bool checkOcclusion, bool countHits) const
-{
-	int nodesVisited = 0;
-	return intersectFromNode(r, is, 0, nodesVisited, checkOcclusion, countHits);
-}
-
-template <int DIM>
 inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													int nodeStartIndex, int& nodesVisited) const
 {
@@ -124,13 +116,6 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 	}
 
 	return !notFound;
-}
-
-template <int DIM>
-inline bool Baseline<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
-{
-	int nodesVisited = 0;
-	return findClosestPointFromNode(s, i, 0, nodesVisited);
 }
 
 } // namespace fcpw

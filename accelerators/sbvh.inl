@@ -747,14 +747,6 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 }
 
 template <int DIM>
-inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-								bool checkOcclusion, bool countHits) const
-{
-	int nodesVisited = 0;
-	return intersectFromNode(r, is, 0, nodesVisited, checkOcclusion, countHits);
-}
-
-template <int DIM>
 inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													 std::queue<SbvhTraversal>& subtree, float *boxHits,
 													 bool& notFound, int& nodesVisited) const
@@ -870,13 +862,6 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	}
 
 	return !notFound;
-}
-
-template <int DIM>
-inline bool Sbvh<DIM>::findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const
-{
-	int nodesVisited = 0;
-	return findClosestPointFromNode(s, i, 0, nodesVisited);
 }
 
 } // namespace fcpw
