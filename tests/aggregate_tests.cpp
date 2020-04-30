@@ -20,24 +20,60 @@ static progschj::ThreadPool pool;
 static int nThreads = 8;
 
 // TODO:
-// - sort queries and rerun performance tests, correctness tests can be run on sorted queries
+// - rerun performance & correctness tests on sorted queries, starting traversal from previouss node
 // - write timings to file
 // - plot BVH scaling behavior with increasing mesh sizes
+
+template <int DIM>
+void splitBoxRecursive(BoundingBox<DIM> boundingBox,
+					   std::vector<BoundingBox<DIM>>& boxes, int depth)
+{
+	if (depth == 0) {
+		boxes.emplace_back(boundingBox);
+
+	} else {
+		int splitDim = boundingBox.maxDimension();
+		float splitCoord = (boundingBox.pMin[splitDim] + boundingBox.pMax[splitDim])*0.5f;
+
+		BoundingBox<DIM> boxLeft = boundingBox;
+		boxLeft.pMax[splitDim] = splitCoord;
+		splitBoxRecursive<DIM>(boxLeft, boxes, depth - 1);
+
+		BoundingBox<DIM> boxRight = boundingBox;
+		boxRight.pMin[splitDim] = splitCoord;
+		splitBoxRecursive<DIM>(boxRight, boxes, depth - 1);
+	}
+}
 
 template <int DIM>
 void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 									std::vector<Vector<DIM>>& randomDirections,
 									const BoundingBox<DIM>& boundingBox)
 {
-	Vector<DIM> e = boundingBox.extent();
+	// parition the scene bounding box into nThreads boxes
+	int depth = std::ceil(std::log2(std::max(8, nThreads)));
+	std::vector<BoundingBox<DIM>> boxes;
+	splitBoxRecursive<DIM>(boundingBox, boxes, depth);
 
-	for (int i = 0; i < nQueries; i++) {
-		Vector<DIM> o = boundingBox.pMin + cwiseProduct<DIM>(e, uniformRealRandomVector<DIM>());
-		Vector<DIM> d = unit<DIM>(uniformRealRandomVector<DIM>(-1.0f, 1.0f));
+	// generate queries in each box
+	int nBoxes = (int)boxes.size();
+	int nQueriesPerBox = std::ceil(nQueries/nBoxes);
 
-		scatteredPoints.emplace_back(o);
-		randomDirections.emplace_back(d);
+	for (int i = 0; i < nBoxes; i++) {
+		Vector<DIM> e = boxes[i].extent();
+
+		for (int j = 0; j < nQueriesPerBox; j++) {
+			Vector<DIM> o = boxes[i].pMin + cwiseProduct<DIM>(e, uniformRealRandomVector<DIM>());
+			Vector<DIM> d = unit<DIM>(uniformRealRandomVector<DIM>(-1.0f, 1.0f));
+
+			scatteredPoints.emplace_back(o);
+			randomDirections.emplace_back(d);
+		}
 	}
+
+	// resize if required
+	scatteredPoints.resize(nQueries);
+	randomDirections.resize(nQueries);
 }
 
 template <int DIM>
