@@ -112,7 +112,8 @@ public:
 		}
 	}
 
-	// intersects with ray, starting the traversal at the specified node
+	// intersects with ray, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
 	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
 						  bool checkOcclusion=false, bool countHits=false) const {
 		// this function is not relevant for certain types of aggregates (e.g. baseline),
@@ -120,7 +121,8 @@ public:
 		return this->intersect(r, is, checkOcclusion, countHits);
 	}
 
-	// finds closest point to sphere center, starting the traversal at the specified node
+	// finds closest point to sphere center, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int startNodeIndex) const {
 		// this function is not relevant for certain types of aggregates (e.g. baseline),

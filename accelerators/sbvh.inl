@@ -502,11 +502,6 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	int nTotalReferencesAdded = nReferencesAdded + nReferencesAddedLeft + nReferencesAddedRight;
 	buildNodes[currentNodeIndex].nReferences += nTotalReferencesAdded;
 
-	// check if child nodes overlap
-	SbvhFlatNode<DIM>& childLeft = buildNodes[currentNodeIndex + 1];
-	SbvhFlatNode<DIM>& childRight = buildNodes[currentNodeIndex + node.rightOffset];
-	childLeft.overlapsSibling = childRight.overlapsSibling = childLeft.bbox.overlaps(childRight.bbox);
-
 	return nTotalReferencesAdded;
 }
 
@@ -707,17 +702,38 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 
 	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
-	// TODO
 	int hits = 0;
 	if (!countHits) is.resize(1);
 	std::stack<SbvhTraversal> subtree;
 	float bboxHits[4];
 
-	// push the root node onto the working set and process its subtree
-	subtree.emplace(SbvhTraversal(0, minFloat));
-	bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
-												  subtree, bboxHits, hits);
-	if (occluded) return 1;
+	// push the start node onto the working set and process its subtree if it intersects ray
+	if (flatTree[nodeStartIndex].bbox.intersect(r, bboxHits[0], bboxHits[1])) {
+		subtree.emplace(SbvhTraversal(nodeStartIndex, bboxHits[0]));
+		bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
+													  subtree, bboxHits, hits);
+		if (occluded) return 1;
+	}
+
+	int nodeParentIndex = flatTree[nodeStartIndex].parent;
+	while (nodeParentIndex != 0xfffffffc) {
+		// determine the sibling node's index
+		int nodeSiblingIndex = nodeParentIndex + 1 == nodeStartIndex ?
+							   nodeParentIndex + flatTree[nodeParentIndex].rightOffset :
+							   nodeParentIndex + 1;
+
+		// push the sibling node onto the working set and process its subtree if it intersects ray
+		if (flatTree[nodeSiblingIndex].bbox.intersect(r, bboxHits[2], bboxHits[3])) {
+			subtree.emplace(SbvhTraversal(nodeSiblingIndex, bboxHits[2]));
+			bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
+														  subtree, bboxHits, hits);
+			if (occluded) return 1;
+		}
+
+		// update the start node index to its parent index
+		nodeStartIndex = nodeParentIndex;
+		nodeParentIndex = flatTree[nodeStartIndex].parent;
+	}
 
 	if (countHits) {
 		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
@@ -818,14 +834,35 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 
 	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
-	// TODO
 	bool notFound = true;
 	std::queue<SbvhTraversal> subtree;
 	float bboxHits[4];
 
-	// push the root node onto the working set and process its subtree
-	subtree.emplace(SbvhTraversal(0, minFloat));
-	processSubtreeForClosestPoint(s, i, subtree, bboxHits, notFound);
+	// push the start node onto the working set and process its subtree if it overlaps sphere
+	if (flatTree[nodeStartIndex].bbox.overlaps(s, bboxHits[0], bboxHits[1])) {
+		s.r2 = std::min(s.r2, bboxHits[1]);
+		subtree.emplace(SbvhTraversal(nodeStartIndex, bboxHits[0]));
+		processSubtreeForClosestPoint(s, i, subtree, bboxHits, notFound);
+	}
+
+	int nodeParentIndex = flatTree[nodeStartIndex].parent;
+	while (nodeParentIndex != 0xfffffffc) {
+		// determine the sibling node's index
+		int nodeSiblingIndex = nodeParentIndex + 1 == nodeStartIndex ?
+							   nodeParentIndex + flatTree[nodeParentIndex].rightOffset :
+							   nodeParentIndex + 1;
+
+		// push the sibling node onto the working set and process its subtree if it overlaps sphere
+		if (flatTree[nodeSiblingIndex].bbox.overlaps(s, bboxHits[2], bboxHits[3])) {
+			s.r2 = std::min(s.r2, bboxHits[3]);
+			subtree.emplace(SbvhTraversal(nodeSiblingIndex, bboxHits[2]));
+			processSubtreeForClosestPoint(s, i, subtree, bboxHits, notFound);
+		}
+
+		// update the start node index to its parent index
+		nodeStartIndex = nodeParentIndex;
+		nodeParentIndex = flatTree[nodeStartIndex].parent;
+	}
 
 	return !notFound;
 }

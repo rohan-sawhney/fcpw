@@ -20,13 +20,11 @@ enum class CostHeuristic {
 template <int DIM>
 struct SbvhFlatNode {
 	// constructor
-	SbvhFlatNode(): parent(-1), start(-1), nReferences(-1),
-					rightOffset(-1), overlapsSibling(false) {}
+	SbvhFlatNode(): parent(-1), start(-1), nReferences(-1), rightOffset(-1) {}
 
 	// members
 	BoundingBox<DIM> bbox;
 	int parent, start, nReferences, rightOffset;
-	bool overlapsSibling;
 };
 
 struct SbvhTraversal {
@@ -58,7 +56,8 @@ public:
 	// returns signed volume
 	float signedVolume() const;
 
-	// intersects with ray, starting the traversal at the specified node
+	// intersects with ray, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
 	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, int startNodeIndex,
 						  bool checkOcclusion=false, bool countHits=false) const;
 
@@ -66,9 +65,10 @@ public:
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const;
 
-	// finds closest point to sphere center, starting the traversal at the specified node
+	// finds closest point to sphere center, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-						int startNodeIndex) const;
+								  int startNodeIndex) const;
 
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
