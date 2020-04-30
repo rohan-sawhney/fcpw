@@ -42,17 +42,6 @@ public:
 template <int DIM>
 class Aggregate: public Primitive<DIM> {
 public:
-	// intersects with ray, starting the traversal at the specified node;
-	// use this for spatially/temporally coherent queries
-	virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-								  int nodeStartIndex, int& nodesVisited,
-								  bool checkOcclusion=false, bool countHits=false) const = 0;
-
-	// finds closest point to sphere center, starting the traversal at the specified node;
-	// use this for spatially/temporally coherent queries
-	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-										  int nodeStartIndex, int& nodesVisited) const = 0;
-
 	// intersects with ray
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const {
@@ -135,6 +124,17 @@ public:
 			boxRight.pMin[dim] = splitCoord;
 		}
 	}
+
+	// intersects with ray, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
+	virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+								  int nodeStartIndex, int& nodesVisited,
+								  bool checkOcclusion=false, bool countHits=false) const = 0;
+
+	// finds closest point to sphere center, starting the traversal at the specified node;
+	// use this for spatially/temporally coherent queries
+	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+										  int nodeStartIndex, int& nodesVisited) const = 0;
 };
 
 template <int DIM>
