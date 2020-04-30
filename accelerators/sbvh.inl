@@ -609,9 +609,9 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 		SbvhTraversal traversal = subtree.top();
 		subtree.pop();
 
-		int ni = traversal.i;
-		float near = traversal.d;
-		const SbvhFlatNode<DIM>& node(flatTree[ni]);
+		int nodeIndex = traversal.node;
+		float near = traversal.distance;
+		const SbvhFlatNode<DIM>& node(flatTree[nodeIndex]);
 
 		// if this node is further than the closest found intersection, continue
 		if (!countHits && near > r.tMax) continue;
@@ -641,13 +641,13 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 						if (countHits) {
 							is.insert(is.end(), cs.begin(), cs.end());
 							for (int sp = nInteractions; sp < (int)is.size(); sp++) {
-								is[sp].nodeIndex = ni;
+								is[sp].nodeIndex = nodeIndex;
 							}
 
 						} else {
 							r.tMax = std::min(r.tMax, cs[0].d);
 							is[0] = cs[0];
-							is[0].nodeIndex = ni;
+							is[0].nodeIndex = nodeIndex;
 						}
 
 						if (checkOcclusion) return true;
@@ -656,14 +656,14 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 			}
 
 		} else { // not a leaf
-			bool hit0 = flatTree[ni + 1].bbox.intersect(r, bboxHits[0], bboxHits[1]);
-			bool hit1 = flatTree[ni + node.rightOffset].bbox.intersect(r, bboxHits[2], bboxHits[3]);
+			bool hit0 = flatTree[nodeIndex + 1].bbox.intersect(r, bboxHits[0], bboxHits[1]);
+			bool hit1 = flatTree[nodeIndex + node.rightOffset].bbox.intersect(r, bboxHits[2], bboxHits[3]);
 
 			// did we hit both nodes?
 			if (hit0 && hit1) {
 				// we assume that the left child is a closer hit...
-				int closer = ni + 1;
-				int other = ni + node.rightOffset;
+				int closer = nodeIndex + 1;
+				int other = nodeIndex + node.rightOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
 				if (bboxHits[2] < bboxHits[0]) {
@@ -680,10 +680,10 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 				subtree.emplace(SbvhTraversal(closer, bboxHits[0]));
 
 			} else if (hit0) {
-				subtree.emplace(SbvhTraversal(ni + 1, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(nodeIndex + 1, bboxHits[0]));
 
 			} else if (hit1) {
-				subtree.emplace(SbvhTraversal(ni + node.rightOffset, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(nodeIndex + node.rightOffset, bboxHits[2]));
 			}
 		}
 	}
@@ -761,9 +761,9 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 		SbvhTraversal traversal = subtree.front();
 		subtree.pop();
 
-		int ni = traversal.i;
-		float near = traversal.d;
-		const SbvhFlatNode<DIM>& node(flatTree[ni]);
+		int nodeIndex = traversal.node;
+		float near = traversal.distance;
+		const SbvhFlatNode<DIM>& node(flatTree[nodeIndex]);
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
@@ -782,23 +782,23 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 						notFound = false;
 						s.r2 = std::min(s.r2, c.d*c.d);
 						i = c;
-						i.nodeIndex = ni;
+						i.nodeIndex = nodeIndex;
 					}
 				}
 			}
 
 		} else { // not a leaf
-			bool hit0 = flatTree[ni + 1].bbox.overlaps(s, bboxHits[0], bboxHits[1]);
+			bool hit0 = flatTree[nodeIndex + 1].bbox.overlaps(s, bboxHits[0], bboxHits[1]);
 			s.r2 = std::min(s.r2, bboxHits[1]);
 
-			bool hit1 = flatTree[ni + node.rightOffset].bbox.overlaps(s, bboxHits[2], bboxHits[3]);
+			bool hit1 = flatTree[nodeIndex + node.rightOffset].bbox.overlaps(s, bboxHits[2], bboxHits[3]);
 			s.r2 = std::min(s.r2, bboxHits[3]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {
 				// we assume that the left child is a closer hit...
-				int closer = ni + 1;
-				int other = ni + node.rightOffset;
+				int closer = nodeIndex + 1;
+				int other = nodeIndex + node.rightOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
 				if (bboxHits[2] < bboxHits[0]) {
@@ -815,10 +815,10 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 				subtree.emplace(SbvhTraversal(other, bboxHits[2]));
 
 			} else if (hit0) {
-				subtree.emplace(SbvhTraversal(ni + 1, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(nodeIndex + 1, bboxHits[0]));
 
 			} else if (hit1) {
-				subtree.emplace(SbvhTraversal(ni + node.rightOffset, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(nodeIndex + node.rightOffset, bboxHits[2]));
 			}
 		}
 	}

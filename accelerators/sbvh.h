@@ -29,11 +29,11 @@ struct SbvhFlatNode {
 
 struct SbvhTraversal {
 	// constructor
-	SbvhTraversal(int i_, float d_): i(i_), d(d_) {}
+	SbvhTraversal(int node_, float distance_): node(node_), distance(distance_) {}
 
 	// members
-	int i; // node index
-	float d; // minimum distance (parametric, squared, ...) to this node
+	int node; // node index
+	float distance; // minimum distance (parametric, squared, ...) to this node
 };
 
 template <int DIM>
