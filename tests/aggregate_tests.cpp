@@ -21,11 +21,9 @@ static progschj::ThreadPool pool;
 static int nThreads = 8;
 
 // TODO:
-// - rerun performance & correctness tests on sorted queries, starting traversal from previouss node
+// - pointer adds overhead + too many nodes being visited while backtracking
 // - write timings to file
 // - plot BVH scaling behavior with increasing mesh sizes
-
-// measure speedup/slow-down by starting traversal from node
 
 template <int DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,
@@ -54,9 +52,8 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 									const BoundingBox<DIM>& boundingBox)
 {
 	// parition the scene bounding box into nThreads boxes
-	int depth = std::ceil(std::log2(std::max(8, nThreads)));
 	std::vector<BoundingBox<DIM>> boxes;
-	splitBoxRecursive<DIM>(boundingBox, boxes, depth);
+	splitBoxRecursive<DIM>(boundingBox, boxes, 6);
 
 	// generate queries in each box
 	int nBoxes = (int)boxes.size();
@@ -83,6 +80,7 @@ template <int DIM>
 void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 							 const std::vector<Vector<DIM>>& rayOrigins,
 							 const std::vector<Vector<DIM>>& rayDirections,
+							 const std::vector<int>& indices,
 							 const std::string& aggregateType,
 							 bool queriesCoherent=false)
 {
@@ -93,20 +91,26 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate, &rayOrigins, &rayDirections, &totalNodesVisited,
-					  queriesCoherent, pCurrent, pEnd]() {
+		pool.enqueue([&aggregate, &rayOrigins, &rayDirections, &indices,
+					  &totalNodesVisited, queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
 			#endif
 
 			int nodesVisitedByThread = 0;
+			Interaction<DIM> cPrev;
 
 			for (int i = pCurrent; i < pEnd; i++) {
+				int I = indices[i];
+				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
+
 				int nodesVisited = 0;
 				std::vector<Interaction<DIM>> cs;
-				Ray<DIM> r(rayOrigins[i], rayDirections[i]);
-				int hit = aggregate->intersectFromNode(r, cs, 0, nodesVisited);
+				Ray<DIM> r(rayOrigins[I], rayDirections[I]);
+				bool hit = (bool)aggregate->intersectFromNode(r, cs, nodeIndex, nodesVisited);
 				nodesVisitedByThread += nodesVisited;
+
+				if (hit) cPrev = cs[0];
 			}
 
 			totalNodesVisited += nodesVisitedByThread;
@@ -120,17 +124,18 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << rayOrigins.size() << (queriesCoherent ? " coherent" : " incoherent")
-			  << " intersection queries took "
-			  << timeSpan.count() << " seconds with "
-			  << aggregateType << " aggregate; "
-			  << (totalNodesVisited/nQueries) << " nodes visited on avg per query"
+	std::cout << rayOrigins.size() << " intersection queries"
+			  << (queriesCoherent ? " with backtracking search" : "")
+			  << " took " << timeSpan.count() << " seconds with "
+			  << aggregateType << "; "
+			  << (totalNodesVisited/nQueries) << " nodes visited on avg"
 			  << std::endl;
 }
 
 template <int DIM>
 void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 							 const std::vector<Vector<DIM>>& queryPoints,
+							 const std::vector<int>& indices,
 							 const std::string& aggregateType,
 							 bool queriesCoherent=false)
 {
@@ -141,7 +146,7 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate, &queryPoints, &totalNodesVisited,
+		pool.enqueue([&aggregate, &queryPoints, &indices, &totalNodesVisited,
 					  queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
@@ -152,17 +157,20 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 			Vector<DIM> queryPrev = zeroVector<DIM>();
 
 			for (int i = pCurrent; i < pEnd; i++) {
-				float distPrev = norm<DIM>(queryPoints[i] - queryPrev);
+				int I = indices[i];
+				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
 				float r2 = i == pCurrent ? maxFloat : std::pow(cPrev.d + distPrev, 2);
+				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
 				int nodesVisited = 0;
 				Interaction<DIM> c;
-				BoundingSphere<DIM> s(queryPoints[i], r2);
-				bool found = aggregate->findClosestPointFromNode(s, c, 0, nodesVisited);
+				BoundingSphere<DIM> s(queryPoints[I], r2);
+				bool found = aggregate->findClosestPointFromNode(s, c, nodeIndex, nodesVisited);
 				nodesVisitedByThread += nodesVisited;
 
-				cPrev = c;
-				queryPrev = queryPoints[i];
+				if (found) cPrev = c;
+				else LOG(FATAL) << "Closest points not found!";
+				queryPrev = queryPoints[I];
 			}
 
 			totalNodesVisited += nodesVisitedByThread;
@@ -176,11 +184,11 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << queryPoints.size() << (queriesCoherent ? " coherent" : " incoherent")
-			  << " closest point queries took "
-			  << timeSpan.count() << " seconds with "
-			  << aggregateType << " aggregate; "
-			  << (totalNodesVisited/nQueries) << " nodes visited on avg per query"
+	std::cout << queryPoints.size() << " closest point queries"
+			  << (queriesCoherent ? " with backtracking search" : "")
+			  << " took " << timeSpan.count() << " seconds with "
+			  << aggregateType << "; "
+			  << (totalNodesVisited/nQueries) << " nodes visited on avg"
 			  << std::endl;
 }
 
@@ -189,6 +197,7 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
 							 const std::vector<Vector<DIM>>& rayOrigins,
 							 const std::vector<Vector<DIM>>& rayDirections,
+							 const std::vector<int>& indices,
 							 bool queriesCoherent=false)
 {
 	int pCurrent = 0;
@@ -197,20 +206,25 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate1, &aggregate2, &rayOrigins, &rayDirections,
-					  queriesCoherent, pCurrent, pEnd]() {
+					  &indices, queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
 			#endif
 
+			Interaction<DIM> cPrev;
+
 			for (int i = pCurrent; i < pEnd; i++) {
+				int I = indices[i];
+				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
+
 				std::vector<Interaction<DIM>> c1;
-				Ray<DIM> r1(rayOrigins[i], rayDirections[i]);
+				Ray<DIM> r1(rayOrigins[I], rayDirections[I]);
 				bool hit1 = (bool)aggregate1->intersect(r1, c1);
 
 				int nodesVisited = 0;
 				std::vector<Interaction<DIM>> c2;
-				Ray<DIM> r2(rayOrigins[i], rayDirections[i]);
-				bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, 0, nodesVisited);
+				Ray<DIM> r2(rayOrigins[I], rayDirections[I]);
+				bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, nodeIndex, nodesVisited);
 
 				if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
 					LOG(INFO) << "d1: " << c1[0].d << " d2: " << c2[0].d;
@@ -218,13 +232,15 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 					LOG(FATAL) << "Intersections do not match!";
 				}
 
+				if (hit2) cPrev = c2[0];
+
 				std::vector<Interaction<DIM>> c3;
-				Ray<DIM> r3(rayOrigins[i], rayDirections[i]);
+				Ray<DIM> r3(rayOrigins[I], rayDirections[I]);
 				int hit3 = aggregate1->intersect(r3, c3, false, true);
 
 				nodesVisited = 0;
 				std::vector<Interaction<DIM>> c4;
-				Ray<DIM> r4(rayOrigins[i], rayDirections[i]);
+				Ray<DIM> r4(rayOrigins[I], rayDirections[I]);
 				int hit4 = aggregate2->intersectFromNode(r4, c4, 0, nodesVisited, false, true);
 
 				if (hit3 != hit4) {
@@ -246,6 +262,7 @@ template <int DIM>
 void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
 							 const std::vector<Vector<DIM>>& queryPoints,
+							 const std::vector<int>& indices,
 							 bool queriesCoherent=false)
 {
 	int pCurrent = 0;
@@ -253,7 +270,7 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate1, &aggregate2, &queryPoints,
+		pool.enqueue([&aggregate1, &aggregate2, &queryPoints, &indices,
 					  queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
@@ -263,17 +280,19 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 			Vector<DIM> queryPrev = zeroVector<DIM>();
 
 			for (int i = pCurrent; i < pEnd; i++) {
-				float distPrev = norm<DIM>(queryPoints[i] - queryPrev);
+				int I = indices[i];
+				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
 				float r2 = i == pCurrent ? maxFloat : std::pow(cPrev.d + distPrev, 2);
+				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
 				Interaction<DIM> c1;
-				BoundingSphere<DIM> s1(queryPoints[i], maxFloat);
+				BoundingSphere<DIM> s1(queryPoints[I], maxFloat);
 				bool found1 = aggregate1->findClosestPoint(s1, c1);
 
 				int nodesVisited = 0;
 				Interaction<DIM> c2;
-				BoundingSphere<DIM> s2(queryPoints[i], r2);
-				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0, nodesVisited);
+				BoundingSphere<DIM> s2(queryPoints[I], r2);
+				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex, nodesVisited);
 
 				if (found1 != found2 || c1 != c2) {
 					LOG(INFO) << "d1: " << c1.d << " d2: " << c2.d;
@@ -281,8 +300,9 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 					LOG(FATAL) << "Closest points do not match!";
 				}
 
-				cPrev = c2;
-				queryPrev = queryPoints[i];
+				if (found2) cPrev = c2;
+				else LOG(FATAL) << "Closest points not found!";
+				queryPrev = queryPoints[I];
 			}
 		});
 
@@ -374,6 +394,16 @@ void run()
 	std::vector<Vector<DIM>> queryPoints, randomDirections;
 	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
 
+	// generate indices
+	std::vector<int> indices, shuffledIndices;
+	for (int i = 0; i < nQueries; i++) {
+		indices.emplace_back(i);
+		shuffledIndices.emplace_back(i);
+	}
+
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::shuffle(shuffledIndices.begin(), shuffledIndices.end(), std::default_random_engine(seed));
+
 	std::vector<std::string> bvhTypes({"Bvh_LongestAxisCenter", "Bvh_SurfaceArea",
 									   "Bvh_OverlapSurfaceArea", "Bvh_Volume",
 									   "Bvh_OverlapVolume", "Sbvh_SurfaceArea",
@@ -383,21 +413,31 @@ void run()
 		std::cout << "Running performance tests..." << std::endl;
 
 		// benchmark baseline queries
-		//timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Baseline");
-		//timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Baseline");
+		//timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+		//							   shuffledIndices, "Baseline");
+		//timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+		//							   shuffledIndices, "Baseline");
 
 		// build bvh aggregates and benchmark queries
 		for (int bvh = 1; bvh < 8; bvh++) {
 			scene.buildAggregate(static_cast<AggregateType>(bvh));
-			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, bvhTypes[bvh - 1]);
-			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, bvhTypes[bvh - 1]);
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+										 shuffledIndices, bvhTypes[bvh - 1]);
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+										 indices, bvhTypes[bvh - 1], true);
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+										 shuffledIndices, bvhTypes[bvh - 1]);
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+										 indices, bvhTypes[bvh - 1], true);
 		}
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
 		scene.buildEmbreeAggregate();
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections, "Embree Bvh");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints, "Embree Bvh");
+		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+									 shuffledIndices, "Embree Bvh");
+		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+									 shuffledIndices, "Embree Bvh");
 #endif
 	}
 
@@ -414,8 +454,14 @@ void run()
 		for (int bvh = 1; bvh < 8; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
 			bvhScene.buildAggregate(static_cast<AggregateType>(bvh));
-			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints, randomDirections);
-			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate, queryPoints);
+			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+										 queryPoints, randomDirections, shuffledIndices);
+			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+										 queryPoints, randomDirections, indices, true);
+			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+										 queryPoints, shuffledIndices);
+			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+										 queryPoints, indices, true);
 		}
 
 #ifdef BENCHMARK_EMBREE
@@ -424,8 +470,10 @@ void run()
 		Scene<DIM> embreeBvhScene;
 		embreeBvhScene.loadFiles(true);
 		embreeBvhScene.buildEmbreeAggregate();
-		testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints, randomDirections);
-		testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate, queryPoints);
+		testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
+									 queryPoints, randomDirections, shuffledIndices);
+		testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
+									 queryPoints, shuffledIndices);
 #endif
 	}
 
