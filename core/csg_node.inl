@@ -21,11 +21,11 @@ inline void CsgNode<DIM>::computeBoundingBox()
 {
 	if (operation == BooleanOperation::Intersection) {
 		// use the child bounding box with the smaller extent; this is not the tightest fit box
-		BoundingBox<DIM> leftBox = left->boundingBox();
-		BoundingBox<DIM> rightBox = right->boundingBox();
-		box.expandToInclude(squaredNorm<DIM>(leftBox.extent()) <
-							squaredNorm<DIM>(rightBox.extent()) ?
-							leftBox : rightBox);
+		BoundingBox<DIM> boxLeft = left->boundingBox();
+		BoundingBox<DIM> boxRight = right->boundingBox();
+		box.expandToInclude(squaredNorm<DIM>(boxLeft.extent()) <
+							squaredNorm<DIM>(boxRight.extent()) ?
+							boxLeft : boxRight);
 
 	} else if (operation == BooleanOperation::Difference) {
 		// use the bounding box of the left child (i.e., the object that is subtracted from);
@@ -34,10 +34,10 @@ inline void CsgNode<DIM>::computeBoundingBox()
 
 	} else {
 		// this is the tightest fit box for the union and none operations
-		BoundingBox<DIM> leftBox = left->boundingBox();
-		BoundingBox<DIM> rightBox = right->boundingBox();
-		box.expandToInclude(leftBox);
-		box.expandToInclude(rightBox);
+		BoundingBox<DIM> boxLeft = left->boundingBox();
+		BoundingBox<DIM> boxRight = right->boundingBox();
+		box.expandToInclude(boxLeft);
+		box.expandToInclude(boxRight);
 	}
 }
 

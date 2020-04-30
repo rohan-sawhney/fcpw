@@ -31,8 +31,8 @@ public:
 	Vector2f textureCoordinates(const Vector2f& uv) const;
 
 	// splits the triangle along the provided coordinate and axis
-	void split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
-			   BoundingBox<3>& bboxRight) const;
+	void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
+			   BoundingBox<3>& boxRight) const;
 
 	// intersects with ray
 	int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,

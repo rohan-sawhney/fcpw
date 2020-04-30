@@ -20,8 +20,8 @@ static progschj::ThreadPool pool;
 static int nThreads = 8;
 
 // TODO:
+// - sort queries and rerun performance tests, correctness tests can be run on sorted queries
 // - write timings to file
-// - loop over BVH optimizations for performance & correctness
 // - plot BVH scaling behavior with increasing mesh sizes
 
 template <int DIM>

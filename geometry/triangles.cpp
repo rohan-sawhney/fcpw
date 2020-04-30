@@ -111,8 +111,8 @@ Vector3f Triangle::normal(int vIndex, int eIndex) const
 	return normal(true);
 }
 
-void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
-					 BoundingBox<3>& bboxRight) const
+void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
+					 BoundingBox<3>& boxRight) const
 {
 	for (int i = 0; i < 3; i++) {
 		const Vector3f& pa = soup->positions[indices[i]];
@@ -122,10 +122,10 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 			const Vector3f& pc = soup->positions[indices[(i + 2)%3]];
 
 			if (pc[dim] <= splitCoord) {
-				bboxLeft = BoundingBox<3>(pa);
-				bboxLeft.expandToInclude(pb);
-				bboxLeft.expandToInclude(pc);
-				bboxRight = BoundingBox<3>();
+				boxLeft = BoundingBox<3>(pa);
+				boxLeft.expandToInclude(pb);
+				boxLeft.expandToInclude(pc);
+				boxRight = BoundingBox<3>();
 
 			} else {
 				Vector3f u = pa - pc;
@@ -133,12 +133,12 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
 				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
-				bboxLeft = BoundingBox<3>(pc + u*t);
-				bboxLeft.expandToInclude(pc + v*s);
-				bboxRight = bboxLeft;
-				bboxLeft.expandToInclude(pa);
-				bboxLeft.expandToInclude(pb);
-				bboxRight.expandToInclude(pc);
+				boxLeft = BoundingBox<3>(pc + u*t);
+				boxLeft.expandToInclude(pc + v*s);
+				boxRight = boxLeft;
+				boxLeft.expandToInclude(pa);
+				boxLeft.expandToInclude(pb);
+				boxRight.expandToInclude(pc);
 			}
 
 			break;
@@ -147,10 +147,10 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 			const Vector3f& pc = soup->positions[indices[(i + 2)%3]];
 
 			if (pc[dim] >= splitCoord) {
-				bboxRight = BoundingBox<3>(pa);
-				bboxRight.expandToInclude(pb);
-				bboxRight.expandToInclude(pc);
-				bboxLeft = BoundingBox<3>();
+				boxRight = BoundingBox<3>(pa);
+				boxRight.expandToInclude(pb);
+				boxRight.expandToInclude(pc);
+				boxLeft = BoundingBox<3>();
 
 			} else {
 				Vector3f u = pa - pc;
@@ -158,12 +158,12 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& bboxLeft,
 				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
 				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
-				bboxRight = BoundingBox<3>(pc + u*t);
-				bboxRight.expandToInclude(pc + v*s);
-				bboxLeft = bboxRight;
-				bboxRight.expandToInclude(pa);
-				bboxRight.expandToInclude(pb);
-				bboxLeft.expandToInclude(pc);
+				boxRight = BoundingBox<3>(pc + u*t);
+				boxRight.expandToInclude(pc + v*s);
+				boxLeft = boxRight;
+				boxRight.expandToInclude(pa);
+				boxRight.expandToInclude(pb);
+				boxLeft.expandToInclude(pc);
 			}
 
 			break;

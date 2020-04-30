@@ -28,8 +28,8 @@ public:
 	virtual float signedVolume() const = 0;
 
 	// splits the primitive along the provided coordinate and axis
-	virtual void split(int dim, float splitCoord, BoundingBox<DIM>& bboxLeft,
-					   BoundingBox<DIM>& bboxRight) const = 0;
+	virtual void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
+					   BoundingBox<DIM>& boxRight) const = 0;
 
 	// intersects with ray
 	virtual int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
@@ -97,18 +97,18 @@ public:
 	}
 
 	// splits the primitive along the provided coordinate and axis
-	void split(int dim, float splitCoord, BoundingBox<DIM>& bboxLeft,
-			   BoundingBox<DIM>& bboxRight) const {
-		BoundingBox<DIM> bbox = this->boundingBox();
+	void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
+			   BoundingBox<DIM>& boxRight) const {
+		BoundingBox<DIM> box = this->boundingBox();
 
-		if (bbox.pMin[dim] <= splitCoord) {
-			bboxLeft = bbox;
-			bboxLeft.pMax[dim] = splitCoord;
+		if (box.pMin[dim] <= splitCoord) {
+			boxLeft = box;
+			boxLeft.pMax[dim] = splitCoord;
 		}
 
-		if (bbox.pMax[dim] >= splitCoord) {
-			bboxRight = bbox;
-			bboxRight.pMin[dim] = splitCoord;
+		if (box.pMax[dim] >= splitCoord) {
+			boxRight = box;
+			boxRight.pMin[dim] = splitCoord;
 		}
 	}
 

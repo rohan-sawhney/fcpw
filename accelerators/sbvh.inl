@@ -36,72 +36,72 @@ bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0))
 }
 
 template <int DIM>
-inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& bboxLeft,
-										 const BoundingBox<DIM>& bboxRight,
+inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
+										 const BoundingBox<DIM>& boxRight,
 										 float parentSurfaceArea, float parentVolume,
 										 int nReferencesLeft, int nReferencesRight) const
 {
 	float cost = maxFloat;
 	if (costHeuristic == CostHeuristic::SurfaceArea) {
-		cost = (nReferencesLeft*bboxLeft.surfaceArea() +
-				nReferencesRight*bboxRight.surfaceArea())/parentSurfaceArea;
+		cost = (nReferencesLeft*boxLeft.surfaceArea() +
+				nReferencesRight*boxRight.surfaceArea())/parentSurfaceArea;
 
 	} else if (costHeuristic == CostHeuristic::OverlapSurfaceArea) {
 		// set the cost to be negative if the left and right boxes don't overlap at all
-		BoundingBox<DIM> bboxIntersected = bboxLeft.intersect(bboxRight);
-		cost = (nReferencesLeft/bboxRight.surfaceArea() +
-				nReferencesRight/bboxLeft.surfaceArea())*std::fabs(bboxIntersected.surfaceArea());
-		if (!bboxIntersected.isValid()) cost *= -1;
+		BoundingBox<DIM> boxIntersected = boxLeft.intersect(boxRight);
+		cost = (nReferencesLeft/boxRight.surfaceArea() +
+				nReferencesRight/boxLeft.surfaceArea())*std::fabs(boxIntersected.surfaceArea());
+		if (!boxIntersected.isValid()) cost *= -1;
 
 	} else if (costHeuristic == CostHeuristic::Volume) {
-		cost = (nReferencesLeft*bboxLeft.volume() +
-				nReferencesRight*bboxRight.volume())/parentVolume;
+		cost = (nReferencesLeft*boxLeft.volume() +
+				nReferencesRight*boxRight.volume())/parentVolume;
 
 	} else if (costHeuristic == CostHeuristic::OverlapVolume) {
 		// set the cost to be negative if the left and right boxes don't overlap at all
-		BoundingBox<DIM> bboxIntersected = bboxLeft.intersect(bboxRight);
-		cost = (nReferencesLeft/bboxRight.volume() +
-				nReferencesRight/bboxLeft.volume())*std::fabs(bboxIntersected.volume());
-		if (!bboxIntersected.isValid()) cost *= -1;
+		BoundingBox<DIM> boxIntersected = boxLeft.intersect(boxRight);
+		cost = (nReferencesLeft/boxRight.volume() +
+				nReferencesRight/boxLeft.volume())*std::fabs(boxIntersected.volume());
+		if (!boxIntersected.isValid()) cost *= -1;
 	}
 
 	return cost;
 }
 
 template <int DIM>
-inline void Sbvh<DIM>::computeUnsplittingCosts(const BoundingBox<DIM>& bboxLeft,
-											   const BoundingBox<DIM>& bboxRight,
-											   const BoundingBox<DIM>& bboxReference,
-											   const BoundingBox<DIM>& bboxRefLeft,
-											   const BoundingBox<DIM>& bboxRefRight,
+inline void Sbvh<DIM>::computeUnsplittingCosts(const BoundingBox<DIM>& boxLeft,
+											   const BoundingBox<DIM>& boxRight,
+											   const BoundingBox<DIM>& boxReference,
+											   const BoundingBox<DIM>& boxRefLeft,
+											   const BoundingBox<DIM>& boxRefRight,
 											   int nReferencesLeft, int nReferencesRight,
 											   float& costDuplicate, float& costUnsplitLeft,
 											   float& costUnsplitRight) const
 {
-	BoundingBox<DIM> bboxLeftUnsplit = bboxLeft;
-	BoundingBox<DIM> bboxRightUnsplit = bboxRight;
-	BoundingBox<DIM> bboxLeftDuplicate = bboxLeft;
-	BoundingBox<DIM> bboxRightDuplicate = bboxRight;
-	bboxLeftUnsplit.expandToInclude(bboxReference);
-	bboxRightUnsplit.expandToInclude(bboxReference);
-	bboxLeftDuplicate.expandToInclude(bboxRefLeft);
-	bboxRightDuplicate.expandToInclude(bboxRefRight);
+	BoundingBox<DIM> boxLeftUnsplit = boxLeft;
+	BoundingBox<DIM> boxRightUnsplit = boxRight;
+	BoundingBox<DIM> boxLeftDuplicate = boxLeft;
+	BoundingBox<DIM> boxRightDuplicate = boxRight;
+	boxLeftUnsplit.expandToInclude(boxReference);
+	boxRightUnsplit.expandToInclude(boxReference);
+	boxLeftDuplicate.expandToInclude(boxRefLeft);
+	boxRightDuplicate.expandToInclude(boxRefRight);
 
 	if (costHeuristic == CostHeuristic::SurfaceArea) {
-		costDuplicate = bboxLeftDuplicate.surfaceArea()*(nReferencesLeft + 1) +
-						bboxRightDuplicate.surfaceArea()*(nReferencesRight + 1);
-		costUnsplitLeft = bboxLeftUnsplit.surfaceArea()*(nReferencesLeft + 1) +
-						  bboxRight.surfaceArea()*nReferencesRight;
-		costUnsplitRight = bboxLeft.surfaceArea()*nReferencesLeft +
-						   bboxRightUnsplit.surfaceArea()*(nReferencesRight + 1);
+		costDuplicate = boxLeftDuplicate.surfaceArea()*(nReferencesLeft + 1) +
+						boxRightDuplicate.surfaceArea()*(nReferencesRight + 1);
+		costUnsplitLeft = boxLeftUnsplit.surfaceArea()*(nReferencesLeft + 1) +
+						  boxRight.surfaceArea()*nReferencesRight;
+		costUnsplitRight = boxLeft.surfaceArea()*nReferencesLeft +
+						   boxRightUnsplit.surfaceArea()*(nReferencesRight + 1);
 
 	} else {
-		costDuplicate = bboxLeftDuplicate.volume()*(nReferencesLeft + 1) +
-						bboxRightDuplicate.volume()*(nReferencesRight + 1);
-		costUnsplitLeft = bboxLeftUnsplit.volume()*(nReferencesLeft + 1) +
-						  bboxRight.volume()*nReferencesRight;
-		costUnsplitRight = bboxLeft.volume()*nReferencesLeft +
-						   bboxRightUnsplit.volume()*(nReferencesRight + 1);
+		costDuplicate = boxLeftDuplicate.volume()*(nReferencesLeft + 1) +
+						boxRightDuplicate.volume()*(nReferencesRight + 1);
+		costUnsplitLeft = boxLeftUnsplit.volume()*(nReferencesLeft + 1) +
+						  boxRight.volume()*nReferencesRight;
+		costUnsplitRight = boxLeft.volume()*nReferencesLeft +
+						   boxRightUnsplit.volume()*(nReferencesRight + 1);
 	}
 }
 
@@ -111,12 +111,12 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 										   const std::vector<BoundingBox<DIM>>& referenceBoxes,
 										   const std::vector<Vector<DIM>>& referenceCentroids,
 										   int nodeStart, int nodeEnd, int& splitDim,
-										   float& splitCoord, BoundingBox<DIM>& bboxIntersected)
+										   float& splitCoord, BoundingBox<DIM>& boxIntersected)
 {
 	float splitCost = maxFloat;
 	splitDim = -1;
 	splitCoord = 0.0f;
-	bboxIntersected = BoundingBox<DIM>();
+	boxIntersected = BoundingBox<DIM>();
 
 	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
 		Vector<DIM> extent = nodeBoundingBox.extent();
@@ -143,30 +143,30 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 			}
 
 			// sweep right to left to build right bucket bounding boxes
-			BoundingBox<DIM> bboxRefRight;
+			BoundingBox<DIM> boxRefRight;
 			for (int b = nBuckets - 1; b > 0; b--) {
-				bboxRefRight.expandToInclude(buckets[b].first);
-				rightBucketBoxes[b].first = bboxRefRight;
+				boxRefRight.expandToInclude(buckets[b].first);
+				rightBucketBoxes[b].first = boxRefRight;
 				rightBucketBoxes[b].second = buckets[b].second;
 				if (b != nBuckets - 1) rightBucketBoxes[b].second += rightBucketBoxes[b + 1].second;
 			}
 
 			// evaluate bucket split costs
-			BoundingBox<DIM> bboxRefLeft;
+			BoundingBox<DIM> boxRefLeft;
 			int nReferencesLeft = 0;
 			for (int b = 1; b < nBuckets; b++) {
-				bboxRefLeft.expandToInclude(buckets[b - 1].first);
+				boxRefLeft.expandToInclude(buckets[b - 1].first);
 				nReferencesLeft += buckets[b - 1].second;
 
 				if (nReferencesLeft > 0 && rightBucketBoxes[b].second > 0) {
-					float cost = computeSplitCost(bboxRefLeft, rightBucketBoxes[b].first, surfaceArea,
+					float cost = computeSplitCost(boxRefLeft, rightBucketBoxes[b].first, surfaceArea,
 												  volume, nReferencesLeft, rightBucketBoxes[b].second);
 
 					if (cost < splitCost) {
 						splitCost = cost;
 						splitDim = dim;
 						splitCoord = nodeBoundingBox.pMin[dim] + b*bucketWidth;
-						bboxIntersected = bboxRefLeft.intersect(rightBucketBoxes[b].first);
+						boxIntersected = boxRefLeft.intersect(rightBucketBoxes[b].first);
 					}
 				}
 			}
@@ -207,22 +207,22 @@ inline int Sbvh<DIM>::performObjectSplit(int nodeStart, int nodeEnd, int splitDi
 
 template <int DIM>
 inline void Sbvh<DIM>::splitPrimitive(const std::shared_ptr<Primitive<DIM>>& primitive, int dim,
-									  float splitCoord, const BoundingBox<DIM>& bboxReference,
-									  BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight) const
+									  float splitCoord, const BoundingBox<DIM>& boxReference,
+									  BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight) const
 {
 	// split primitive along the provided coordinate and axis
-	primitive->split(dim, splitCoord, bboxLeft, bboxRight);
+	primitive->split(dim, splitCoord, boxLeft, boxRight);
 
 	// intersect with bounds
-	bboxLeft = bboxLeft.intersect(bboxReference);
-	bboxRight = bboxRight.intersect(bboxReference);
+	boxLeft = boxLeft.intersect(boxReference);
+	boxRight = boxRight.intersect(boxReference);
 }
 
 template <int DIM>
 inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
 											const std::vector<BoundingBox<DIM>>& referenceBoxes,
 											int nodeStart, int nodeEnd, int splitDim, float& splitCoord,
-											BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight)
+											BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight)
 {
 	// find the best split along splitDim
 	float splitCost = maxFloat;
@@ -247,47 +247,47 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 		int lastBinIndex = (int)((referenceBoxes[p].pMax[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth);
 		firstBinIndex = clamp(firstBinIndex, 0, nBins - 1);
 		lastBinIndex = clamp(lastBinIndex, 0, nBins - 1);
-		BoundingBox<DIM> bboxReference = referenceBoxes[p];
+		BoundingBox<DIM> boxReference = referenceBoxes[p];
 
 		// loop over those bins, splitting the reference and growing the bin boxes
 		for (int b = firstBinIndex; b < lastBinIndex; b++) {
-			BoundingBox<DIM> bboxRefLeft, bboxRefRight;
+			BoundingBox<DIM> boxRefLeft, boxRefRight;
 			float coord = nodeBoundingBox.pMin[splitDim] + (b + 1)*binWidth;
-			splitPrimitive(primitive, splitDim, coord, bboxReference, bboxRefLeft, bboxRefRight);
-			std::get<0>(bins[b]).expandToInclude(bboxRefLeft);
-			bboxReference = bboxRefRight;
+			splitPrimitive(primitive, splitDim, coord, boxReference, boxRefLeft, boxRefRight);
+			std::get<0>(bins[b]).expandToInclude(boxRefLeft);
+			boxReference = boxRefRight;
 		}
 
-		std::get<0>(bins[lastBinIndex]).expandToInclude(bboxReference);
+		std::get<0>(bins[lastBinIndex]).expandToInclude(boxReference);
 		std::get<1>(bins[firstBinIndex]) += 1; // increment number of entries
 		std::get<2>(bins[lastBinIndex]) += 1; // increment number of exits
 	}
 
 	// sweep right to left to build right bin bounding boxes
-	BoundingBox<DIM> bboxRefRight;
+	BoundingBox<DIM> boxRefRight;
 	for (int b = nBins - 1; b > 0; b--) {
-		bboxRefRight.expandToInclude(std::get<0>(bins[b]));
-		rightBinBoxes[b].first = bboxRefRight;
+		boxRefRight.expandToInclude(std::get<0>(bins[b]));
+		rightBinBoxes[b].first = boxRefRight;
 		rightBinBoxes[b].second = std::get<2>(bins[b]);
 		if (b != nBins - 1) rightBinBoxes[b].second += rightBinBoxes[b + 1].second;
 	}
 
 	// evaluate bin split costs
-	BoundingBox<DIM> bboxRefLeft;
+	BoundingBox<DIM> boxRefLeft;
 	int nReferencesLeft = 0;
 	for (int b = 1; b < nBins; b++) {
-		bboxRefLeft.expandToInclude(std::get<0>(bins[b - 1]));
+		boxRefLeft.expandToInclude(std::get<0>(bins[b - 1]));
 		nReferencesLeft += std::get<1>(bins[b - 1]);
 
 		if (nReferencesLeft > 0 && rightBinBoxes[b].second > 0) {
-			float cost = computeSplitCost(bboxRefLeft, rightBinBoxes[b].first, surfaceArea,
+			float cost = computeSplitCost(boxRefLeft, rightBinBoxes[b].first, surfaceArea,
 										  volume, nReferencesLeft, rightBinBoxes[b].second);
 
 			if (cost < splitCost) {
 				splitCost = cost;
 				splitCoord = nodeBoundingBox.pMin[splitDim] + b*binWidth;
-				bboxLeft = bboxRefLeft;
-				bboxRight = rightBinBoxes[b].first;
+				boxLeft = boxRefLeft;
+				boxRight = rightBinBoxes[b].first;
 			}
 		}
 	}
@@ -296,7 +296,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 }
 
 template <int DIM>
-inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& bboxLeft, const BoundingBox<DIM>& bboxRight,
+inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const BoundingBox<DIM>& boxRight,
 										  int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
 										  int& nReferencesAdded, int& nTotalReferences,
 										  std::vector<BoundingBox<DIM>>& referenceBoxes,
@@ -348,25 +348,25 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& bboxLeft, cons
 	nReferencesAdded = 0;
 	while (leftEnd < rightStart) {
 		// split reference
-		BoundingBox<DIM> bboxRefLeft, bboxRefRight;
+		BoundingBox<DIM> boxRefLeft, boxRefRight;
 		splitPrimitive(primitives[references[leftEnd]], splitDim, splitCoord,
-					   referenceBoxes[leftEnd], bboxRefLeft, bboxRefRight);
+					   referenceBoxes[leftEnd], boxRefLeft, boxRefRight);
 
 		// compute unsplitting costs
 		float costDuplicate, costUnsplitLeft, costUnsplitRight;
-		computeUnsplittingCosts(bboxLeft, bboxRight, referenceBoxes[leftEnd], bboxRefLeft,
-								bboxRefRight, leftEnd - leftStart, rightEnd - rightStart,
+		computeUnsplittingCosts(boxLeft, boxRight, referenceBoxes[leftEnd], boxRefLeft,
+								boxRefRight, leftEnd - leftStart, rightEnd - rightStart,
 								costDuplicate, costUnsplitLeft, costUnsplitRight);
 
 		if (costDuplicate < costUnsplitLeft && costDuplicate < costUnsplitRight) {
 			// modify this reference box to contain the left split box
-			referenceBoxes[leftEnd] = bboxRefLeft;
-			referenceCentroids[leftEnd] = bboxRefLeft.centroid();
+			referenceBoxes[leftEnd] = boxRefLeft;
+			referenceCentroids[leftEnd] = boxRefLeft.centroid();
 
 			// add right split box
 			referencesToAdd[nReferencesAdded] = references[leftEnd];
-			referenceBoxesToAdd[nReferencesAdded] = bboxRefRight;
-			referenceCentroidsToAdd[nReferencesAdded] = bboxRefRight.centroid();
+			referenceBoxesToAdd[nReferencesAdded] = boxRefRight;
+			referenceCentroidsToAdd[nReferencesAdded] = boxRefRight.centroid();
 
 			nReferencesAdded++;
 			leftEnd++;
@@ -433,7 +433,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 		bc.expandToInclude(referenceCentroids[p]);
 	}
 
-	node.bbox = bb;
+	node.box = bb;
 
 	// if the number of references at this point is less than the leaf
 	// size, then this will become a leaf (signified by rightOffset == 0)
@@ -463,20 +463,20 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	int splitDim;
 	float splitCoord;
 	bool isObjectSplitBetter = true;
-	BoundingBox<DIM> bboxLeft, bboxRight, bboxIntersected;
+	BoundingBox<DIM> boxLeft, boxRight, boxIntersected;
 	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
-										 start, end, splitDim, splitCoord, bboxIntersected);
+										 start, end, splitDim, splitCoord, boxIntersected);
 
 	// compute spatial split if intersected box is valid and not too small compared to the scene
-	if (bboxIntersected.isValid() &&
+	if (boxIntersected.isValid() &&
 		((costHeuristic == CostHeuristic::SurfaceArea &&
-		  bboxIntersected.surfaceArea() > splitAlpha*rootSurfaceArea) ||
+		  boxIntersected.surfaceArea() > splitAlpha*rootSurfaceArea) ||
 		 (costHeuristic == CostHeuristic::Volume &&
-		  bboxIntersected.volume() > splitAlpha*rootVolume))) {
+		  boxIntersected.volume() > splitAlpha*rootVolume))) {
 		float spatialSplitCoord;
 		float spatialSplitCost = computeSpatialSplit(bb, referenceBoxes, start, end,
 													 splitDim, spatialSplitCoord,
-													 bboxLeft, bboxRight);
+													 boxLeft, boxRight);
 
 		if (spatialSplitCost < splitCost) {
 			isObjectSplitBetter = false;
@@ -489,7 +489,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	int nReferencesAdded = 0;
 	int mid = isObjectSplitBetter ? performObjectSplit(start, end, splitDim, splitCoord,
 													   referenceBoxes, referenceCentroids) :
-									performSpatialSplit(bboxLeft, bboxRight, splitDim, splitCoord,
+									performSpatialSplit(boxLeft, boxRight, splitDim, splitCoord,
 														start, end, nReferencesAdded, nTotalReferences,
 														referenceBoxes, referenceCentroids);
 
@@ -523,17 +523,17 @@ inline void Sbvh<DIM>::build()
 	referenceBoxes.resize(memoryBudget);
 	referenceCentroids.resize(memoryBudget);
 	buildNodes.reserve(nReferences*2);
-	BoundingBox<DIM> bboxRoot;
+	BoundingBox<DIM> boxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
 		references[i] = i;
 		referenceBoxes[i] = primitives[i]->boundingBox();
 		referenceCentroids[i] = primitives[i]->centroid();
-		bboxRoot.expandToInclude(referenceBoxes[i]);
+		boxRoot.expandToInclude(referenceBoxes[i]);
 	}
 
-	rootSurfaceArea = bboxRoot.surfaceArea();
-	rootVolume = bboxRoot.volume();
+	rootSurfaceArea = boxRoot.surfaceArea();
+	rootVolume = boxRoot.volume();
 
 	// build tree recursively
 	int nTotalReferences = nReferences;
@@ -560,7 +560,7 @@ inline void Sbvh<DIM>::build()
 template <int DIM>
 inline BoundingBox<DIM> Sbvh<DIM>::boundingBox() const
 {
-	return flatTree.size() > 0 ? flatTree[0].bbox : BoundingBox<DIM>();
+	return flatTree.size() > 0 ? flatTree[0].box : BoundingBox<DIM>();
 }
 
 template <int DIM>
@@ -602,7 +602,7 @@ template <int DIM>
 inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													 bool checkOcclusion, bool countHits,
 													 std::stack<SbvhTraversal>& subtree,
-													 float *bboxHits, int& hits) const
+													 float *boxHits, int& hits) const
 {
 	while (!subtree.empty()) {
 		// pop off the next node to work on
@@ -656,8 +656,8 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 			}
 
 		} else { // not a leaf
-			bool hit0 = flatTree[nodeIndex + 1].bbox.intersect(r, bboxHits[0], bboxHits[1]);
-			bool hit1 = flatTree[nodeIndex + node.rightOffset].bbox.intersect(r, bboxHits[2], bboxHits[3]);
+			bool hit0 = flatTree[nodeIndex + 1].box.intersect(r, boxHits[0], boxHits[1]);
+			bool hit1 = flatTree[nodeIndex + node.rightOffset].box.intersect(r, boxHits[2], boxHits[3]);
 
 			// did we hit both nodes?
 			if (hit0 && hit1) {
@@ -666,9 +666,9 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 				int other = nodeIndex + node.rightOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
-				if (bboxHits[2] < bboxHits[0]) {
-					std::swap(bboxHits[0], bboxHits[2]);
-					std::swap(bboxHits[1], bboxHits[3]);
+				if (boxHits[2] < boxHits[0]) {
+					std::swap(boxHits[0], boxHits[2]);
+					std::swap(boxHits[1], boxHits[3]);
 					std::swap(closer, other);
 				}
 
@@ -676,14 +676,14 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 				// check the farther-away node later...
 
 				// push the farther first, then the closer
-				subtree.emplace(SbvhTraversal(other, bboxHits[2]));
-				subtree.emplace(SbvhTraversal(closer, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(other, boxHits[2]));
+				subtree.emplace(SbvhTraversal(closer, boxHits[0]));
 
 			} else if (hit0) {
-				subtree.emplace(SbvhTraversal(nodeIndex + 1, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(nodeIndex + 1, boxHits[0]));
 
 			} else if (hit1) {
-				subtree.emplace(SbvhTraversal(nodeIndex + node.rightOffset, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
 			}
 		}
 	}
@@ -705,13 +705,13 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 	int hits = 0;
 	if (!countHits) is.resize(1);
 	std::stack<SbvhTraversal> subtree;
-	float bboxHits[4];
+	float boxHits[4];
 
 	// push the start node onto the working set and process its subtree if it intersects ray
-	if (flatTree[nodeStartIndex].bbox.intersect(r, bboxHits[0], bboxHits[1])) {
-		subtree.emplace(SbvhTraversal(nodeStartIndex, bboxHits[0]));
+	if (flatTree[nodeStartIndex].box.intersect(r, boxHits[0], boxHits[1])) {
+		subtree.emplace(SbvhTraversal(nodeStartIndex, boxHits[0]));
 		bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
-													  subtree, bboxHits, hits);
+													  subtree, boxHits, hits);
 		if (occluded) return 1;
 	}
 
@@ -723,10 +723,10 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 							   nodeParentIndex + 1;
 
 		// push the sibling node onto the working set and process its subtree if it intersects ray
-		if (flatTree[nodeSiblingIndex].bbox.intersect(r, bboxHits[2], bboxHits[3])) {
-			subtree.emplace(SbvhTraversal(nodeSiblingIndex, bboxHits[2]));
+		if (flatTree[nodeSiblingIndex].box.intersect(r, boxHits[2], boxHits[3])) {
+			subtree.emplace(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
 			bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
-														  subtree, bboxHits, hits);
+														  subtree, boxHits, hits);
 			if (occluded) return 1;
 		}
 
@@ -754,7 +754,7 @@ inline int Sbvh<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 template <int DIM>
 inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													 std::queue<SbvhTraversal>& subtree,
-													 float *bboxHits, bool& notFound) const
+													 float *boxHits, bool& notFound) const
 {
 	while (!subtree.empty()) {
 		// pop off the next node to work on
@@ -788,11 +788,11 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 			}
 
 		} else { // not a leaf
-			bool hit0 = flatTree[nodeIndex + 1].bbox.overlaps(s, bboxHits[0], bboxHits[1]);
-			s.r2 = std::min(s.r2, bboxHits[1]);
+			bool hit0 = flatTree[nodeIndex + 1].box.overlaps(s, boxHits[0], boxHits[1]);
+			s.r2 = std::min(s.r2, boxHits[1]);
 
-			bool hit1 = flatTree[nodeIndex + node.rightOffset].bbox.overlaps(s, bboxHits[2], bboxHits[3]);
-			s.r2 = std::min(s.r2, bboxHits[3]);
+			bool hit1 = flatTree[nodeIndex + node.rightOffset].box.overlaps(s, boxHits[2], boxHits[3]);
+			s.r2 = std::min(s.r2, boxHits[3]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {
@@ -801,9 +801,9 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 				int other = nodeIndex + node.rightOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
-				if (bboxHits[2] < bboxHits[0]) {
-					std::swap(bboxHits[0], bboxHits[2]);
-					std::swap(bboxHits[1], bboxHits[3]);
+				if (boxHits[2] < boxHits[0]) {
+					std::swap(boxHits[0], boxHits[2]);
+					std::swap(boxHits[1], boxHits[3]);
 					std::swap(closer, other);
 				}
 
@@ -811,14 +811,14 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 				// check the farther-away node later...
 
 				// push the closer first, then the farther
-				subtree.emplace(SbvhTraversal(closer, bboxHits[0]));
-				subtree.emplace(SbvhTraversal(other, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(closer, boxHits[0]));
+				subtree.emplace(SbvhTraversal(other, boxHits[2]));
 
 			} else if (hit0) {
-				subtree.emplace(SbvhTraversal(nodeIndex + 1, bboxHits[0]));
+				subtree.emplace(SbvhTraversal(nodeIndex + 1, boxHits[0]));
 
 			} else if (hit1) {
-				subtree.emplace(SbvhTraversal(nodeIndex + node.rightOffset, bboxHits[2]));
+				subtree.emplace(SbvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
 			}
 		}
 	}
@@ -836,13 +836,13 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	bool notFound = true;
 	std::queue<SbvhTraversal> subtree;
-	float bboxHits[4];
+	float boxHits[4];
 
 	// push the start node onto the working set and process its subtree if it overlaps sphere
-	if (flatTree[nodeStartIndex].bbox.overlaps(s, bboxHits[0], bboxHits[1])) {
-		s.r2 = std::min(s.r2, bboxHits[1]);
-		subtree.emplace(SbvhTraversal(nodeStartIndex, bboxHits[0]));
-		processSubtreeForClosestPoint(s, i, subtree, bboxHits, notFound);
+	if (flatTree[nodeStartIndex].box.overlaps(s, boxHits[0], boxHits[1])) {
+		s.r2 = std::min(s.r2, boxHits[1]);
+		subtree.emplace(SbvhTraversal(nodeStartIndex, boxHits[0]));
+		processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound);
 	}
 
 	int nodeParentIndex = flatTree[nodeStartIndex].parent;
@@ -853,10 +853,10 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 							   nodeParentIndex + 1;
 
 		// push the sibling node onto the working set and process its subtree if it overlaps sphere
-		if (flatTree[nodeSiblingIndex].bbox.overlaps(s, bboxHits[2], bboxHits[3])) {
-			s.r2 = std::min(s.r2, bboxHits[3]);
-			subtree.emplace(SbvhTraversal(nodeSiblingIndex, bboxHits[2]));
-			processSubtreeForClosestPoint(s, i, subtree, bboxHits, notFound);
+		if (flatTree[nodeSiblingIndex].box.overlaps(s, boxHits[2], boxHits[3])) {
+			s.r2 = std::min(s.r2, boxHits[3]);
+			subtree.emplace(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
+			processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound);
 		}
 
 		// update the start node index to its parent index

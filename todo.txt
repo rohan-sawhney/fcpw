@@ -5,9 +5,7 @@
 -- (for spatio-temporal (coherent) queries) warm start traversal from node of
 	previous query, traversing hierarchy bottom up; distance from previous query result
 	can be use to determine whether this is a good idea (it is a good idea when the
-	conservative radius guess is small compared to the model size); if sphere is
-	entirely contained inside current node, and the current node does not overlap
-	with its sibling, then sibling subtree can be safely pruned
+	conservative radius guess is small compared to the model size); (done for sbvh)
 -- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
 	structure that stores pointers to nodes in the tree; bvh populates spatial data
 	structure while spatial data structure suggests which node to start queries from

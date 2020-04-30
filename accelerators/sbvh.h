@@ -23,7 +23,7 @@ struct SbvhFlatNode {
 	SbvhFlatNode(): parent(-1), start(-1), nReferences(-1), rightOffset(-1) {}
 
 	// members
-	BoundingBox<DIM> bbox;
+	BoundingBox<DIM> box;
 	int parent, start, nReferences, rightOffset;
 };
 
@@ -75,17 +75,17 @@ public:
 
 protected:
 	// computes split cost based on heuristic
-	float computeSplitCost(const BoundingBox<DIM>& bboxLeft,
-						   const BoundingBox<DIM>& bboxRight,
+	float computeSplitCost(const BoundingBox<DIM>& boxLeft,
+						   const BoundingBox<DIM>& boxRight,
 						   float parentSurfaceArea, float parentVolume,
 						   int nReferencesLeft, int nReferencesRight) const;
 
 	// computes unsplitting costs based on heuristic
-	void computeUnsplittingCosts(const BoundingBox<DIM>& bboxLeft,
-								 const BoundingBox<DIM>& bboxRight,
-								 const BoundingBox<DIM>& bboxReference,
-								 const BoundingBox<DIM>& bboxRefLeft,
-								 const BoundingBox<DIM>& bboxRefRight,
+	void computeUnsplittingCosts(const BoundingBox<DIM>& boxLeft,
+								 const BoundingBox<DIM>& boxRight,
+								 const BoundingBox<DIM>& boxReference,
+								 const BoundingBox<DIM>& boxRefLeft,
+								 const BoundingBox<DIM>& boxRefRight,
 								 int nReferencesLeft, int nReferencesRight,
 								 float& costDuplicate, float& costUnsplitLeft,
 								 float& costUnsplitRight) const;
@@ -96,7 +96,7 @@ protected:
 							 const std::vector<BoundingBox<DIM>>& referenceBoxes,
 							 const std::vector<Vector<DIM>>& referenceCentroids,
 							 int nodeStart, int nodeEnd, int& splitDim,
-							 float& splitCoord, BoundingBox<DIM>& bboxIntersected);
+							 float& splitCoord, BoundingBox<DIM>& boxIntersected);
 
 	// performs object split
 	int performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
@@ -105,17 +105,17 @@ protected:
 
 	// splits primitive
 	void splitPrimitive(const std::shared_ptr<Primitive<DIM>>& primitive, int dim,
-						float splitCoord, const BoundingBox<DIM>& bboxReference,
-						BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight) const;
+						float splitCoord, const BoundingBox<DIM>& boxReference,
+						BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight) const;
 
 	// computes spatial split
 	float computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
 							  const std::vector<BoundingBox<DIM>>& referenceBoxes,
 							  int nodeStart, int nodeEnd, int splitDim, float& splitCoord,
-							  BoundingBox<DIM>& bboxLeft, BoundingBox<DIM>& bboxRight);
+							  BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight);
 
 	// performs spatial split
-	int performSpatialSplit(const BoundingBox<DIM>& bboxLeft, const BoundingBox<DIM>& bboxRight,
+	int performSpatialSplit(const BoundingBox<DIM>& boxLeft, const BoundingBox<DIM>& boxRight,
 							int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
 							int& nReferencesAdded, int& nTotalReferences,
 							std::vector<BoundingBox<DIM>>& referenceBoxes,
@@ -134,12 +134,12 @@ protected:
 	bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 									   bool checkOcclusion, bool countHits,
 									   std::stack<SbvhTraversal>& subtree,
-									   float *bboxHits, int& hits) const;
+									   float *boxHits, int& hits) const;
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 									   std::queue<SbvhTraversal>& subtree,
-									   float *bboxHits, bool& notFound) const;
+									   float *boxHits, bool& notFound) const;
 
 	// members
 	CostHeuristic costHeuristic;
