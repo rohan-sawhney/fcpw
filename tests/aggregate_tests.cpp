@@ -21,9 +21,7 @@ static progschj::ThreadPool pool;
 static int nThreads = 8;
 
 // TODO:
-// - don't backtrack when conservative radius guess is large (profile avg. guess size)
-// - node parent pointer adds overhead
-// - too many nodes being visited while backtracking
+// - too many nodes being visited while backtracking during closest point traversal
 // - write timings to file
 // - plot BVH scaling behavior with increasing mesh sizes
 
@@ -296,7 +294,7 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 				BoundingSphere<DIM> s2(queryPoints[I], r2);
 				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex, nodesVisited);
 
-				if (found1 != found2 || c1 != c2) {
+				if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
 					LOG(INFO) << "d1: " << c1.d << " d2: " << c2.d;
 					LOG(INFO) << "p1: " << c1.p << " p2: " << c2.p;
 					LOG(FATAL) << "Closest points do not match!";
