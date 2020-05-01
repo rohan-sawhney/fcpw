@@ -21,7 +21,9 @@ static progschj::ThreadPool pool;
 static int nThreads = 8;
 
 // TODO:
-// - pointer adds overhead + too many nodes being visited while backtracking
+// - don't backtrack when conservative radius guess is large (profile avg. guess size)
+// - node parent pointer adds overhead
+// - too many nodes being visited while backtracking
 // - write timings to file
 // - plot BVH scaling behavior with increasing mesh sizes
 

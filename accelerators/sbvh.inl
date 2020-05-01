@@ -15,6 +15,7 @@ leafSize(leafSize_),
 nBuckets(nBuckets_),
 nBins(nBins_),
 memoryBudget(0),
+maxDepth(0),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBinBoxes(nBins, std::make_pair(BoundingBox<DIM>(), 0)),
@@ -410,10 +411,12 @@ template <int DIM>
 inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 									 std::vector<Vector<DIM>>& referenceCentroids,
 									 std::vector<SbvhFlatNode<DIM>>& buildNodes,
-									 int parent, int start, int end, int& nTotalReferences)
+									 int parent, int start, int end, int depth,
+									 int& nTotalReferences)
 {
 	const int Untouched    = 0xffffffff;
 	const int TouchedTwice = 0xfffffffd;
+	maxDepth = std::max(depth, maxDepth);
 
 	// add node to tree
 	SbvhFlatNode<DIM> node;
@@ -495,10 +498,12 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 
 	// push left and right children
 	int nReferencesAddedLeft = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
-											  currentNodeIndex, start, mid, nTotalReferences);
+											  currentNodeIndex, start, mid, depth + 1,
+											  nTotalReferences);
 	int nReferencesAddedRight = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
 											   currentNodeIndex, mid + nReferencesAddedLeft,
-											   end + nReferencesAddedLeft, nTotalReferences);
+											   end + nReferencesAddedLeft, depth + 1,
+											   nTotalReferences);
 	int nTotalReferencesAdded = nReferencesAdded + nReferencesAddedLeft + nReferencesAddedRight;
 	buildNodes[currentNodeIndex].nReferences += nTotalReferencesAdded;
 
@@ -538,7 +543,8 @@ inline void Sbvh<DIM>::build()
 	// build tree recursively
 	int nTotalReferences = nReferences;
 	int nReferencesAdded = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
-										  0xfffffffc, 0, nReferences, nTotalReferences);
+										  0xfffffffc, 0, nReferences, 0, nTotalReferences);
+	maxDepth = std::pow(2, std::ceil(std::log2(maxDepth)));
 
 	// copy the temp node data to a flat array
 	flatTree.reserve(nNodes);
@@ -601,16 +607,15 @@ inline float Sbvh<DIM>::signedVolume() const
 template <int DIM>
 inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													 bool checkOcclusion, bool countHits,
-													 std::deque<SbvhTraversal>& subtree,
-													 float *boxHits, int& hits, int& nodesVisited) const
+													 SbvhTraversal *subtree, float *boxHits,
+													 int& hits, int& nodesVisited) const
 {
-	while (!subtree.empty()) {
+	int stackPtr = 0;
+	while (stackPtr >= 0) {
 		// pop off the next node to work on
-		SbvhTraversal traversal = subtree.back();
-		subtree.pop_back();
-
-		int nodeIndex = traversal.node;
-		float near = traversal.distance;
+		int nodeIndex = subtree[stackPtr].node;
+		float near = subtree[stackPtr].distance;
+		stackPtr--;
 		const SbvhFlatNode<DIM>& node(flatTree[nodeIndex]);
 
 		// if this node is further than the closest found intersection, continue
@@ -678,14 +683,23 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 				// check the farther-away node later...
 
 				// push the farther first, then the closer
-				subtree.emplace_back(SbvhTraversal(other, boxHits[2]));
-				subtree.emplace_back(SbvhTraversal(closer, boxHits[0]));
+				stackPtr++;
+				subtree[stackPtr].node = other;
+				subtree[stackPtr].distance = boxHits[2];
+
+				stackPtr++;
+				subtree[stackPtr].node = closer;
+				subtree[stackPtr].distance = boxHits[0];
 
 			} else if (hit0) {
-				subtree.emplace_back(SbvhTraversal(nodeIndex + 1, boxHits[0]));
+				stackPtr++;
+				subtree[stackPtr].node = nodeIndex + 1;
+				subtree[stackPtr].distance = boxHits[0];
 
 			} else if (hit1) {
-				subtree.emplace_back(SbvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
+				stackPtr++;
+				subtree[stackPtr].node = nodeIndex + node.rightOffset;
+				subtree[stackPtr].distance = boxHits[2];
 			}
 		}
 	}
@@ -706,12 +720,13 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	std::deque<SbvhTraversal> subtree;
+	SbvhTraversal subtree[maxDepth];
 	float boxHits[4];
 
 	// push the start node onto the working set and process its subtree if it intersects ray
 	if (flatTree[nodeStartIndex].box.intersect(r, boxHits[0], boxHits[1])) {
-		subtree.emplace_back(SbvhTraversal(nodeStartIndex, boxHits[0]));
+		subtree[0].node = nodeStartIndex;
+		subtree[0].distance = boxHits[0];
 		bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
 													  subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
@@ -726,7 +741,8 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 
 		// push the sibling node onto the working set and process its subtree if it intersects ray
 		if (flatTree[nodeSiblingIndex].box.intersect(r, boxHits[2], boxHits[3])) {
-			subtree.emplace_back(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
+			subtree[0].node = nodeSiblingIndex;
+			subtree[0].distance = boxHits[2];
 			bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
 														  subtree, boxHits, hits, nodesVisited);
 			if (occluded) return 1;

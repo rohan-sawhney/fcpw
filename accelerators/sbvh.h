@@ -27,7 +27,8 @@ struct SbvhFlatNode {
 };
 
 struct SbvhTraversal {
-	// constructor
+	// constructors
+	SbvhTraversal(): node(-1), distance(0.0f) {}
 	SbvhTraversal(int node_, float distance_): node(node_), distance(distance_) {}
 
 	// members
@@ -118,7 +119,8 @@ protected:
 	int buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 					   std::vector<Vector<DIM>>& referenceCentroids,
 					   std::vector<SbvhFlatNode<DIM>>& buildNodes,
-					   int parent, int start, int end, int& nTotalReferences);
+					   int parent, int start, int end, int depth,
+					   int& nTotalReferences);
 
 	// builds binary tree
 	void build();
@@ -126,8 +128,8 @@ protected:
 	// processes subtree for intersection
 	bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 									   bool checkOcclusion, bool countHits,
-									   std::deque<SbvhTraversal>& subtree,
-									   float *boxHits, int& hits, int& nodesVisited) const;
+									   SbvhTraversal *subtree, float *boxHits,
+									   int& hits, int& nodesVisited) const;
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
@@ -137,7 +139,7 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	float splitAlpha, rootSurfaceArea, rootVolume;
-	int nNodes, nLeafs, leafSize, nBuckets, nBins, memoryBudget;
+	int nNodes, nLeafs, leafSize, nBuckets, nBins, memoryBudget, maxDepth;
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes, rightBinBoxes;
 	std::vector<std::tuple<BoundingBox<DIM>, int, int>> bins;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
