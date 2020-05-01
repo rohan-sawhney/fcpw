@@ -1,5 +1,8 @@
 #include "accelerators/baseline.h"
-#include "accelerators/qbvh.h"
+#include "accelerators/sbvh.h"
+#ifdef BUILD_ENOKI
+	#include "accelerators/qbvh.h"
+#endif
 #ifdef BENCHMARK_EMBREE
 	#include "accelerators/embree_bvh.h"
 #endif
