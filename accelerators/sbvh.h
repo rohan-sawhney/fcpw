@@ -2,8 +2,7 @@
 
 #include "primitive.h"
 #include <tuple>
-#include <stack>
-#include <queue>
+#include <deque>
 
 namespace fcpw {
 // modified version of https://github.com/brandonpelfrey/Fast-BVH and
@@ -127,12 +126,12 @@ protected:
 	// processes subtree for intersection
 	bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 									   bool checkOcclusion, bool countHits,
-									   std::stack<SbvhTraversal>& subtree,
+									   std::deque<SbvhTraversal>& subtree,
 									   float *boxHits, int& hits, int& nodesVisited) const;
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-									   std::queue<SbvhTraversal>& subtree, float *boxHits,
+									   std::deque<SbvhTraversal>& subtree, float *boxHits,
 									   bool& notFound, int& nodesVisited) const;
 
 	// members

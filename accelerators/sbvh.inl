@@ -601,13 +601,13 @@ inline float Sbvh<DIM>::signedVolume() const
 template <int DIM>
 inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													 bool checkOcclusion, bool countHits,
-													 std::stack<SbvhTraversal>& subtree,
+													 std::deque<SbvhTraversal>& subtree,
 													 float *boxHits, int& hits, int& nodesVisited) const
 {
 	while (!subtree.empty()) {
 		// pop off the next node to work on
-		SbvhTraversal traversal = subtree.top();
-		subtree.pop();
+		SbvhTraversal traversal = subtree.back();
+		subtree.pop_back();
 
 		int nodeIndex = traversal.node;
 		float near = traversal.distance;
@@ -678,14 +678,14 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 				// check the farther-away node later...
 
 				// push the farther first, then the closer
-				subtree.emplace(SbvhTraversal(other, boxHits[2]));
-				subtree.emplace(SbvhTraversal(closer, boxHits[0]));
+				subtree.emplace_back(SbvhTraversal(other, boxHits[2]));
+				subtree.emplace_back(SbvhTraversal(closer, boxHits[0]));
 
 			} else if (hit0) {
-				subtree.emplace(SbvhTraversal(nodeIndex + 1, boxHits[0]));
+				subtree.emplace_back(SbvhTraversal(nodeIndex + 1, boxHits[0]));
 
 			} else if (hit1) {
-				subtree.emplace(SbvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
+				subtree.emplace_back(SbvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
 			}
 		}
 	}
@@ -706,12 +706,12 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	std::stack<SbvhTraversal> subtree;
+	std::deque<SbvhTraversal> subtree;
 	float boxHits[4];
 
 	// push the start node onto the working set and process its subtree if it intersects ray
 	if (flatTree[nodeStartIndex].box.intersect(r, boxHits[0], boxHits[1])) {
-		subtree.emplace(SbvhTraversal(nodeStartIndex, boxHits[0]));
+		subtree.emplace_back(SbvhTraversal(nodeStartIndex, boxHits[0]));
 		bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
 													  subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
@@ -726,7 +726,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 
 		// push the sibling node onto the working set and process its subtree if it intersects ray
 		if (flatTree[nodeSiblingIndex].box.intersect(r, boxHits[2], boxHits[3])) {
-			subtree.emplace(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
+			subtree.emplace_back(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
 			bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
 														  subtree, boxHits, hits, nodesVisited);
 			if (occluded) return 1;
@@ -748,13 +748,13 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 
 template <int DIM>
 inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													 std::queue<SbvhTraversal>& subtree, float *boxHits,
+													 std::deque<SbvhTraversal>& subtree, float *boxHits,
 													 bool& notFound, int& nodesVisited) const
 {
 	while (!subtree.empty()) {
 		// pop off the next node to work on
 		SbvhTraversal traversal = subtree.front();
-		subtree.pop();
+		subtree.pop_front();
 
 		int nodeIndex = traversal.node;
 		float near = traversal.distance;
@@ -808,14 +808,14 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 				// check the farther-away node later...
 
 				// push the closer first, then the farther
-				subtree.emplace(SbvhTraversal(closer, boxHits[0]));
-				subtree.emplace(SbvhTraversal(other, boxHits[2]));
+				subtree.emplace_back(SbvhTraversal(closer, boxHits[0]));
+				subtree.emplace_back(SbvhTraversal(other, boxHits[2]));
 
 			} else if (hit0) {
-				subtree.emplace(SbvhTraversal(nodeIndex + 1, boxHits[0]));
+				subtree.emplace_back(SbvhTraversal(nodeIndex + 1, boxHits[0]));
 
 			} else if (hit1) {
-				subtree.emplace(SbvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
+				subtree.emplace_back(SbvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
 			}
 		}
 	}
@@ -832,14 +832,13 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	bool notFound = true;
-	std::queue<SbvhTraversal> subtree;
+	std::deque<SbvhTraversal> subtree;
 	float boxHits[4];
 
-	// push the start node onto the working set and process its subtree if it overlaps sphere
+	// push the start node onto the working set
 	if (flatTree[nodeStartIndex].box.overlaps(s, boxHits[0], boxHits[1])) {
 		s.r2 = std::min(s.r2, boxHits[1]);
-		subtree.emplace(SbvhTraversal(nodeStartIndex, boxHits[0]));
-		processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
+		subtree.emplace_back(SbvhTraversal(nodeStartIndex, boxHits[0]));
 	}
 
 	int nodeParentIndex = flatTree[nodeStartIndex].parent;
@@ -849,17 +848,19 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 							   nodeParentIndex + flatTree[nodeParentIndex].rightOffset :
 							   nodeParentIndex + 1;
 
-		// push the sibling node onto the working set and process its subtree if it overlaps sphere
+		// push the sibling node onto the working set
 		if (flatTree[nodeSiblingIndex].box.overlaps(s, boxHits[2], boxHits[3])) {
 			s.r2 = std::min(s.r2, boxHits[3]);
-			subtree.emplace(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
-			processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
+			subtree.emplace_back(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
 		}
 
 		// update the start node index to its parent index
 		nodeStartIndex = nodeParentIndex;
 		nodeParentIndex = flatTree[nodeStartIndex].parent;
 	}
+
+	// process subtrees
+	processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
 
 	return !notFound;
 }
