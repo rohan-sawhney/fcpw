@@ -21,3 +21,4 @@
 - packet (coherent) queries
 -- breadth first ray tracing
 - refit bvh
+- add CI

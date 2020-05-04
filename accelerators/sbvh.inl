@@ -801,10 +801,10 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 			}
 
 		} else { // not a leaf
-			bool hit0 = flatTree[nodeIndex + 1].box.overlaps(s, boxHits[0], boxHits[1]);
+			bool hit0 = flatTree[nodeIndex + 1].box.overlap(s, boxHits[0], boxHits[1]);
 			s.r2 = std::min(s.r2, boxHits[1]);
 
-			bool hit1 = flatTree[nodeIndex + node.rightOffset].box.overlaps(s, boxHits[2], boxHits[3]);
+			bool hit1 = flatTree[nodeIndex + node.rightOffset].box.overlap(s, boxHits[2], boxHits[3]);
 			s.r2 = std::min(s.r2, boxHits[3]);
 
 			// is there overlap with both nodes?
@@ -852,7 +852,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	float boxHits[4];
 
 	// push the start node onto the working set
-	if (flatTree[nodeStartIndex].box.overlaps(s, boxHits[0], boxHits[1])) {
+	if (flatTree[nodeStartIndex].box.overlap(s, boxHits[0], boxHits[1])) {
 		s.r2 = std::min(s.r2, boxHits[1]);
 		subtree.emplace_back(SbvhTraversal(nodeStartIndex, boxHits[0]));
 	}
@@ -865,7 +865,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 							   nodeParentIndex + 1;
 
 		// push the sibling node onto the working set
-		if (flatTree[nodeSiblingIndex].box.overlaps(s, boxHits[2], boxHits[3])) {
+		if (flatTree[nodeSiblingIndex].box.overlap(s, boxHits[2], boxHits[3])) {
 			s.r2 = std::min(s.r2, boxHits[3]);
 			subtree.emplace_back(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
 		}

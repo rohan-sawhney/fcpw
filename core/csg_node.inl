@@ -201,7 +201,7 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 	float d2Min, d2Max;
 	nodesVisited++;
 
-	if (box.overlaps(s, d2Min, d2Max)) {
+	if (box.overlap(s, d2Min, d2Max)) {
 		// perform closest point query on left child
 		Interaction<DIM> iLeft;
 		BoundingSphere<DIM> sLeft = s;

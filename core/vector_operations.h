@@ -13,6 +13,8 @@ namespace fcpw {
 	using Vector = enoki::Array<float, DIM>;
 	template <int WIDTH>
 	using FloatP = enoki::Packet<float, WIDTH>;
+	template <int WIDTH>
+	using MaskP = enoki::mask_t<FloatP<WIDTH>>;
 	template <int WIDTH, int DIM>
 	using VectorP = enoki::Array<FloatP<WIDTH>, DIM>;
 	template <int WIDTH>

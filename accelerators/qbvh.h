@@ -4,7 +4,22 @@
 
 namespace fcpw {
 
-template <int DIM>
+template <int WIDTH, int DIM>
+struct QbvhNode {
+	// constructor
+	QbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)), boxMax(FloatP<WIDTH>(minFloat)), parent(-1) {
+		for (int i = 0; i < WIDTH; i++) child[i] = -1;
+		for (int i = 0; i < DIM; i++) axis[i] = -1;
+	}
+
+	// members
+	VectorP<WIDTH, DIM> boxMin, boxMax;
+	int child[WIDTH];
+	int axis[DIM];
+	int parent;
+};
+
+template <int WIDTH, int DIM>
 class Qbvh: public Aggregate<DIM> {
 public:
 	// constructor

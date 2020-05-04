@@ -148,7 +148,7 @@ protected:
 	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
 
-	template <int T>
+	template <int U, int V>
 	friend class Qbvh;
 };
 
