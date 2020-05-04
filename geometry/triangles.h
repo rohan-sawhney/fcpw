@@ -13,7 +13,7 @@ public:
 	BoundingBox<3> boundingBox() const;
 
 	// returns centroid
-	Vector3f centroid() const;
+	Vector3 centroid() const;
 
 	// returns surface area
 	float surfaceArea() const;
@@ -22,13 +22,13 @@ public:
 	float signedVolume() const;
 
 	// returns normal
-	Vector3f normal(bool normalize=false) const;
+	Vector3 normal(bool normalize=false) const;
 
 	// returns barycentric coordinates
-	Vector2f barycentricCoordinates(const Vector3f& p) const;
+	Vector2 barycentricCoordinates(const Vector3& p) const;
 
 	// returns texture coordinates
-	Vector2f textureCoordinates(const Vector2f& uv) const;
+	Vector2 textureCoordinates(const Vector2& uv) const;
 
 	// splits the triangle along the provided coordinate and axis
 	void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
@@ -51,7 +51,7 @@ public:
 private:
 	// returns normalized vertex or edge normal if available;
 	// otherwise computes normalized triangle normal
-	Vector3f normal(int vIndex, int eIndex) const;
+	Vector3 normal(int vIndex, int eIndex) const;
 };
 
 // reads soup from obj file

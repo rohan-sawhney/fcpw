@@ -106,11 +106,11 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	// add interaction
 	auto it = is.emplace(is.end(), Interaction<3>());
 	it->d = ray->tfar;
-	it->p = Vector3f(ray->org_x, ray->org_y, ray->org_z) +
-			Vector3f(ray->dir_x, ray->dir_y, ray->dir_z)*it->d;
+	it->p = Vector3(ray->org_x, ray->org_y, ray->org_z) +
+			Vector3(ray->dir_x, ray->dir_y, ray->dir_z)*it->d;
 	it->uv[0] = hit->u;
 	it->uv[1] = hit->v;
-	it->n = unit<3>(Vector3f(hit->Ng_x, hit->Ng_y, hit->Ng_z));
+	it->n = unit<3>(Vector3(hit->Ng_x, hit->Ng_y, hit->Ng_z));
 	it->primitive = primitives[hit->primID].get();
 }
 
@@ -185,9 +185,9 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 
 	// determine distance to closest point on triangle
 	const std::vector<int>& indices = callbackSoup->indices[primID];
-	const Vector3f& pa = callbackSoup->positions[indices[0]];
-	const Vector3f& pb = callbackSoup->positions[indices[1]];
-	const Vector3f& pc = callbackSoup->positions[indices[2]];
+	const Vector3& pa = callbackSoup->positions[indices[0]];
+	const Vector3& pb = callbackSoup->positions[indices[1]];
+	const Vector3& pc = callbackSoup->positions[indices[2]];
 	embree::Vec3fa v1(pa[0], pa[1], pa[2]);
 	embree::Vec3fa v2(pb[0], pb[1], pb[2]);
 	embree::Vec3fa v3(pc[0], pc[1], pc[2]);
@@ -291,7 +291,7 @@ inline BoundingBox<3> EmbreeBvh<3>::boundingBox() const
 }
 
 template <>
-inline Vector3f EmbreeBvh<3>::centroid() const
+inline Vector3 EmbreeBvh<3>::centroid() const
 {
 	return Baseline<3>::centroid();
 }
@@ -366,7 +366,7 @@ inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>
 			it->p = r(it->d);
 			it->uv[0] = rayhit.hit.u;
 			it->uv[1] = rayhit.hit.v;
-			it->n = unit<3>(Vector3f(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
+			it->n = unit<3>(Vector3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
 			it->primitive = this->primitives[rayhit.hit.primID].get();
 			r.tMax = it->d;
 			hits++;

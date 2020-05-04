@@ -11,14 +11,21 @@ namespace fcpw {
 #ifdef BUILD_ENOKI
 	template <int DIM>
 	using Vector = enoki::Array<float, DIM>;
-	using Vector2f = enoki::Array<float, 2>;
-	using Vector3f = enoki::Array<float, 3>;
+	template <int WIDTH>
+	using FloatP = enoki::Packet<float, WIDTH>;
+	template <int WIDTH, int DIM>
+	using VectorP = enoki::Array<FloatP<WIDTH>, DIM>;
+	template <int WIDTH>
+	using Vector2P = VectorP<WIDTH, 2>;
+	template <int WIDTH>
+	using Vector3P = VectorP<WIDTH, 3>;
 #else
 	template <int DIM>
 	using Vector = Eigen::Matrix<float, DIM, 1>;
-	using Vector2f = Eigen::Vector2f;
-	using Vector3f = Eigen::Vector3f;
 #endif
+
+using Vector2 = Vector<2>;
+using Vector3 = Vector<3>;
 
 template <int DIM>
 using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
@@ -161,7 +168,7 @@ inline float dot(const Vector<DIM>& u, const Vector<DIM>& v)
 #endif
 }
 
-inline Vector3f cross(const Vector3f& u, const Vector3f& v)
+inline Vector3 cross(const Vector3& u, const Vector3& v)
 {
 #ifdef BUILD_ENOKI
 	return enoki::cross(u, v);

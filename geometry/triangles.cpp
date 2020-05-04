@@ -18,9 +18,9 @@ index(index_)
 
 BoundingBox<3> Triangle::boundingBox() const
 {
-	const Vector3f& pa = soup->positions[indices[0]];
-	const Vector3f& pb = soup->positions[indices[1]];
-	const Vector3f& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
 
 	BoundingBox<3> box(pa);
 	box.expandToInclude(pb);
@@ -29,11 +29,11 @@ BoundingBox<3> Triangle::boundingBox() const
 	return box;
 }
 
-Vector3f Triangle::centroid() const
+Vector3 Triangle::centroid() const
 {
-	const Vector3f& pa = soup->positions[indices[0]];
-	const Vector3f& pb = soup->positions[indices[1]];
-	const Vector3f& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
 
 	return (pa + pb + pc)/3.0f;
 }
@@ -45,35 +45,35 @@ float Triangle::surfaceArea() const
 
 float Triangle::signedVolume() const
 {
-	const Vector3f& pa = soup->positions[indices[0]];
-	const Vector3f& pb = soup->positions[indices[1]];
-	const Vector3f& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
 
 	return dot<3>(cross(pa, pb), pc)/6.0f;
 }
 
-Vector3f Triangle::normal(bool normalize) const
+Vector3 Triangle::normal(bool normalize) const
 {
-	const Vector3f& pa = soup->positions[indices[0]];
-	const Vector3f& pb = soup->positions[indices[1]];
-	const Vector3f& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
 
-	Vector3f v1 = pb - pa;
-	Vector3f v2 = pc - pa;
+	Vector3 v1 = pb - pa;
+	Vector3 v2 = pc - pa;
 
-	Vector3f n = cross(v1, v2);
+	Vector3 n = cross(v1, v2);
 	return normalize ? unit<3>(n) : n;
 }
 
-Vector2f Triangle::barycentricCoordinates(const Vector3f& p) const
+Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 {
-	const Vector3f& pa = soup->positions[indices[0]];
-	const Vector3f& pb = soup->positions[indices[1]];
-	const Vector3f& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
 
-	Vector3f v1 = pb - pa;
-	Vector3f v2 = pc - pa;
-	Vector3f v3 = p - pa;
+	Vector3 v1 = pb - pa;
+	Vector3 v2 = pc - pa;
+	Vector3 v3 = p - pa;
 
 	float d11 = dot<3>(v1, v1);
 	float d12 = dot<3>(v1, v2);
@@ -84,15 +84,15 @@ Vector2f Triangle::barycentricCoordinates(const Vector3f& p) const
 	float v = (d22*d31 - d12*d32)/denom;
 	float w = (d11*d32 - d12*d31)/denom;
 
-	return Vector2f(1.0f - v - w, v);
+	return Vector2(1.0f - v - w, v);
 }
 
-Vector2f Triangle::textureCoordinates(const Vector2f& uv) const
+Vector2 Triangle::textureCoordinates(const Vector2& uv) const
 {
 	if (tIndices.size() == 3) {
-		const Vector2f& pa = soup->textureCoordinates[tIndices[0]];
-		const Vector2f& pb = soup->textureCoordinates[tIndices[1]];
-		const Vector2f& pc = soup->textureCoordinates[tIndices[2]];
+		const Vector2& pa = soup->textureCoordinates[tIndices[0]];
+		const Vector2& pb = soup->textureCoordinates[tIndices[1]];
+		const Vector2& pc = soup->textureCoordinates[tIndices[2]];
 
 		float u = uv[0];
 		float v = uv[1];
@@ -101,10 +101,10 @@ Vector2f Triangle::textureCoordinates(const Vector2f& uv) const
 		return pa*u + pb*v + pc*w;
 	}
 
-	return Vector2f(-1, -1);
+	return Vector2(-1, -1);
 }
 
-Vector3f Triangle::normal(int vIndex, int eIndex) const
+Vector3 Triangle::normal(int vIndex, int eIndex) const
 {
 	if (soup->vNormals.size() > 0 && vIndex >= 0) return soup->vNormals[indices[vIndex]];
 	if (soup->eNormals.size() > 0 && eIndex >= 0) return soup->eNormals[eIndices[eIndex]];
@@ -115,11 +115,11 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 					 BoundingBox<3>& boxRight) const
 {
 	for (int i = 0; i < 3; i++) {
-		const Vector3f& pa = soup->positions[indices[i]];
-		const Vector3f& pb = soup->positions[indices[(i + 1)%3]];
+		const Vector3& pa = soup->positions[indices[i]];
+		const Vector3& pb = soup->positions[indices[(i + 1)%3]];
 
 		if (pa[dim] <= splitCoord && pb[dim] <= splitCoord) {
-			const Vector3f& pc = soup->positions[indices[(i + 2)%3]];
+			const Vector3& pc = soup->positions[indices[(i + 2)%3]];
 
 			if (pc[dim] <= splitCoord) {
 				boxLeft = BoundingBox<3>(pa);
@@ -128,8 +128,8 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 				boxRight = BoundingBox<3>();
 
 			} else {
-				Vector3f u = pa - pc;
-				Vector3f v = pb - pc;
+				Vector3 u = pa - pc;
+				Vector3 v = pb - pc;
 				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
 				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
@@ -144,7 +144,7 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 			break;
 
 		} else if (pa[dim] >= splitCoord && pb[dim] >= splitCoord) {
-			const Vector3f& pc = soup->positions[indices[(i + 2)%3]];
+			const Vector3& pc = soup->positions[indices[(i + 2)%3]];
 
 			if (pc[dim] >= splitCoord) {
 				boxRight = BoundingBox<3>(pa);
@@ -153,8 +153,8 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 				boxLeft = BoundingBox<3>();
 
 			} else {
-				Vector3f u = pa - pc;
-				Vector3f v = pb - pc;
+				Vector3 u = pa - pc;
+				Vector3 v = pb - pc;
 				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
 				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
@@ -179,25 +179,25 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	#endif
 
 	// Möller–Trumbore intersection algorithm
-	const Vector3f& pa = soup->positions[indices[0]];
-	const Vector3f& pb = soup->positions[indices[1]];
-	const Vector3f& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
 	is.clear();
 
-	Vector3f v1 = pb - pa;
-	Vector3f v2 = pc - pa;
-	Vector3f p = cross(r.d, v2);
+	Vector3 v1 = pb - pa;
+	Vector3 v2 = pc - pa;
+	Vector3 p = cross(r.d, v2);
 	float det = dot<3>(v1, p);
 
 	// ray and triangle are parallel if det is close to 0
 	if (std::fabs(det) < epsilon) return false;
 	float invDet = 1.0f/det;
 
-	Vector3f s = r.o - pa;
+	Vector3 s = r.o - pa;
 	float u = dot<3>(s, p)*invDet;
 	if (u < 0 || u > 1) return false;
 
-	Vector3f q = cross(s, v1);
+	Vector3 q = cross(s, v1);
 	float v = dot<3>(r.d, q)*invDet;
 	if (v < 0 || u + v > 1) return false;
 
@@ -217,15 +217,15 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	return 0;
 }
 
-float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const Vector3f& pc,
-								 const Vector3f& x, Vector3f& pt, Vector2f& t,
+float findClosestPointOnTriangle(const Vector3& pa, const Vector3& pb, const Vector3& pc,
+								 const Vector3& x, Vector3& pt, Vector2& t,
 								 int& vIndex, int& eIndex)
 {
 	// source: real time collision detection
 	// check if x in vertex region outside pa
-	Vector3f ab = pb - pa;
-	Vector3f ac = pc - pa;
-	Vector3f ax = x - pa;
+	Vector3 ab = pb - pa;
+	Vector3 ac = pc - pa;
+	Vector3 ax = x - pa;
 	float d1 = dot<3>(ab, ax);
 	float d2 = dot<3>(ac, ax);
 	if (d1 <= 0.0f && d2 <= 0.0f) {
@@ -238,7 +238,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 	}
 
 	// check if x in vertex region outside pb
-	Vector3f bx = x - pb;
+	Vector3 bx = x - pb;
 	float d3 = dot<3>(ab, bx);
 	float d4 = dot<3>(ac, bx);
 	if (d3 >= 0.0f && d4 <= d3) {
@@ -263,7 +263,7 @@ float findClosestPointOnTriangle(const Vector3f& pa, const Vector3f& pb, const V
 	}
 
 	// check if x in vertex region outside pc
-	Vector3f cx = x - pc;
+	Vector3 cx = x - pc;
 	float d5 = dot<3>(ab, cx);
 	float d6 = dot<3>(ac, cx);
 	if (d6 >= 0.0f && d5 <= d6) {
@@ -316,9 +316,9 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 		PROFILE_SCOPED();
 	#endif
 
-	const Vector3f& pa = soup->positions[indices[0]];
-	const Vector3f& pb = soup->positions[indices[1]];
-	const Vector3f& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
 
 	int vIndex = -1;
 	int eIndex = -1;
@@ -364,7 +364,7 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 	soup->eNormals.resize(E, zeroVector<3>());
 
 	for (int i = 0; i < N; i++) {
-		Vector3f n = static_cast<const Triangle *>(triangles[i].get())->normal(true);
+		Vector3 n = static_cast<const Triangle *>(triangles[i].get())->normal(true);
 		for (int j = 0; j < 3; j++) {
 			soup->vNormals[soup->indices[i][j]] += n;
 			soup->eNormals[soup->eIndices[i][j]] += n;
@@ -397,13 +397,13 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename)
 			float x, y, z;
 			ss >> x >> y >> z;
 
-			soup->positions.emplace_back(Vector3f(x, y, z));
+			soup->positions.emplace_back(Vector3(x, y, z));
 
 		} else if (token == "vt") {
 			float u, v;
 			ss >> u >> v;
 
-			soup->textureCoordinates.emplace_back(Vector2f(u, v));
+			soup->textureCoordinates.emplace_back(Vector2(u, v));
 
 		} else if (token == "f") {
 			std::vector<int> indices, tIndices;
