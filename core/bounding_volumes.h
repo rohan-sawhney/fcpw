@@ -162,6 +162,22 @@ struct BoundingBox {
 
 #ifdef BUILD_ENOKI
 
+// performs wide version of sphere box overlap test
+template <int WIDTH, int DIM>
+inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
+								   const VectorP<WIDTH, DIM>& bMin,
+								   const VectorP<WIDTH, DIM>& bMax,
+								   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
+{
+	VectorP<WIDTH, DIM> u = bMin - s.c;
+	VectorP<WIDTH, DIM> v = s.c - bMax;
+	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
+	d2Max = enoki::squared_norm(enoki::min(u, v));
+
+	return d2Min <= s.r2;
+}
+
+// performs wide version of ray box intersection test
 template <int WIDTH, int DIM>
 inline MaskP<WIDTH> intersectWideBox(const Ray<DIM>& r,
 									 const VectorP<WIDTH, DIM>& bMin,
@@ -178,20 +194,6 @@ inline MaskP<WIDTH> intersectWideBox(const Ray<DIM>& r,
 	tMax = enoki::min(r.tMax, enoki::hmin(tFar));
 
 	return tMin <= tMax;
-}
-
-template <int WIDTH, int DIM>
-inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
-								   const VectorP<WIDTH, DIM>& bMin,
-								   const VectorP<WIDTH, DIM>& bMax,
-								   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
-{
-	VectorP<WIDTH, DIM> u = bMin - s.c;
-	VectorP<WIDTH, DIM> v = s.c - bMax;
-	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
-	d2Max = enoki::squared_norm(enoki::min(u, v));
-
-	return d2Min <= s.r2;
 }
 
 #endif
