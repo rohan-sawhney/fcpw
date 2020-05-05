@@ -40,24 +40,44 @@ inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
 
 // performs wide version of ray triangle intersection test
 template <int WIDTH>
-int intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>& pa,
-						  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-						  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
+inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>& pa,
+										  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+										  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
-	// TODO
-	return 0;
+	Vector3P<WIDTH> v1 = pb - pa;
+	Vector3P<WIDTH> v2 = pc - pa;
+	Vector3P<WIDTH> p = enoki::cross(r.d, v2);
+	FloatP<WIDTH> det = enoki::dot(v1, p);
+
+	MaskP<WIDTH> active = enoki::abs(det) >= epsilon;
+	FloatP<WIDTH> invDet = enoki::rcp(det);
+
+	Vector3P<WIDTH> s = r.o - pa;
+	FloatP<WIDTH> u = enoki::dot(s, p)*invDet;
+	active &= u >= 0.0f && u <= 1.0f;
+
+	Vector3 q = enoki::cross(s, v1);
+	FloatP<WIDTH> v = enoki::dot(r.d, q)*invDet;
+	active &= v >= 0.0f && u + v <= 1.0f;
+
+	d = enoki::dot(v2, q)*invDet;
+	active &= d > epsilon && d <= r.tMax;
+	pt = r.o + r.d*Vector3P<WIDTH>(d);
+	t = Vector2P<WIDTH>(u, v);
+
+	return active;
 }
 
 // finds closest point on wide triangle to point
 template <int WIDTH>
-FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& x, const Vector3P<WIDTH>& pa,
-										   const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-										   Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t,
-										   IntP<WIDTH>& vIndex, IntP<WIDTH>& eIndex)
+inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& x, const Vector3P<WIDTH>& pa,
+												  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+												  Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t,
+												  IntP<WIDTH>& vIndex, IntP<WIDTH>& eIndex)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
