@@ -22,3 +22,4 @@
 -- breadth first ray tracing
 - refit bvh
 - add CI
+- benchmark

@@ -174,9 +174,9 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 						bool checkOcclusion, bool countHits) const
 {
-	#ifdef PROFILE
-		PROFILE_SCOPED();
-	#endif
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
 
 	// Möller–Trumbore intersection algorithm
 	const Vector3& pa = soup->positions[indices[0]];
@@ -377,9 +377,9 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 
 std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename)
 {
-	#ifdef PROFILE
-		PROFILE_SCOPED();
-	#endif
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
 
 	// initialize
 	std::shared_ptr<PolygonSoup<3>> soup = std::make_shared<PolygonSoup<3>>();
