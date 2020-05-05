@@ -24,6 +24,10 @@ public:
 	// returns normal
 	Vector3 normal(bool normalize=false) const;
 
+	// returns normalized vertex or edge normal if available;
+	// otherwise computes normalized triangle normal
+	Vector3 normal(int vIndex, int eIndex) const;
+
 	// returns barycentric coordinates
 	Vector2 barycentricCoordinates(const Vector3& p) const;
 
@@ -47,11 +51,6 @@ public:
 	const std::vector<int>& eIndices;
 	const std::vector<int>& tIndices;
 	int index;
-
-private:
-	// returns normalized vertex or edge normal if available;
-	// otherwise computes normalized triangle normal
-	Vector3 normal(int vIndex, int eIndex) const;
 };
 
 // reads soup from obj file

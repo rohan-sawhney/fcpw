@@ -1,3 +1,5 @@
+#include "wide_query_operations.h"
+
 namespace fcpw {
 
 template <int WIDTH, int DIM>

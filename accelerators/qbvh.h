@@ -7,14 +7,15 @@ namespace fcpw {
 template <int WIDTH, int DIM>
 struct QbvhNode {
 	// constructor
-	QbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)), boxMax(FloatP<WIDTH>(minFloat)), parent(-1) {
-		for (int i = 0; i < WIDTH; i++) child[i] = -1;
+	QbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
+				boxMax(FloatP<WIDTH>(minFloat)),
+				child(-1), parent(-1) {
 		for (int i = 0; i < DIM; i++) axis[i] = -1;
 	}
 
 	// members
 	VectorP<WIDTH, DIM> boxMin, boxMax;
-	int child[WIDTH];
+	IntP<WIDTH> child;
 	int axis[DIM];
 	int parent;
 };

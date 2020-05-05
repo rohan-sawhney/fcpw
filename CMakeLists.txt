@@ -77,6 +77,7 @@ set(FCPW_CORE_HEADERS
 	core/interaction.h
 	core/primitive.h
 	core/csg_node.h
+	core/wide_query_operations.h
 	)
 
 file(GLOB FCPW_SOURCE

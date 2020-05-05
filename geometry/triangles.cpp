@@ -65,6 +65,13 @@ Vector3 Triangle::normal(bool normalize) const
 	return normalize ? unit<3>(n) : n;
 }
 
+Vector3 Triangle::normal(int vIndex, int eIndex) const
+{
+	if (soup->vNormals.size() > 0 && vIndex >= 0) return soup->vNormals[indices[vIndex]];
+	if (soup->eNormals.size() > 0 && eIndex >= 0) return soup->eNormals[eIndices[eIndex]];
+	return normal(true);
+}
+
 Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
@@ -102,13 +109,6 @@ Vector2 Triangle::textureCoordinates(const Vector2& uv) const
 	}
 
 	return Vector2(-1, -1);
-}
-
-Vector3 Triangle::normal(int vIndex, int eIndex) const
-{
-	if (soup->vNormals.size() > 0 && vIndex >= 0) return soup->vNormals[indices[vIndex]];
-	if (soup->eNormals.size() > 0 && eIndex >= 0) return soup->eNormals[eIndices[eIndex]];
-	return normal(true);
 }
 
 void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
@@ -217,9 +217,9 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	return 0;
 }
 
-float findClosestPointOnTriangle(const Vector3& pa, const Vector3& pb, const Vector3& pc,
-								 const Vector3& x, Vector3& pt, Vector2& t,
-								 int& vIndex, int& eIndex)
+float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vector3& pc,
+							   const Vector3& x, Vector3& pt, Vector2& t,
+							   int& vIndex, int& eIndex)
 {
 	// source: real time collision detection
 	// check if x in vertex region outside pa
@@ -322,7 +322,7 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 
 	int vIndex = -1;
 	int eIndex = -1;
-	float d = findClosestPointOnTriangle(pa, pb, pc, s.c, i.p, i.uv, vIndex, eIndex);
+	float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv, vIndex, eIndex);
 
 	if (d*d <= s.r2) {
 		i.d = d;
