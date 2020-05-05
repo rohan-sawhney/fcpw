@@ -42,21 +42,29 @@ inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
 template <int WIDTH>
 int intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>& pa,
 						  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-						  Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
+						  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	// TODO
 	return 0;
 }
 
-// finds closest point on wide triangle from point
+// finds closest point on wide triangle to point
 template <int WIDTH>
-bool findClosestPointWideTriangle(const Vector3P<WIDTH>& x, const Vector3P<WIDTH>& pa,
-								  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-								  Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t,
-								  IntP<WIDTH>& vIndex, IntP<WIDTH>& eIndex)
+FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& x, const Vector3P<WIDTH>& pa,
+										   const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+										   Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t,
+										   IntP<WIDTH>& vIndex, IntP<WIDTH>& eIndex)
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	// TODO
-	return false;
+	return FloatP<WIDTH>(0.0f);
 }
 
 } // namespace fcpw

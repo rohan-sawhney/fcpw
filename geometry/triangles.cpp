@@ -190,16 +190,16 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	float det = dot<3>(v1, p);
 
 	// ray and triangle are parallel if det is close to 0
-	if (std::fabs(det) < epsilon) return false;
+	if (std::fabs(det) < epsilon) return 0;
 	float invDet = 1.0f/det;
 
 	Vector3 s = r.o - pa;
 	float u = dot<3>(s, p)*invDet;
-	if (u < 0 || u > 1) return false;
+	if (u < 0 || u > 1) return 0;
 
 	Vector3 q = cross(s, v1);
 	float v = dot<3>(r.d, q)*invDet;
-	if (v < 0 || u + v > 1) return false;
+	if (v < 0 || u + v > 1) return 0;
 
 	float t = dot<3>(v2, q)*invDet;
 	if (t > epsilon && t <= r.tMax) {
