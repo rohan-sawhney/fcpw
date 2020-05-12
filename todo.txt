@@ -1,25 +1,28 @@
-- implement mbvh/qbvh
--- enable embree with enoki
--- enoki settings on ubuntu (geometry-box)
-- traversal optimization for closest point queries:
--- (for spatio-temporal (coherent) queries) warm start traversal from node of
-	previous query, traversing hierarchy bottom up; distance from previous query result
-	can be use to determine whether this is a good idea (it is a good idea when the
-	conservative radius guess is small compared to the model size); (done for sbvh)
--- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
-	structure that stores pointers to nodes in the tree; bvh populates spatial data
-	structure while spatial data structure suggests which node to start queries from
--- implement "queueless" closest point traversal
-- traversal optimization for intersections:
--- smarter traversal for incoherent rays using similar ideas to closest point queries;
-	but need to take ray origin and direction into account
--- implement "stackless" ray intersection traversal
-- oriented bounding boxes/RSS
-- add support for more geometries:
--- line segments (3d), beziers (3d), subdivision surfaces, implicits, nurbs
-- vectorize + parallelize bvh construction
-- packet (coherent) queries
--- breadth first ray tracing
-- refit bvh
-- add CI
-- benchmark
+Priority:
+1. implement mbvh/qbvh
+---- enable embree with enoki
+---- enoki settings on ubuntu (geometry-box)
+2. add support for more geometries:
+---- line segments (3d), beziers (3d), implicits (spheres & boxes)
+3. option to ignore certain primitives
+4. benchmark
+5. travis CI
+
+Optimizations and Features:
+1. vectorize + parallelize bvh construction
+2. support oriented bounding boxes/RSS
+3. traversal optimization for closest point queries:
+---- implement "queueless" closest point traversal
+---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
+	  structure that stores pointers to nodes in the tree; bvh populates spatial data
+	  structure while spatial data structure suggests which node to start queries from
+4. traversal optimization for intersections:
+---- implement "stackless" ray intersection traversal
+---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
+	  structure that stores pointers to nodes in the tree; unlike closest point queries,
+	  data structure(s) must store positions and directions
+5. add support for more geometries:
+---- subdivision surfaces, implicits, nurbs
+6. packet (coherent) queries
+---- breadth first ray tracing
+7. refit bvh
