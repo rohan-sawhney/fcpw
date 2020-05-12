@@ -5,8 +5,10 @@ Priority:
 2. add support for more geometries:
 ---- line segments (3d), beziers (3d), implicits (spheres & boxes)
 3. option to ignore certain primitives
-4. benchmark
-5. travis CI
+4. more file formats (ply) + ability to manually specify geometry
+5. benchmark
+6. travis CI
+7. README (tutorial, features, benchmark, compiling, logo)
 
 Optimizations and Features:
 1. vectorize + parallelize bvh construction
@@ -26,3 +28,11 @@ Optimizations and Features:
 6. packet (coherent) queries
 ---- breadth first ray tracing
 7. refit bvh
+
+Done:
+1. Closest point and ray intersections queries leveraging coherency between queries
+2. Bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
+									 Surface Area Overlap, Volume Overlap)
+3. Spatial Split Bvh for non-uniform tessellation
+4. Constructive Solid Geometry
+5. Instancing
