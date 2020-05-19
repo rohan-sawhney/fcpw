@@ -58,7 +58,7 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 				if (level == 0) {
 					nodes[mbvhNodeIndex].splitDim[1] = sbvh->flatTree[sbvhNodeIndex].splitDim;
 					nodes[mbvhNodeIndex].splitDim[2] = sbvh->flatTree[sbvhNodeIndex +
-														   sbvhNode.rightOffset].splitDim;
+															   sbvhNode.rightOffset].splitDim;
 				}
 
 			} else {
