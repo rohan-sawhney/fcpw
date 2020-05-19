@@ -3,7 +3,7 @@
 namespace fcpw {
 
 template <int WIDTH, int DIM>
-inline void Qbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
+inline void Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
 										   int grandParent, int depth)
 {
 #ifdef PROFILE
@@ -17,7 +17,7 @@ inline void Qbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbv
 	// - children = {grandparent + 1, grandparent + sbvh.flatTree[grandparent].rightOffset}
 	// - grandchildren = {children[0] + 1, children[0] + sbvh.flatTree[children[0]].rightOffset,
 	//                    children[1] + 1, children[1] + sbvh.flatTree[children[1]].rightOffset}
-	// - populate QbvhNode
+	// - populate MbvhNode
 	// -- cases: sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset != 0,
 	//			 sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset == 0,
 	//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset != 0,
@@ -25,14 +25,14 @@ inline void Qbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbv
 }
 
 template <int WIDTH, int DIM>
-inline Qbvh<WIDTH, DIM>::Qbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
+inline Mbvh<WIDTH, DIM>::Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
 primitives(sbvh_->primitives),
 references(std::move(sbvh_->references)),
 nNodes(0),
 nLeafs(0),
 maxDepth(0)
 {
-	LOG_IF(FATAL, sbvh_->leafSize != WIDTH) << "Sbvh leaf size must equal bvh width";
+	LOG_IF(FATAL, sbvh_->leafSize != WIDTH) << "Sbvh leaf size must equal mbvh width";
 
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -52,35 +52,53 @@ maxDepth(0)
 }
 
 template <int WIDTH, int DIM>
-inline BoundingBox<DIM> Qbvh<WIDTH, DIM>::boundingBox() const
+inline BoundingBox<DIM> Mbvh<WIDTH, DIM>::boundingBox() const
 {
-	// TODO
-	return BoundingBox<DIM>();
+	BoundingBox<DIM> box;
+	if (nodes.size() == 0) return box;
+
+	box.pMin = enoki::hmin_inner(nodes[0].boxMin);
+	box.pMax = enoki::hmax_inner(nodes[0].boxMax);
+	return box;
 }
 
 template <int WIDTH, int DIM>
-inline Vector<DIM> Qbvh<WIDTH, DIM>::centroid() const
+inline Vector<DIM> Mbvh<WIDTH, DIM>::centroid() const
 {
-	// TODO
-	return zeroVector<DIM>();
+	Vector<DIM> c = zeroVector<DIM>();
+	int nPrimitives = (int)primitives.size();
+
+	for (int p = 0; p < nPrimitives; p++) {
+		c += primitives[p]->centroid();
+	}
+
+	return c/nPrimitives;
 }
 
 template <int WIDTH, int DIM>
-inline float Qbvh<WIDTH, DIM>::surfaceArea() const
+inline float Mbvh<WIDTH, DIM>::surfaceArea() const
 {
-	// TODO
-	return 0.0f;
+	float area = 0.0f;
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		area += primitives[p]->surfaceArea();
+	}
+
+	return area;
 }
 
 template <int WIDTH, int DIM>
-inline float Qbvh<WIDTH, DIM>::signedVolume() const
+inline float Mbvh<WIDTH, DIM>::signedVolume() const
 {
-	// TODO
-	return 0.0f;
+	float volume = 0.0f;
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		volume += primitives[p]->signedVolume();
+	}
+
+	return volume;
 }
 
 template <int WIDTH, int DIM>
-inline int Qbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											   int nodeStartIndex, int& nodesVisited,
 											   bool checkOcclusion, bool countHits) const
 {
@@ -93,7 +111,7 @@ inline int Qbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 }
 
 template <int WIDTH, int DIM>
-inline bool Qbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													   int nodeStartIndex, int& nodesVisited) const
 {
 #ifdef PROFILE

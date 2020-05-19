@@ -149,7 +149,7 @@ protected:
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
 
 	template <int U, int V>
-	friend class Qbvh;
+	friend class Mbvh;
 };
 
 } // namespace fcpw

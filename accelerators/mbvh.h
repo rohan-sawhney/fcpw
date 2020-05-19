@@ -5,9 +5,9 @@
 namespace fcpw {
 
 template <int WIDTH, int DIM>
-struct QbvhNode {
+struct MbvhNode {
 	// constructor
-	QbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
+	MbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
 				boxMax(FloatP<WIDTH>(minFloat)),
 				child(-1), parent(-1) {
 		for (int i = 0; i < DIM; i++) axis[i] = -1;
@@ -21,10 +21,10 @@ struct QbvhNode {
 };
 
 template <int WIDTH, int DIM>
-class Qbvh: public Aggregate<DIM> {
+class Mbvh: public Aggregate<DIM> {
 public:
-	// constructor; sbvh is left in an undefined state after qbvh construction
-	Qbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_);
+	// constructor; sbvh is left in an undefined state after mbvh construction
+	Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -50,16 +50,16 @@ public:
 								  int nodeStartIndex, int& nodesVisited) const;
 
 protected:
-	// collapses sbvh into a qbvh
+	// collapses sbvh into a mbvh
 	void collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh, int grandParent, int depth);
 
 	// members
 	int nNodes, nLeafs, maxDepth;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
-	std::vector<QbvhNode<WIDTH, DIM>> nodes;
+	std::vector<MbvhNode<WIDTH, DIM>> nodes;
 	std::vector<int> references;
 };
 
 } // namespace fcpw
 
-#include "qbvh.inl"
+#include "mbvh.inl"
