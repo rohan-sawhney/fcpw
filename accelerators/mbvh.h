@@ -51,7 +51,8 @@ public:
 
 protected:
 	// collapses sbvh into a mbvh
-	void collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh, int grandParent, int depth);
+	int collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
+					 int sbvhNodeIndex, int parent, int depth);
 
 	// members
 	int nNodes, nLeafs, maxDepth;

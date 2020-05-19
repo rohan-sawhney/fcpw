@@ -145,7 +145,7 @@ protected:
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<SbvhFlatNode<DIM>> flatTree;
 	std::vector<int> references, referencesToAdd;
-	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
+	std::vector<BoundingBox<DIM>> referenceBoxes, referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
 
 	template <int U, int V>

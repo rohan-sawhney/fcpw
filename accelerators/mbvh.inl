@@ -3,25 +3,52 @@
 namespace fcpw {
 
 template <int WIDTH, int DIM>
-inline void Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
-										   int grandParent, int depth)
+inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
+										  int sbvhNodeIndex, int parent, int depth)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
-	// TODO:
-	// collapse(sbvh, grandparent, maxDepth):
-	// - if sbvh.flatTree[grandparent].rightOffset == 0
-	// -- TODO: process leaf
-	// - children = {grandparent + 1, grandparent + sbvh.flatTree[grandparent].rightOffset}
-	// - grandchildren = {children[0] + 1, children[0] + sbvh.flatTree[children[0]].rightOffset,
-	//                    children[1] + 1, children[1] + sbvh.flatTree[children[1]].rightOffset}
-	// - populate MbvhNode
-	// -- cases: sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset != 0,
-	//			 sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset == 0,
-	//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset != 0,
-	//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset == 0
+	// TODO: set axis
+	const SbvhFlatNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+	maxDepth = std::max(depth, maxDepth);
+
+	// create mbvh node
+	MbvhNode<WIDTH, DIM> node;
+	int nodeIndex = nNodes++;
+	node.parent = parent;
+	nodes.emplace_back(node);
+
+	if (sbvhNode.rightOffset == 0) {
+		// sbvh node is a leaf node
+		for (int p = 0; p < sbvhNode.nReferences; p++) {
+			// TODO: set boxMin, boxMax, child
+			// nodes[nodeIndex].boxMin
+			// nodes[nodeIndex].boxMax
+			// nodes[nodeIndex].child
+			//
+			// const BoundingBox<DIM>& box = referenceBoxes[sbvhNode.start + p];
+			// references[sbvhNode.start + p]; // negate
+		}
+
+		nLeafs++;
+
+	} else {
+		// sbvh node is an inner node
+
+		// TODO: set boxMin, boxMax, child
+		// - children = {sbvhNodeIndex + 1, sbvhNodeIndex + sbvh.flatTree[sbvhNodeIndex].rightOffset}
+		// - grandchildren = {children[0] + 1, children[0] + sbvh.flatTree[children[0]].rightOffset,
+		//                    children[1] + 1, children[1] + sbvh.flatTree[children[1]].rightOffset}
+		// - populate MbvhNode
+		// -- cases: sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset != 0,
+		//			 sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset == 0,
+		//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset != 0,
+		//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset == 0
+	}
+
+	return nodeIndex;
 }
 
 template <int WIDTH, int DIM>
@@ -38,7 +65,8 @@ maxDepth(0)
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	// collapse sbvh
-	collapseSbvh(sbvh_, 0, 0);
+	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
+	maxDepth = std::pow(2, std::ceil(std::log2(maxDepth)));
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
