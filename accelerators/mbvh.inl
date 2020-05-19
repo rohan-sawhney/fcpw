@@ -23,13 +23,13 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	if (sbvhNode.rightOffset == 0) {
 		// sbvh node is a leaf node
 		for (int p = 0; p < sbvhNode.nReferences; p++) {
-			// TODO: set boxMin, boxMax, child
-			// nodes[nodeIndex].boxMin
-			// nodes[nodeIndex].boxMax
-			// nodes[nodeIndex].child
-			//
-			// const BoundingBox<DIM>& box = referenceBoxes[sbvhNode.start + p];
-			// references[sbvhNode.start + p]; // negate
+			int index = sbvhNode.start + p;
+			for (int i = 0; i < DIM; i++) {
+				nodes[nodeIndex].boxMin[i][p] = sbvh->referenceBoxes[index][i];
+				nodes[nodeIndex].boxMax[i][p] = sbvh->referenceBoxes[index][i];
+			}
+
+			nodes[nodeIndex].child[p] = -sbvh->references[index];
 		}
 
 		nLeafs++;
