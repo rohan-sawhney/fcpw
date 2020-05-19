@@ -10,7 +10,6 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	PROFILE_SCOPED();
 #endif
 
-	// TODO: set axis
 	const SbvhFlatNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 	maxDepth = std::max(depth, maxDepth);
 
@@ -19,6 +18,9 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	int mbvhNodeIndex = nNodes;
 
 	nNodes++;
+	mbvhNode.axis[0] = sbvhNode.axis;
+	mbvhNode.axis[1] = 0;
+	mbvhNode.axis[2] = 0;
 	mbvhNode.parent = parent;
 	nodes.emplace_back(mbvhNode);
 
@@ -52,6 +54,12 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 				stackPtr++;
 				stackSbvhNodes[stackPtr].first = sbvhNodeIndex + sbvhNode.rightOffset;
 				stackSbvhNodes[stackPtr].second = level + 1;
+
+				if (level == 0) {
+					nodes[mbvhNodeIndex].axis[1] = sbvh->flatTree[sbvhNodeIndex].axis;
+					nodes[mbvhNodeIndex].axis[2] = sbvh->flatTree[sbvhNodeIndex +
+														   sbvhNode.rightOffset].axis;
+				}
 
 			} else {
 				// assign mbvh node this sbvh node's bounding box and index
