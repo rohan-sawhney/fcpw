@@ -18,9 +18,9 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	int mbvhNodeIndex = nNodes;
 
 	nNodes++;
-	mbvhNode.axis[0] = sbvhNode.axis;
-	mbvhNode.axis[1] = 0;
-	mbvhNode.axis[2] = 0;
+	mbvhNode.splitDim[0] = sbvhNode.splitDim;
+	mbvhNode.splitDim[1] = 0;
+	mbvhNode.splitDim[2] = 0;
 	mbvhNode.parent = parent;
 	nodes.emplace_back(mbvhNode);
 
@@ -56,9 +56,9 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 				stackSbvhNodes[stackPtr].second = level + 1;
 
 				if (level == 0) {
-					nodes[mbvhNodeIndex].axis[1] = sbvh->flatTree[sbvhNodeIndex].axis;
-					nodes[mbvhNodeIndex].axis[2] = sbvh->flatTree[sbvhNodeIndex +
-														   sbvhNode.rightOffset].axis;
+					nodes[mbvhNodeIndex].splitDim[1] = sbvh->flatTree[sbvhNodeIndex].splitDim;
+					nodes[mbvhNodeIndex].splitDim[2] = sbvh->flatTree[sbvhNodeIndex +
+														   sbvhNode.rightOffset].splitDim;
 				}
 
 			} else {

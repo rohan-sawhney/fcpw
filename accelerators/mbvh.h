@@ -10,13 +10,13 @@ struct MbvhNode {
 	MbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
 				boxMax(FloatP<WIDTH>(minFloat)),
 				child(-1), parent(-1) {
-		for (int i = 0; i < DIM; i++) axis[i] = -1;
+		for (int i = 0; i < DIM; i++) splitDim[i] = -1;
 	}
 
 	// members
 	VectorP<WIDTH, DIM> boxMin, boxMax;
 	IntP<WIDTH> child; // use sign to differentiate between inner and leaf nodes
-	int axis[DIM];
+	int splitDim[DIM];
 	int parent;
 };
 
