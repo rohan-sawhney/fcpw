@@ -520,6 +520,7 @@ inline void Sbvh<DIM>::build()
 
 	// precompute bounding boxes and centroids
 	int nReferences = (int)primitives.size();
+	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
 	std::vector<SbvhFlatNode<DIM>> buildNodes;
 

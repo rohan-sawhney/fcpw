@@ -23,7 +23,7 @@ struct MbvhNode {
 template <int WIDTH, int DIM>
 class Mbvh: public Aggregate<DIM> {
 public:
-	// constructor; sbvh is left in an undefined state after mbvh construction
+	// constructor
 	Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_);
 
 	// returns bounding box
@@ -55,9 +55,10 @@ protected:
 					 int sbvhNodeIndex, int parent, int depth);
 
 	// members
-	int nNodes, nLeafs, maxDepth;
+	int nNodes, nLeafs, maxDepth, maxLevel;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<MbvhNode<WIDTH, DIM>> nodes;
+	std::vector<std::pair<int, int>> stackSbvhNodes;
 	std::vector<int> references;
 };
 

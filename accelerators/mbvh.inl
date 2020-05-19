@@ -15,49 +15,70 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	maxDepth = std::max(depth, maxDepth);
 
 	// create mbvh node
-	MbvhNode<WIDTH, DIM> node;
-	int nodeIndex = nNodes++;
-	node.parent = parent;
-	nodes.emplace_back(node);
+	MbvhNode<WIDTH, DIM> mbvhNode;
+	int mbvhNodeIndex = nNodes;
+
+	nNodes++;
+	mbvhNode.parent = parent;
+	nodes.emplace_back(mbvhNode);
 
 	if (sbvhNode.rightOffset == 0) {
-		// sbvh node is a leaf node
+		// sbvh node is a leaf node; assign mbvh node its reference indices
 		for (int p = 0; p < sbvhNode.nReferences; p++) {
-			int index = sbvhNode.start + p;
-			for (int i = 0; i < DIM; i++) {
-				nodes[nodeIndex].boxMin[i][p] = sbvh->referenceBoxes[index][i];
-				nodes[nodeIndex].boxMax[i][p] = sbvh->referenceBoxes[index][i];
-			}
-
-			nodes[nodeIndex].child[p] = -sbvh->references[index];
+			nodes[mbvhNodeIndex].child[p] = -references[sbvhNode.start + p];
 		}
 
 		nLeafs++;
 
 	} else {
-		// sbvh node is an inner node
+		// sbvh node is an inner node, flatten it
+		int nNodesCollapsed = 0;
+		int stackPtr = 0;
+		stackSbvhNodes[stackPtr].first = sbvhNodeIndex;
+		stackSbvhNodes[stackPtr].second = 0;
 
-		// TODO: set boxMin, boxMax, child
-		// - children = {sbvhNodeIndex + 1, sbvhNodeIndex + sbvh.flatTree[sbvhNodeIndex].rightOffset}
-		// - grandchildren = {children[0] + 1, children[0] + sbvh.flatTree[children[0]].rightOffset,
-		//                    children[1] + 1, children[1] + sbvh.flatTree[children[1]].rightOffset}
-		// - populate MbvhNode
-		// -- cases: sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset != 0,
-		//			 sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset == 0,
-		//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset != 0,
-		//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset == 0
+		while (stackPtr >= 0) {
+			int sbvhNodeIndex = stackSbvhNodes[stackPtr].first;
+			int level = stackSbvhNodes[stackPtr].second;
+			stackPtr--;
+
+			const SbvhFlatNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+			if (level < maxLevel && sbvhNode.rightOffset != 0) {
+				// enqueue sbvh children nodes till max level or leaf node is reached
+				stackPtr++;
+				stackSbvhNodes[stackPtr].first = sbvhNodeIndex + 1;
+				stackSbvhNodes[stackPtr].second = level + 1;
+
+				stackPtr++;
+				stackSbvhNodes[stackPtr].first = sbvhNodeIndex + sbvhNode.rightOffset;
+				stackSbvhNodes[stackPtr].second = level + 1;
+
+			} else {
+				// assign mbvh node this sbvh node's bounding box and index
+				for (int i = 0; i < DIM; i++) {
+					nodes[mbvhNodeIndex].boxMin[i][nNodesCollapsed] = sbvhNode.box.pMin[i];
+					nodes[mbvhNodeIndex].boxMax[i][nNodesCollapsed] = sbvhNode.box.pMax[i];
+				}
+
+				nodes[mbvhNodeIndex].child[nNodesCollapsed] = collapseSbvh(sbvh,
+										sbvhNodeIndex, mbvhNodeIndex, depth + 1);
+				nNodesCollapsed++;
+			}
+		}
 	}
 
-	return nodeIndex;
+	return mbvhNodeIndex;
 }
 
 template <int WIDTH, int DIM>
 inline Mbvh<WIDTH, DIM>::Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
 primitives(sbvh_->primitives),
-references(std::move(sbvh_->references)),
+references(sbvh_->references),
+stackSbvhNodes(WIDTH, std::make_pair(-1, -1)),
 nNodes(0),
 nLeafs(0),
-maxDepth(0)
+maxDepth(0),
+maxLevel(std::log2(WIDTH))
 {
 	LOG_IF(FATAL, sbvh_->leafSize != WIDTH) << "Sbvh leaf size must equal mbvh width";
 
@@ -67,6 +88,7 @@ maxDepth(0)
 	// collapse sbvh
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
 	maxDepth = std::pow(2, std::ceil(std::log2(maxDepth)));
+	stackSbvhNodes.clear();
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
