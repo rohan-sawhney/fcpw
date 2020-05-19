@@ -15,7 +15,7 @@ struct QbvhNode {
 
 	// members
 	VectorP<WIDTH, DIM> boxMin, boxMax;
-	IntP<WIDTH> child;
+	IntP<WIDTH> child; // use sign to differentiate between inner and leaf nodes
 	int axis[DIM];
 	int parent;
 };
@@ -23,7 +23,7 @@ struct QbvhNode {
 template <int WIDTH, int DIM>
 class Qbvh: public Aggregate<DIM> {
 public:
-	// constructor
+	// constructor; sbvh is left in an undefined state after qbvh construction
 	Qbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_);
 
 	// returns bounding box
@@ -48,6 +48,16 @@ public:
 	// use this for spatially/temporally coherent queries
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int& nodesVisited) const;
+
+protected:
+	// collapses sbvh into a qbvh
+	void collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh, int grandParent, int depth);
+
+	// members
+	int nNodes, nLeafs, maxDepth;
+	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
+	std::vector<QbvhNode<WIDTH, DIM>> nodes;
+	std::vector<int> references;
 };
 
 } // namespace fcpw

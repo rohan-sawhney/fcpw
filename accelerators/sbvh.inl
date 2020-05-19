@@ -31,6 +31,7 @@ bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0))
 	std::cout << "Built bvh with "
 			  << nNodes << " nodes, "
 			  << nLeafs << " leaves, "
+			  << maxDepth << " max depth, "
 			  << primitives.size() << " primitives, "
 			  << references.size() << " references in "
 			  << timeSpan.count() << " seconds" << std::endl;

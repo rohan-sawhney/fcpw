@@ -3,9 +3,52 @@
 namespace fcpw {
 
 template <int WIDTH, int DIM>
-inline Qbvh<WIDTH, DIM>::Qbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_)
+inline void Qbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
+										   int grandParent, int depth)
 {
-	// TODO
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
+	// TODO:
+	// collapse(sbvh, grandparent, maxDepth):
+	// - if sbvh.flatTree[grandparent].rightOffset == 0
+	// -- TODO: process leaf
+	// - children = {grandparent + 1, grandparent + sbvh.flatTree[grandparent].rightOffset}
+	// - grandchildren = {children[0] + 1, children[0] + sbvh.flatTree[children[0]].rightOffset,
+	//                    children[1] + 1, children[1] + sbvh.flatTree[children[1]].rightOffset}
+	// - populate QbvhNode
+	// -- cases: sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset != 0,
+	//			 sbvh.flatTree[children[0]].rightOffset != 0 && sbvh.flatTree[children[1]].rightOffset == 0,
+	//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset != 0,
+	//			 sbvh.flatTree[children[0]].rightOffset == 0 && sbvh.flatTree[children[1]].rightOffset == 0
+}
+
+template <int WIDTH, int DIM>
+inline Qbvh<WIDTH, DIM>::Qbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
+primitives(sbvh_->primitives),
+references(std::move(sbvh_->references)),
+nNodes(0),
+nLeafs(0),
+maxDepth(0)
+{
+	LOG_IF(FATAL, sbvh_->leafSize != WIDTH) << "Sbvh leaf size must equal bvh width";
+
+	using namespace std::chrono;
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+	// collapse sbvh
+	collapseSbvh(sbvh_, 0, 0);
+
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+	std::cout << "Built " << WIDTH << "-bvh with "
+			  << nNodes << " nodes, "
+			  << nLeafs << " leaves, "
+			  << maxDepth << " max depth, "
+			  << primitives.size() << " primitives, "
+			  << references.size() << " references in "
+			  << timeSpan.count() << " seconds" << std::endl;
 }
 
 template <int WIDTH, int DIM>
