@@ -76,7 +76,7 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>
 
 // finds closest point on wide triangle to point
 template <int WIDTH>
-inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& x, const Vector3P<WIDTH>& pa,
+inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3& x, const Vector3P<WIDTH>& pa,
 												  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
 												  Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t,
 												  IntP<WIDTH>& vIndex, IntP<WIDTH>& eIndex)
