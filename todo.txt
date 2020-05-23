@@ -1,5 +1,7 @@
 Priority:
 1. implement mbvh/qbvh
+---- build leaf nodes during traversal or construction, implement traversal,
+	 profile triangle closestPoint w.o. early exit, set leafSize based on width
 ---- enable embree with enoki
 ---- enoki settings on ubuntu (geometry-box)
 2. add support for more geometries:

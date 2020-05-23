@@ -95,7 +95,6 @@ maxLevel(std::log2(WIDTH))
 
 	// collapse sbvh
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
-	maxDepth = std::pow(2, std::ceil(std::log2(maxDepth)));
 	stackSbvhNodes.clear();
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();

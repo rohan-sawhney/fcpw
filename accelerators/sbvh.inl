@@ -547,7 +547,6 @@ inline void Sbvh<DIM>::build()
 	int nTotalReferences = nReferences;
 	int nReferencesAdded = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
 										  0xfffffffc, 0, nReferences, 0, nTotalReferences);
-	maxDepth = std::pow(2, std::ceil(std::log2(maxDepth)));
 
 	// copy the temp node data to a flat array
 	flatTree.reserve(nNodes);
@@ -723,7 +722,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	SbvhTraversal subtree[maxDepth];
+	SbvhTraversal subtree[maxDepth + 1];
 	float boxHits[4];
 
 	// push the start node onto the working set and process its subtree if it intersects ray
