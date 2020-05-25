@@ -18,16 +18,13 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	int mbvhNodeIndex = nNodes;
 
 	nNodes++;
-	mbvhNode.splitDim[0] = sbvhNode.splitDim;
-	mbvhNode.splitDim[1] = 0;
-	mbvhNode.splitDim[2] = 0;
 	mbvhNode.parent = parent;
 	nodes.emplace_back(mbvhNode);
 
 	if (sbvhNode.rightOffset == 0) {
 		// sbvh node is a leaf node; assign mbvh node its reference indices
 		for (int p = 0; p < sbvhNode.nReferences; p++) {
-			nodes[mbvhNodeIndex].child[p] = -references[sbvhNode.start + p];
+			nodes[mbvhNodeIndex].child[p] = -(references[sbvhNode.start + p] + 1);
 		}
 
 		nLeafs++;
@@ -55,12 +52,6 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 				stackSbvhNodes[stackPtr].first = sbvhNodeIndex + sbvhNode.rightOffset;
 				stackSbvhNodes[stackPtr].second = level + 1;
 
-				if (level == 0) {
-					nodes[mbvhNodeIndex].splitDim[1] = sbvh->flatTree[sbvhNodeIndex].splitDim;
-					nodes[mbvhNodeIndex].splitDim[2] = sbvh->flatTree[sbvhNodeIndex +
-															   sbvhNode.rightOffset].splitDim;
-				}
-
 			} else {
 				// assign mbvh node this sbvh node's bounding box and index
 				for (int i = 0; i < DIM; i++) {
@@ -79,6 +70,67 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 }
 
 template <int WIDTH, int DIM>
+inline bool Mbvh<WIDTH, DIM>::isLeafNode(const MbvhNode<WIDTH, DIM>& node) const
+{
+	return node.child[0] < 0;
+}
+
+template <int WIDTH, int DIM>
+inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
+											   std::vector<VectorP<WIDTH, DIM>>& leafNode)
+{
+	leafNode.resize(3);
+
+	for (int i = 0; i < WIDTH; i++) {
+		if (node.child[i] != maxInt) {
+			int index = -node.child[i] - 1;
+			const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
+			const Vector3& pa = triangle->soup->positions[triangle->indices[0]];
+			const Vector3& pb = triangle->soup->positions[triangle->indices[1]];
+			const Vector3& pc = triangle->soup->positions[triangle->indices[2]];
+
+			for (int j = 0; j < DIM; j++) {
+				leafNode[0][j][i] = pa[j];
+				leafNode[1][j][i] = pb[j];
+				leafNode[2][j][i] = pc[j];
+			}
+		}
+	}
+}
+
+template <int WIDTH, int DIM>
+inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
+{
+	// check if primitive type is supported
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[p].get());
+
+		if (triangle) {
+			primitiveType = 1;
+
+		} else {
+			primitiveType = 0;
+			break;
+		}
+	}
+
+	if (primitiveType > 0) {
+		// populate leaf nodes
+		int leafIndex = 0;
+		leafNodes.resize(nLeafs);
+
+		for (int i = 0; i < nNodes; i++) {
+			MbvhNode<WIDTH, DIM>& node = nodes[i];
+
+			if (isLeafNode(node)) {
+				populateLeafNode(nodes[i], leafNodes[leafIndex]);
+				node.leafIndex = leafIndex++;
+			}
+		}
+	}
+}
+
+template <int WIDTH, int DIM>
 inline Mbvh<WIDTH, DIM>::Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
 primitives(sbvh_->primitives),
 references(sbvh_->references),
@@ -86,7 +138,8 @@ stackSbvhNodes(WIDTH, std::make_pair(-1, -1)),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
-maxLevel(std::log2(WIDTH))
+maxLevel(std::log2(WIDTH)),
+primitiveType(0)
 {
 	LOG_IF(FATAL, sbvh_->leafSize != WIDTH) << "Sbvh leaf size must equal mbvh width";
 
@@ -96,6 +149,9 @@ maxLevel(std::log2(WIDTH))
 	// collapse sbvh
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
 	stackSbvhNodes.clear();
+
+	// populate leaf nodes if primitive type is supported
+	populateLeafNodes();
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);

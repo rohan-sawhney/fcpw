@@ -39,6 +39,8 @@ class CsgNode;
 
 static const float minFloat = std::numeric_limits<float>::lowest();
 static const float maxFloat = std::numeric_limits<float>::max();
+static const int minInt = std::numeric_limits<int>::min();
+static const int maxInt = std::numeric_limits<int>::max();
 static const float epsilon = std::numeric_limits<float>::epsilon();
 
 template <typename T, typename U, typename V>

@@ -437,7 +437,6 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 		bc.expandToInclude(referenceCentroids[p]);
 	}
 
-	node.splitDim = bc.maxDimension();
 	node.box = bb;
 
 	// if the number of references at this point is less than the leaf
@@ -508,7 +507,6 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 											   nTotalReferences);
 	int nTotalReferencesAdded = nReferencesAdded + nReferencesAddedLeft + nReferencesAddedRight;
 	buildNodes[currentNodeIndex].nReferences += nTotalReferencesAdded;
-	buildNodes[currentNodeIndex].splitDim = splitDim;
 
 	return nTotalReferencesAdded;
 }

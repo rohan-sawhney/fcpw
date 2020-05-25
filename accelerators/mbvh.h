@@ -9,15 +9,12 @@ struct MbvhNode {
 	// constructor
 	MbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
 				boxMax(FloatP<WIDTH>(minFloat)),
-				child(-1), parent(-1) {
-		for (int i = 0; i < DIM; i++) splitDim[i] = -1;
-	}
+				child(maxInt), parent(-1), leafIndex(-1) {}
 
 	// members
 	VectorP<WIDTH, DIM> boxMin, boxMax;
 	IntP<WIDTH> child; // use sign to differentiate between inner and leaf nodes
-	int splitDim[DIM];
-	int parent;
+	int parent, leafIndex;
 };
 
 template <int WIDTH, int DIM>
@@ -54,10 +51,21 @@ protected:
 	int collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
 					 int sbvhNodeIndex, int parent, int depth);
 
+	// determines whether mbvh node is a leaf node
+	bool isLeafNode(const MbvhNode<WIDTH, DIM>& node) const;
+
+	// populates leaf node
+	void populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
+						  std::vector<VectorP<WIDTH, DIM>>& leafNode);
+
+	// populates leaf nodes
+	void populateLeafNodes();
+
 	// members
-	int nNodes, nLeafs, maxDepth, maxLevel;
+	int nNodes, nLeafs, maxDepth, maxLevel, primitiveType;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<MbvhNode<WIDTH, DIM>> nodes;
+	std::vector<std::vector<VectorP<WIDTH, DIM>>> leafNodes;
 	std::vector<std::pair<int, int>> stackSbvhNodes;
 	std::vector<int> references;
 };
