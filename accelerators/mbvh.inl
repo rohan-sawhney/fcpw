@@ -223,6 +223,13 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	PROFILE_SCOPED();
 #endif
 
+	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
+								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
+	int hits = 0;
+	if (!countHits) is.resize(1);
+	BvhTraversal subtree[maxDepth + 1];
+
+	// TODO:
 	// push root
 	// while stack on empty
 	// - dequeue node
@@ -233,8 +240,13 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	// -- overlap boxes
 	// -- enqueue
 
-	// TODO
-	return 0;
+	if (countHits) {
+		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+		is = removeDuplicates<DIM>(is);
+		hits = (int)is.size();
+	}
+
+	return hits;
 }
 
 template <int WIDTH, int DIM>
@@ -245,6 +257,12 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	PROFILE_SCOPED();
 #endif
 
+	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
+								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
+	bool notFound = true;
+	std::deque<BvhTraversal> subtree;
+
+	// TODO:
 	// push root
 	// while stack on empty
 	// - dequeue node
@@ -255,8 +273,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	// -- overlap boxes
 	// -- enqueue
 
-	// TODO
-	return false;
+	return !notFound;
 }
 
 } // namespace fcpw
