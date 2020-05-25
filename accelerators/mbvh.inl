@@ -79,6 +79,10 @@ template <int WIDTH, int DIM>
 inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 											   std::vector<VectorP<WIDTH, DIM>>& leafNode)
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	leafNode.resize(3);
 
 	for (int i = 0; i < WIDTH; i++) {
