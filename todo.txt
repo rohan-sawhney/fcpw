@@ -1,8 +1,9 @@
 Priority:
 1. implement mbvh/qbvh
----- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- implement traversal with node sorting
+---- pad mbvh node?
 ---- profile triangle closestPoint w.o. early exit
+---- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- set leafSize based on width in scene.inl
 ---- enable embree with enoki
 ---- enoki settings on ubuntu (geometry-box)
