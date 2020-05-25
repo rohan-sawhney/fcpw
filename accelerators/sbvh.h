@@ -17,19 +17,19 @@ enum class CostHeuristic {
 };
 
 template <int DIM>
-struct SbvhFlatNode {
+struct SbvhNode {
 	// constructor
-	SbvhFlatNode(): parent(-1), start(-1), nReferences(-1), rightOffset(-1) {}
+	SbvhNode(): parent(-1), start(-1), nReferences(-1), rightOffset(-1) {}
 
 	// members
 	BoundingBox<DIM> box;
 	int parent, start, nReferences, rightOffset;
 };
 
-struct SbvhTraversal {
+struct BvhTraversal {
 	// constructors
-	SbvhTraversal(): node(-1), distance(0.0f) {}
-	SbvhTraversal(int node_, float distance_): node(node_), distance(distance_) {}
+	BvhTraversal(): node(-1), distance(0.0f) {}
+	BvhTraversal(int node_, float distance_): node(node_), distance(distance_) {}
 
 	// members
 	int node; // node index
@@ -118,7 +118,7 @@ protected:
 	// helper function to build binary tree
 	int buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 					   std::vector<Vector<DIM>>& referenceCentroids,
-					   std::vector<SbvhFlatNode<DIM>>& buildNodes,
+					   std::vector<SbvhNode<DIM>>& buildNodes,
 					   int parent, int start, int end, int depth,
 					   int& nTotalReferences);
 
@@ -128,12 +128,12 @@ protected:
 	// processes subtree for intersection
 	bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 									   bool checkOcclusion, bool countHits,
-									   SbvhTraversal *subtree, float *boxHits,
+									   BvhTraversal *subtree, float *boxHits,
 									   int& hits, int& nodesVisited) const;
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-									   std::deque<SbvhTraversal>& subtree, float *boxHits,
+									   std::deque<BvhTraversal>& subtree, float *boxHits,
 									   bool& notFound, int& nodesVisited) const;
 
 	// members
@@ -143,7 +143,7 @@ protected:
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes, rightBinBoxes;
 	std::vector<std::tuple<BoundingBox<DIM>, int, int>> bins;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
-	std::vector<SbvhFlatNode<DIM>> flatTree;
+	std::vector<SbvhNode<DIM>> flatTree;
 	std::vector<int> references, referencesToAdd;
 	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;

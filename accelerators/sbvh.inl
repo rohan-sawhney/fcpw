@@ -411,7 +411,7 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const
 template <int DIM>
 inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 									 std::vector<Vector<DIM>>& referenceCentroids,
-									 std::vector<SbvhFlatNode<DIM>>& buildNodes,
+									 std::vector<SbvhNode<DIM>>& buildNodes,
 									 int parent, int start, int end, int depth,
 									 int& nTotalReferences)
 {
@@ -420,7 +420,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	maxDepth = std::max(depth, maxDepth);
 
 	// add node to tree
-	SbvhFlatNode<DIM> node;
+	SbvhNode<DIM> node;
 	int currentNodeIndex = nNodes;
 	int nReferences = end - start;
 
@@ -522,7 +522,7 @@ inline void Sbvh<DIM>::build()
 	int nReferences = (int)primitives.size();
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
-	std::vector<SbvhFlatNode<DIM>> buildNodes;
+	std::vector<SbvhNode<DIM>> buildNodes;
 
 	memoryBudget = nReferences*2;
 	references.resize(memoryBudget, -1);
@@ -607,7 +607,7 @@ inline float Sbvh<DIM>::signedVolume() const
 template <int DIM>
 inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													 bool checkOcclusion, bool countHits,
-													 SbvhTraversal *subtree, float *boxHits,
+													 BvhTraversal *subtree, float *boxHits,
 													 int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
@@ -616,7 +616,7 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 		int nodeIndex = subtree[stackPtr].node;
 		float near = subtree[stackPtr].distance;
 		stackPtr--;
-		const SbvhFlatNode<DIM>& node(flatTree[nodeIndex]);
+		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		// if this node is further than the closest found intersection, continue
 		if (!countHits && near > r.tMax) continue;
@@ -720,7 +720,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	SbvhTraversal subtree[maxDepth + 1];
+	BvhTraversal subtree[maxDepth + 1];
 	float boxHits[4];
 
 	// push the start node onto the working set and process its subtree if it intersects ray
@@ -764,17 +764,17 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 
 template <int DIM>
 inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													 std::deque<SbvhTraversal>& subtree, float *boxHits,
+													 std::deque<BvhTraversal>& subtree, float *boxHits,
 													 bool& notFound, int& nodesVisited) const
 {
 	while (!subtree.empty()) {
 		// pop off the next node to work on
-		SbvhTraversal traversal = subtree.front();
+		BvhTraversal traversal = subtree.front();
 		subtree.pop_front();
 
 		int nodeIndex = traversal.node;
 		float near = traversal.distance;
-		const SbvhFlatNode<DIM>& node(flatTree[nodeIndex]);
+		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
@@ -824,14 +824,14 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 				// check the farther-away node later...
 
 				// push the closer first, then the farther
-				subtree.emplace_back(SbvhTraversal(closer, boxHits[0]));
-				subtree.emplace_back(SbvhTraversal(other, boxHits[2]));
+				subtree.emplace_back(BvhTraversal(closer, boxHits[0]));
+				subtree.emplace_back(BvhTraversal(other, boxHits[2]));
 
 			} else if (hit0) {
-				subtree.emplace_back(SbvhTraversal(nodeIndex + 1, boxHits[0]));
+				subtree.emplace_back(BvhTraversal(nodeIndex + 1, boxHits[0]));
 
 			} else if (hit1) {
-				subtree.emplace_back(SbvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
+				subtree.emplace_back(BvhTraversal(nodeIndex + node.rightOffset, boxHits[2]));
 			}
 		}
 	}
@@ -848,13 +848,13 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	bool notFound = true;
-	std::deque<SbvhTraversal> subtree;
+	std::deque<BvhTraversal> subtree;
 	float boxHits[4];
 
 	// push the start node onto the working set
 	if (flatTree[nodeStartIndex].box.overlap(s, boxHits[0], boxHits[1])) {
 		s.r2 = std::min(s.r2, boxHits[1]);
-		subtree.emplace_back(SbvhTraversal(nodeStartIndex, boxHits[0]));
+		subtree.emplace_back(BvhTraversal(nodeStartIndex, boxHits[0]));
 	}
 
 	int nodeParentIndex = flatTree[nodeStartIndex].parent;
@@ -867,7 +867,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 		// push the sibling node onto the working set
 		if (flatTree[nodeSiblingIndex].box.overlap(s, boxHits[2], boxHits[3])) {
 			s.r2 = std::min(s.r2, boxHits[3]);
-			subtree.emplace_back(SbvhTraversal(nodeSiblingIndex, boxHits[2]));
+			subtree.emplace_back(BvhTraversal(nodeSiblingIndex, boxHits[2]));
 		}
 
 		// update the start node index to its parent index

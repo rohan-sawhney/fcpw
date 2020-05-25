@@ -10,7 +10,7 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	PROFILE_SCOPED();
 #endif
 
-	const SbvhFlatNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+	const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 	maxDepth = std::max(depth, maxDepth);
 
 	// create mbvh node
@@ -41,7 +41,7 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 			int level = stackSbvhNodes[stackPtr].second;
 			stackPtr--;
 
-			const SbvhFlatNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+			const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 			if (level < maxLevel && sbvhNode.rightOffset != 0) {
 				// enqueue sbvh children nodes till max level or leaf node is reached
 				stackPtr++;
@@ -223,6 +223,16 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	PROFILE_SCOPED();
 #endif
 
+	// push root
+	// while stack on empty
+	// - dequeue node
+	// - continue if near > d
+	// - if leaf node
+	// -- process primitives
+	// - else
+	// -- overlap boxes
+	// -- enqueue
+
 	// TODO
 	return 0;
 }
@@ -234,6 +244,16 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
+
+	// push root
+	// while stack on empty
+	// - dequeue node
+	// - continue if near > d
+	// - if leaf node
+	// -- process primitives
+	// - else
+	// -- overlap boxes
+	// -- enqueue
 
 	// TODO
 	return false;
