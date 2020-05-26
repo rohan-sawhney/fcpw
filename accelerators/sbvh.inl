@@ -616,10 +616,10 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 		int nodeIndex = subtree[stackPtr].node;
 		float near = subtree[stackPtr].distance;
 		stackPtr--;
-		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		// if this node is further than the closest found intersection, continue
 		if (!countHits && near > r.tMax) continue;
+		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 		nodesVisited++;
 
 		// is leaf -> intersect
@@ -774,10 +774,10 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 
 		int nodeIndex = traversal.node;
 		float near = traversal.distance;
-		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
+		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 		nodesVisited++;
 
 		// is leaf -> compute squared distance
