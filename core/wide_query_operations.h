@@ -45,10 +45,6 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>
 										  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
 										  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// vectorized Möller–Trumbore intersection algorithm
 	Vector3P<WIDTH> v1 = pb - pa;
 	Vector3P<WIDTH> v2 = pc - pa;
@@ -81,10 +77,6 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3& x, const Vector
 												  Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t,
 												  IntP<WIDTH>& vIndex, IntP<WIDTH>& eIndex)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// check if x in vertex region outside pa
 	Vector3P<WIDTH> ab = pb - pa;
 	Vector3P<WIDTH> ac = pc - pa;

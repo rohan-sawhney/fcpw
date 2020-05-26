@@ -85,18 +85,18 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 
 	leafNode.resize(3);
 
-	for (int i = 0; i < WIDTH; i++) {
-		if (node.child[i] != maxInt) {
-			int index = -node.child[i] - 1;
+	for (int w = 0; w < WIDTH; w++) {
+		if (node.child[w] != maxInt) {
+			int index = -node.child[w] - 1;
 			const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
 			const Vector3& pa = triangle->soup->positions[triangle->indices[0]];
 			const Vector3& pb = triangle->soup->positions[triangle->indices[1]];
 			const Vector3& pc = triangle->soup->positions[triangle->indices[2]];
 
-			for (int j = 0; j < DIM; j++) {
-				leafNode[0][j][i] = pa[j];
-				leafNode[1][j][i] = pb[j];
-				leafNode[2][j][i] = pc[j];
+			for (int i = 0; i < DIM; i++) {
+				leafNode[0][i][w] = pa[i];
+				leafNode[1][i][w] = pb[i];
+				leafNode[2][i][w] = pc[i];
 			}
 		}
 	}
@@ -251,6 +251,52 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 }
 
 template <int WIDTH, int DIM>
+inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+													   BoundingSphere<DIM>& s, Interaction<DIM>& i) const
+{
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
+	// perform vectorized closest point query
+	Vector3P<WIDTH> pt;
+	Vector2P<WIDTH> t;
+	IntP<WIDTH> vIndex, eIndex;
+	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
+	FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(s.c, leafNode[0], leafNode[1],
+													leafNode[2], pt, t, vIndex, eIndex);
+	FloatP<WIDTH> d2 = d*d;
+
+	// update interaction with the closest seen primitive
+	int W = maxInt;
+	for (int w = 0; w < WIDTH; w++) {
+		if (node.child[w] != maxInt && d2[w] <= s.r2) {
+			s.r2 = d2[w];
+			W = w;
+		}
+	}
+
+	// update interaction
+	if (W != maxInt) {
+		int index = -node.child[W] - 1;
+		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
+		i.d = d[W];
+		i.p[0] = pt[0][W];
+		i.p[1] = pt[1][W];
+		i.p[2] = pt[2][W];
+		i.uv[0] = t[0][W];
+		i.uv[1] = t[1][W];
+		i.n = triangle->normal(vIndex[W], eIndex[W]);
+		i.nodeIndex = nodeIndex;
+		i.primitive = triangle;
+
+		return true;
+	}
+
+	return false;
+}
+
+template <int WIDTH, int DIM>
 inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													   int nodeStartIndex, int& nodesVisited) const
 {
@@ -262,18 +308,73 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	bool notFound = true;
 	std::deque<BvhTraversal> subtree;
+	FloatP<WIDTH> d2Min, d2Max;
 
-	// TODO:
-	// push root
-	// while stack on empty
-	// - dequeue node
-	// - continue if near > d
-	// - if leaf node
-	// -- process primitives
-	// - else
-	// -- overlap boxes
-	// -- sort boxes
-	// -- enqueue
+	// push root node
+	subtree.emplace_back(BvhTraversal(0, minFloat));
+
+	while (!subtree.empty()) {
+		// pop off the next node to work on
+		BvhTraversal traversal = subtree.front();
+		subtree.pop_front();
+
+		int nodeIndex = traversal.node;
+		float near = traversal.distance;
+
+		// if this node is further than the closest found primitive, continue
+		if (near > s.r2) continue;
+		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
+
+		if (isLeafNode(node)) {
+			if (primitiveType > 0) {
+				// perform vectorized closest point query to triangle
+				if (findClosestPointTriangle(node, nodeIndex, s, i)) notFound = false;
+				nodesVisited += WIDTH;
+
+			} else {
+				// primitive type does not support vectorized closest point query,
+				// perform query to each primitive one by one
+				for (int w = 0; w < WIDTH; w++) {
+					if (node.child[w] != maxInt) {
+						int index = -node.child[w] - 1;
+						const std::shared_ptr<Primitive<DIM>>& prim = primitives[index];
+
+						if (prim.get() != i.primitive) {
+							Interaction<DIM> c;
+							bool found = prim->findClosestPoint(s, c);
+							nodesVisited++;
+
+							// keep the closest point only
+							if (found) {
+								notFound = false;
+								s.r2 = std::min(s.r2, c.d*c.d);
+								i = c;
+								i.nodeIndex = nodeIndex;
+							}
+						}
+					}
+				}
+			}
+
+		} else {
+			// overlap sphere with boxes
+			MaskP<WIDTH> mask = overlapWideBox<WIDTH, DIM>(s, node.boxMin,
+												node.boxMax, d2Min, d2Max);
+			s.r2 = std::min(s.r2, enoki::hmin(d2Max));
+
+			// TODO: sort node indices according to d2Min
+
+			// enqueue masked nodes
+			for (int w = 0; w < WIDTH; w++) {
+				int index = w;
+				if (node.child[index] != maxInt && mask[index]) {
+					subtree.emplace_back(BvhTraversal(node.child[index], d2Min[index]));
+				}
+			}
+
+			nodesVisited++;
+		}
+	}
 
 	return !notFound;
 }

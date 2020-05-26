@@ -61,6 +61,10 @@ protected:
 	// populates leaf nodes
 	void populateLeafNodes();
 
+	// performs vectorized closest point query to triangle
+	bool findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+								  BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
+
 	// members
 	int nNodes, nLeafs, maxDepth, maxLevel, primitiveType;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
