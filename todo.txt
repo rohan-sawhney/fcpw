@@ -1,6 +1,7 @@
 Priority:
 1. implement mbvh/qbvh
 ---- implement traversal with node sorting
+---- start search from specified node
 ---- set leafSize based on width in scene.inl, query width from enoki
 ---- pad mbvh node?
 ---- profile triangle closestPoint w.o. early exit

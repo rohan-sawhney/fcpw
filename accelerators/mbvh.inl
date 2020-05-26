@@ -19,12 +19,12 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 
 	nNodes++;
 	mbvhNode.parent = parent;
-	nodes.emplace_back(mbvhNode);
+	flatTree.emplace_back(mbvhNode);
 
 	if (sbvhNode.rightOffset == 0) {
 		// sbvh node is a leaf node; assign mbvh node its reference indices
 		for (int p = 0; p < sbvhNode.nReferences; p++) {
-			nodes[mbvhNodeIndex].child[p] = -(references[sbvhNode.start + p] + 1);
+			flatTree[mbvhNodeIndex].child[p] = -(references[sbvhNode.start + p] + 1);
 		}
 
 		nLeafs++;
@@ -55,12 +55,12 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 			} else {
 				// assign mbvh node this sbvh node's bounding box and index
 				for (int i = 0; i < DIM; i++) {
-					nodes[mbvhNodeIndex].boxMin[i][nNodesCollapsed] = sbvhNode.box.pMin[i];
-					nodes[mbvhNodeIndex].boxMax[i][nNodesCollapsed] = sbvhNode.box.pMax[i];
+					flatTree[mbvhNodeIndex].boxMin[i][nNodesCollapsed] = sbvhNode.box.pMin[i];
+					flatTree[mbvhNodeIndex].boxMax[i][nNodesCollapsed] = sbvhNode.box.pMax[i];
 				}
 
-				nodes[mbvhNodeIndex].child[nNodesCollapsed] = collapseSbvh(sbvh,
-										sbvhNodeIndex, mbvhNodeIndex, depth + 1);
+				flatTree[mbvhNodeIndex].child[nNodesCollapsed] = collapseSbvh(sbvh,
+											sbvhNodeIndex, mbvhNodeIndex, depth + 1);
 				nNodesCollapsed++;
 			}
 		}
@@ -124,10 +124,10 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 		leafNodes.resize(nLeafs);
 
 		for (int i = 0; i < nNodes; i++) {
-			MbvhNode<WIDTH, DIM>& node = nodes[i];
+			MbvhNode<WIDTH, DIM>& node = flatTree[i];
 
 			if (isLeafNode(node)) {
-				populateLeafNode(nodes[i], leafNodes[leafIndex]);
+				populateLeafNode(node, leafNodes[leafIndex]);
 				node.leafIndex = leafIndex++;
 			}
 		}
@@ -172,10 +172,10 @@ template <int WIDTH, int DIM>
 inline BoundingBox<DIM> Mbvh<WIDTH, DIM>::boundingBox() const
 {
 	BoundingBox<DIM> box;
-	if (nodes.size() == 0) return box;
+	if (flatTree.size() == 0) return box;
 
-	box.pMin = enoki::hmin_inner(nodes[0].boxMin);
-	box.pMax = enoki::hmax_inner(nodes[0].boxMax);
+	box.pMin = enoki::hmin_inner(flatTree[0].boxMin);
+	box.pMax = enoki::hmax_inner(flatTree[0].boxMax);
 	return box;
 }
 
@@ -237,7 +237,8 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	// - if leaf node
 	// -- process primitives
 	// - else
-	// -- overlap boxes
+	// -- intersect boxes
+	// -- sort boxes
 	// -- enqueue
 
 	if (countHits) {
@@ -271,6 +272,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	// -- process primitives
 	// - else
 	// -- overlap boxes
+	// -- sort boxes
 	// -- enqueue
 
 	return !notFound;

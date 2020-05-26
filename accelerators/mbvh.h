@@ -64,7 +64,7 @@ protected:
 	// members
 	int nNodes, nLeafs, maxDepth, maxLevel, primitiveType;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
-	std::vector<MbvhNode<WIDTH, DIM>> nodes;
+	std::vector<MbvhNode<WIDTH, DIM>> flatTree;
 	std::vector<std::vector<VectorP<WIDTH, DIM>>> leafNodes;
 	std::vector<std::pair<int, int>> stackSbvhNodes;
 	std::vector<int> references;
