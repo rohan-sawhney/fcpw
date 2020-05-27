@@ -291,6 +291,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	PROFILE_SCOPED();
 #endif
 
+	// TODO: start from nodeStartIndex
 	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
@@ -447,6 +448,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	PROFILE_SCOPED();
 #endif
 
+	// TODO: start from nodeStartIndex
 	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	bool notFound = true;
