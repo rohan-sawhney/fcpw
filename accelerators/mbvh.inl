@@ -215,6 +215,74 @@ inline float Mbvh<WIDTH, DIM>::signedVolume() const
 }
 
 template <int WIDTH, int DIM>
+inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+											   Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+											   bool countHits) const
+{
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
+	// perform vectorized intersection query
+	FloatP<WIDTH> d;
+	Vector3P<WIDTH> pt;
+	Vector2P<WIDTH> t;
+	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
+	MaskP<WIDTH> mask = intersectWideTriangle<WIDTH, DIM>(r, leafNode[0], leafNode[1],
+														  leafNode[2], d, pt, t);
+
+	int hits = 0;
+	if (countHits) {
+		// record all interactions
+		for (int w = 0; w < WIDTH; w++) {
+			if (node.child[w] != maxInt && mask[w]) {
+				int index = -node.child[w] - 1;
+				const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
+				auto it = is.emplace(is.end(), Interaction<DIM>());
+				it->d = d[w];
+				it->p[0] = pt[0][w];
+				it->p[1] = pt[1][w];
+				it->p[2] = pt[2][w];
+				it->uv[0] = t[0][w];
+				it->uv[1] = t[1][w];
+				it->n = triangle->normal(true);
+				it->nodeIndex = nodeIndex;
+				it->primitive = triangle;
+				hits++;
+			}
+		}
+
+	} else {
+		// determine closest primitive
+		int W = maxInt;
+		for (int w = 0; w < WIDTH; w++) {
+			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
+				r.tMax = d[w];
+				W = w;
+			}
+		}
+
+		// update interaction
+		if (W != maxInt) {
+			int index = -node.child[W] - 1;
+			const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
+			is[0].d = d[W];
+			is[0].p[0] = pt[0][W];
+			is[0].p[1] = pt[1][W];
+			is[0].p[2] = pt[2][W];
+			is[0].uv[0] = t[0][W];
+			is[0].uv[1] = t[1][W];
+			is[0].n = triangle->normal(true);
+			is[0].nodeIndex = nodeIndex;
+			is[0].primitive = triangle;
+			hits = 1;
+		}
+	}
+
+	return hits;
+}
+
+template <int WIDTH, int DIM>
 inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											   int nodeStartIndex, int& nodesVisited,
 											   bool checkOcclusion, bool countHits) const
@@ -228,18 +296,93 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	int hits = 0;
 	if (!countHits) is.resize(1);
 	BvhTraversal subtree[maxDepth + 1];
+	FloatP<WIDTH> tMin, tMax;
 
-	// TODO:
-	// push root
-	// while stack on empty
-	// - dequeue node
-	// - continue if near > d
-	// - if leaf node
-	// -- process primitives
-	// - else
-	// -- intersect boxes
-	// -- sort boxes
-	// -- enqueue
+	// push root node
+	subtree[0].node = 0;
+	subtree[0].distance = minFloat;
+	int stackPtr = 0;
+
+	while (stackPtr >= 0) {
+		// pop off the next node to work on
+		int nodeIndex = subtree[stackPtr].node;
+		float near = subtree[stackPtr].distance;
+		stackPtr--;
+
+		// if this node is further than the closest found intersection, continue
+		if (!countHits && near > r.tMax) continue;
+		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
+
+		if (isLeafNode(node)) {
+			if (primitiveType > 0) {
+				// perform vectorized intersection query
+				hits += intersectTriangle(node, nodeIndex, r, is, countHits);
+				nodesVisited += WIDTH;
+				if (hits > 0 && checkOcclusion) return 1;
+
+			} else {
+				// primitive type does not support vectorized intersection query,
+				// perform query to each primitive one by one
+				for (int w = 0; w < WIDTH; w++) {
+					if (node.child[w] != maxInt) {
+						int index = -node.child[w] - 1;
+						const std::shared_ptr<Primitive<DIM>>& prim = primitives[index];
+
+						// check if primitive has already been seen
+						bool seenPrim = false;
+						int nInteractions = (int)is.size();
+						for (int sp = 0; sp < nInteractions; sp++) {
+							if (prim.get() == is[sp].primitive) {
+								seenPrim = true;
+								break;
+							}
+						}
+
+						if (!seenPrim) {
+							std::vector<Interaction<DIM>> cs;
+							int hit = prim->intersect(r, cs, checkOcclusion, countHits);
+							nodesVisited++;
+
+							// keep the closest intersection only
+							if (hit > 0) {
+								hits += hit;
+								if (countHits) {
+									is.insert(is.end(), cs.begin(), cs.end());
+									for (int sp = nInteractions; sp < (int)is.size(); sp++) {
+										is[sp].nodeIndex = nodeIndex;
+									}
+
+								} else {
+									r.tMax = std::min(r.tMax, cs[0].d);
+									is[0] = cs[0];
+									is[0].nodeIndex = nodeIndex;
+								}
+
+								if (checkOcclusion) return 1;
+							}
+						}
+					}
+				}
+			}
+
+		} else {
+			// intersect ray with boxes
+			MaskP<WIDTH> mask = intersectWideBox<WIDTH, DIM>(r, node.boxMin,
+													node.boxMax, tMin, tMax);
+
+			// enqueue masked nodes
+			for (int w = 0; w < WIDTH; w++) {
+				int index = w; // TODO: sort node indices according to tMin
+				if (node.child[index] != maxInt && mask[index]) {
+					stackPtr++;
+					subtree[stackPtr].node = node.child[index];
+					subtree[stackPtr].distance = tMin[index];
+				}
+			}
+
+			nodesVisited++;
+		}
+	}
 
 	if (countHits) {
 		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
@@ -267,7 +410,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 													leafNode[2], pt, t, vIndex, eIndex);
 	FloatP<WIDTH> d2 = d*d;
 
-	// update interaction with the closest seen primitive
+	// determine closest primitive
 	int W = maxInt;
 	for (int w = 0; w < WIDTH; w++) {
 		if (node.child[w] != maxInt && d2[w] <= s.r2) {
@@ -362,11 +505,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 												node.boxMax, d2Min, d2Max);
 			s.r2 = std::min(s.r2, enoki::hmin(d2Max));
 
-			// TODO: sort node indices according to d2Min
-
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
-				int index = w;
+				int index = w; // TODO: sort node indices according to d2Min
 				if (node.child[index] != maxInt && mask[index]) {
 					subtree.emplace_back(BvhTraversal(node.child[index], d2Min[index]));
 				}
