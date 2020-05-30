@@ -228,8 +228,8 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	Vector3P<WIDTH> pt;
 	Vector2P<WIDTH> t;
 	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
-	MaskP<WIDTH> mask = intersectWideTriangle<WIDTH, DIM>(r, leafNode[0], leafNode[1],
-														  leafNode[2], d, pt, t);
+	MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(r, leafNode[0], leafNode[1],
+													 leafNode[2], d, pt, t);
 
 	int hits = 0;
 	if (countHits) {
