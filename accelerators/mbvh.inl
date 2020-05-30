@@ -296,22 +296,22 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	BvhTraversal subtree[maxDepth + 1];
+	std::deque<BvhTraversal> subtree;
 	FloatP<WIDTH> tMin, tMax;
 	enoki::Array<int, WIDTH> sequence = enoki::arange<enoki::Array<int, WIDTH>>();
-	auto comparator = [&tMin](const int& a, const int& b) { return tMin[a] < tMin[b]; };
+	auto comparator = [&tMin](const int& a, const int& b) { return tMin[a] > tMin[b]; };
 	int order[WIDTH] = {0};
 
 	// push root node
-	subtree[0].node = 0;
-	subtree[0].distance = minFloat;
-	int stackPtr = 0;
+	subtree.emplace_back(BvhTraversal(0, minFloat));
 
-	while (stackPtr >= 0) {
+	while (!subtree.empty()) {
 		// pop off the next node to work on
-		int nodeIndex = subtree[stackPtr].node;
-		float near = subtree[stackPtr].distance;
-		stackPtr--;
+		BvhTraversal traversal = subtree.back();
+		subtree.pop_back();
+
+		int nodeIndex = traversal.node;
+		float near = traversal.distance;
 
 		// if this node is further than the closest found intersection, continue
 		if (!countHits && near > r.tMax) continue;
@@ -381,10 +381,9 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
 				int index = order[w];
+
 				if (node.child[index] != maxInt && mask[index]) {
-					stackPtr++;
-					subtree[stackPtr].node = node.child[index];
-					subtree[stackPtr].distance = tMin[index];
+					subtree.emplace_back(BvhTraversal(node.child[index], tMin[index]));
 				}
 			}
 
@@ -515,7 +514,6 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			// overlap sphere with boxes
 			MaskP<WIDTH> mask = overlapWideBox<WIDTH, DIM>(s, node.boxMin,
 												node.boxMax, d2Min, d2Max);
-			s.r2 = std::min(s.r2, enoki::hmin(d2Max));
 
 			// generate ordering in increasing order of d2Min
 			enoki::scatter(order, sequence, sequence);
@@ -524,6 +522,8 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
 				int index = order[w];
+				s.r2 = std::min(s.r2, d2Max[w]);
+
 				if (node.child[index] != maxInt && mask[index]) {
 					subtree.emplace_back(BvhTraversal(node.child[index], d2Min[index]));
 				}

@@ -1,6 +1,5 @@
 Priority:
 1. implement mbvh/qbvh
----- implement traversal with node sorting
 ---- start search from specified node
 ---- set leafSize based on width in scene.inl, query width from enoki
 ---- profile triangle closestPoint w.o. early exit
@@ -10,12 +9,13 @@ Priority:
 ---- enable embree with enoki
 2. load geometry directly into scene without file IO
 3. add support for more geometries:
----- line segments (3d), beziers (3d), spheres
-4. option to ignore certain primitives
-5. more file formats (ply)
-6. benchmark
-7. travis CI
-8. README (tutorial, features, benchmark, compiling, logo)
+---- line segments (3d), beziers (3d), spheres + libfive
+4. exact distance to implicit
+5. option to ignore certain primitives
+6. more file formats (ply)
+7. benchmark
+8. travis CI
+9. README (tutorial, features, benchmark, compiling, logo)
 
 Optimizations and Features:
 1. vectorize + parallelize bvh construction
