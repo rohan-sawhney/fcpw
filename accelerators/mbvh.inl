@@ -298,6 +298,9 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	if (!countHits) is.resize(1);
 	BvhTraversal subtree[maxDepth + 1];
 	FloatP<WIDTH> tMin, tMax;
+	enoki::Array<int, WIDTH> sequence = enoki::arange<enoki::Array<int, WIDTH>>();
+	auto comparator = [&tMin](const int& a, const int& b) { return tMin[a] < tMin[b]; };
+	int order[WIDTH] = {0};
 
 	// push root node
 	subtree[0].node = 0;
@@ -318,7 +321,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			if (primitiveType > 0) {
 				// perform vectorized intersection query
 				hits += intersectTriangle(node, nodeIndex, r, is, countHits);
-				nodesVisited += WIDTH;
+				nodesVisited += 1;
 				if (hits > 0 && checkOcclusion) return 1;
 
 			} else {
@@ -371,9 +374,13 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			MaskP<WIDTH> mask = intersectWideBox<WIDTH, DIM>(r, node.boxMin,
 													node.boxMax, tMin, tMax);
 
+			// generate ordering in increasing order of d2Min
+			enoki::scatter(order, sequence, sequence);
+			std::sort(std::begin(order), std::end(order), comparator);
+
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
-				int index = w; // TODO: sort node indices according to tMin
+				int index = order[w];
 				if (node.child[index] != maxInt && mask[index]) {
 					stackPtr++;
 					subtree[stackPtr].node = node.child[index];
@@ -454,6 +461,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	bool notFound = true;
 	std::deque<BvhTraversal> subtree;
 	FloatP<WIDTH> d2Min, d2Max;
+	enoki::Array<int, WIDTH> sequence = enoki::arange<enoki::Array<int, WIDTH>>();
+	auto comparator = [&d2Min](const int& a, const int& b) { return d2Min[a] < d2Min[b]; };
+	int order[WIDTH] = {0};
 
 	// push root node
 	subtree.emplace_back(BvhTraversal(0, minFloat));
@@ -474,7 +484,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			if (primitiveType > 0) {
 				// perform vectorized closest point query to triangle
 				if (findClosestPointTriangle(node, nodeIndex, s, i)) notFound = false;
-				nodesVisited += WIDTH;
+				nodesVisited += 1;
 
 			} else {
 				// primitive type does not support vectorized closest point query,
@@ -507,9 +517,13 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 												node.boxMax, d2Min, d2Max);
 			s.r2 = std::min(s.r2, enoki::hmin(d2Max));
 
+			// generate ordering in increasing order of d2Min
+			enoki::scatter(order, sequence, sequence);
+			std::sort(std::begin(order), std::end(order), comparator);
+
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
-				int index = w; // TODO: sort node indices according to d2Min
+				int index = order[w];
 				if (node.child[index] != maxInt && mask[index]) {
 					subtree.emplace_back(BvhTraversal(node.child[index], d2Min[index]));
 				}
