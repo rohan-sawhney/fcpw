@@ -9,7 +9,7 @@ Priority:
 ---- enable embree with enoki
 2. load geometry directly into scene without file IO
 3. add support for more geometries:
----- line segments (3d), beziers (3d), spheres + libfive
+---- line segments (3d), beziers (3d), libfive
 4. exact distance to implicit
 5. option to ignore certain primitives
 6. more file formats (ply)
@@ -17,7 +17,7 @@ Priority:
 8. travis CI
 9. README (tutorial, features, benchmark, compiling, logo)
 
-Optimizations and Features:
+Future Optimizations & Features:
 1. vectorize + parallelize bvh construction
 2. support oriented bounding boxes/RSS
 3. traversal optimization for closest point queries:
@@ -31,7 +31,7 @@ Optimizations and Features:
 	  structure that stores pointers to nodes in the tree; unlike closest point queries,
 	  data structure(s) must store positions and directions
 5. add support for more geometries:
----- subdivision surfaces, implicits, nurbs
+---- subdivision surfaces, nurbs
 6. packet (coherent) queries
 ---- breadth first ray tracing
 7. refit bvh

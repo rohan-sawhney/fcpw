@@ -135,36 +135,50 @@ inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 }
 
 template <int DIM>
-inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType,
+inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType, bool vectorize,
 													 std::vector<std::shared_ptr<Primitive<DIM>>>& primitives)
 {
+	std::shared_ptr<Sbvh<DIM>> sbvh = nullptr;
+	int leafSize = 4;
+
+#ifdef BUILD_ENOKI
+	if (vectorize) leafSize = SIMD_WIDTH;
+#endif
+
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::LongestAxisCenter, 1.0f);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::LongestAxisCenter, 1.0f, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1.0f);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1.0f, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapSurfaceArea, 1.0f);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapSurfaceArea, 1.0f, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1.0f);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1.0f, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapVolume, 1.0f);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapVolume, 1.0f, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1e-5);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1e-5, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_Volume) {
-		return std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1e-5);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1e-5, leafSize);
+
+	} else {
+		return std::make_shared<Baseline<DIM>>(primitives);
 	}
 
-	return std::make_shared<Baseline<DIM>>(primitives);
+#ifdef BUILD_ENOKI
+	if (vectorize) return std::make_shared<Mbvh<SIMD_WIDTH, DIM>>(sbvh);
+#endif
+
+	return sbvh;
 }
 
 template <int DIM>
-inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
+inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool vectorize)
 {
 	// initialize instances and aggregate
 	aggregate = nullptr;
@@ -175,7 +189,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
 
 	for (int i = 0; i < nObjects; i++) {
-		objectAggregates[i] = makeAggregate<DIM>(aggregateType, objects[i]);
+		objectAggregates[i] = makeAggregate<DIM>(aggregateType, vectorize, objects[i]);
 	}
 
 	// build object instances
@@ -204,7 +218,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType)
 
 	} else {
 		// make aggregate
-		aggregate = makeAggregate<DIM>(aggregateType, objectInstances);
+		aggregate = makeAggregate<DIM>(aggregateType, vectorize, objectInstances);
 	}
 }
 

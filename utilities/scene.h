@@ -42,7 +42,7 @@ public:
 	void loadFiles(bool computeWeightedNormals=false);
 
 	// builds aggregate
-	void buildAggregate(const AggregateType& aggregateType);
+	void buildAggregate(const AggregateType& aggregateType, bool vectorize=false);
 
 #ifdef BENCHMARK_EMBREE
 	// builds embree aggregate
