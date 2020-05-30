@@ -2,7 +2,7 @@
 
 namespace fcpw {
 
-template <int DIM>
+template<int DIM>
 inline EmbreeBvh<DIM>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 								 const std::shared_ptr<PolygonSoup<DIM>>& soup_):
 Baseline<DIM>(primitives_),
@@ -11,37 +11,37 @@ soup(soup_)
 	LOG(INFO) << "EmbreeBvh<DIM>(): No embree support for dimension: " << DIM;
 }
 
-template <int DIM>
+template<int DIM>
 inline EmbreeBvh<DIM>::~EmbreeBvh()
 {
 	// nothing to do
 }
 
-template <int DIM>
+template<int DIM>
 inline BoundingBox<DIM> EmbreeBvh<DIM>::boundingBox() const
 {
 	return Baseline<DIM>::boundingBox();
 }
 
-template <int DIM>
+template<int DIM>
 inline Vector<DIM> EmbreeBvh<DIM>::centroid() const
 {
 	return Baseline<DIM>::centroid();
 }
 
-template <int DIM>
+template<int DIM>
 inline float EmbreeBvh<DIM>::surfaceArea() const
 {
 	return Baseline<DIM>::surfaceArea();
 }
 
-template <int DIM>
+template<int DIM>
 inline float EmbreeBvh<DIM>::signedVolume() const
 {
 	return Baseline<DIM>::signedVolume();
 }
 
-template <int DIM>
+template<int DIM>
 inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											 int nodeStartIndex, int& nodesVisited,
 											 bool checkOcclusion, bool countHits) const
@@ -50,7 +50,7 @@ inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interactio
 											checkOcclusion, countHits);
 }
 
-template <int DIM>
+template<int DIM>
 inline bool EmbreeBvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													 int nodeStartIndex, int& nodesVisited) const
 {
@@ -210,7 +210,7 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 	return false;
 }
 
-template <>
+template<>
 inline EmbreeBvh<3>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<3>>>& primitives_,
 							   const std::shared_ptr<PolygonSoup<3>>& soup_):
 Baseline<3>(primitives_),
@@ -277,38 +277,38 @@ soup(soup_)
 			  << timeSpan.count() << " seconds" << std::endl;
 }
 
-template <>
+template<>
 inline EmbreeBvh<3>::~EmbreeBvh()
 {
 	rtcReleaseScene(scene);
 	rtcReleaseDevice(device);
 }
 
-template <>
+template<>
 inline BoundingBox<3> EmbreeBvh<3>::boundingBox() const
 {
 	return Baseline<3>::boundingBox();
 }
 
-template <>
+template<>
 inline Vector3 EmbreeBvh<3>::centroid() const
 {
 	return Baseline<3>::centroid();
 }
 
-template <>
+template<>
 inline float EmbreeBvh<3>::surfaceArea() const
 {
 	return Baseline<3>::surfaceArea();
 }
 
-template <>
+template<>
 inline float EmbreeBvh<3>::signedVolume() const
 {
 	return Baseline<3>::signedVolume();
 }
 
-template <>
+template<>
 inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
 										   int nodeStartIndex, int& nodesVisited,
 										   bool checkOcclusion, bool countHits) const
@@ -376,7 +376,7 @@ inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>
 	return hits;
 }
 
-template <>
+template<>
 inline bool EmbreeBvh<3>::findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
 												   int nodeStartIndex, int& nodesVisited) const
 {

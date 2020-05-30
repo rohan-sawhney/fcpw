@@ -2,7 +2,7 @@
 
 namespace fcpw {
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
 										  int sbvhNodeIndex, int parent, int depth)
 {
@@ -69,13 +69,13 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	return mbvhNodeIndex;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline bool Mbvh<WIDTH, DIM>::isLeafNode(const MbvhNode<WIDTH, DIM>& node) const
 {
 	return node.child[0] < 0;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 											   std::vector<VectorP<WIDTH, DIM>>& leafNode)
 {
@@ -88,7 +88,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 	for (int w = 0; w < WIDTH; w++) {
 		if (node.child[w] != maxInt) {
 			int index = -node.child[w] - 1;
-			const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
+			const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
 			const Vector3& pa = triangle->soup->positions[triangle->indices[0]];
 			const Vector3& pb = triangle->soup->positions[triangle->indices[1]];
 			const Vector3& pc = triangle->soup->positions[triangle->indices[2]];
@@ -102,7 +102,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 	}
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 {
 	// check if primitive type is supported
@@ -134,7 +134,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 	}
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline Mbvh<WIDTH, DIM>::Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
 primitives(sbvh_->primitives),
 references(sbvh_->references),
@@ -168,7 +168,7 @@ primitiveType(0)
 			  << timeSpan.count() << " seconds" << std::endl;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline BoundingBox<DIM> Mbvh<WIDTH, DIM>::boundingBox() const
 {
 	BoundingBox<DIM> box;
@@ -179,7 +179,7 @@ inline BoundingBox<DIM> Mbvh<WIDTH, DIM>::boundingBox() const
 	return box;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline Vector<DIM> Mbvh<WIDTH, DIM>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
@@ -192,7 +192,7 @@ inline Vector<DIM> Mbvh<WIDTH, DIM>::centroid() const
 	return c/nPrimitives;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline float Mbvh<WIDTH, DIM>::surfaceArea() const
 {
 	float area = 0.0f;
@@ -203,7 +203,7 @@ inline float Mbvh<WIDTH, DIM>::surfaceArea() const
 	return area;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline float Mbvh<WIDTH, DIM>::signedVolume() const
 {
 	float volume = 0.0f;
@@ -214,7 +214,7 @@ inline float Mbvh<WIDTH, DIM>::signedVolume() const
 	return volume;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
 											   Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											   bool countHits) const
@@ -222,6 +222,8 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
+
+	// TODO: REQUIRES templateSPECIALIZATION
 
 	// perform vectorized intersection query
 	FloatP<WIDTH> d;
@@ -237,7 +239,7 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w]) {
 				int index = -node.child[w] - 1;
-				const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
+				const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
 				auto it = is.emplace(is.end(), Interaction<DIM>());
 				it->d = d[w];
 				it->p[0] = pt[0][w];
@@ -265,7 +267,7 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 		// update interaction
 		if (W != maxInt) {
 			int index = -node.child[W] - 1;
-			const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
+			const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
 			is[0].d = d[W];
 			is[0].p[0] = pt[0][W];
 			is[0].p[1] = pt[1][W];
@@ -282,7 +284,7 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	return hits;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											   int nodeStartIndex, int& nodesVisited,
 											   bool checkOcclusion, bool countHits) const
@@ -400,13 +402,15 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	return hits;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
 													   BoundingSphere<DIM>& s, Interaction<DIM>& i) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
+
+	// TODO: REQUIRES templateSPECIALIZATION
 
 	// perform vectorized closest point query
 	Vector3P<WIDTH> pt;
@@ -429,7 +433,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	// update interaction
 	if (W != maxInt) {
 		int index = -node.child[W] - 1;
-		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[index].get());
+		const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
 		i.d = d[W];
 		i.p[0] = pt[0][W];
 		i.p[1] = pt[1][W];
@@ -446,7 +450,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	return false;
 }
 
-template <int WIDTH, int DIM>
+template<int WIDTH, int DIM>
 inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													   int nodeStartIndex, int& nodesVisited) const
 {

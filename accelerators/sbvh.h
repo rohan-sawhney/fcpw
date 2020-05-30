@@ -16,7 +16,7 @@ enum class CostHeuristic {
 	OverlapVolume
 };
 
-template <int DIM>
+template<int DIM>
 struct SbvhNode {
 	// constructor
 	SbvhNode(): parent(-1), start(-1), nReferences(-1), rightOffset(-1) {}
@@ -36,7 +36,7 @@ struct BvhTraversal {
 	float distance; // minimum distance (parametric, squared, ...) to this node
 };
 
-template <int DIM>
+template<int DIM>
 class Sbvh: public Aggregate<DIM> {
 public:
 	// constructor
@@ -148,7 +148,7 @@ protected:
 	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
 
-	template <int U, int V>
+	template<int U, int V>
 	friend class Mbvh;
 };
 

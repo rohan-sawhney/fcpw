@@ -4,7 +4,7 @@
 
 namespace fcpw {
 
-template <int DIM>
+template<int DIM>
 struct BoundingSphere {
 	// constructor
 	BoundingSphere(const Vector<DIM>& c_, float r2_): c(c_), r2(r2_) {}
@@ -27,7 +27,7 @@ struct BoundingSphere {
 	float r2;
 };
 
-template <int DIM>
+template<int DIM>
 struct BoundingBox {
 	// constructor
 	BoundingBox(): pMin(constantVector<DIM>(maxFloat)),

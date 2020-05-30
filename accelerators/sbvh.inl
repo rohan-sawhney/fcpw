@@ -1,6 +1,6 @@
 namespace fcpw {
 
-template <int DIM>
+template<int DIM>
 inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 					   const CostHeuristic& costHeuristic_, float splitAlpha_,
 					   int leafSize_, int nBuckets_, int nBins_):
@@ -37,7 +37,7 @@ bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0))
 			  << timeSpan.count() << " seconds" << std::endl;
 }
 
-template <int DIM>
+template<int DIM>
 inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
 										 const BoundingBox<DIM>& boxRight,
 										 float parentSurfaceArea, float parentVolume,
@@ -70,7 +70,7 @@ inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
 	return cost;
 }
 
-template <int DIM>
+template<int DIM>
 inline void Sbvh<DIM>::computeUnsplittingCosts(const BoundingBox<DIM>& boxLeft,
 											   const BoundingBox<DIM>& boxRight,
 											   const BoundingBox<DIM>& boxReference,
@@ -107,7 +107,7 @@ inline void Sbvh<DIM>::computeUnsplittingCosts(const BoundingBox<DIM>& boxLeft,
 	}
 }
 
-template <int DIM>
+template<int DIM>
 inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
 										   const BoundingBox<DIM>& nodeCentroidBox,
 										   const std::vector<BoundingBox<DIM>>& referenceBoxes,
@@ -184,7 +184,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 	return splitCost;
 }
 
-template <int DIM>
+template<int DIM>
 inline int Sbvh<DIM>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
 										 std::vector<BoundingBox<DIM>>& referenceBoxes,
 										 std::vector<Vector<DIM>>& referenceCentroids)
@@ -207,7 +207,7 @@ inline int Sbvh<DIM>::performObjectSplit(int nodeStart, int nodeEnd, int splitDi
 	return mid;
 }
 
-template <int DIM>
+template<int DIM>
 inline void Sbvh<DIM>::splitPrimitive(const std::shared_ptr<Primitive<DIM>>& primitive, int dim,
 									  float splitCoord, const BoundingBox<DIM>& boxReference,
 									  BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight) const
@@ -220,7 +220,7 @@ inline void Sbvh<DIM>::splitPrimitive(const std::shared_ptr<Primitive<DIM>>& pri
 	boxRight = boxRight.intersect(boxReference);
 }
 
-template <int DIM>
+template<int DIM>
 inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
 											const std::vector<BoundingBox<DIM>>& referenceBoxes,
 											int nodeStart, int nodeEnd, int splitDim, float& splitCoord,
@@ -297,7 +297,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 	return splitCost;
 }
 
-template <int DIM>
+template<int DIM>
 inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const BoundingBox<DIM>& boxRight,
 										  int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
 										  int& nReferencesAdded, int& nTotalReferences,
@@ -408,7 +408,7 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const
 	return leftEnd;
 }
 
-template <int DIM>
+template<int DIM>
 inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 									 std::vector<Vector<DIM>>& referenceCentroids,
 									 std::vector<SbvhNode<DIM>>& buildNodes,
@@ -511,7 +511,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	return nTotalReferencesAdded;
 }
 
-template <int DIM>
+template<int DIM>
 inline void Sbvh<DIM>::build()
 {
 #ifdef PROFILE
@@ -563,13 +563,13 @@ inline void Sbvh<DIM>::build()
 	bins.clear();
 }
 
-template <int DIM>
+template<int DIM>
 inline BoundingBox<DIM> Sbvh<DIM>::boundingBox() const
 {
 	return flatTree.size() > 0 ? flatTree[0].box : BoundingBox<DIM>();
 }
 
-template <int DIM>
+template<int DIM>
 inline Vector<DIM> Sbvh<DIM>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
@@ -582,7 +582,7 @@ inline Vector<DIM> Sbvh<DIM>::centroid() const
 	return c/nPrimitives;
 }
 
-template <int DIM>
+template<int DIM>
 inline float Sbvh<DIM>::surfaceArea() const
 {
 	float area = 0.0f;
@@ -593,7 +593,7 @@ inline float Sbvh<DIM>::surfaceArea() const
 	return area;
 }
 
-template <int DIM>
+template<int DIM>
 inline float Sbvh<DIM>::signedVolume() const
 {
 	float volume = 0.0f;
@@ -604,7 +604,7 @@ inline float Sbvh<DIM>::signedVolume() const
 	return volume;
 }
 
-template <int DIM>
+template<int DIM>
 inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													 bool checkOcclusion, bool countHits,
 													 BvhTraversal *subtree, float *boxHits,
@@ -708,7 +708,7 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 	return false;
 }
 
-template <int DIM>
+template<int DIM>
 inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 										int nodeStartIndex, int& nodesVisited,
 										bool checkOcclusion, bool countHits) const
@@ -763,7 +763,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 	return hits;
 }
 
-template <int DIM>
+template<int DIM>
 inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													 std::deque<BvhTraversal>& subtree, float *boxHits,
 													 bool& notFound, int& nodesVisited) const
@@ -839,7 +839,7 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 	}
 }
 
-template <int DIM>
+template<int DIM>
 inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 												int nodeStartIndex, int& nodesVisited) const
 {

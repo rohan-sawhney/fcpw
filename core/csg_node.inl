@@ -1,6 +1,6 @@
 namespace fcpw {
 
-template <int DIM>
+template<int DIM>
 inline CsgNode<DIM>::CsgNode(const std::shared_ptr<Primitive<DIM>>& left_,
 							 const std::shared_ptr<Primitive<DIM>>& right_,
 							 const BooleanOperation& operation_):
@@ -16,7 +16,7 @@ operation(operation_)
 	computeBoundingBox();
 }
 
-template <int DIM>
+template<int DIM>
 inline void CsgNode<DIM>::computeBoundingBox()
 {
 	if (operation == BooleanOperation::Intersection) {
@@ -41,26 +41,26 @@ inline void CsgNode<DIM>::computeBoundingBox()
 	}
 }
 
-template <int DIM>
+template<int DIM>
 inline BoundingBox<DIM> CsgNode<DIM>::boundingBox() const
 {
 	return box;
 }
 
-template <int DIM>
+template<int DIM>
 inline Vector<DIM> CsgNode<DIM>::centroid() const
 {
 	return box.centroid();
 }
 
-template <int DIM>
+template<int DIM>
 inline float CsgNode<DIM>::surfaceArea() const
 {
 	// NOTE: this is an overestimate
 	return left->surfaceArea() + right->surfaceArea();
 }
 
-template <int DIM>
+template<int DIM>
 inline float CsgNode<DIM>::signedVolume() const
 {
 	// NOTE: these are overestimates
@@ -77,7 +77,7 @@ inline float CsgNode<DIM>::signedVolume() const
 	return std::min(boxVolume, left->signedVolume() + right->signedVolume());
 }
 
-template <int DIM>
+template<int DIM>
 inline void CsgNode<DIM>::computeInteractions(const std::vector<Interaction<DIM>>& isLeft,
 											  const std::vector<Interaction<DIM>>& isRight,
 											  std::vector<Interaction<DIM>>& is) const
@@ -127,7 +127,7 @@ inline void CsgNode<DIM>::computeInteractions(const std::vector<Interaction<DIM>
 	}
 }
 
-template <int DIM>
+template<int DIM>
 inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 										   int nodeStartIndex, int& nodesVisited,
 										   bool checkOcclusion, bool countHits) const
@@ -193,7 +193,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 	return hits;
 }
 
-template <int DIM>
+template<int DIM>
 inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 												   int nodeStartIndex, int& nodesVisited) const
 {

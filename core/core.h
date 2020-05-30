@@ -20,21 +20,21 @@
 
 namespace fcpw {
 
-template <int DIM>
+template<int DIM>
 struct Ray;
-template <int DIM>
+template<int DIM>
 struct BoundingSphere;
-template <int DIM>
+template<int DIM>
 struct BoundingBox;
-template <int DIM>
+template<int DIM>
 struct Interaction;
-template <int DIM>
+template<int DIM>
 class Primitive;
-template <int DIM>
+template<int DIM>
 class Aggregate;
-template <int DIM>
+template<int DIM>
 class TransformedAggregate;
-template <int DIM>
+template<int DIM>
 class CsgNode;
 
 static const float minFloat = std::numeric_limits<float>::lowest();
@@ -43,7 +43,7 @@ static const int minInt = std::numeric_limits<int>::min();
 static const int maxInt = std::numeric_limits<int>::max();
 static const float epsilon = std::numeric_limits<float>::epsilon();
 
-template <typename T, typename U, typename V>
+template<typename T, typename U, typename V>
 inline T clamp(T val, U low, V high) {
 	if (val < low) return low;
 	else if (val > high) return high;
@@ -63,7 +63,7 @@ inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)
 	return distribution(generator);
 }
 
-template <int DIM>
+template<int DIM>
 inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
 {
 	Vector<DIM> v;

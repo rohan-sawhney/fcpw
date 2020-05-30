@@ -9,7 +9,7 @@ enum class DistanceInfo {
 	Bounded
 };
 
-template <int DIM>
+template<int DIM>
 struct Interaction {
 	// constructor
 	Interaction(): d(maxFloat), sign(0), nodeIndex(-1), distanceInfo(DistanceInfo::Exact),
@@ -53,12 +53,12 @@ struct Interaction {
 	const Primitive<DIM> *primitive;
 };
 
-template <int DIM>
+template<int DIM>
 inline bool compareInteractions(const Interaction<DIM>& i, const Interaction<DIM>& j) {
 	return i.d < j.d;
 }
 
-template <int DIM>
+template<int DIM>
 inline std::vector<Interaction<DIM>> removeDuplicates(const std::vector<Interaction<DIM>>& is) {
 	int N = (int)is.size();
 	std::vector<bool> isDuplicate(N, false);

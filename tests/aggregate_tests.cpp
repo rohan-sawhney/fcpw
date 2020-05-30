@@ -25,7 +25,7 @@ static int nThreads = 8;
 // - write timings to file
 // - plot BVH scaling behavior with increasing mesh sizes
 
-template <int DIM>
+template<int DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,
 					   std::vector<BoundingBox<DIM>>& boxes, int depth)
 {
@@ -46,7 +46,7 @@ void splitBoxRecursive(BoundingBox<DIM> boundingBox,
 	}
 }
 
-template <int DIM>
+template<int DIM>
 void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 									std::vector<Vector<DIM>>& randomDirections,
 									const BoundingBox<DIM>& boundingBox)
@@ -76,7 +76,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 	randomDirections.resize(nQueries);
 }
 
-template <int DIM>
+template<int DIM>
 void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 							 const std::vector<Vector<DIM>>& rayOrigins,
 							 const std::vector<Vector<DIM>>& rayDirections,
@@ -132,7 +132,7 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 			  << std::endl;
 }
 
-template <int DIM>
+template<int DIM>
 void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 							 const std::vector<Vector<DIM>>& queryPoints,
 							 const std::vector<int>& indices,
@@ -192,7 +192,7 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 			  << std::endl;
 }
 
-template <int DIM>
+template<int DIM>
 void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
 							 const std::vector<Vector<DIM>>& rayOrigins,
@@ -258,7 +258,7 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 	pool.wait_until_nothing_in_flight();
 }
 
-template <int DIM>
+template<int DIM>
 void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
 							 const std::vector<Vector<DIM>>& queryPoints,
@@ -313,7 +313,7 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 	pool.wait_until_nothing_in_flight();
 }
 
-template <int DIM>
+template<int DIM>
 void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 						   const std::vector<Vector<DIM>>& queryPoints,
 						   std::vector<Vector<DIM>>& interiorPoints)
@@ -347,7 +347,7 @@ void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 	}
 }
 
-template <int DIM>
+template<int DIM>
 void visualizeScene(const Scene<DIM>& scene,
 					const std::vector<Vector<DIM>>& queryPoints,
 					const std::vector<Vector<DIM>>& randomDirections,
@@ -381,7 +381,7 @@ void visualizeScene(const Scene<DIM>& scene,
 	polyscope::show();
 }
 
-template <int DIM>
+template<int DIM>
 void run()
 {
 	// build baseline scene

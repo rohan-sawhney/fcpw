@@ -6,7 +6,7 @@
 
 namespace fcpw {
 
-template <int DIM>
+template<int DIM>
 class EmbreeBvh: public Baseline<DIM> {
 public:
 	// constructor
