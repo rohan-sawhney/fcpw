@@ -33,25 +33,25 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 		// sbvh node is an inner node, flatten it
 		int stackPtr = 0;
 		int nNodesCollapsed = 0;
-		std::vector<std::pair<int, int>> stackSbvhNodes(WIDTH, std::make_pair(-1, -1));
-		stackSbvhNodes[stackPtr].first = sbvhNodeIndex;
-		stackSbvhNodes[stackPtr].second = 0;
+		int stackSbvhNodes[WIDTH][2];
+		stackSbvhNodes[stackPtr][0] = sbvhNodeIndex;
+		stackSbvhNodes[stackPtr][1] = 0;
 
 		while (stackPtr >= 0) {
-			int sbvhNodeIndex = stackSbvhNodes[stackPtr].first;
-			int level = stackSbvhNodes[stackPtr].second;
+			int sbvhNodeIndex = stackSbvhNodes[stackPtr][0];
+			int level = stackSbvhNodes[stackPtr][1];
 			stackPtr--;
 
 			const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 			if (level < maxLevel && sbvhNode.rightOffset != 0) {
 				// enqueue sbvh children nodes till max level or leaf node is reached
 				stackPtr++;
-				stackSbvhNodes[stackPtr].first = sbvhNodeIndex + 1;
-				stackSbvhNodes[stackPtr].second = level + 1;
+				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + 1;
+				stackSbvhNodes[stackPtr][1] = level + 1;
 
 				stackPtr++;
-				stackSbvhNodes[stackPtr].first = sbvhNodeIndex + sbvhNode.rightOffset;
-				stackSbvhNodes[stackPtr].second = level + 1;
+				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + sbvhNode.rightOffset;
+				stackSbvhNodes[stackPtr][1] = level + 1;
 
 			} else {
 				// assign mbvh node this sbvh node's bounding box and index
@@ -373,7 +373,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			MaskP<WIDTH> mask = intersectWideBox<WIDTH, DIM>(r, node.boxMin,
 													node.boxMax, tMin, tMax);
 
-			// generate ordering in increasing order of d2Min
+			// generate ordering in decreasing order of tMin
 			enoki::scatter(order, sequence, sequence);
 			std::sort(std::begin(order), std::end(order), comparator);
 
