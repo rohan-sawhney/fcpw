@@ -331,7 +331,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			if (primitiveType > 0) {
 				// perform vectorized intersection query
 				hits += intersectTriangle(node, nodeIndex, r, is, countHits);
-				nodesVisited += 1;
+				nodesVisited++;
 				if (hits > 0 && checkOcclusion) return 1;
 
 			} else {
@@ -494,7 +494,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			if (primitiveType > 0) {
 				// perform vectorized closest point query to triangle
 				if (findClosestPointTriangle(node, nodeIndex, s, i)) notFound = false;
-				nodesVisited += 1;
+				nodesVisited++;
 
 			} else {
 				// primitive type does not support vectorized closest point query,
