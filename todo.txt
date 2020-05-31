@@ -6,8 +6,8 @@ Priority:
 ---- profile empty nodes & leaves
 ---- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- start search from specified node
----- enoki settings on ubuntu (geometry-box)
 ---- enable embree with enoki
+---- enoki settings on ubuntu (geometry-box)
 2. load geometry directly into scene without file IO
 3. add support for more geometries:
 ---- line segments (3d), beziers (3d), libfive

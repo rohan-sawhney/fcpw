@@ -222,15 +222,13 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	PROFILE_SCOPED();
 #endif
 
-	// TODO: REQUIRES TEMPLATE SPECIALIZATION
-
 	// perform vectorized intersection query
 	FloatP<WIDTH> d;
-	Vector3P<WIDTH> pt;
-	Vector2P<WIDTH> t;
+	VectorP<WIDTH, DIM> pt;
+	VectorP<WIDTH, DIM - 1> t;
 	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
-	MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(r, leafNode[0], leafNode[1],
-													 leafNode[2], d, pt, t);
+	MaskP<WIDTH> mask = intersectWideTriangle<WIDTH, DIM>(r, leafNode[0], leafNode[1],
+														  leafNode[2], d, pt, t);
 
 	int hits = 0;
 	if (countHits) {
@@ -402,22 +400,21 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 }
 
 template<int WIDTH, int DIM>
-inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
-													   BoundingSphere<DIM>& s, Interaction<DIM>& i) const
+inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node,
+													   int nodeIndex, BoundingSphere<DIM>& s,
+													   Interaction<DIM>& i) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
-	// TODO: REQUIRES TEMPLATE SPECIALIZATION
-
 	// perform vectorized closest point query
-	Vector3P<WIDTH> pt;
-	Vector2P<WIDTH> t;
+	VectorP<WIDTH, DIM> pt;
+	VectorP<WIDTH, DIM - 1> t;
 	IntP<WIDTH> vIndex(-1), eIndex(-1);
 	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
-	FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(s.c, leafNode[0], leafNode[1],
-													leafNode[2], pt, t, vIndex, eIndex);
+	FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH, DIM>(s.c, leafNode[0], leafNode[1],
+														leafNode[2], pt, t, vIndex, eIndex);
 	FloatP<WIDTH> d2 = d*d;
 
 	// determine closest primitive
