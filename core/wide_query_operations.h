@@ -109,31 +109,31 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 	enoki::masked(vIndex, active2) = 1;
 	if (enoki::all(active7)) return enoki::norm(x - pt);
 
-	// check if x in edge region of ab, if so return projection of x onto ab
-	FloatP<WIDTH> vc = d1*d4 - d3*d2;
-	MaskP<WIDTH> active3 = vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f;
-	active7 |= active3;
-
-	// barycentric coordinates (1 - v, v, 0)
-	FloatP<WIDTH> v = d1/(d1 - d3);
-	enoki::masked(pt, active3) = pa + ab*v;
-	enoki::masked(t[0], active3) = 1.0f - v;
-	enoki::masked(t[1], active3) = v;
-	enoki::masked(eIndex, active3) = 0;
-	if (enoki::all(active7)) return enoki::norm(x - pt);
-
 	// check if x in vertex region outside pc
 	VectorP<WIDTH, DIM> cx = x - pc;
 	FloatP<WIDTH> d5 = enoki::dot(ab, cx);
 	FloatP<WIDTH> d6 = enoki::dot(ac, cx);
-	MaskP<WIDTH> active4 = d6 >= 0.0f && d5 <= d6;
-	active7 |= active4;
+	MaskP<WIDTH> active3 = d6 >= 0.0f && d5 <= d6;
+	active7 |= active3;
 
 	// barycentric coordinates (0, 0, 1)
-	enoki::masked(pt, active4) = pc;
-	enoki::masked(t[0], active4) = 0.0f;
-	enoki::masked(t[1], active4) = 0.0f;
-	enoki::masked(vIndex, active4) = 2;
+	enoki::masked(pt, active3) = pc;
+	enoki::masked(t[0], active3) = 0.0f;
+	enoki::masked(t[1], active3) = 0.0f;
+	enoki::masked(vIndex, active3) = 2;
+	if (enoki::all(active7)) return enoki::norm(x - pt);
+
+	// check if x in edge region of ab, if so return projection of x onto ab
+	FloatP<WIDTH> vc = d1*d4 - d3*d2;
+	MaskP<WIDTH> active4 = vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f;
+	active7 |= active4;
+
+	// barycentric coordinates (1 - v, v, 0)
+	FloatP<WIDTH> v = d1/(d1 - d3);
+	enoki::masked(pt, active4) = pa + ab*v;
+	enoki::masked(t[0], active4) = 1.0f - v;
+	enoki::masked(t[1], active4) = v;
+	enoki::masked(eIndex, active4) = 0;
 	if (enoki::all(active7)) return enoki::norm(x - pt);
 
 	// check if x in edge region of ac, if so return projection of x onto ac
