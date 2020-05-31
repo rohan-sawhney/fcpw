@@ -1,10 +1,10 @@
 Priority:
 1. implement mbvh/qbvh
----- profile empty nodes & leaves
----- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- profile without sorting
 ---- profile triangle closestPoint w.o. early exit
 ---- pad mbvh node?
+---- profile empty nodes & leaves
+---- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- start search from specified node
 ---- enoki settings on ubuntu (geometry-box)
 ---- enable embree with enoki

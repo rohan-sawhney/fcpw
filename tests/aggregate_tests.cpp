@@ -420,15 +420,19 @@ void run()
 
 		// build bvh aggregates and benchmark queries
 		for (int bvh = 1; bvh < 8; bvh++) {
-			scene.buildAggregate(static_cast<AggregateType>(bvh));
-			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
-										 shuffledIndices, bvhTypes[bvh - 1]);
-			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
-										 indices, bvhTypes[bvh - 1], true);
-			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
-										 shuffledIndices, bvhTypes[bvh - 1]);
-			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
-										 indices, bvhTypes[bvh - 1], true);
+			for (int vec = 0; vec < 2; vec++) {
+				scene.buildAggregate(static_cast<AggregateType>(bvh), vec == 1);
+				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+											 shuffledIndices, bvhTypes[bvh - 1]);
+				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+											 indices, bvhTypes[bvh - 1], true);
+				timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+											 shuffledIndices, bvhTypes[bvh - 1]);
+				timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+											 indices, bvhTypes[bvh - 1], true);
+			}
+
+			std::cout << std::endl;
 		}
 
 #ifdef BENCHMARK_EMBREE
@@ -453,15 +457,20 @@ void run()
 
 		for (int bvh = 1; bvh < 8; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
-			bvhScene.buildAggregate(static_cast<AggregateType>(bvh));
-			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
-										 queryPoints, randomDirections, shuffledIndices);
-			testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
-										 queryPoints, randomDirections, indices, true);
-			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
-										 queryPoints, shuffledIndices);
-			testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
-										 queryPoints, indices, true);
+
+			for (int vec = 0; vec < 2; vec++) {
+				bvhScene.buildAggregate(static_cast<AggregateType>(bvh), vec == 1);
+				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+											 queryPoints, randomDirections, shuffledIndices);
+				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+											 queryPoints, randomDirections, indices, true);
+				testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+											 queryPoints, shuffledIndices);
+				testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+											 queryPoints, indices, true);
+			}
+
+			std::cout << std::endl;
 		}
 
 #ifdef BENCHMARK_EMBREE

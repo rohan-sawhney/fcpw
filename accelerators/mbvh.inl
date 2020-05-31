@@ -31,8 +31,9 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 
 	} else {
 		// sbvh node is an inner node, flatten it
-		int nNodesCollapsed = 0;
 		int stackPtr = 0;
+		int nNodesCollapsed = 0;
+		std::vector<std::pair<int, int>> stackSbvhNodes(WIDTH, std::make_pair(-1, -1));
 		stackSbvhNodes[stackPtr].first = sbvhNodeIndex;
 		stackSbvhNodes[stackPtr].second = 0;
 
@@ -138,7 +139,6 @@ template<int WIDTH, int DIM>
 inline Mbvh<WIDTH, DIM>::Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
 primitives(sbvh_->primitives),
 references(sbvh_->references),
-stackSbvhNodes(WIDTH, std::make_pair(-1, -1)),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
@@ -152,7 +152,6 @@ primitiveType(0)
 
 	// collapse sbvh
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
-	stackSbvhNodes.clear();
 
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
@@ -223,7 +222,7 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	PROFILE_SCOPED();
 #endif
 
-	// TODO: REQUIRES templateSPECIALIZATION
+	// TODO: REQUIRES TEMPLATE SPECIALIZATION
 
 	// perform vectorized intersection query
 	FloatP<WIDTH> d;
@@ -410,12 +409,12 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	PROFILE_SCOPED();
 #endif
 
-	// TODO: REQUIRES templateSPECIALIZATION
+	// TODO: REQUIRES TEMPLATE SPECIALIZATION
 
 	// perform vectorized closest point query
 	Vector3P<WIDTH> pt;
 	Vector2P<WIDTH> t;
-	IntP<WIDTH> vIndex, eIndex;
+	IntP<WIDTH> vIndex(-1), eIndex(-1);
 	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
 	FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(s.c, leafNode[0], leafNode[1],
 													leafNode[2], pt, t, vIndex, eIndex);
