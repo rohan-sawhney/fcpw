@@ -1,9 +1,6 @@
 Priority:
 1. implement mbvh/qbvh
----- profile without sorting
----- profile triangle closestPoint w.o. early exit
----- pad mbvh node?
----- profile empty nodes & leaves
+---- profile without sorting: sorting seems to add time
 ---- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- start search from specified node
 ---- enable embree with enoki
@@ -19,23 +16,24 @@ Priority:
 9. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
-1. vectorize + parallelize bvh construction
-2. support oriented bounding boxes/RSS
-3. traversal optimization for closest point queries:
+1. cache alignment - sbvh & mbvh node
+2. vectorize + parallelize bvh construction
+3. support oriented bounding boxes/RSS
+4. traversal optimization for closest point queries:
 ---- implement "queueless" closest point traversal
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
 	  structure that stores pointers to nodes in the tree; bvh populates spatial data
 	  structure while spatial data structure suggests which node to start queries from
-4. traversal optimization for intersections:
+5. traversal optimization for intersections:
 ---- implement "stackless" ray intersection traversal
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
 	  structure that stores pointers to nodes in the tree; unlike closest point queries,
 	  data structure(s) must store positions and directions
-5. add support for more geometries:
+6. add support for more geometries:
 ---- subdivision surfaces, nurbs
-6. packet (coherent) queries
+7. packet (coherent) queries
 ---- breadth first ray tracing
-7. refit bvh
+8. refit bvh
 
 Done:
 1. Closest point and ray intersections queries leveraging coherency between queries

@@ -156,10 +156,21 @@ primitiveType(0)
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
 
+	// compute empty nodes
+	int emptyNodes = 0;
+	for (int i = 0; i < nNodes; i++) {
+		for (int w = 0; w < WIDTH; w++) {
+			if (flatTree[i].child[w] == maxInt) {
+				emptyNodes++;
+			}
+		}
+	}
+
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 	std::cout << "Built " << WIDTH << "-bvh with "
 			  << nNodes << " nodes, "
+			  << (emptyNodes/nNodes) << " empty nodes, "
 			  << nLeafs << " leaves, "
 			  << maxDepth << " max depth, "
 			  << primitives.size() << " primitives, "
@@ -522,9 +533,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
 				int index = order[w];
-				s.r2 = std::min(s.r2, d2Max[w]);
 
 				if (node.child[index] != maxInt && mask[index]) {
+					s.r2 = std::min(s.r2, d2Max[index]);
 					subtree.emplace_back(BvhTraversal(node.child[index], d2Min[index]));
 				}
 			}
