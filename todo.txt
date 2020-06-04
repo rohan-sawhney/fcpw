@@ -1,22 +1,20 @@
 Priority:
 1. implement mbvh/qbvh
+---- enable embree with enoki
+---- enoki settings on ubuntu (geometry-box)
 ---- profile without sorting: sorting seems to add time
 ---- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- start search from specified node
----- enable embree with enoki
----- enoki settings on ubuntu (geometry-box)
-2. load geometry directly into scene without file IO
-3. add support for more geometries:
----- line segments (3d), beziers (3d), libfive
-4. exact distance to implicit
-5. option to ignore certain primitives
-6. more file formats (ply)
-7. benchmark
-8. travis CI
-9. README (tutorial, features, benchmark, compiling, logo)
+2. add support for more geometries:
+---- line segments (3d), sphere
+3. option to ignore certain primitives
+4. more file formats (ply)
+5. benchmark
+6. travis CI
+7. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
-1. cache alignment - sbvh & mbvh node
+1. cache alignment - sbvh & mbvh nodes
 2. vectorize + parallelize bvh construction
 3. support oriented bounding boxes/RSS
 4. traversal optimization for closest point queries:
@@ -30,7 +28,7 @@ Future Optimizations & Features:
 	  structure that stores pointers to nodes in the tree; unlike closest point queries,
 	  data structure(s) must store positions and directions
 6. add support for more geometries:
----- subdivision surfaces, nurbs
+---- beziers, libfive (+ exact distance to implicit), subdivision surfaces, nurbs
 7. packet (coherent) queries
 ---- breadth first ray tracing
 8. refit bvh

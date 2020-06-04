@@ -53,12 +53,12 @@ public:
 	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;
 	std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>> objects;
 	std::vector<std::vector<Transform<DIM>>> instanceTransforms;
+	std::unordered_map<int, CsgTreeNode> csgTree;
 	std::vector<ObjectType> objectTypes;
 	std::shared_ptr<Aggregate<DIM>> aggregate;
 
 private:
-	// members
-	std::unordered_map<int, CsgTreeNode> csgTree;
+	// member
 	std::vector<std::shared_ptr<Primitive<DIM>>> objectInstances;
 };
 
