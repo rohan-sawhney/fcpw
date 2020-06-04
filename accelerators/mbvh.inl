@@ -157,11 +157,13 @@ primitiveType(0)
 	populateLeafNodes();
 
 	// compute empty nodes
-	int emptyNodes = 0;
+	float nEmptyLeafs = 0;
 	for (int i = 0; i < nNodes; i++) {
-		for (int w = 0; w < WIDTH; w++) {
-			if (flatTree[i].child[w] == maxInt) {
-				emptyNodes++;
+		if (isLeafNode(flatTree[i])) {
+			for (int w = 0; w < WIDTH; w++) {
+				if (flatTree[i].child[w] == maxInt) {
+					nEmptyLeafs += 1;
+				}
 			}
 		}
 	}
@@ -170,7 +172,7 @@ primitiveType(0)
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 	std::cout << "Built " << WIDTH << "-bvh with "
 			  << nNodes << " nodes, "
-			  << (emptyNodes/nNodes) << " empty nodes, "
+			  << (nEmptyLeafs/nLeafs) << " empty leafs, "
 			  << nLeafs << " leaves, "
 			  << maxDepth << " max depth, "
 			  << primitives.size() << " primitives, "

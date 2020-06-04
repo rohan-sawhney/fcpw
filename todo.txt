@@ -1,7 +1,6 @@
 Priority:
 1. implement mbvh/qbvh
 ---- profile without sorting: sorting seems to add time
----- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- start search from specified node
 ---- enable embree with enoki
 ---- enoki settings on ubuntu (geometry-box)

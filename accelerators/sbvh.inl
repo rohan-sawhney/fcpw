@@ -3,7 +3,7 @@ namespace fcpw {
 template<int DIM>
 inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 					   const CostHeuristic& costHeuristic_, float splitAlpha_,
-					   int leafSize_, int nBuckets_, int nBins_):
+					   bool packLeaves_, int leafSize_, int nBuckets_, int nBins_):
 primitives(primitives_),
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),
@@ -11,6 +11,7 @@ rootSurfaceArea(0.0f),
 rootVolume(0.0f),
 nNodes(0),
 nLeafs(0),
+packLeaves(packLeaves_),
 leafSize(leafSize_),
 nBuckets(nBuckets_),
 nBins(nBins_),
@@ -44,6 +45,13 @@ inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
 										 int nReferencesLeft, int nReferencesRight) const
 {
 	float cost = maxFloat;
+
+#ifdef BUILD_ENOKI
+	if (packLeaves && nReferencesLeft%leafSize != 0 && nReferencesRight%leafSize != 0) {
+		return cost;
+	}
+#endif
+
 	if (costHeuristic == CostHeuristic::SurfaceArea) {
 		cost = (nReferencesLeft*boxLeft.surfaceArea() +
 				nReferencesRight*boxRight.surfaceArea())/parentSurfaceArea;
@@ -173,6 +181,9 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 				}
 			}
 		}
+
+		// set split dim to max dimension when packing leaves
+		if (packLeaves && splitDim == -1) splitDim = nodeCentroidBox.maxDimension();
 	}
 
 	// if no split dimension was chosen, fallback to LongestAxisCenter heuristic

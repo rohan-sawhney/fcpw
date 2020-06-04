@@ -42,7 +42,7 @@ public:
 	// constructor
 	Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 		 const CostHeuristic& costHeuristic_, float splitAlpha_,
-		 int leafSize_=4, int nBuckets_=8, int nBins_=8);
+		 bool packLeaves_=false, int leafSize_=4, int nBuckets_=8, int nBins_=8);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -147,6 +147,7 @@ protected:
 	std::vector<int> references, referencesToAdd;
 	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
+	bool packLeaves;
 
 	template<int U, int V>
 	friend class Mbvh;
