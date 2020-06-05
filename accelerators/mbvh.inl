@@ -157,11 +157,13 @@ primitiveType(0)
 	populateLeafNodes();
 
 	// compute empty nodes
-	int emptyNodes = 0;
+	float nEmptyLeafs = 0;
 	for (int i = 0; i < nNodes; i++) {
-		for (int w = 0; w < WIDTH; w++) {
-			if (flatTree[i].child[w] == maxInt) {
-				emptyNodes++;
+		if (isLeafNode(flatTree[i])) {
+			for (int w = 0; w < WIDTH; w++) {
+				if (flatTree[i].child[w] == maxInt) {
+					nEmptyLeafs += 1;
+				}
 			}
 		}
 	}
@@ -170,7 +172,7 @@ primitiveType(0)
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 	std::cout << "Built " << WIDTH << "-bvh with "
 			  << nNodes << " nodes, "
-			  << (emptyNodes/nNodes) << " empty nodes, "
+			  << (nEmptyLeafs/nLeafs) << " empty leafs, "
 			  << nLeafs << " leaves, "
 			  << maxDepth << " max depth, "
 			  << primitives.size() << " primitives, "
@@ -308,9 +310,6 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	if (!countHits) is.resize(1);
 	std::deque<BvhTraversal> subtree;
 	FloatP<WIDTH> tMin, tMax;
-	enoki::Array<int, WIDTH> sequence = enoki::arange<enoki::Array<int, WIDTH>>();
-	auto comparator = [&tMin](const int& a, const int& b) { return tMin[a] > tMin[b]; };
-	int order[WIDTH] = {0};
 
 	// push root node
 	subtree.emplace_back(BvhTraversal(0, minFloat));
@@ -384,16 +383,10 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			MaskP<WIDTH> mask = intersectWideBox<WIDTH, DIM>(r, node.boxMin,
 													node.boxMax, tMin, tMax);
 
-			// generate ordering in decreasing order of tMin
-			enoki::scatter(order, sequence, sequence);
-			std::sort(std::begin(order), std::end(order), comparator);
-
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
-				int index = order[w];
-
-				if (node.child[index] != maxInt && mask[index]) {
-					subtree.emplace_back(BvhTraversal(node.child[index], tMin[index]));
+				if (node.child[w] != maxInt && mask[w]) {
+					subtree.emplace_back(BvhTraversal(node.child[w], tMin[w]));
 				}
 			}
 
@@ -471,9 +464,6 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	bool notFound = true;
 	std::deque<BvhTraversal> subtree;
 	FloatP<WIDTH> d2Min, d2Max;
-	enoki::Array<int, WIDTH> sequence = enoki::arange<enoki::Array<int, WIDTH>>();
-	auto comparator = [&d2Min](const int& a, const int& b) { return d2Min[a] < d2Min[b]; };
-	int order[WIDTH] = {0};
 
 	// push root node
 	subtree.emplace_back(BvhTraversal(0, minFloat));
@@ -526,17 +516,11 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			MaskP<WIDTH> mask = overlapWideBox<WIDTH, DIM>(s, node.boxMin,
 												node.boxMax, d2Min, d2Max);
 
-			// generate ordering in increasing order of d2Min
-			enoki::scatter(order, sequence, sequence);
-			std::sort(std::begin(order), std::end(order), comparator);
-
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
-				int index = order[w];
-
-				if (node.child[index] != maxInt && mask[index]) {
-					s.r2 = std::min(s.r2, d2Max[index]);
-					subtree.emplace_back(BvhTraversal(node.child[index], d2Min[index]));
+				if (node.child[w] != maxInt && mask[w]) {
+					s.r2 = std::min(s.r2, d2Max[w]);
+					subtree.emplace_back(BvhTraversal(node.child[w], d2Min[w]));
 				}
 			}
 

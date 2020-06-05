@@ -42,7 +42,7 @@ public:
 	// constructor
 	Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 		 const CostHeuristic& costHeuristic_, float splitAlpha_,
-		 int leafSize_=4, int nBuckets_=8, int nBins_=8);
+		 bool packLeaves_=false, int leafSize_=4, int nBuckets_=8, int nBins_=8);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -72,7 +72,8 @@ protected:
 	float computeSplitCost(const BoundingBox<DIM>& boxLeft,
 						   const BoundingBox<DIM>& boxRight,
 						   float parentSurfaceArea, float parentVolume,
-						   int nReferencesLeft, int nReferencesRight) const;
+						   int nReferencesLeft, int nReferencesRight,
+						   int depth) const;
 
 	// computes unsplitting costs based on heuristic
 	void computeUnsplittingCosts(const BoundingBox<DIM>& boxLeft,
@@ -89,7 +90,7 @@ protected:
 							 const BoundingBox<DIM>& nodeCentroidBox,
 							 const std::vector<BoundingBox<DIM>>& referenceBoxes,
 							 const std::vector<Vector<DIM>>& referenceCentroids,
-							 int nodeStart, int nodeEnd, int& splitDim,
+							 int depth, int nodeStart, int nodeEnd, int& splitDim,
 							 float& splitCoord, BoundingBox<DIM>& boxIntersected);
 
 	// performs object split
@@ -105,8 +106,9 @@ protected:
 	// computes spatial split
 	float computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
 							  const std::vector<BoundingBox<DIM>>& referenceBoxes,
-							  int nodeStart, int nodeEnd, int splitDim, float& splitCoord,
-							  BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight);
+							  int depth, int nodeStart, int nodeEnd, int splitDim,
+							  float& splitCoord, BoundingBox<DIM>& boxLeft,
+							  BoundingBox<DIM>& boxRight);
 
 	// performs spatial split
 	int performSpatialSplit(const BoundingBox<DIM>& boxLeft, const BoundingBox<DIM>& boxRight,
@@ -139,7 +141,7 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	float splitAlpha, rootSurfaceArea, rootVolume;
-	int nNodes, nLeafs, leafSize, nBuckets, nBins, memoryBudget, maxDepth;
+	int nNodes, nLeafs, leafSize, nBuckets, nBins, memoryBudget, maxDepth, depthGuess;
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes, rightBinBoxes;
 	std::vector<std::tuple<BoundingBox<DIM>, int, int>> bins;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
@@ -147,6 +149,7 @@ protected:
 	std::vector<int> references, referencesToAdd;
 	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
+	bool packLeaves;
 
 	template<int U, int V>
 	friend class Mbvh;

@@ -140,31 +140,42 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 {
 	std::shared_ptr<Sbvh<DIM>> sbvh = nullptr;
 	int leafSize = 4;
+	bool packLeaves = false;
 
 #ifdef BUILD_ENOKI
-	if (vectorize) leafSize = SIMD_WIDTH;
+	if (vectorize) {
+		leafSize = SIMD_WIDTH;
+		packLeaves = true;
+	}
 #endif
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::LongestAxisCenter, 1.0f, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::LongestAxisCenter,
+										   1.0f, false, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1.0f, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea,
+										   1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapSurfaceArea, 1.0f, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapSurfaceArea,
+										   1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1.0f, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume,
+										   1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapVolume, 1.0f, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapVolume,
+										   1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea, 1e-5, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea,
+										   1e-5, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_Volume) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume, 1e-5, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume,
+										   1e-5, packLeaves, leafSize);
 
 	} else {
 		return std::make_shared<Baseline<DIM>>(primitives);

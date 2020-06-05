@@ -2,7 +2,6 @@ Priority:
 1. implement mbvh/qbvh
 ---- enoki settings on ubuntu (geometry-box)
 ---- profile without sorting: sorting seems to add time
----- modify cost to ensure most leaves contain #WIDTH primitives, no leaf should be empty
 ---- start search from specified node
 2. add support for more geometries:
 ---- line segments (3d), sphere
