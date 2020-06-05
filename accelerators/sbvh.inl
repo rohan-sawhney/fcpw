@@ -17,6 +17,7 @@ nBuckets(nBuckets_),
 nBins(nBins_),
 memoryBudget(0),
 maxDepth(0),
+depthGuess(std::log2(primitives_.size())),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBinBoxes(nBins, std::make_pair(BoundingBox<DIM>(), 0)),
@@ -42,12 +43,14 @@ template<int DIM>
 inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
 										 const BoundingBox<DIM>& boxRight,
 										 float parentSurfaceArea, float parentVolume,
-										 int nReferencesLeft, int nReferencesRight) const
+										 int nReferencesLeft, int nReferencesRight,
+										 int depth) const
 {
 	float cost = maxFloat;
 
 #ifdef BUILD_ENOKI
-	if (packLeaves && nReferencesLeft%leafSize != 0 && nReferencesRight%leafSize != 0) {
+	if (packLeaves && depth > 0 && (depthGuess/depth) < 2 &&
+		nReferencesLeft%leafSize != 0 && nReferencesRight%leafSize != 0) {
 		return cost;
 	}
 #endif
@@ -120,7 +123,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 										   const BoundingBox<DIM>& nodeCentroidBox,
 										   const std::vector<BoundingBox<DIM>>& referenceBoxes,
 										   const std::vector<Vector<DIM>>& referenceCentroids,
-										   int nodeStart, int nodeEnd, int& splitDim,
+										   int depth, int nodeStart, int nodeEnd, int& splitDim,
 										   float& splitCoord, BoundingBox<DIM>& boxIntersected)
 {
 	float splitCost = maxFloat;
@@ -169,8 +172,9 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 				nReferencesLeft += buckets[b - 1].second;
 
 				if (nReferencesLeft > 0 && rightBucketBoxes[b].second > 0) {
-					float cost = computeSplitCost(boxRefLeft, rightBucketBoxes[b].first, surfaceArea,
-												  volume, nReferencesLeft, rightBucketBoxes[b].second);
+					float cost = computeSplitCost(boxRefLeft, rightBucketBoxes[b].first,
+												  surfaceArea, volume, nReferencesLeft,
+												  rightBucketBoxes[b].second, depth);
 
 					if (cost < splitCost) {
 						splitCost = cost;
@@ -234,8 +238,9 @@ inline void Sbvh<DIM>::splitPrimitive(const std::shared_ptr<Primitive<DIM>>& pri
 template<int DIM>
 inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
 											const std::vector<BoundingBox<DIM>>& referenceBoxes,
-											int nodeStart, int nodeEnd, int splitDim, float& splitCoord,
-											BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight)
+											int depth, int nodeStart, int nodeEnd, int splitDim,
+											float& splitCoord, BoundingBox<DIM>& boxLeft,
+											BoundingBox<DIM>& boxRight)
 {
 	// find the best split along splitDim
 	float splitCost = maxFloat;
@@ -293,8 +298,9 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 		nReferencesLeft += std::get<1>(bins[b - 1]);
 
 		if (nReferencesLeft > 0 && rightBinBoxes[b].second > 0) {
-			float cost = computeSplitCost(boxRefLeft, rightBinBoxes[b].first, surfaceArea,
-										  volume, nReferencesLeft, rightBinBoxes[b].second);
+			float cost = computeSplitCost(boxRefLeft, rightBinBoxes[b].first,
+										  surfaceArea, volume, nReferencesLeft,
+										  rightBinBoxes[b].second, depth);
 
 			if (cost < splitCost) {
 				splitCost = cost;
@@ -479,7 +485,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	float splitCoord;
 	bool isObjectSplitBetter = true;
 	BoundingBox<DIM> boxLeft, boxRight, boxIntersected;
-	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
+	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids, depth,
 										 start, end, splitDim, splitCoord, boxIntersected);
 
 	// compute spatial split if intersected box is valid and not too small compared to the scene
@@ -489,8 +495,8 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 		 (costHeuristic == CostHeuristic::Volume &&
 		  boxIntersected.volume() > splitAlpha*rootVolume))) {
 		float spatialSplitCoord;
-		float spatialSplitCost = computeSpatialSplit(bb, referenceBoxes, start, end,
-													 splitDim, spatialSplitCoord,
+		float spatialSplitCost = computeSpatialSplit(bb, referenceBoxes, depth, start,
+													 end, splitDim, spatialSplitCoord,
 													 boxLeft, boxRight);
 
 		if (spatialSplitCost < splitCost) {
