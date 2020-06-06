@@ -375,7 +375,7 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 	for (int i = 0; i < E; i++) soup->eNormals[i] = unit<3>(soup->eNormals[i]);
 }
 
-std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename)
+std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -433,12 +433,12 @@ std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename)
 	return soup;
 }
 
-std::shared_ptr<PolygonSoup<3>> readFromOBJFile(const std::string& filename,
-												std::vector<std::shared_ptr<Primitive<3>>>& triangles,
-												bool computeWeightedNormals)
+std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename,
+								  std::vector<std::shared_ptr<Primitive<3>>>& triangles,
+								  bool computeWeightedNormals)
 {
 	// read soup and initialize triangles
-	std::shared_ptr<PolygonSoup<3>> soup = readFromOBJFile(filename);
+	std::shared_ptr<PolygonSoup<3>> soup = readTriangleSoupFromOBJFile(filename);
 	int N = (int)soup->indices.size();
 	soup->eIndices.resize(N); // entries will be set if vertex and edge normals are requested
 	triangles.clear();

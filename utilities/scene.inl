@@ -27,7 +27,7 @@ inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
 		objectType = ObjectType::Triangles;
-		return readFromOBJFile(filename, primitives, computeWeightedNormals);
+		return readTriangleSoupFromOBJFile(filename, primitives, computeWeightedNormals);
 	}
 
 	LOG(FATAL) << "readSoupFromFile<3>(): Invalid loading option";
