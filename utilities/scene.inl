@@ -25,7 +25,11 @@ inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
 			const std::string& filename, const LoadingOption& loadingOption, bool computeWeightedNormals,
 			std::vector<std::shared_ptr<Primitive<3>>>& primitives, ObjectType& objectType)
 {
-	if (loadingOption == LoadingOption::ObjTriangles) {
+	if (loadingOption == LoadingOption::ObjLineSegments) {
+		objectType = ObjectType::LineSegments;
+		return readLineSegmentSoupFromOBJFile(filename, primitives, computeWeightedNormals);
+
+	} else if (loadingOption == LoadingOption::ObjTriangles) {
 		objectType = ObjectType::Triangles;
 		return readTriangleSoupFromOBJFile(filename, primitives, computeWeightedNormals);
 	}
@@ -35,8 +39,7 @@ inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
 }
 
 template<int DIM>
-inline void loadInstanceTransforms(
-				std::vector<std::vector<Transform<DIM>>>& instanceTransforms)
+inline void loadInstanceTransforms(std::vector<std::vector<Transform<DIM>>>& instanceTransforms)
 {
 	// load file
 	std::ifstream in(instanceFilename);
@@ -106,8 +109,8 @@ inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 
 	// load soups and primitives
 	for (int i = 0; i < nFiles; i++) {
-		soups[i] = readSoupFromFile<DIM>(files[i].first, files[i].second,
-										 computeWeightedNormals, objects[i], objectTypes[i]);
+		soups[i] = readSoupFromFile<DIM>(files[i].first, files[i].second, computeWeightedNormals,
+										 objects[i], objectTypes[i]);
 	}
 
 	// load instance transforms
