@@ -8,9 +8,9 @@ namespace fcpw {
 Triangle::Triangle(const std::shared_ptr<PolygonSoup<3>>& soup_, int index_):
 Primitive<3>(),
 soup(soup_),
-indices(soup->indices[index_]),
-eIndices(soup->eIndices[index_]),
-tIndices(soup->tIndices[index_]),
+indices(soup_->indices[index_]),
+eIndices(soup_->eIndices[index_]),
+tIndices(soup_->tIndices[index_]),
 index(index_)
 {
 
@@ -312,9 +312,9 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 
 bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 {
-	#ifdef PROFILE
-		PROFILE_SCOPED();
-	#endif
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
 
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
