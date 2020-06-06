@@ -430,6 +430,10 @@ void run()
 											 shuffledIndices, bvhTypes[bvh - 1]);
 				timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
 											 indices, bvhTypes[bvh - 1], true);
+
+#ifndef BUILD_ENOKI
+				break;
+#endif
 			}
 
 			std::cout << std::endl;
@@ -468,6 +472,10 @@ void run()
 											 queryPoints, shuffledIndices);
 				testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
 											 queryPoints, indices, true);
+
+#ifndef BUILD_ENOKI
+				break;
+#endif
 			}
 
 			std::cout << std::endl;
