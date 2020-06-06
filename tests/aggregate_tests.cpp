@@ -64,7 +64,9 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 
 		for (int j = 0; j < nQueriesPerBox; j++) {
 			Vector<DIM> o = boxes[i].pMin + cwiseProduct<DIM>(e, uniformRealRandomVector<DIM>());
-			Vector<DIM> d = unit<DIM>(uniformRealRandomVector<DIM>(-1.0f, 1.0f));
+			Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f);
+			if (std::fabs(e[DIM - 1]) < epsilon) d[DIM - 1] = 0.0;
+			d = unit<DIM>(d);
 
 			scatteredPoints.emplace_back(o);
 			randomDirections.emplace_back(d);
