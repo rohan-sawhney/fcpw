@@ -161,6 +161,7 @@ int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 				it->d = t;
 				it->p = r(t);
 				it->uv[0] = s;
+				it->uv[1] = -1;
 				it->n = normal(true);
 				it->primitive = this;
 
@@ -221,6 +222,7 @@ bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) cons
 		i.d = d;
 		i.n = normal(vIndex);
 		i.primitive = this;
+		i.uv[1] = -1;
 
 		return true;
 	}

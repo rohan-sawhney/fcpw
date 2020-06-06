@@ -84,20 +84,41 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 	PROFILE_SCOPED();
 #endif
 
-	leafNode.resize(3);
+	if (primitiveType == 1) {
+		// populate leaf node with line segments
+		leafNode.resize(2);
 
-	for (int w = 0; w < WIDTH; w++) {
-		if (node.child[w] != maxInt) {
-			int index = -node.child[w] - 1;
-			const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
-			const Vector3& pa = triangle->soup->positions[triangle->indices[0]];
-			const Vector3& pb = triangle->soup->positions[triangle->indices[1]];
-			const Vector3& pc = triangle->soup->positions[triangle->indices[2]];
+		for (int w = 0; w < WIDTH; w++) {
+			if (node.child[w] != maxInt) {
+				int index = -node.child[w] - 1;
+				const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[index].get());
+				const Vector3& pa = lineSegment->soup->positions[lineSegment->indices[0]];
+				const Vector3& pb = lineSegment->soup->positions[lineSegment->indices[1]];
 
-			for (int i = 0; i < DIM; i++) {
-				leafNode[0][i][w] = pa[i];
-				leafNode[1][i][w] = pb[i];
-				leafNode[2][i][w] = pc[i];
+				for (int i = 0; i < DIM; i++) {
+					leafNode[0][i][w] = pa[i];
+					leafNode[1][i][w] = pb[i];
+				}
+			}
+		}
+
+	} else if (primitiveType == 2) {
+		// populate leaf node with triangles
+		leafNode.resize(3);
+
+		for (int w = 0; w < WIDTH; w++) {
+			if (node.child[w] != maxInt) {
+				int index = -node.child[w] - 1;
+				const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
+				const Vector3& pa = triangle->soup->positions[triangle->indices[0]];
+				const Vector3& pb = triangle->soup->positions[triangle->indices[1]];
+				const Vector3& pc = triangle->soup->positions[triangle->indices[2]];
+
+				for (int i = 0; i < DIM; i++) {
+					leafNode[0][i][w] = pa[i];
+					leafNode[1][i][w] = pb[i];
+					leafNode[2][i][w] = pc[i];
+				}
 			}
 		}
 	}
@@ -108,10 +129,16 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 {
 	// check if primitive type is supported
 	for (int p = 0; p < (int)primitives.size(); p++) {
+		const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[p].get());
 		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[p].get());
 
-		if (triangle) {
-			primitiveType = 1;
+		if (lineSegment) {
+			if (p > 0 && primitiveType != 1) primitiveType = 0;
+			else primitiveType = 1;
+
+		} else if (triangle) {
+			if (p > 0 && primitiveType != 2) primitiveType = 0;
+			else primitiveType = 2;
 
 		} else {
 			primitiveType = 0;
@@ -227,6 +254,74 @@ inline float Mbvh<WIDTH, DIM>::signedVolume() const
 }
 
 template<int WIDTH, int DIM>
+inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+												  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+												  bool countHits) const
+{
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
+	// perform vectorized intersection query
+	FloatP<WIDTH> d;
+	VectorP<WIDTH, DIM> pt;
+	FloatP<WIDTH> t;
+	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
+	MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH, DIM>(r, leafNode[0], leafNode[1],
+															 d, pt, t);
+
+	int hits = 0;
+	if (countHits) {
+		// record all interactions
+		for (int w = 0; w < WIDTH; w++) {
+			if (node.child[w] != maxInt && mask[w]) {
+				int index = -node.child[w] - 1;
+				const LineSegment *lineSegment = static_cast<const LineSegment *>(primitives[index].get());
+				auto it = is.emplace(is.end(), Interaction<DIM>());
+				it->d = d[w];
+				it->p[0] = pt[0][w];
+				it->p[1] = pt[1][w];
+				it->p[2] = pt[2][w];
+				it->uv[0] = t[w];
+				it->uv[1] = -1;
+				it->n = lineSegment->normal(true);
+				it->nodeIndex = nodeIndex;
+				it->primitive = lineSegment;
+				hits++;
+			}
+		}
+
+	} else {
+		// determine closest primitive
+		int W = maxInt;
+		for (int w = 0; w < WIDTH; w++) {
+			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
+				r.tMax = d[w];
+				W = w;
+			}
+		}
+
+		// update interaction
+		if (W != maxInt) {
+			int index = -node.child[W] - 1;
+			const LineSegment *lineSegment = static_cast<const LineSegment *>(primitives[index].get());
+			is[0].d = d[W];
+			is[0].p[0] = pt[0][W];
+			is[0].p[1] = pt[1][W];
+			is[0].p[2] = pt[2][W];
+			is[0].uv[0] = t[W];
+			is[0].uv[1] = -1;
+			is[0].n = lineSegment->normal(true);
+			is[0].nodeIndex = nodeIndex;
+			is[0].primitive = lineSegment;
+			hits = 1;
+		}
+	}
+
+	return hits;
+}
+
+template<int WIDTH, int DIM>
 inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
 											   Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											   bool countHits) const
@@ -329,7 +424,9 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 		if (isLeafNode(node)) {
 			if (primitiveType > 0) {
 				// perform vectorized intersection query
-				hits += intersectTriangle(node, nodeIndex, r, is, countHits);
+				hits += primitiveType == 1 ?
+						intersectLineSegment(node, nodeIndex, r, is, countHits) :
+						intersectTriangle(node, nodeIndex, r, is, countHits);
 				nodesVisited++;
 				if (hits > 0 && checkOcclusion) return 1;
 
@@ -401,6 +498,53 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	}
 
 	return hits;
+}
+
+template<int WIDTH, int DIM>
+inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, DIM>& node,
+														  int nodeIndex, BoundingSphere<DIM>& s,
+														  Interaction<DIM>& i) const
+{
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
+	// perform vectorized closest point query
+	VectorP<WIDTH, DIM> pt;
+	FloatP<WIDTH> t;
+	IntP<WIDTH> vIndex(-1);
+	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
+	FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH, DIM>(s.c, leafNode[0], leafNode[1],
+																  pt, t, vIndex);
+	FloatP<WIDTH> d2 = d*d;
+
+	// determine closest primitive
+	int W = maxInt;
+	for (int w = 0; w < WIDTH; w++) {
+		if (node.child[w] != maxInt && d2[w] <= s.r2) {
+			s.r2 = d2[w];
+			W = w;
+		}
+	}
+
+	// update interaction
+	if (W != maxInt) {
+		int index = -node.child[W] - 1;
+		const LineSegment *lineSegment = static_cast<const LineSegment *>(primitives[index].get());
+		i.d = d[W];
+		i.p[0] = pt[0][W];
+		i.p[1] = pt[1][W];
+		i.p[2] = pt[2][W];
+		i.uv[0] = t[W];
+		i.uv[1] = -1;
+		i.n = lineSegment->normal(vIndex[W]);
+		i.nodeIndex = nodeIndex;
+		i.primitive = lineSegment;
+
+		return true;
+	}
+
+	return false;
 }
 
 template<int WIDTH, int DIM>
@@ -483,7 +627,10 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 		if (isLeafNode(node)) {
 			if (primitiveType > 0) {
 				// perform vectorized closest point query to triangle
-				if (findClosestPointTriangle(node, nodeIndex, s, i)) notFound = false;
+				bool found = primitiveType == 1 ?
+							 findClosestPointLineSegment(node, nodeIndex, s, i) :
+							 findClosestPointTriangle(node, nodeIndex, s, i);
+				if (found) notFound = false;
 				nodesVisited++;
 
 			} else {

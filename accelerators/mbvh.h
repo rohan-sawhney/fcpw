@@ -61,10 +61,19 @@ protected:
 	// populates leaf nodes
 	void populateLeafNodes();
 
-	// performs vectorized closest point query to triangle
+	// performs vectorized ray intersection query to line segment
+	int intersectLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+							 Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+							 bool countHits) const;
+
+	// performs vectorized ray intersection query to triangle
 	int intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
 						  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 						  bool countHits) const;
+
+	// performs vectorized closest point query to line segment
+	bool findClosestPointLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+									 BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 	// performs vectorized closest point query to triangle
 	bool findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
