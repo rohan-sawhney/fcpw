@@ -67,32 +67,6 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Ray<DIM>& r, const VectorP<WI
 	return active;
 }
 
-// finds closest point on wide line segment to point
-template<int WIDTH, int DIM>
-inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector<DIM>& x, const VectorP<WIDTH, DIM>& pa,
-													 const VectorP<WIDTH, DIM>& pb, VectorP<WIDTH, DIM>& pt,
-													 FloatP<WIDTH>& t, IntP<WIDTH>& vIndex)
-{
-	VectorP<WIDTH, DIM> u = pb - pa;
-	VectorP<WIDTH, DIM> v = x - pa;
-
-	// project x onto u
-	FloatP<WIDTH> c1 = enoki::dot(u, v);
-	FloatP<WIDTH> c2 = enoki::dot(u, u);
-	MaskP<WIDTH> active1 = c1 <= 0.0f;
-	MaskP<WIDTH> active2 = c2 <= c1;
-
-	// compute closest point
-	t = c1/c2;
-	enoki::masked(t, active1) = 0.0f;
-	enoki::masked(vIndex, active1) = 0;
-	enoki::masked(t, active2) = 1.0f;
-	enoki::masked(vIndex, active2) = 1;
-	pt = pa + u*t;
-
-	return enoki::norm(x - pt);
-}
-
 // performs wide version of ray triangle intersection test
 template<int WIDTH, int DIM>
 inline MaskP<WIDTH> intersectWideTriangle(const Ray<DIM>& r, const VectorP<WIDTH, DIM>& pa,
@@ -124,6 +98,32 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<DIM>& r, const VectorP<WIDTH
 	t[1] = v;
 
 	return active;
+}
+
+// finds closest point on wide line segment to point
+template<int WIDTH, int DIM>
+inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector<DIM>& x, const VectorP<WIDTH, DIM>& pa,
+													 const VectorP<WIDTH, DIM>& pb, VectorP<WIDTH, DIM>& pt,
+													 FloatP<WIDTH>& t, IntP<WIDTH>& vIndex)
+{
+	VectorP<WIDTH, DIM> u = pb - pa;
+	VectorP<WIDTH, DIM> v = x - pa;
+
+	// project x onto u
+	FloatP<WIDTH> c1 = enoki::dot(u, v);
+	FloatP<WIDTH> c2 = enoki::dot(u, u);
+	MaskP<WIDTH> active1 = c1 <= 0.0f;
+	MaskP<WIDTH> active2 = c2 <= c1;
+
+	// compute closest point
+	t = c1/c2;
+	enoki::masked(t, active1) = 0.0f;
+	enoki::masked(vIndex, active1) = 0;
+	enoki::masked(t, active2) = 1.0f;
+	enoki::masked(vIndex, active2) = 1;
+	pt = pa + u*t;
+
+	return enoki::norm(x - pt);
 }
 
 // finds closest point on wide triangle to point
