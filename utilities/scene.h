@@ -49,7 +49,7 @@ public:
 
 #ifdef BENCHMARK_EMBREE
 	// builds embree aggregate
-	void buildEmbreeAggregate();
+	bool buildEmbreeAggregate();
 #endif
 
 	// members;

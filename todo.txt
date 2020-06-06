@@ -3,12 +3,13 @@ Priority:
 ---- enoki settings on ubuntu (geometry-box)
 ---- profile without sorting: sorting seems to add time
 ---- start search from specified node
-2. add support for more geometries:
----- line segments (3d), sphere
-3. option to ignore certain primitives
-4. benchmark
-5. travis CI
-6. README (tutorial, features, benchmark, compiling, logo)
+---- more aggressive culling?
+---- look into ray intersection perf
+---- flatTree layout
+2. option to ignore certain primitives
+3. benchmark
+4. travis CI
+5. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. cache alignment - sbvh & mbvh nodes

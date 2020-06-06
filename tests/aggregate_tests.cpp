@@ -369,8 +369,16 @@ void visualizeScene(const Scene<DIM>& scene,
 	if (DIM == 3) {
 		// register surface meshes
 		for (int i = 0; i < (int)scene.soups.size(); i++) {
-			polyscope::registerSurfaceMesh("Polygon_Soup_" + std::to_string(i),
-										   scene.soups[i]->positions, scene.soups[i]->indices);
+			std::string meshName = "Polygon_Soup_" + std::to_string(i);
+
+			if (scene.objectTypes[i] == ObjectType::Triangles) {
+				polyscope::registerSurfaceMesh(meshName, scene.soups[i]->positions,
+											   scene.soups[i]->indices);
+
+			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
+				polyscope::registerCurveNetwork(meshName, scene.soups[i]->positions,
+												scene.soups[i]->indices);
+			}
 		}
 
 		// add direction vectors
@@ -441,11 +449,13 @@ void run()
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
-		scene.buildEmbreeAggregate();
-		timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
-									 shuffledIndices, "Embree Bvh");
-		timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
-									 shuffledIndices, "Embree Bvh");
+		if (scene.buildEmbreeAggregate()) {
+			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+										 shuffledIndices, "Embree Bvh");
+			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+										 shuffledIndices, "Embree Bvh");
+		}
+
 #endif
 	}
 
@@ -486,11 +496,14 @@ void run()
 		std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
 		Scene<DIM> embreeBvhScene;
 		embreeBvhScene.loadFiles(true);
-		embreeBvhScene.buildEmbreeAggregate();
-		testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
-									 queryPoints, randomDirections, shuffledIndices);
-		testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
-									 queryPoints, shuffledIndices);
+
+		if (embreeBvhScene.buildEmbreeAggregate()) {
+			testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
+										 queryPoints, randomDirections, shuffledIndices);
+			testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
+										 queryPoints, shuffledIndices);
+		}
+
 #endif
 	}
 
@@ -522,6 +535,7 @@ int main(int argc, const char *argv[]) {
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
 	args::ValueFlag<int> nQueries(parser, "integer", "number of queries", {"nQueries"});
 	args::ValueFlag<int> nThreads(parser, "integer", "nThreads", {"nThreads"});
+	args::ValueFlagList<std::string> lineSegmentFilenames(parser, "string", "line segment soup filenames", {"lFile"});
 	args::ValueFlagList<std::string> triangleFilenames(parser, "string", "triangle soup filenames", {"tFile"});
 
 	// parse args
@@ -550,8 +564,8 @@ int main(int argc, const char *argv[]) {
 		}
 	}
 
-	if (!triangleFilenames) {
-		std::cerr << "Please specify triangle soup filenames" << std::endl;
+	if (!lineSegmentFilenames && !triangleFilenames) {
+		std::cerr << "Please specify either line segment or triangle soup filenames" << std::endl;
 		return EXIT_FAILURE;
 	}
 
@@ -562,6 +576,11 @@ int main(int argc, const char *argv[]) {
 	if (checkPerformance) ::checkPerformance = args::get(checkPerformance);
 	if (nQueries) ::nQueries = args::get(nQueries);
 	if (nThreads) ::nThreads = args::get(nThreads);
+	if (lineSegmentFilenames) {
+		for (const auto lsf: args::get(lineSegmentFilenames)) {
+			files.emplace_back(std::make_pair(lsf, LoadingOption::ObjLineSegments));
+		}
+	}
 	if (triangleFilenames) {
 		for (const auto tsf: args::get(triangleFilenames)) {
 			files.emplace_back(std::make_pair(tsf, LoadingOption::ObjTriangles));

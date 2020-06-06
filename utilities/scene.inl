@@ -238,13 +238,23 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 #ifdef BENCHMARK_EMBREE
 template<int DIM>
-inline void Scene<DIM>::buildEmbreeAggregate()
+inline bool Scene<DIM>::buildEmbreeAggregate()
 {
 	int nObjects = (int)objects.size();
-	if (nObjects > 1) LOG(FATAL) << "Scene::buildEmbreeAggregate(): Not supported for multiple objects";
+	if (nObjects > 1) {
+		LOG(INFO) << "Scene::buildEmbreeAggregate(): Not supported for multiple objects";
+		return false;
+	}
 
-	aggregate = std::make_shared<EmbreeBvh<DIM>>(objects[0], soups[0]);
-	objectInstances.clear();
+	if (objectTypes[0] == ObjectType::Triangles) {
+		aggregate = std::make_shared<EmbreeBvh<DIM>>(objects[0], soups[0]);
+		objectInstances.clear();
+
+		return true;
+	}
+
+	LOG(INFO) << "Scene::buildEmbreeAggregate(): Only triangles supported at the moment";
+	return false;
 }
 #endif
 
