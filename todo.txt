@@ -1,11 +1,11 @@
 Priority:
 1. implement mbvh/qbvh
 ---- enoki settings on ubuntu (geometry-box)
+---- more aggressive culling?
 ---- sort nodes during traversal efficiently
 ---- start search from specified node
----- more aggressive culling?
----- look into ray intersection perf
 ---- flatTree layout
+---- look into ray intersection perf
 2. benchmark
 3. travis/circle CI
 4. README (tutorial, features, benchmark, compiling, logo)

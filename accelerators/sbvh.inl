@@ -874,7 +874,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 
 	// push the start node onto the working set
 	if (flatTree[nodeStartIndex].box.overlap(s, boxHits[0], boxHits[1])) {
-		s.r2 = std::min(s.r2, boxHits[1]);
+		if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
 		subtree.emplace_back(BvhTraversal(nodeStartIndex, boxHits[0]));
 	}
 
@@ -887,7 +887,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 
 		// push the sibling node onto the working set
 		if (flatTree[nodeSiblingIndex].box.overlap(s, boxHits[2], boxHits[3])) {
-			s.r2 = std::min(s.r2, boxHits[3]);
+			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[3]);
 			subtree.emplace_back(BvhTraversal(nodeSiblingIndex, boxHits[2]));
 		}
 
