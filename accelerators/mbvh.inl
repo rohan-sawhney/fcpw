@@ -680,11 +680,11 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			// overlap sphere with boxes
 			MaskP<WIDTH> mask = overlapWideBox<WIDTH, DIM>(s, node.boxMin,
 												node.boxMax, d2Min, d2Max);
+			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, enoki::hmin(d2Max));
 
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
 				if (node.child[w] != maxInt && mask[w]) {
-					if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[w]);
 					subtree.emplace_back(BvhTraversal(node.child[w], d2Min[w]));
 				}
 			}
