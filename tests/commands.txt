@@ -9,9 +9,9 @@ GLOG_logtostderr=1 ./aggregate_tests --dim=3 --tFile ../input/kitten.obj --nQuer
 GLOG_logtostderr=1 ./csg_tests --dim=3 --tFile ../input/armadillo.obj --tFile ../input/bunny.obj --tFile ../input/kitten.obj --csgFile ../input/csg.txt --instanceFile ../input/instances3d.txt --nThreads=8
 
 GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/plus-shape.obj --nQueries=10000 --checkCorrectness --plotInteriorPoints --vizScene --nThreads=8
-GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/e.obj --nQueries=10000 --checkCorrectness --plotInteriorPoints --vizScene --nThreads=8
 GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/spiral.obj --nQueries=10000 --checkCorrectness --plotInteriorPoints --vizScene --nThreads=8
+GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/walker.obj --nQueries=10000 --checkCorrectness --plotInteriorPoints --vizScene --nThreads=8
 
 GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/plus-shape.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene --nThreads=8
-GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/e.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene --nThreads=8
 GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/spiral.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene --nThreads=8
+GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/walker.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene --nThreads=8

@@ -262,6 +262,7 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 
 	// parse obj format
 	std::string line;
+	bool tokenIsL = false;
 	isFlat = true;
 
 	while (getline(in, line)) {
@@ -276,7 +277,8 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 			soup->positions.emplace_back(Vector3(x, y, z));
 			if (std::fabs(z) > epsilon) isFlat = false;
 
-		} else if (token == "f") {
+		} else if (token == "f" || token == "l") {
+			tokenIsL = token == "l";
 			std::vector<int> indices;
 
 			while (ss >> token) {
@@ -291,11 +293,30 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 				indices.emplace_back(index.position);
 			}
 
-			int F = (int)indices.size();
-			int N = closeLoop ? F : F - 1;
-			for (int i = 0; i < N; i++) {
-				int j = (i + 1)%F;
-				soup->indices.emplace_back(std::vector<int>{indices[i], indices[j]});
+			if (tokenIsL) {
+				soup->indices.emplace_back(indices);
+
+			} else {
+				int F = (int)indices.size();
+				int N = closeLoop ? F : F - 1;
+				for (int i = 0; i < N; i++) {
+					int j = (i + 1)%F;
+					soup->indices.emplace_back(std::vector<int>{indices[i], indices[j]});
+				}
+			}
+		}
+	}
+
+	// close loop
+	if (tokenIsL && closeLoop) {
+		int F = (int)soup->indices.size();
+
+		if (F > 0) {
+			int startIndex = soup->indices[0][0];
+			int endIndex = soup->indices[F - 1][1];
+
+			if (startIndex != endIndex) {
+				soup->indices.emplace_back(std::vector<int>{endIndex, startIndex});
 			}
 		}
 	}
