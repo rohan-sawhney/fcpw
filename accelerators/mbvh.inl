@@ -276,6 +276,8 @@ inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& no
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w]) {
 				int index = -node.child[w] - 1;
+				if (this->ignorePrimitive(primitives[index].get())) continue;
+
 				const LineSegment *lineSegment = static_cast<const LineSegment *>(primitives[index].get());
 				auto it = is.emplace(is.end(), Interaction<DIM>());
 				it->d = d[w];
@@ -296,6 +298,9 @@ inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& no
 		int W = maxInt;
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
+				int index = -node.child[w] - 1;
+				if (this->ignorePrimitive(primitives[index].get())) continue;
+
 				r.tMax = d[w];
 				W = w;
 			}
@@ -344,6 +349,8 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w]) {
 				int index = -node.child[w] - 1;
+				if (this->ignorePrimitive(primitives[index].get())) continue;
+
 				const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
 				auto it = is.emplace(is.end(), Interaction<DIM>());
 				it->d = d[w];
@@ -364,6 +371,9 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 		int W = maxInt;
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
+				int index = -node.child[w] - 1;
+				if (this->ignorePrimitive(primitives[index].get())) continue;
+
 				r.tMax = d[w];
 				W = w;
 			}
@@ -437,6 +447,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 					if (node.child[w] != maxInt) {
 						int index = -node.child[w] - 1;
 						const std::shared_ptr<Primitive<DIM>>& prim = primitives[index];
+						if (this->ignorePrimitive(prim.get())) continue;
 
 						// check if primitive has already been seen
 						bool seenPrim = false;
@@ -522,6 +533,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, 
 	int W = maxInt;
 	for (int w = 0; w < WIDTH; w++) {
 		if (node.child[w] != maxInt && d2[w] <= s.r2) {
+			int index = -node.child[w] - 1;
+			if (this->ignorePrimitive(primitives[index].get())) continue;
+
 			s.r2 = d2[w];
 			W = w;
 		}
@@ -569,6 +583,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	int W = maxInt;
 	for (int w = 0; w < WIDTH; w++) {
 		if (node.child[w] != maxInt && d2[w] <= s.r2) {
+			int index = -node.child[w] - 1;
+			if (this->ignorePrimitive(primitives[index].get())) continue;
+
 			s.r2 = d2[w];
 			W = w;
 		}
@@ -640,6 +657,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 					if (node.child[w] != maxInt) {
 						int index = -node.child[w] - 1;
 						const std::shared_ptr<Primitive<DIM>>& prim = primitives[index];
+						if (this->ignorePrimitive(prim.get())) continue;
 
 						if (prim.get() != i.primitive) {
 							Interaction<DIM> c;
@@ -666,7 +684,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
 				if (node.child[w] != maxInt && mask[w]) {
-					s.r2 = std::min(s.r2, d2Max[w]);
+					if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[w]);
 					subtree.emplace_back(BvhTraversal(node.child[w], d2Min[w]));
 				}
 			}

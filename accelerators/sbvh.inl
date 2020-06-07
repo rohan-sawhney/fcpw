@@ -642,6 +642,7 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nReferences; p++) {
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
+				if (this->ignorePrimitive(prim.get())) continue;
 
 				// check if primitive has already been seen
 				bool seenPrim = false;
@@ -801,6 +802,7 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nReferences; p++) {
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
+				if (this->ignorePrimitive(prim.get())) continue;
 
 				if (prim.get() != i.primitive) {
 					Interaction<DIM> c;
@@ -819,10 +821,10 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 
 		} else { // not a leaf
 			bool hit0 = flatTree[nodeIndex + 1].box.overlap(s, boxHits[0], boxHits[1]);
-			s.r2 = std::min(s.r2, boxHits[1]);
+			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
 
 			bool hit1 = flatTree[nodeIndex + node.rightOffset].box.overlap(s, boxHits[2], boxHits[3]);
-			s.r2 = std::min(s.r2, boxHits[3]);
+			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[3]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {

@@ -66,6 +66,8 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 	if (!countHits) is.resize(1);
 
 	for (int p = 0; p < (int)primitives.size(); p++) {
+		if (this->ignorePrimitive(primitives[p].get())) continue;
+
 		std::vector<Interaction<DIM>> cs;
 		int hit = primitives[p]->intersect(r, cs, checkOcclusion, countHits);
 		nodesVisited++;
@@ -103,6 +105,8 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 
 	bool notFound = true;
 	for (int p = 0; p < (int)primitives.size(); p++) {
+		if (this->ignorePrimitive(primitives[p].get())) continue;
+
 		Interaction<DIM> c;
 		bool found = primitives[p]->findClosestPoint(s, c);
 		nodesVisited++;

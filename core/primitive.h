@@ -125,6 +125,17 @@ public:
 		}
 	}
 
+	// checks if primitive should be ignored
+	bool ignorePrimitive(const Primitive<DIM> *prim) const {
+		for (int i = 0; i < (int)ignoreList.size(); i++) {
+			if (prim == ignoreList[i]) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
 	// intersects with ray, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
@@ -135,6 +146,11 @@ public:
 	// use this for spatially/temporally coherent queries
 	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 										  int nodeStartIndex, int& nodesVisited) const = 0;
+
+	// member
+	std::vector<const Primitive<DIM> *> ignoreList; // primitives to igonore during ray intersection &
+													// closest point traversal; NOTE: keep
+													// ignoreList.size() << primitives.size()
 };
 
 template<int DIM>

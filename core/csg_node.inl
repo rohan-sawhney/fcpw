@@ -142,7 +142,8 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		// perform intersection query for left child
 		Ray<DIM> rLeft = r;
 		std::vector<Interaction<DIM>> isLeft;
-		int hitsLeft = left->intersect(rLeft, isLeft, false, true);
+		int hitsLeft = this->ignorePrimitive(left.get()) ?
+					   0 : left->intersect(rLeft, isLeft, false, true);
 
 		// return if no intersections for the left child were found and
 		// the operation is intersection or difference
@@ -152,7 +153,8 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		// perform intersection query for right child
 		Ray<DIM> rRight = r;
 		std::vector<Interaction<DIM>> isRight;
-		int hitsRight = right->intersect(rRight, isRight, false, true);
+		int hitsRight = this->ignorePrimitive(right.get()) ?
+						0 : right->intersect(rRight, isRight, false, true);
 
 		// return if no intersections were found for both children
 		if (hitsLeft == 0 && hitsRight == 0) return 0;
@@ -205,7 +207,8 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 		// perform closest point query on left child
 		Interaction<DIM> iLeft;
 		BoundingSphere<DIM> sLeft = s;
-		bool foundLeft = left->findClosestPoint(sLeft, iLeft);
+		bool foundLeft = this->ignorePrimitive(left.get()) ?
+						 false : left->findClosestPoint(sLeft, iLeft);
 
 		// return if no closest point for the left child is found and
 		// the operation is intersection or difference
@@ -215,7 +218,8 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 		// perform closest point query on right child
 		Interaction<DIM> iRight;
 		BoundingSphere<DIM> sRight = s;
-		bool foundRight = right->findClosestPoint(sRight, iRight);
+		bool foundRight = this->ignorePrimitive(right.get()) ?
+						  false : right->findClosestPoint(sRight, iRight);
 
 		// return if no closest point was found to both children
 		if (!foundLeft && !foundRight) return false;
