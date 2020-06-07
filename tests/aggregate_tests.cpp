@@ -161,7 +161,7 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 			for (int i = pCurrent; i < pEnd; i++) {
 				int I = indices[i];
 				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
-				float r2 = i == pCurrent ? maxFloat : std::pow(cPrev.d + distPrev, 2);
+				float r2 = i == pCurrent ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
 				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
 				int nodesVisited = 0;
@@ -284,7 +284,7 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 			for (int i = pCurrent; i < pEnd; i++) {
 				int I = indices[i];
 				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
-				float r2 = i == pCurrent ? maxFloat : std::pow(cPrev.d + distPrev, 2);
+				float r2 = i == pCurrent ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
 				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
 				Interaction<DIM> c1;

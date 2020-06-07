@@ -1,7 +1,7 @@
 Priority:
 1. implement mbvh/qbvh
 ---- enoki settings on ubuntu (geometry-box)
----- profile without sorting: sorting seems to add time
+---- sort nodes during traversal efficiently
 ---- start search from specified node
 ---- more aggressive culling?
 ---- look into ray intersection perf
