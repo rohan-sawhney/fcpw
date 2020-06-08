@@ -491,13 +491,31 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			MaskP<WIDTH> mask = intersectWideBox<WIDTH, DIM>(r, node.boxMin,
 													node.boxMax, tMin, tMax);
 
-			// enqueue masked nodes
+			// find closest intersecting node
+			int closestIndex = -1;
+			float minHit = r.tMax;
+
 			for (int w = 0; w < WIDTH; w++) {
-				if (node.child[w] != maxInt && mask[w]) {
+				if (node.child[w] != maxInt && mask[w] && tMin[w] < minHit) {
+					closestIndex = w;
+					minHit = tMin[w];
+				}
+			}
+
+			// enqueue remaining intersecting nodes first
+			for (int w = 0; w < WIDTH; w++) {
+				if (node.child[w] != maxInt && mask[w] && w != closestIndex) {
 					stackPtr++;
 					subtree[stackPtr].node = node.child[w];
 					subtree[stackPtr].distance = tMin[w];
 				}
+			}
+
+			// enqueue closest intersecting node
+			if (closestIndex != -1) {
+				stackPtr++;
+				subtree[stackPtr].node = node.child[closestIndex];
+				subtree[stackPtr].distance = minHit;
 			}
 
 			nodesVisited++;
@@ -684,7 +702,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 												node.boxMax, d2Min, d2Max);
 			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, enoki::hmin(d2Max));
 
-			// enqueue masked nodes
+			// enqueue overlapping nodes
 			for (int w = 0; w < WIDTH; w++) {
 				if (node.child[w] != maxInt && mask[w]) {
 					subtree.emplace_back(BvhTraversal(node.child[w], d2Min[w]));

@@ -1,6 +1,5 @@
 Priority:
 1. implement mbvh
----- greedily descend down closest box for ray intersections
 ---- restrict branching factor to 4, with SIMD wide leaves
 ---- more aggressive culling for closest points?
 ---- sort nodes efficiently during traversal for closest points
