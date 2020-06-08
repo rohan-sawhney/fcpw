@@ -1,11 +1,11 @@
 Priority:
-1. implement mbvh/qbvh
----- enoki settings on ubuntu (geometry-box)
----- more aggressive culling?
----- sort nodes during traversal efficiently
+1. implement mbvh
+---- greedily descend down closest box for ray intersections
+---- restrict branching factor to 4, with SIMD wide leaves
+---- more aggressive culling for closest points?
+---- sort nodes efficiently during traversal for closest points
 ---- start search from specified node
----- flatTree layout
----- look into ray intersection perf
+---- enoki settings on ubuntu (geometry-box)
 2. benchmark
 3. travis/circle CI
 4. README (tutorial, features, benchmark, compiling, logo)
@@ -13,7 +13,7 @@ Priority:
 Future Optimizations & Features:
 1. cache alignment - sbvh & mbvh nodes
 2. vectorize + parallelize bvh construction
-3. support oriented bounding boxes/RSS
+3. support oriented bounding boxes + RSS
 4. traversal optimization for closest point queries:
 ---- implement "queueless" closest point traversal
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data

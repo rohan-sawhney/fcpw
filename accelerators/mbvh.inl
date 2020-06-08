@@ -413,19 +413,19 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	std::deque<BvhTraversal> subtree;
+	BvhTraversal subtree[(maxDepth + 1)*(WIDTH - 1)];
 	FloatP<WIDTH> tMin, tMax;
 
 	// push root node
-	subtree.emplace_back(BvhTraversal(0, minFloat));
+	subtree[0].node = 0;
+	subtree[0].distance = minFloat;
+	int stackPtr = 0;
 
-	while (!subtree.empty()) {
+	while (stackPtr >= 0) {
 		// pop off the next node to work on
-		BvhTraversal traversal = subtree.back();
-		subtree.pop_back();
-
-		int nodeIndex = traversal.node;
-		float near = traversal.distance;
+		int nodeIndex = subtree[stackPtr].node;
+		float near = subtree[stackPtr].distance;
+		stackPtr--;
 
 		// if this node is further than the closest found intersection, continue
 		if (!countHits && near > r.tMax) continue;
@@ -494,7 +494,9 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			// enqueue masked nodes
 			for (int w = 0; w < WIDTH; w++) {
 				if (node.child[w] != maxInt && mask[w]) {
-					subtree.emplace_back(BvhTraversal(node.child[w], tMin[w]));
+					stackPtr++;
+					subtree[stackPtr].node = node.child[w];
+					subtree[stackPtr].distance = tMin[w];
 				}
 			}
 
