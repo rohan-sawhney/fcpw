@@ -833,9 +833,13 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 				int other = nodeIndex + node.rightOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
-				if (boxHits[2] < boxHits[0]) {
+				if (boxHits[0] == 0.0f && boxHits[2] == 0.0f) {
+					if (boxHits[3] < boxHits[1]) {
+						std::swap(closer, other);
+					}
+
+				} else if (boxHits[2] < boxHits[0]) {
 					std::swap(boxHits[0], boxHits[2]);
-					std::swap(boxHits[1], boxHits[3]);
 					std::swap(closer, other);
 				}
 
