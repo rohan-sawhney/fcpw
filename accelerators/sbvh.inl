@@ -624,8 +624,8 @@ inline float Sbvh<DIM>::signedVolume() const
 template<int DIM>
 inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													 bool checkOcclusion, bool countHits,
-													 BvhTraversal *subtree, float *boxHits,
-													 int& hits, int& nodesVisited) const
+													 std::vector<BvhTraversal>& subtree,
+													 float *boxHits, int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
 	while (stackPtr >= 0) {
@@ -739,7 +739,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	BvhTraversal subtree[maxDepth + 1];
+	std::vector<BvhTraversal> subtree(maxDepth + 1);
 	float boxHits[4];
 
 	// push the start node onto the working set and process its subtree if it intersects ray

@@ -413,7 +413,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	BvhTraversal subtree[(maxDepth + 1)*(WIDTH - 1)];
+	std::vector<BvhTraversal> subtree((maxDepth + 1)*(WIDTH - 1));
 	FloatP<WIDTH> tMin, tMax;
 
 	// push root node
