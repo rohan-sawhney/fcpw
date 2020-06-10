@@ -51,16 +51,17 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Ray<DIM>& r, const VectorP<WI
 	// track non-parallel line segments and rays
 	FloatP<WIDTH> dv = enoki::cross(r.d, v)[2];
 	MaskP<WIDTH> active = enoki::abs(dv) >= epsilon;
+	FloatP<WIDTH> invDv = enoki::rcp(dv);
 
 	// solve r.o + s*r.d = pa + t*(pb - pa) for s >= 0 && 0 <= t <= 1
 	// t = (u x r.d)/(r.d x v)
 	FloatP<WIDTH> ud = enoki::cross(u, r.d)[2];
-	t = ud/dv;
+	t = ud*invDv;
 	active &= t >= 0.0f && t <= 1.0f;
 
 	// s = (u x v)/(r.d x v)
 	FloatP<WIDTH> uv = enoki::cross(u, v)[2];
-	d = uv/dv;
+	d = uv*invDv;
 	active &= d > epsilon && d <= r.tMax;
 	pt = r.o + r.d*VectorP<WIDTH, DIM>(d);
 
@@ -116,7 +117,7 @@ inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector<DIM>& x, const
 	MaskP<WIDTH> active2 = c2 <= c1;
 
 	// compute closest point
-	t = c1/c2;
+	t = c1*enoki::rcp(c2);
 	enoki::masked(t, active1) = 0.0f;
 	enoki::masked(vIndex, active1) = 0;
 	enoki::masked(t, active2) = 1.0f;
@@ -183,7 +184,7 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 	active7 |= active4;
 
 	// barycentric coordinates (1 - v, v, 0)
-	FloatP<WIDTH> v = d1/(d1 - d3);
+	FloatP<WIDTH> v = d1*enoki::rcp(d1 - d3);
 	enoki::masked(pt, active4) = pa + ab*v;
 	enoki::masked(t[0], active4) = 1.0f - v;
 	enoki::masked(t[1], active4) = v;
@@ -196,7 +197,7 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 	active7 |= active5;
 
 	// barycentric coordinates (1 - w, 0, w)
-	FloatP<WIDTH> w = d2/(d2 - d6);
+	FloatP<WIDTH> w = d2*enoki::rcp(d2 - d6);
 	enoki::masked(pt, active5) = pa + ac*w;
 	enoki::masked(t[0], active5) = 1.0f - w;
 	enoki::masked(t[1], active5) = 0.0f;
@@ -209,7 +210,7 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 	active7 |= active6;
 
 	// barycentric coordinates (0, 1 - w, w)
-	w = (d4 - d3)/((d4 - d3) + (d5 - d6));
+	w = (d4 - d3)*enoki::rcp((d4 - d3) + (d5 - d6));
 	enoki::masked(pt, active6) = pb + (pc - pb)*w;
 	enoki::masked(t[0], active6) = 0.0f;
 	enoki::masked(t[1], active6) = 1.0f - w;
@@ -217,7 +218,7 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 	if (enoki::all(active7)) return enoki::norm(x - pt);
 
 	// x inside face region. Compute pt through its barycentric coordinates (u, v, w)
-	FloatP<WIDTH> denom = 1.0f/(va + vb + vc);
+	FloatP<WIDTH> denom = enoki::rcp(va + vb + vc);
 	v = vb*denom;
 	w = vc*denom;
 	active7 = ~active7;
