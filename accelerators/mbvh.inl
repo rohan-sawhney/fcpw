@@ -6,10 +6,6 @@ template<int WIDTH, int DIM>
 inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
 										  int sbvhNodeIndex, int parent, int depth)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 	maxDepth = std::max(depth, maxDepth);
 
@@ -78,16 +74,10 @@ inline bool Mbvh<WIDTH, DIM>::isLeafNode(const MbvhNode<WIDTH, DIM>& node) const
 
 template<int WIDTH, int DIM>
 inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
-											   std::vector<VectorP<WIDTH, DIM>>& leafNode)
+											   int leafIndex)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	if (primitiveType == 1) {
 		// populate leaf node with line segments
-		leafNode.resize(2);
-
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
@@ -96,16 +86,14 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 				const Vector3& pb = lineSegment->soup->positions[lineSegment->indices[1]];
 
 				for (int i = 0; i < DIM; i++) {
-					leafNode[0][i][w] = pa[i];
-					leafNode[1][i][w] = pb[i];
+					leafNodes[leafIndex + 0][i][w] = pa[i];
+					leafNodes[leafIndex + 1][i][w] = pb[i];
 				}
 			}
 		}
 
 	} else if (primitiveType == 2) {
 		// populate leaf node with triangles
-		leafNode.resize(3);
-
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
@@ -115,9 +103,9 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 				const Vector3& pc = triangle->soup->positions[triangle->indices[2]];
 
 				for (int i = 0; i < DIM; i++) {
-					leafNode[0][i][w] = pa[i];
-					leafNode[1][i][w] = pb[i];
-					leafNode[2][i][w] = pc[i];
+					leafNodes[leafIndex + 0][i][w] = pa[i];
+					leafNodes[leafIndex + 1][i][w] = pb[i];
+					leafNodes[leafIndex + 2][i][w] = pc[i];
 				}
 			}
 		}
@@ -149,14 +137,16 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 	if (primitiveType > 0) {
 		// populate leaf nodes
 		int leafIndex = 0;
-		leafNodes.resize(nLeafs);
+		int shift = primitiveType == 1 ? 2 : 3;
+		leafNodes.resize(nLeafs*shift);
 
 		for (int i = 0; i < nNodes; i++) {
 			MbvhNode<WIDTH, DIM>& node = flatTree[i];
 
 			if (isLeafNode(node)) {
-				populateLeafNode(node, leafNodes[leafIndex]);
-				node.leafIndex = leafIndex++;
+				populateLeafNode(node, leafIndex);
+				node.leafIndex = leafIndex;
+				leafIndex += shift;
 			}
 		}
 	}
@@ -172,6 +162,10 @@ maxDepth(0),
 maxLevel(std::log2(WIDTH)),
 primitiveType(0)
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	LOG_IF(FATAL, sbvh_->leafSize != WIDTH) << "Sbvh leaf size must equal mbvh width";
 
 	using namespace std::chrono;
@@ -267,9 +261,9 @@ inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& no
 	FloatP<WIDTH> d;
 	VectorP<WIDTH, DIM> pt;
 	FloatP<WIDTH> t;
-	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
-	MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH, DIM>(r, leafNode[0], leafNode[1],
-															 d, pt, t);
+	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
+	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
+	MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH, DIM>(r, pa, pb, d, pt, t);
 
 	int hits = 0;
 	if (countHits) {
@@ -340,9 +334,10 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	FloatP<WIDTH> d;
 	VectorP<WIDTH, DIM> pt;
 	VectorP<WIDTH, DIM - 1> t;
-	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
-	MaskP<WIDTH> mask = intersectWideTriangle<WIDTH, DIM>(r, leafNode[0], leafNode[1],
-														  leafNode[2], d, pt, t);
+	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
+	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
+	const VectorP<WIDTH, DIM>& pc = leafNodes[node.leafIndex + 2];
+	MaskP<WIDTH> mask = intersectWideTriangle<WIDTH, DIM>(r, pa, pb, pc, d, pt, t);
 
 	int hits = 0;
 	if (countHits) {
@@ -556,9 +551,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, 
 	// perform vectorized closest point query
 	VectorP<WIDTH, DIM> pt;
 	FloatP<WIDTH> t;
-	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
-	FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH, DIM>(s.c, leafNode[0],
-																  leafNode[1], pt, t);
+	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
+	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
+	FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH, DIM>(s.c, pa, pb, pt, t);
 	FloatP<WIDTH> d2 = d*d;
 
 	// determine closest primitive
@@ -604,9 +599,10 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	// perform vectorized closest point query
 	VectorP<WIDTH, DIM> pt;
 	VectorP<WIDTH, DIM - 1> t;
-	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
-	FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH, DIM>(s.c, leafNode[0], leafNode[1],
-														leafNode[2], pt, t);
+	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
+	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
+	const VectorP<WIDTH, DIM>& pc = leafNodes[node.leafIndex + 2];
+	FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH, DIM>(s.c, pa, pb, pc, pt, t);
 	FloatP<WIDTH> d2 = d*d;
 
 	// determine closest primitive

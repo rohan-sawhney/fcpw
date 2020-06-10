@@ -14,19 +14,6 @@ struct PolygonSoup {
 				const std::vector<Vector<DIM>>& positions_):
 				indices(indices_), positions(positions_) {}
 
-	// returns polygon center
-	Vector<DIM> polygonCenter(int polygon) const {
-		const std::vector<int>& index = indices[polygon];
-		int N = (int)index.size();
-		Vector<DIM> sum = zeroVector<DIM>();
-
-		for (int i = 0; i < (int)index.size(); i++) {
-			sum += positions[index[i]];
-		}
-
-		return sum/N;
-	}
-
 	// members
 	std::vector<std::vector<int>> indices /* a.k.a. vIndices */, eIndices, tIndices;
 	std::vector<Vector<DIM>> positions;

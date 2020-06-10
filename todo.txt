@@ -1,6 +1,6 @@
 Priority:
 1. implement mbvh
----- remove indirection in soup indices, leafNodes
+---- remove indirection in soup indices
 ---- set deque size upfront
 ---- compare against stack here
 ---- start search from specified node

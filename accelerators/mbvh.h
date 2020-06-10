@@ -56,8 +56,7 @@ protected:
 	bool isLeafNode(const MbvhNode<WIDTH, DIM>& node) const;
 
 	// populates leaf node
-	void populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
-						  std::vector<VectorP<WIDTH, DIM>>& leafNode);
+	void populateLeafNode(const MbvhNode<WIDTH, DIM>& node, int leafIndex);
 
 	// populates leaf nodes
 	void populateLeafNodes();
@@ -84,7 +83,7 @@ protected:
 	int nNodes, nLeafs, maxDepth, maxLevel, primitiveType;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<MbvhNode<WIDTH, DIM>> flatTree;
-	std::vector<std::vector<VectorP<WIDTH, DIM>>> leafNodes;
+	std::vector<VectorP<WIDTH, DIM>> leafNodes;
 	std::vector<int> references;
 };
 
