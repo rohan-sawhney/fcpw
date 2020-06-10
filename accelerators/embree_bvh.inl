@@ -110,7 +110,6 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 			Vector3(ray->dir_x, ray->dir_y, ray->dir_z)*it->d;
 	it->uv[0] = hit->u;
 	it->uv[1] = hit->v;
-	it->n = unit<3>(Vector3(hit->Ng_x, hit->Ng_y, hit->Ng_z));
 	it->primitive = primitives[hit->primID].get();
 }
 
@@ -222,6 +221,7 @@ soup(soup_)
 	// initialize device
 	device = rtcNewDevice(NULL); // specify flags e.g. threads, isa, verbose, tri_accel=bvh4.triangle4v if required
 	if (!device) LOG(FATAL) << "EmbreeBvh<3>(): Unable to create device: " << rtcGetDeviceError(NULL);
+	this->setNormals = false;
 
 	// register error callback
 	rtcSetDeviceErrorFunction(device, errorFunction, NULL);
@@ -366,10 +366,16 @@ inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>
 			it->p = r(it->d);
 			it->uv[0] = rayhit.hit.u;
 			it->uv[1] = rayhit.hit.v;
-			it->n = unit<3>(Vector3(rayhit.hit.Ng_x, rayhit.hit.Ng_y, rayhit.hit.Ng_z));
 			it->primitive = this->primitives[rayhit.hit.primID].get();
 			r.tMax = it->d;
 			hits++;
+		}
+	}
+
+	// set normals
+	if (this->setNormals) {
+		for (int i = 0; i < (int)is.size(); i++) {
+			is[i].n = is[i].primitive->normal(is[i].uv);
 		}
 	}
 
@@ -409,7 +415,7 @@ inline bool EmbreeBvh<3>::findClosestPointFromNode(BoundingSphere<3>& s, Interac
 		i.d = norm<3>(i.p - s.c);
 		i.primitive = this->primitives[result.primID].get();
 		i.uv = static_cast<const Triangle *>(i.primitive)->barycentricCoordinates(i.p);
-		i.n = static_cast<const Triangle *>(i.primitive)->normal(true);
+		if (this->setNormals) i.n = static_cast<const Triangle *>(i.primitive)->normal(i.uv);
 		s.r2 = i.d*i.d;
 
 		return true;

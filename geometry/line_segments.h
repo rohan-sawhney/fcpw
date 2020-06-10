@@ -24,9 +24,8 @@ public:
 	// returns normal; NOTE: only defined for flat line segment (z = 0)
 	Vector3 normal(bool normalize=false) const;
 
-	// returns normalized vertex normal if available;
-	// otherwise computes normalized segment normal
-	Vector3 normal(int vIndex) const;
+	// returns the normalized normal based on the local parameterization
+	Vector3 normal(const Vector2& uv) const;
 
 	// returns barycentric coordinates
 	float barycentricCoordinates(const Vector3& p) const;
@@ -46,7 +45,11 @@ public:
 	std::shared_ptr<PolygonSoup<3>> soup;
 	const std::vector<int>& indices; /* a.k.a. vIndices */
 	bool isFlat;
-	int index;
+
+private:
+	// returns normalized vertex normal if available;
+	// otherwise computes normalized segment normal
+	Vector3 normal(int vIndex) const;
 };
 
 // reads soup from obj file

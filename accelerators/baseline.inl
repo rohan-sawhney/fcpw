@@ -4,7 +4,7 @@ template<int DIM>
 inline Baseline<DIM>::Baseline(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_):
 primitives(primitives_)
 {
-
+	this->setNormals = false;
 }
 
 template<int DIM>
@@ -65,6 +65,7 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 	int hits = 0;
 	if (!countHits) is.resize(1);
 
+	// find closest hit
 	for (int p = 0; p < (int)primitives.size(); p++) {
 		if (this->ignorePrimitive(primitives[p].get())) continue;
 
@@ -86,13 +87,25 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 		}
 	}
 
-	if (countHits) {
-		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
-		is = removeDuplicates<DIM>(is);
-		hits = (int)is.size();
+	if (hits > 0) {
+		// sort by distance and remove duplicates
+		if (countHits) {
+			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+			is = removeDuplicates<DIM>(is);
+			hits = (int)is.size();
+		}
+
+		// set normals
+		if (this->setNormals) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].n = is[i].primitive->normal(is[i].uv);
+			}
+		}
+
+		return hits;
 	}
 
-	return hits;
+	return 0;
 }
 
 template<int DIM>
@@ -103,6 +116,7 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 	PROFILE_SCOPED();
 #endif
 
+	// find closest point
 	bool notFound = true;
 	for (int p = 0; p < (int)primitives.size(); p++) {
 		if (this->ignorePrimitive(primitives[p].get())) continue;
@@ -119,7 +133,16 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 		}
 	}
 
-	return !notFound;
+	if (!notFound) {
+		// set normal;
+		if (this->setNormals) {
+			i.n = i.primitive->normal(i.uv);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 } // namespace fcpw

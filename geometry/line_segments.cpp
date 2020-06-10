@@ -10,8 +10,7 @@ LineSegment::LineSegment(const std::shared_ptr<PolygonSoup<3>>& soup_,
 Primitive<3>(),
 soup(soup_),
 indices(soup_->indices[index_]),
-isFlat(isFlat_),
-index(index_)
+isFlat(isFlat_)
 {
 
 }
@@ -76,6 +75,15 @@ Vector3 LineSegment::normal(int vIndex) const
 {
 	if (soup->vNormals.size() > 0 && vIndex >= 0) return soup->vNormals[indices[vIndex]];
 	return normal(true);
+}
+
+Vector3 LineSegment::normal(const Vector2& uv) const
+{
+	int vIndex = -1;
+	if (uv[0] < epsilon) vIndex = 0;
+	else if (uv[0] > oneMinusEpsilon) vIndex = 1;
+
+	return normal(vIndex);
 }
 
 float LineSegment::barycentricCoordinates(const Vector3& p) const
@@ -162,7 +170,6 @@ int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 				it->p = r(t);
 				it->uv[0] = s;
 				it->uv[1] = -1;
-				it->n = normal(true);
 				it->primitive = this;
 
 				return 1;
@@ -176,8 +183,8 @@ int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	return 0;
 }
 
-float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb, const Vector3& x,
-								  Vector3& pt, float& t, int& vIndex)
+float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
+								  const Vector3& x, Vector3& pt, float& t)
 {
 	Vector3 u = pb - pa;
 	Vector3 v = x - pa;
@@ -186,7 +193,6 @@ float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb, const Ve
 	if (c1 <= 0.0f) {
 		pt = pa;
 		t = 0.0f;
-		vIndex = 0;
 
 		return norm<3>(x - pt);
 	}
@@ -195,7 +201,6 @@ float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb, const Ve
 	if (c2 <= c1) {
 		pt = pb;
 		t = 1.0f;
-		vIndex = 1;
 
 		return norm<3>(x - pt);
 	}
@@ -215,12 +220,10 @@ bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) cons
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
 
-	int vIndex = -1;
-	float d = findClosestPointLineSegment(pa, pb, s.c, i.p, i.uv[0], vIndex);
+	float d = findClosestPointLineSegment(pa, pb, s.c, i.p, i.uv[0]);
 
 	if (d*d <= s.r2) {
 		i.d = d;
-		i.n = normal(vIndex);
 		i.primitive = this;
 		i.uv[1] = -1;
 

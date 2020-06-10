@@ -27,6 +27,9 @@ public:
 	// returns signed volume
 	virtual float signedVolume() const = 0;
 
+	// returns normalized normal
+	virtual Vector<DIM> normal(const Vector<DIM - 1>& uv) const = 0;
+
 	// splits the primitive along the provided coordinate and axis
 	virtual void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
 					   BoundingBox<DIM>& boxRight) const = 0;
@@ -42,6 +45,12 @@ public:
 template<int DIM>
 class Aggregate: public Primitive<DIM> {
 public:
+	// returns normalized normal
+	Vector<DIM> normal(const Vector<DIM - 1>& uv) const {
+		LOG(FATAL) << "Aggregate::normal<DIM>(): Not defined";
+		return zeroVector<DIM>();
+	}
+
 	// intersects with ray
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const {
@@ -138,6 +147,7 @@ public:
 
 	// intersects with ray, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
+	// NOTE: interactions are invalid when checkOcclusion is enabled
 	virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 								  int nodeStartIndex, int& nodesVisited,
 								  bool checkOcclusion=false, bool countHits=false) const = 0;
@@ -147,7 +157,8 @@ public:
 	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 										  int nodeStartIndex, int& nodesVisited) const = 0;
 
-	// member
+	// members
+	bool setNormals;
 	std::vector<const Primitive<DIM> *> ignoreList; // primitives to igonore during ray intersection &
 													// closest point traversal; NOTE: keep
 													// ignoreList.size() << primitives.size()

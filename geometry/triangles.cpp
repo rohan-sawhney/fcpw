@@ -10,8 +10,7 @@ Primitive<3>(),
 soup(soup_),
 indices(soup_->indices[index_]),
 eIndices(soup_->eIndices[index_]),
-tIndices(soup_->tIndices[index_]),
-index(index_)
+tIndices(soup_->tIndices[index_])
 {
 
 }
@@ -70,6 +69,23 @@ Vector3 Triangle::normal(int vIndex, int eIndex) const
 	if (soup->vNormals.size() > 0 && vIndex >= 0) return soup->vNormals[indices[vIndex]];
 	if (soup->eNormals.size() > 0 && eIndex >= 0) return soup->eNormals[eIndices[eIndex]];
 	return normal(true);
+}
+
+Vector3 Triangle::normal(const Vector2& uv) const
+{
+	int vIndex = -1;
+	if (uv[0] > oneMinusEpsilon && uv[1] < epsilon) vIndex = 0; // (1, 0, 0)
+	else if (uv[0] < epsilon && uv[1] > oneMinusEpsilon) vIndex = 1; // (0, 1, 0)
+	else if (uv[0] < epsilon && uv[1] < epsilon) vIndex = 2; // (0, 0, 1)
+
+	int eIndex = -1;
+	if (vIndex == -1) {
+		if (uv[0] < epsilon) eIndex = 1; // (0, 1 - w, w)
+		else if (uv[1] < epsilon) eIndex = 2; // (1 - w, 0, w)
+		else if (uv[0] + uv[1] > oneMinusEpsilon) eIndex = 0; // (1 - v, v, 0)
+	}
+
+	return normal(vIndex, eIndex);
 }
 
 Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
@@ -208,7 +224,6 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 		it->p = r(t);
 		it->uv[0] = u;
 		it->uv[1] = v;
-		it->n = normal(true);
 		it->primitive = this;
 
 		return 1;
@@ -218,8 +233,7 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 }
 
 float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vector3& pc,
-							   const Vector3& x, Vector3& pt, Vector2& t,
-							   int& vIndex, int& eIndex)
+							   const Vector3& x, Vector3& pt, Vector2& t)
 {
 	// source: real time collision detection
 	// check if x in vertex region outside pa
@@ -232,7 +246,6 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 		// barycentric coordinates (1, 0, 0)
 		t[0] = 1.0f;
 		t[1] = 0.0f;
-		vIndex = 0;
 		pt = pa;
 		return norm<3>(x - pt);
 	}
@@ -245,7 +258,6 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 		// barycentric coordinates (0, 1, 0)
 		t[0] = 0.0f;
 		t[1] = 1.0f;
-		vIndex = 1;
 		pt = pb;
 		return norm<3>(x - pt);
 	}
@@ -257,7 +269,6 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 		float v = d1/(d1 - d3);
 		t[0] = 1.0f - v;
 		t[1] = v;
-		eIndex = 0;
 		pt = pa + ab*v;
 		return norm<3>(x - pt);
 	}
@@ -270,7 +281,6 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 		// barycentric coordinates (0, 0, 1)
 		t[0] = 0.0f;
 		t[1] = 0.0f;
-		vIndex = 2;
 		pt = pc;
 		return norm<3>(x - pt);
 	}
@@ -282,7 +292,6 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 		float w = d2/(d2 - d6);
 		t[0] = 1.0f - w;
 		t[1] = 0.0f;
-		eIndex = 2;
 		pt = pa + ac*w;
 		return norm<3>(x - pt);
 	}
@@ -294,7 +303,6 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 		float w = (d4 - d3)/((d4 - d3) + (d5 - d6));
 		t[0] = 0.0f;
 		t[1] = 1.0f - w;
-		eIndex = 1;
 		pt = pb + (pc - pb)*w;
 		return norm<3>(x - pt);
 	}
@@ -320,13 +328,10 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 	const Vector3& pb = soup->positions[indices[1]];
 	const Vector3& pc = soup->positions[indices[2]];
 
-	int vIndex = -1;
-	int eIndex = -1;
-	float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv, vIndex, eIndex);
+	float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv);
 
 	if (d*d <= s.r2) {
 		i.d = d;
-		i.n = normal(vIndex, eIndex);
 		i.primitive = this;
 
 		return true;

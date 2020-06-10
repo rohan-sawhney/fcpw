@@ -27,6 +27,7 @@ bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0))
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	build();
+	this->setNormals = false;
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
@@ -772,13 +773,25 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 		nodeParentIndex = flatTree[nodeStartIndex].parent;
 	}
 
-	if (countHits) {
-		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
-		is = removeDuplicates<DIM>(is);
-		hits = (int)is.size();
+	if (hits > 0) {
+		// sort by distance and remove duplicates
+		if (countHits) {
+			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+			is = removeDuplicates<DIM>(is);
+			hits = (int)is.size();
+		}
+
+		// set normals
+		if (this->setNormals) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].n = is[i].primitive->normal(is[i].uv);
+			}
+		}
+
+		return hits;
 	}
 
-	return hits;
+	return 0;
 }
 
 template<int DIM>
@@ -903,7 +916,16 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	// process subtrees
 	processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
 
-	return !notFound;
+	if (!notFound) {
+		// set normal;
+		if (this->setNormals) {
+			i.n = i.primitive->normal(i.uv);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 } // namespace fcpw

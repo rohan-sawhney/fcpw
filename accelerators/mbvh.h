@@ -37,6 +37,7 @@ public:
 
 	// intersects with ray, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
+	// NOTE: interactions are invalid when checkOcclusion is enabled
 	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 						  int nodeStartIndex, int& nodesVisited,
 						  bool checkOcclusion=false, bool countHits=false) const;

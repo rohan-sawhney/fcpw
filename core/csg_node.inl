@@ -14,6 +14,7 @@ operation(operation_)
 										  (operation == BooleanOperation::Difference ? "Difference" :
 										   "None")));
 	computeBoundingBox();
+	this->setNormals = false;
 }
 
 template<int DIM>
@@ -145,6 +146,13 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		int hitsLeft = this->ignorePrimitive(left.get()) ?
 					   0 : left->intersect(rLeft, isLeft, false, true);
 
+		// set normals
+		if (hitsLeft > 0 && this->setNormals) {
+			for (int i = 0; i < (int)isLeft.size(); i++) {
+				isLeft[i].n = isLeft[i].primitive->normal(isLeft[i].uv);
+			}
+		}
+
 		// return if no intersections for the left child were found and
 		// the operation is intersection or difference
 		if (hitsLeft == 0 && (operation == BooleanOperation::Intersection ||
@@ -155,6 +163,13 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		std::vector<Interaction<DIM>> isRight;
 		int hitsRight = this->ignorePrimitive(right.get()) ?
 						0 : right->intersect(rRight, isRight, false, true);
+
+		// set normals
+		if (hitsRight > 0 && this->setNormals) {
+			for (int i = 0; i < (int)isRight.size(); i++) {
+				isRight[i].n = isRight[i].primitive->normal(isRight[i].uv);
+			}
+		}
 
 		// return if no intersections were found for both children
 		if (hitsLeft == 0 && hitsRight == 0) return 0;
@@ -210,6 +225,11 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 		bool foundLeft = this->ignorePrimitive(left.get()) ?
 						 false : left->findClosestPoint(sLeft, iLeft);
 
+		// set normal
+		if (foundLeft && this->setNormals) {
+			iLeft.n = iLeft.primitive->normal(iLeft.uv);
+		}
+
 		// return if no closest point for the left child is found and
 		// the operation is intersection or difference
 		if (!foundLeft && (operation == BooleanOperation::Intersection ||
@@ -220,6 +240,11 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 		BoundingSphere<DIM> sRight = s;
 		bool foundRight = this->ignorePrimitive(right.get()) ?
 						  false : right->findClosestPoint(sRight, iRight);
+
+		// set normal
+		if (foundRight && this->setNormals) {
+			iRight.n = iRight.primitive->normal(iRight.uv);
+		}
 
 		// return if no closest point was found to both children
 		if (!foundLeft && !foundRight) return false;

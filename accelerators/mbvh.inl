@@ -182,6 +182,7 @@ primitiveType(0)
 
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
+	this->setNormals = false;
 
 	// compute empty nodes
 	float nEmptyLeafs = 0;
@@ -522,13 +523,25 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 		}
 	}
 
-	if (countHits) {
-		std::sort(is.begin(), is.end(), compareInteractions<DIM>);
-		is = removeDuplicates<DIM>(is);
-		hits = (int)is.size();
+	if (hits > 0) {
+		// sort by distance and remove duplicates
+		if (countHits) {
+			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+			is = removeDuplicates<DIM>(is);
+			hits = (int)is.size();
+		}
+
+		// set normals
+		if (this->setNormals) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].n = is[i].primitive->normal(is[i].uv);
+			}
+		}
+
+		return hits;
 	}
 
-	return hits;
+	return 0;
 }
 
 template<int WIDTH, int DIM>
@@ -543,10 +556,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, 
 	// perform vectorized closest point query
 	VectorP<WIDTH, DIM> pt;
 	FloatP<WIDTH> t;
-	IntP<WIDTH> vIndex(-1);
 	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
-	FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH, DIM>(s.c, leafNode[0], leafNode[1],
-																  pt, t, vIndex);
+	FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH, DIM>(s.c, leafNode[0],
+																  leafNode[1], pt, t);
 	FloatP<WIDTH> d2 = d*d;
 
 	// determine closest primitive
@@ -571,7 +583,6 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, 
 		i.p[2] = pt[2][W];
 		i.uv[0] = t[W];
 		i.uv[1] = -1;
-		i.n = lineSegment->normal(vIndex[W]);
 		i.nodeIndex = nodeIndex;
 		i.primitive = lineSegment;
 
@@ -593,10 +604,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	// perform vectorized closest point query
 	VectorP<WIDTH, DIM> pt;
 	VectorP<WIDTH, DIM - 1> t;
-	IntP<WIDTH> vIndex(-1), eIndex(-1);
 	const std::vector<VectorP<WIDTH, DIM>>& leafNode = leafNodes[node.leafIndex];
 	FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH, DIM>(s.c, leafNode[0], leafNode[1],
-														leafNode[2], pt, t, vIndex, eIndex);
+														leafNode[2], pt, t);
 	FloatP<WIDTH> d2 = d*d;
 
 	// determine closest primitive
@@ -621,7 +631,6 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 		i.p[2] = pt[2][W];
 		i.uv[0] = t[0][W];
 		i.uv[1] = t[1][W];
-		i.n = triangle->normal(vIndex[W], eIndex[W]);
 		i.nodeIndex = nodeIndex;
 		i.primitive = triangle;
 
@@ -713,7 +722,16 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 		}
 	}
 
-	return !notFound;
+	if (!notFound) {
+		// set normal;
+		if (this->setNormals) {
+			i.n = i.primitive->normal(i.uv);
+		}
+
+		return true;
+	}
+
+	return false;
 }
 
 } // namespace fcpw
