@@ -66,7 +66,8 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int nodeStartIndex, int& nodesVisited) const;
+								  int nodeStartIndex, const Vector<DIM>& dirGuess,
+								  int& nodesVisited) const;
 
 protected:
 	// computes split cost based on heuristic
@@ -136,8 +137,8 @@ protected:
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-									   std::vector<BvhTraversal>& subtree, float *boxHits,
-									   bool& notFound, int& nodesVisited) const;
+									   const Vector<DIM>& dirGuess, std::vector<BvhTraversal>& subtree,
+									   float *boxHits, bool& notFound, int& nodesVisited) const;
 
 	// members
 	CostHeuristic costHeuristic;

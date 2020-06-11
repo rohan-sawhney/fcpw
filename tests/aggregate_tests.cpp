@@ -167,7 +167,8 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 				int nodesVisited = 0;
 				Interaction<DIM> c;
 				BoundingSphere<DIM> s(queryPoints[I], r2);
-				bool found = aggregate->findClosestPointFromNode(s, c, nodeIndex, nodesVisited);
+				bool found = aggregate->findClosestPointFromNode(s, c, nodeIndex,
+												zeroVector<DIM>(), nodesVisited);
 				nodesVisitedByThread += nodesVisited;
 
 				if (found) cPrev = c;
@@ -294,7 +295,8 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 				int nodesVisited = 0;
 				Interaction<DIM> c2;
 				BoundingSphere<DIM> s2(queryPoints[I], r2);
-				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex, nodesVisited);
+				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex,
+													zeroVector<DIM>(), nodesVisited);
 
 				if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
 					LOG(INFO) << "d1: " << c1.d << " d2: " << c2.d;

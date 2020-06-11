@@ -61,7 +61,7 @@ public:
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
 		int nodesVisited = 0;
-		return this->findClosestPointFromNode(s, i, 0, nodesVisited);
+		return this->findClosestPointFromNode(s, i, 0, zeroVector<DIM>(), nodesVisited);
 	}
 
 	// performs inside outside test for x
@@ -155,7 +155,8 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-										  int nodeStartIndex, int& nodesVisited) const = 0;
+										  int nodeStartIndex, const Vector<DIM>& dirGuess,
+										  int& nodesVisited) const = 0;
 
 	// members
 	bool setNormals;
@@ -222,12 +223,22 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int nodeStartIndex, int& nodesVisited) const {
+								  int nodeStartIndex, const Vector<DIM>& dirGuess,
+								  int& nodesVisited) const {
 		// apply inverse transform to sphere
 		BoundingSphere<DIM> sInv = s.transform(tInv);
 
+		// apply inverse transform to direction guess
+		Vector<DIM> dirGuessInv = dirGuess;
+		if (squaredNorm<DIM>(dirGuess) > 0.0f) {
+			dirGuessInv = transformVector<DIM>(tInv, s.c + dirGuess) - sInv.c;
+			float dirNorm = norm<DIM>(dirGuessInv);
+			dirGuessInv /= dirNorm;
+		}
+
 		// find closest point
-		bool found = aggregate->findClosestPointFromNode(sInv, i, nodeStartIndex, nodesVisited);
+		bool found = aggregate->findClosestPointFromNode(sInv, i, nodeStartIndex,
+														 dirGuessInv, nodesVisited);
 
 		// apply transform to sphere and interaction
 		s.r2 = sInv.transform(t).r2;

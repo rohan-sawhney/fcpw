@@ -52,9 +52,10 @@ inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interactio
 
 template<int DIM>
 inline bool EmbreeBvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													 int nodeStartIndex, int& nodesVisited) const
+													 int nodeStartIndex, const Vector<DIM>& dirGuess,
+													 int& nodesVisited) const
 {
-	return Baseline<DIM>::findClosestPointFromNode(s, i, nodeStartIndex, nodesVisited);
+	return Baseline<DIM>::findClosestPointFromNode(s, i, nodeStartIndex, dirGuess, nodesVisited);
 }
 
 void errorFunction(void *userPtr, enum RTCError error, const char *str)
@@ -381,7 +382,8 @@ inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>
 
 template<>
 inline bool EmbreeBvh<3>::findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
-												   int nodeStartIndex, int& nodesVisited) const
+												   int nodeStartIndex, const Vector3& dirGuess,
+												   int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();

@@ -789,9 +789,12 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 
 template<int DIM>
 inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													 std::vector<BvhTraversal>& subtree, float *boxHits,
-													 bool& notFound, int& nodesVisited) const
+													 const Vector<DIM>& dirGuess,
+													 std::vector<BvhTraversal>& subtree,
+													 float *boxHits, bool& notFound,
+													 int& nodesVisited) const
 {
+	// TODO: use direction to boundary guess
 	int stackPtr = 0;
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
@@ -878,7 +881,8 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 
 template<int DIM>
 inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												int nodeStartIndex, int& nodesVisited) const
+												int nodeStartIndex, const Vector<DIM>& dirGuess,
+												int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -892,7 +896,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 
 	subtree[0].node = 0;
 	subtree[0].distance = minFloat;
-	processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
+	processSubtreeForClosestPoint(s, i, dirGuess, subtree, boxHits, notFound, nodesVisited);
 
 	/*
 	// push the start node onto the working set
@@ -900,7 +904,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 		if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
 		subtree[0].node = nodeStartIndex;
 		subtree[0].distance = boxHits[0];
-		processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
+		processSubtreeForClosestPoint(s, i, dirGuess, subtree, boxHits, notFound, nodesVisited);
 	}
 
 	int nodeParentIndex = flatTree[nodeStartIndex].parent;
@@ -915,7 +919,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[3]);
 			subtree[0].node = nodeSiblingIndex;
 			subtree[0].distance = boxHits[2];
-			processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
+			processSubtreeForClosestPoint(s, i, dirGuess, subtree, boxHits, notFound, nodesVisited);
 		}
 
 		// update the start node index to its parent index

@@ -643,13 +643,14 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 
 template<int WIDTH, int DIM>
 inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													   int nodeStartIndex, int& nodesVisited) const
+													   int nodeStartIndex, const Vector<DIM>& dirGuess,
+													   int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
-	// TODO: start from nodeStartIndex
+	// TODO: start from nodeStartIndex & use direction to boundary guess
 	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	bool notFound = true;

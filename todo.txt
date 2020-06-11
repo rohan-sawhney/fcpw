@@ -11,9 +11,10 @@ Priority:
 5. start search from specified node (and walk up/laterally in the tree)
 6. rebalance trees
 7. queue vs stack vs both?
-8. benchmark
-9. travis/circle CI
-10. README (tutorial, features, benchmark, compiling, logo)
+8. call *fromNode functions for aggregates embedded inside aggregates
+9. benchmark
+10. travis/circle CI
+11. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. cache alignment - sbvh & mbvh nodes

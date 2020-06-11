@@ -110,7 +110,8 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 
 template<int DIM>
 inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													int nodeStartIndex, int& nodesVisited) const
+													int nodeStartIndex, const Vector<DIM>& dirGuess,
+													int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
