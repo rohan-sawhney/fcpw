@@ -653,19 +653,19 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
 								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	bool notFound = true;
-	std::deque<BvhTraversal> subtree;
+	std::vector<BvhTraversal> subtree((maxDepth + 1)*(WIDTH - 1));
 	FloatP<WIDTH> d2Min, d2Max;
 
 	// push root node
-	subtree.emplace_back(BvhTraversal(0, minFloat));
+	subtree[0].node = 0;
+	subtree[0].distance = minFloat;
+	int stackPtr = 0;
 
-	while (!subtree.empty()) {
+	while (stackPtr >= 0) {
 		// pop off the next node to work on
-		BvhTraversal traversal = subtree.front();
-		subtree.pop_front();
-
-		int nodeIndex = traversal.node;
-		float near = traversal.distance;
+		int nodeIndex = subtree[stackPtr].node;
+		float near = subtree[stackPtr].distance;
+		stackPtr--;
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
@@ -710,13 +710,34 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			// overlap sphere with boxes
 			MaskP<WIDTH> mask = overlapWideBox<WIDTH, DIM>(s, node.boxMin,
 												node.boxMax, d2Min, d2Max);
-			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, enoki::hmin(d2Max));
 
-			// enqueue overlapping nodes
+			// find closest overlapping node
+			int closestIndex = -1;
+			float minDist = s.r2;
+
 			for (int w = 0; w < WIDTH; w++) {
-				if (node.child[w] != maxInt && mask[w]) {
-					subtree.emplace_back(BvhTraversal(node.child[w], d2Min[w]));
+				if (node.child[w] != maxInt && mask[w] && d2Min[w] < minDist) {
+					closestIndex = w;
+					minDist = d2Min[w];
 				}
+			}
+
+			// enqueue remaining overlapping nodes first
+			for (int w = 0; w < WIDTH; w++) {
+				if (node.child[w] != maxInt && mask[w] && w != closestIndex) {
+					if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[w]);
+					stackPtr++;
+					subtree[stackPtr].node = node.child[w];
+					subtree[stackPtr].distance = d2Min[w];
+				}
+			}
+
+			// enqueue closest intersecting node
+			if (closestIndex != -1) {
+				if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[closestIndex]);
+				stackPtr++;
+				subtree[stackPtr].node = node.child[closestIndex];
+				subtree[stackPtr].distance = minDist;
 			}
 
 			nodesVisited++;

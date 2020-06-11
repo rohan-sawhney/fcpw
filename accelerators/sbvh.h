@@ -136,7 +136,7 @@ protected:
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-									   std::deque<BvhTraversal>& subtree, float *boxHits,
+									   std::vector<BvhTraversal>& subtree, float *boxHits,
 									   bool& notFound, int& nodesVisited) const;
 
 	// members
