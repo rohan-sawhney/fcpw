@@ -1,15 +1,17 @@
 Priority:
-1. implement mbvh
----- start search from specified node
----- enoki settings on ubuntu (geometry-box) & windows
+1. mbvh
+---- start search from specified node (and walk up/laterally in the tree)
+---- enoki settings on ubuntu & windows
 ---- restrict branching factor to 4, with SIMD wide leaves
 ---- more aggressive culling for closest points?
 ---- sort nodes efficiently during traversal for closest points
-2. rebalance trees
-3. queue vs stack vs both?
-4. benchmark
-5. travis/circle CI
-6. README (tutorial, features, benchmark, compiling, logo)
+2. give the closest point a rough guess of direction
+3. rebalance trees
+4. queue vs stack vs both?
+5. refactor to bypass inheritence costs
+6. benchmark
+7. travis/circle CI
+8. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. cache alignment - sbvh & mbvh nodes
