@@ -917,7 +917,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	processSubtreeForClosestPoint(s, i, subtree, boxHits, notFound, nodesVisited);
 
 	if (!notFound) {
-		// set normal;
+		// set normal
 		if (this->setNormals) {
 			i.n = i.primitive->normal(i.uv);
 		}

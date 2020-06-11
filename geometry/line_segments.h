@@ -43,8 +43,8 @@ public:
 
 	// members
 	std::shared_ptr<PolygonSoup<3>> soup;
-	const std::vector<int>& indices; /* a.k.a. vIndices */
 	bool isFlat;
+	int index;
 
 private:
 	// returns normalized vertex normal if available;
@@ -54,11 +54,11 @@ private:
 
 // reads soup from obj file
 std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-															   bool closeLoop, bool& isFlat);
+															   bool& isFlat);
 
 // reads line segment soup from obj file
 std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
 								  std::vector<std::shared_ptr<Primitive<3>>>& lineSegments,
-								  bool computeWeightedNormals, bool closeLoop=true);
+								  bool computeWeightedNormals);
 
 } // namespace fcpw

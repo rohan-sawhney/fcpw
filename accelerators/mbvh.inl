@@ -82,8 +82,10 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
 				const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[index].get());
-				const Vector3& pa = lineSegment->soup->positions[lineSegment->indices[0]];
-				const Vector3& pb = lineSegment->soup->positions[lineSegment->indices[1]];
+				int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
+				int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
+				const Vector3& pa = lineSegment->soup->positions[paIndex];
+				const Vector3& pb = lineSegment->soup->positions[pbIndex];
 
 				for (int i = 0; i < DIM; i++) {
 					leafNodes[leafIndex + 0][i][w] = pa[i];
@@ -98,9 +100,12 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
 				const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
-				const Vector3& pa = triangle->soup->positions[triangle->indices[0]];
-				const Vector3& pb = triangle->soup->positions[triangle->indices[1]];
-				const Vector3& pc = triangle->soup->positions[triangle->indices[2]];
+				int paIndex = triangle->soup->indices[triangle->index + 0];
+				int pbIndex = triangle->soup->indices[triangle->index + 1];
+				int pcIndex = triangle->soup->indices[triangle->index + 2];
+				const Vector3& pa = triangle->soup->positions[paIndex];
+				const Vector3& pb = triangle->soup->positions[pbIndex];
+				const Vector3& pc = triangle->soup->positions[pcIndex];
 
 				for (int i = 0; i < DIM; i++) {
 					leafNodes[leafIndex + 0][i][w] = pa[i];
@@ -719,7 +724,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	}
 
 	if (!notFound) {
-		// set normal;
+		// set normal
 		if (this->setNormals) {
 			i.n = i.primitive->normal(i.uv);
 		}

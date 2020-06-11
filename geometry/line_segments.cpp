@@ -9,16 +9,16 @@ LineSegment::LineSegment(const std::shared_ptr<PolygonSoup<3>>& soup_,
 						 bool isFlat_, int index_):
 Primitive<3>(),
 soup(soup_),
-indices(soup_->indices[index_]),
-isFlat(isFlat_)
+isFlat(isFlat_),
+index(index_)
 {
 
 }
 
 BoundingBox<3> LineSegment::boundingBox() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 	BoundingBox<3> box(pa);
 	box.expandToInclude(pb);
@@ -28,16 +28,16 @@ BoundingBox<3> LineSegment::boundingBox() const
 
 Vector3 LineSegment::centroid() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 	return (pa + pb)*0.5f;
 }
 
 float LineSegment::surfaceArea() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 	return norm<3>(pb - pa);
 }
@@ -45,8 +45,8 @@ float LineSegment::surfaceArea() const
 float LineSegment::signedVolume() const
 {
 	if (isFlat) {
-		const Vector3& pa = soup->positions[indices[0]];
-		const Vector3& pb = soup->positions[indices[1]];
+		const Vector3& pa = soup->positions[soup->indices[index]];
+		const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 		return 0.5f*cross(pa, pb)[2];
 	}
@@ -58,8 +58,8 @@ float LineSegment::signedVolume() const
 Vector3 LineSegment::normal(bool normalize) const
 {
 	if (isFlat) {
-		const Vector3& pa = soup->positions[indices[0]];
-		const Vector3& pb = soup->positions[indices[1]];
+		const Vector3& pa = soup->positions[soup->indices[index]];
+		const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 		Vector3 s = pb - pa;
 		Vector3 n(s[1], -s[0], 0);
@@ -73,7 +73,10 @@ Vector3 LineSegment::normal(bool normalize) const
 
 Vector3 LineSegment::normal(int vIndex) const
 {
-	if (soup->vNormals.size() > 0 && vIndex >= 0) return soup->vNormals[indices[vIndex]];
+	if (soup->vNormals.size() > 0 && vIndex >= 0) {
+		return soup->vNormals[soup->indices[index + vIndex]];
+	}
+
 	return normal(true);
 }
 
@@ -88,8 +91,8 @@ Vector3 LineSegment::normal(const Vector2& uv) const
 
 float LineSegment::barycentricCoordinates(const Vector3& p) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 	return norm<3>(p - pa)/norm<3>(pb - pa);
 }
@@ -97,8 +100,8 @@ float LineSegment::barycentricCoordinates(const Vector3& p) const
 void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 						BoundingBox<3>& boxRight) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 	if (pa[dim] <= splitCoord) {
 		if (pb[dim] <= splitCoord) {
@@ -144,8 +147,8 @@ int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	is.clear();
 
 	if (isFlat) {
-		const Vector3& pa = soup->positions[indices[0]];
-		const Vector3& pb = soup->positions[indices[1]];
+		const Vector3& pa = soup->positions[soup->indices[index]];
+		const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 		Vector3 u = pa - r.o;
 		Vector3 v = pb - pa;
@@ -217,8 +220,8 @@ bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) cons
 	PROFILE_SCOPED();
 #endif
 
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
 	float d = findClosestPointLineSegment(pa, pb, s.c, i.p, i.uv[0]);
 
@@ -236,14 +239,16 @@ bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) cons
 void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<Primitive<3>>>& lineSegments,
 									   std::shared_ptr<PolygonSoup<3>>& soup)
 {
-	int N = (int)soup->indices.size();
+	int N = (int)soup->indices.size()/2;
 	int V = (int)soup->positions.size();
 	soup->vNormals.resize(V, zeroVector<3>());
 
 	for (int i = 0; i < N; i++) {
-		Vector3 n = static_cast<const LineSegment *>(lineSegments[i].get())->normal(true);
-		soup->vNormals[soup->indices[i][0]] += n;
-		soup->vNormals[soup->indices[i][1]] += n;
+		const LineSegment *lineSegment = static_cast<const LineSegment *>(lineSegments[i].get());
+		Vector3 n = lineSegment->normal(true);
+
+		soup->vNormals[soup->indices[lineSegment->index]] += n;
+		soup->vNormals[soup->indices[lineSegment->index + 1]] += n;
 	}
 
 	for (int i = 0; i < V; i++) {
@@ -252,7 +257,7 @@ void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<Primiti
 }
 
 std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-															   bool closeLoop, bool& isFlat)
+															   bool& isFlat)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -265,7 +270,6 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 
 	// parse obj format
 	std::string line;
-	bool tokenIsL = false;
 	isFlat = true;
 
 	while (getline(in, line)) {
@@ -281,7 +285,7 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 			if (std::fabs(z) > epsilon) isFlat = false;
 
 		} else if (token == "f" || token == "l") {
-			tokenIsL = token == "l";
+			bool tokenIsF = token == "f";
 			std::vector<int> indices;
 
 			while (ss >> token) {
@@ -293,33 +297,17 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 					index = parseFaceIndex(line.substr(i));
 				}
 
-				indices.emplace_back(index.position);
+				if (tokenIsF) indices.emplace_back(index.position);
+				else soup->indices.emplace_back(index.position);
 			}
 
-			if (tokenIsL) {
-				soup->indices.emplace_back(indices);
-
-			} else {
+			if (tokenIsF) {
 				int F = (int)indices.size();
-				int N = closeLoop ? F : F - 1;
-				for (int i = 0; i < N; i++) {
+				for (int i = 0; i < F - 1; i++) {
 					int j = (i + 1)%F;
-					soup->indices.emplace_back(std::vector<int>{indices[i], indices[j]});
+					soup->indices.emplace_back(indices[i]);
+					soup->indices.emplace_back(indices[j]);
 				}
-			}
-		}
-	}
-
-	// close loop
-	if (tokenIsL && closeLoop) {
-		int F = (int)soup->indices.size();
-
-		if (F > 0) {
-			int startIndex = soup->indices[0][0];
-			int endIndex = soup->indices[F - 1][1];
-
-			if (startIndex != endIndex) {
-				soup->indices.emplace_back(std::vector<int>{endIndex, startIndex});
 			}
 		}
 	}
@@ -332,40 +320,26 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 
 std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
 								  std::vector<std::shared_ptr<Primitive<3>>>& lineSegments,
-								  bool computeWeightedNormals, bool closeLoop)
+								  bool computeWeightedNormals)
 {
 	// read soup and initialize line segments
 	bool isFlat = true;
-	std::shared_ptr<PolygonSoup<3>> soup = readLineSegmentSoupFromOBJFile(filename,
-																closeLoop, isFlat);
+	std::shared_ptr<PolygonSoup<3>> soup = readLineSegmentSoupFromOBJFile(filename, isFlat);
 	int N = (int)soup->indices.size();
+	if (N%2 != 0) {
+		LOG(FATAL) << "Soup has non line segment curves: " << filename;
+	}
+
+	N /= 2;
 	lineSegments.clear();
 
 	for (int i = 0; i < N; i++) {
-		if (soup->indices[i].size() != 2) {
-			LOG(FATAL) << "Soup has non line segment curves: " << filename;
-		}
-
-		lineSegments.emplace_back(std::make_shared<LineSegment>(soup, isFlat, i));
+		lineSegments.emplace_back(std::make_shared<LineSegment>(soup, isFlat, 2*i));
 	}
 
-	if (isFlat) {
-		// swap indices if segments are oriented in clockwise order
-		if (closeLoop) {
-			float signedVolume = 0.0f;
-			for (int i = 0; i < N; i++) {
-				signedVolume += lineSegments[i]->signedVolume();
-			}
-
-			if (signedVolume < 0) {
-				for (int i = 0; i < N; i++) {
-					std::swap(soup->indices[i][0], soup->indices[i][1]);
-				}
-			}
-		}
-
-		// compute weighted normals if requested
-		if (computeWeightedNormals) computeWeightedLineSegmentNormals(lineSegments, soup);
+	// compute weighted normals if requested
+	if (isFlat && computeWeightedNormals) {
+		computeWeightedLineSegmentNormals(lineSegments, soup);
 	}
 
 	return soup;

@@ -156,8 +156,14 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 		// register surface meshes
 		for (int i = 0; i < (int)scene.soups.size(); i++) {
 			std::string meshName = "Polygon_Soup_" + std::to_string(i);
-			const std::vector<std::vector<int>>& indices = scene.soups[i]->indices;
+			int N = (int)scene.soups[i]->indices.size()/3;
+			std::vector<std::vector<int>> indices(N, std::vector<int>(3));
 			const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
+			for (int j = 0; j < N; j++) {
+				for (int k = 0; k < 3; k++) {
+					indices[j][k] = scene.soups[i]->indices[3*j + k];
+				}
+			}
 
 			if (scene.instanceTransforms[i].size() > 0) {
 				for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {

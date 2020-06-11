@@ -46,9 +46,7 @@ public:
 
 	// members
 	std::shared_ptr<PolygonSoup<3>> soup;
-	const std::vector<int>& indices; /* a.k.a. vIndices */
-	const std::vector<int>& eIndices;
-	const std::vector<int>& tIndices;
+	int index;
 
 private:
 	// returns normalized vertex or edge normal if available;

@@ -134,7 +134,7 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 	}
 
 	if (!notFound) {
-		// set normal;
+		// set normal
 		if (this->setNormals) {
 			i.n = i.primitive->normal(i.uv);
 		}

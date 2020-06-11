@@ -183,10 +183,9 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 	embree::Vec3fa q(args->query->x, args->query->y, args->query->z);
 
 	// determine distance to closest point on triangle
-	const std::vector<int>& indices = callbackSoup->indices[primID];
-	const Vector3& pa = callbackSoup->positions[indices[0]];
-	const Vector3& pb = callbackSoup->positions[indices[1]];
-	const Vector3& pc = callbackSoup->positions[indices[2]];
+	const Vector3& pa = callbackSoup->positions[callbackSoup->indices[3*primID]];
+	const Vector3& pb = callbackSoup->positions[callbackSoup->indices[3*primID + 1]];
+	const Vector3& pc = callbackSoup->positions[callbackSoup->indices[3*primID + 2]];
 	embree::Vec3fa v1(pa[0], pa[1], pa[2]);
 	embree::Vec3fa v2(pb[0], pb[1], pb[2]);
 	embree::Vec3fa v3(pc[0], pc[1], pc[2]);
@@ -245,19 +244,17 @@ soup(soup_)
 													   soup->positions.size());
 	unsigned int *indices = (unsigned int *)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0,
 																	RTC_FORMAT_UINT3, 3*sizeof(unsigned int),
-																	soup->indices.size());
+																	soup->indices.size()/3);
 
 	if (vertices && indices) {
-		for (int i = 0; i < soup->positions.size(); i++) {
+		for (int i = 0; i < (int)soup->positions.size(); i++) {
 			for (int j = 0; j < 3; j++) {
 				vertices[3*i + j] = soup->positions[i][j];
 			}
 		}
 
-		for (int i = 0; i < soup->indices.size(); i++) {
-			for (int j = 0; j < 3; j++) {
-				indices[3*i + j] = static_cast<unsigned int>(soup->indices[i][j]);
-			}
+		for (int i = 0; i < (int)soup->indices.size(); i++) {
+			indices[i] = soup->indices[i];
 		}
 	}
 

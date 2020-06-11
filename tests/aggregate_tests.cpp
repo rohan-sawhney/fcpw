@@ -374,12 +374,26 @@ void visualizeScene(const Scene<DIM>& scene,
 			std::string meshName = "Polygon_Soup_" + std::to_string(i);
 
 			if (scene.objectTypes[i] == ObjectType::Triangles) {
-				polyscope::registerSurfaceMesh(meshName, scene.soups[i]->positions,
-											   scene.soups[i]->indices);
+				int N = (int)scene.soups[i]->indices.size()/3;
+				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
+				for (int j = 0; j < N; j++) {
+					for (int k = 0; k < 3; k++) {
+						indices[j][k] = scene.soups[i]->indices[3*j + k];
+					}
+				}
+
+				polyscope::registerSurfaceMesh(meshName, scene.soups[i]->positions, indices);
 
 			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
-				polyscope::registerCurveNetwork(meshName, scene.soups[i]->positions,
-												scene.soups[i]->indices);
+				int N = (int)scene.soups[i]->indices.size()/2;
+				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
+				for (int j = 0; j < N; j++) {
+					for (int k = 0; k < 2; k++) {
+						indices[j][k] = scene.soups[i]->indices[2*j + k];
+					}
+				}
+
+				polyscope::registerCurveNetwork(meshName, scene.soups[i]->positions, indices);
 			}
 		}
 

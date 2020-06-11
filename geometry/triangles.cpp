@@ -8,18 +8,16 @@ namespace fcpw {
 Triangle::Triangle(const std::shared_ptr<PolygonSoup<3>>& soup_, int index_):
 Primitive<3>(),
 soup(soup_),
-indices(soup_->indices[index_]),
-eIndices(soup_->eIndices[index_]),
-tIndices(soup_->tIndices[index_])
+index(index_)
 {
 
 }
 
 BoundingBox<3> Triangle::boundingBox() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pc = soup->positions[soup->indices[index + 2]];
 
 	BoundingBox<3> box(pa);
 	box.expandToInclude(pb);
@@ -30,9 +28,9 @@ BoundingBox<3> Triangle::boundingBox() const
 
 Vector3 Triangle::centroid() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pc = soup->positions[soup->indices[index + 2]];
 
 	return (pa + pb + pc)/3.0f;
 }
@@ -44,18 +42,18 @@ float Triangle::surfaceArea() const
 
 float Triangle::signedVolume() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pc = soup->positions[soup->indices[index + 2]];
 
 	return dot<3>(cross(pa, pb), pc)/6.0f;
 }
 
 Vector3 Triangle::normal(bool normalize) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pc = soup->positions[soup->indices[index + 2]];
 
 	Vector3 v1 = pb - pa;
 	Vector3 v2 = pc - pa;
@@ -66,8 +64,14 @@ Vector3 Triangle::normal(bool normalize) const
 
 Vector3 Triangle::normal(int vIndex, int eIndex) const
 {
-	if (soup->vNormals.size() > 0 && vIndex >= 0) return soup->vNormals[indices[vIndex]];
-	if (soup->eNormals.size() > 0 && eIndex >= 0) return soup->eNormals[eIndices[eIndex]];
+	if (soup->vNormals.size() > 0 && vIndex >= 0) {
+		return soup->vNormals[soup->indices[index + vIndex]];
+	}
+
+	if (soup->eNormals.size() > 0 && eIndex >= 0) {
+		return soup->eNormals[soup->eIndices[index + eIndex]];
+	}
+
 	return normal(true);
 }
 
@@ -90,9 +94,9 @@ Vector3 Triangle::normal(const Vector2& uv) const
 
 Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pc = soup->positions[soup->indices[index + 2]];
 
 	Vector3 v1 = pb - pa;
 	Vector3 v2 = pc - pa;
@@ -112,10 +116,10 @@ Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 
 Vector2 Triangle::textureCoordinates(const Vector2& uv) const
 {
-	if (tIndices.size() == 3) {
-		const Vector2& pa = soup->textureCoordinates[tIndices[0]];
-		const Vector2& pb = soup->textureCoordinates[tIndices[1]];
-		const Vector2& pc = soup->textureCoordinates[tIndices[2]];
+	if (soup->tIndices.size() > 0) {
+		const Vector2& pa = soup->textureCoordinates[soup->tIndices[index]];
+		const Vector2& pb = soup->textureCoordinates[soup->tIndices[index + 1]];
+		const Vector2& pc = soup->textureCoordinates[soup->tIndices[index + 2]];
 
 		float u = uv[0];
 		float v = uv[1];
@@ -131,11 +135,11 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 					 BoundingBox<3>& boxRight) const
 {
 	for (int i = 0; i < 3; i++) {
-		const Vector3& pa = soup->positions[indices[i]];
-		const Vector3& pb = soup->positions[indices[(i + 1)%3]];
+		const Vector3& pa = soup->positions[soup->indices[index + i]];
+		const Vector3& pb = soup->positions[soup->indices[index + (i + 1)%3]];
 
 		if (pa[dim] <= splitCoord && pb[dim] <= splitCoord) {
-			const Vector3& pc = soup->positions[indices[(i + 2)%3]];
+			const Vector3& pc = soup->positions[soup->indices[index + (i + 2)%3]];
 
 			if (pc[dim] <= splitCoord) {
 				boxLeft = BoundingBox<3>(pa);
@@ -160,7 +164,7 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 			break;
 
 		} else if (pa[dim] >= splitCoord && pb[dim] >= splitCoord) {
-			const Vector3& pc = soup->positions[indices[(i + 2)%3]];
+			const Vector3& pc = soup->positions[soup->indices[index + (i + 2)%3]];
 
 			if (pc[dim] >= splitCoord) {
 				boxRight = BoundingBox<3>(pa);
@@ -195,9 +199,9 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 #endif
 
 	// Möller–Trumbore intersection algorithm
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pc = soup->positions[soup->indices[index + 2]];
 	is.clear();
 
 	Vector3 v1 = pb - pa;
@@ -324,9 +328,9 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 	PROFILE_SCOPED();
 #endif
 
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pc = soup->positions[soup->indices[index + 2]];
 
 	float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv);
 
@@ -345,21 +349,19 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 {
 	// set edge indices
 	int E = 0;
-	int N = (int)soup->indices.size();
+	int N = (int)soup->indices.size()/3;
 	std::map<std::pair<int, int>, int> indexMap;
 
 	for (int i = 0; i < N; i++) {
-		const std::vector<int>& index = soup->indices[i];
-
 		for (int j = 0; j < 3; j++) {
 			int k = (j + 1)%3;
-			int I = index[j];
-			int J = index[k];
+			int I = soup->indices[3*i + j];
+			int J = soup->indices[3*i + k];
 			if (I > J) std::swap(I, J);
 			std::pair<int, int> e(I, J);
 
 			if (indexMap.find(e) == indexMap.end()) indexMap[e] = E++;
-			soup->eIndices[i].emplace_back(indexMap[e]);
+			soup->eIndices.emplace_back(indexMap[e]);
 		}
 	}
 
@@ -369,10 +371,12 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 	soup->eNormals.resize(E, zeroVector<3>());
 
 	for (int i = 0; i < N; i++) {
-		Vector3 n = static_cast<const Triangle *>(triangles[i].get())->normal(true);
+		const Triangle *triangle = static_cast<const Triangle *>(triangles[i].get());
+		Vector3 n = triangle->normal(true);
+
 		for (int j = 0; j < 3; j++) {
-			soup->vNormals[soup->indices[i][j]] += n;
-			soup->eNormals[soup->eIndices[i][j]] += n;
+			soup->vNormals[soup->indices[triangle->index + j]] += n;
+			soup->eNormals[soup->eIndices[triangle->index + j]] += n;
 		}
 	}
 
@@ -411,8 +415,6 @@ std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 			soup->textureCoordinates.emplace_back(Vector2(u, v));
 
 		} else if (token == "f") {
-			std::vector<int> indices, tIndices;
-
 			while (ss >> token) {
 				Index index = parseFaceIndex(token);
 
@@ -422,19 +424,20 @@ std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 					index = parseFaceIndex(line.substr(i));
 				}
 
-				indices.emplace_back(index.position);
-				tIndices.emplace_back(index.uv);
+				soup->indices.emplace_back(index.position);
+				soup->tIndices.emplace_back(index.uv);
 			}
-
-			soup->indices.emplace_back(indices);
-			soup->tIndices.emplace_back(tIndices);
 		}
 	}
 
 	// close
 	in.close();
 
-	LOG_IF(INFO, soup->textureCoordinates.size() == 0) << "Model does not contain uvs";
+	if (soup->textureCoordinates.size() == 0) {
+		LOG(INFO) << "Model does not contain uvs";
+		soup->tIndices.clear();
+	}
+
 	return soup;
 }
 
@@ -445,19 +448,21 @@ std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 	// read soup and initialize triangles
 	std::shared_ptr<PolygonSoup<3>> soup = readTriangleSoupFromOBJFile(filename);
 	int N = (int)soup->indices.size();
-	soup->eIndices.resize(N); // entries will be set if vertex and edge normals are requested
+	if (N%3 != 0) {
+		LOG(FATAL) << "Soup has non-triangular polygons: " << filename;
+	}
+
+	N /= 3;
 	triangles.clear();
 
 	for (int i = 0; i < N; i++) {
-		if (soup->indices[i].size() != 3) {
-			LOG(FATAL) << "Soup has non-triangular polygons: " << filename;
-		}
-
-		triangles.emplace_back(std::make_shared<Triangle>(soup, i));
+		triangles.emplace_back(std::make_shared<Triangle>(soup, 3*i));
 	}
 
 	// compute weighted normals if requested
-	if (computeWeightedNormals) computeWeightedTriangleNormals(triangles, soup);
+	if (computeWeightedNormals) {
+		computeWeightedTriangleNormals(triangles, soup);
+	}
 
 	return soup;
 }
