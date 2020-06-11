@@ -540,13 +540,12 @@ inline void Sbvh<DIM>::build()
 	int nReferences = (int)primitives.size();
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
-	std::vector<SbvhNode<DIM>> buildNodes;
 
 	memoryBudget = nReferences*2;
 	references.resize(memoryBudget, -1);
 	referenceBoxes.resize(memoryBudget);
 	referenceCentroids.resize(memoryBudget);
-	buildNodes.reserve(nReferences*2);
+	flatTree.reserve(nReferences*2);
 	BoundingBox<DIM> boxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
@@ -561,14 +560,8 @@ inline void Sbvh<DIM>::build()
 
 	// build tree recursively
 	int nTotalReferences = nReferences;
-	int nReferencesAdded = buildRecursive(referenceBoxes, referenceCentroids, buildNodes,
+	int nReferencesAdded = buildRecursive(referenceBoxes, referenceCentroids, flatTree,
 										  0xfffffffc, 0, nReferences, 0, nTotalReferences);
-
-	// copy the temp node data to a flat array
-	flatTree.reserve(nNodes);
-	for (int n = 0; n < nNodes; n++) {
-		flatTree.emplace_back(buildNodes[n]);
-	}
 
 	// resize references vector and clear working set
 	references.resize(nReferences + nReferencesAdded);

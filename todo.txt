@@ -4,34 +4,33 @@ Priority:
 ---- restrict branching factor to 4, with SIMD wide leaves
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- more aggressive culling for closest points?
-2. give the closest point a rough guess of direction
-3. start search from specified node (and walk up/laterally in the tree)
-4. rebalance trees
-5. refactor to bypass inheritance costs
-6. queue vs stack vs both?
-7. benchmark
-8. travis/circle CI
-9. README (tutorial, features, benchmark, compiling, logo)
+2. give the closest point a rough guess of direction (things can go very wrong if guess
+   is totally off for certain geometries, e.g., hairy ball)
+3. refactor to bypass inheritance costs
+4. optimize sbvh construction for large meshes
+5. start search from specified node (and walk up/laterally in the tree)
+6. rebalance trees
+7. queue vs stack vs both?
+8. benchmark
+9. travis/circle CI
+10. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. cache alignment - sbvh & mbvh nodes
 2. vectorize + parallelize bvh construction
 3. support oriented bounding boxes + RSS
 4. traversal optimization for closest point queries:
----- implement "queueless" closest point traversal
+---- implement "stackless" closest point traversal
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
-	  structure that stores pointers to nodes in the tree; bvh populates spatial data
-	  structure while spatial data structure suggests which node to start queries from
+	  structure while querying that stores pointers to nodes in the tree based on
+	  positions and directions to boundary
 5. traversal optimization for intersections:
----- implement "stackless" ray intersection traversal
----- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
-	  structure that stores pointers to nodes in the tree; unlike closest point queries,
-	  data structure(s) must store positions and directions
+---- same as cpqs
 6. add support for more geometries:
 ---- beziers, libfive (+ exact distance to implicit), subdivision surfaces, nurbs
 7. more file formats (ply)
 8. packet (coherent) queries
----- breadth first ray tracing
+---- keyword: breadth first ray tracing
 9. refit bvh
 
 Done:
