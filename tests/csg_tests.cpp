@@ -22,7 +22,9 @@ void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatt
 
 	for (int i = 0; i < nPoints; i++) {
 		Vector<DIM> o = boundingBox.pMin + cwiseProduct<DIM>(e, uniformRealRandomVector<DIM>());
-		Vector<DIM> d = unit<DIM>(uniformRealRandomVector<DIM>(-1.0f, 1.0f));
+		Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f);
+		if (std::fabs(e[DIM - 1]) < epsilon) d[DIM - 1] = 0.0;
+		d = unit<DIM>(d);
 
 		scatteredPoints.emplace_back(o);
 		randomDirections.emplace_back(d);
@@ -156,30 +158,60 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 		// register surface meshes
 		for (int i = 0; i < (int)scene.soups.size(); i++) {
 			std::string meshName = "Polygon_Soup_" + std::to_string(i);
-			int N = (int)scene.soups[i]->indices.size()/3;
-			std::vector<std::vector<int>> indices(N, std::vector<int>(3));
-			const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
-			for (int j = 0; j < N; j++) {
-				for (int k = 0; k < 3; k++) {
-					indices[j][k] = scene.soups[i]->indices[3*j + k];
+
+			if (scene.objectTypes[i] == ObjectType::Triangles) {
+				int N = (int)scene.soups[i]->indices.size()/3;
+				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
+				const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
+				for (int j = 0; j < N; j++) {
+					for (int k = 0; k < 3; k++) {
+						indices[j][k] = scene.soups[i]->indices[3*j + k];
+					}
 				}
-			}
 
-			if (scene.instanceTransforms[i].size() > 0) {
-				for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
-					std::string transformedMeshName = meshName + "_" + std::to_string(j);
-					std::vector<Vector<DIM>> transformedPositions;
+				if (scene.instanceTransforms[i].size() > 0) {
+					for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
+						std::string transformedMeshName = meshName + "_" + std::to_string(j);
+						std::vector<Vector<DIM>> transformedPositions;
 
-					for (int k = 0; k < (int)positions.size(); k++) {
-						transformedPositions.emplace_back(transformVector<DIM>(
-														scene.instanceTransforms[i][j], positions[k]));
+						for (int k = 0; k < (int)positions.size(); k++) {
+							transformedPositions.emplace_back(transformVector<DIM>(
+															scene.instanceTransforms[i][j], positions[k]));
+						}
+
+						polyscope::registerSurfaceMesh(transformedMeshName, transformedPositions, indices);
 					}
 
-					polyscope::registerSurfaceMesh(transformedMeshName, transformedPositions, indices);
+				} else {
+					polyscope::registerSurfaceMesh(meshName, positions, indices);
 				}
 
-			} else {
-				polyscope::registerSurfaceMesh(meshName, positions, indices);
+			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
+				int N = (int)scene.soups[i]->indices.size()/2;
+				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
+				const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
+				for (int j = 0; j < N; j++) {
+					for (int k = 0; k < 2; k++) {
+						indices[j][k] = scene.soups[i]->indices[2*j + k];
+					}
+				}
+
+				if (scene.instanceTransforms[i].size() > 0) {
+					for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
+						std::string transformedMeshName = meshName + "_" + std::to_string(j);
+						std::vector<Vector<DIM>> transformedPositions;
+
+						for (int k = 0; k < (int)positions.size(); k++) {
+							transformedPositions.emplace_back(transformVector<DIM>(
+															scene.instanceTransforms[i][j], positions[k]));
+						}
+
+						polyscope::registerCurveNetwork(transformedMeshName, transformedPositions, indices);
+					}
+
+				} else {
+					polyscope::registerCurveNetwork(meshName, positions, indices);
+				}
 			}
 		}
 	}
@@ -234,6 +266,7 @@ int main(int argc, const char *argv[]) {
 	args::ValueFlag<int> nThreads(parser, "integer", "nThreads", {"nThreads"});
 	args::ValueFlag<std::string> csgFilename(parser, "string", "csg filename", {"csgFile"});
 	args::ValueFlag<std::string> instanceFilename(parser, "string", "instance filename", {"instanceFile"});
+	args::ValueFlagList<std::string> lineSegmentFilenames(parser, "string", "line segment soup filenames", {"lFile"});
 	args::ValueFlagList<std::string> triangleFilenames(parser, "string", "triangle soup filenames", {"tFile"});
 
 	// parse args
@@ -262,8 +295,8 @@ int main(int argc, const char *argv[]) {
 		}
 	}
 
-	if (!csgFilename || !triangleFilenames) {
-		std::cerr << "Please specify csg and triangle soup filenames" << std::endl;
+	if (!csgFilename || (!lineSegmentFilenames && !triangleFilenames)) {
+		std::cerr << "Please specify csg and either line segment or triangle soup filenames" << std::endl;
 		return EXIT_FAILURE;
 	}
 
@@ -271,6 +304,11 @@ int main(int argc, const char *argv[]) {
 	if (nThreads) ::nThreads = args::get(nThreads);
 	if (csgFilename) ::csgFilename = args::get(csgFilename);
 	if (instanceFilename) ::instanceFilename = args::get(instanceFilename);
+	if (lineSegmentFilenames) {
+		for (const auto lsf: args::get(lineSegmentFilenames)) {
+			files.emplace_back(std::make_pair(lsf, LoadingOption::ObjLineSegments));
+		}
+	}
 	if (triangleFilenames) {
 		for (const auto tsf: args::get(triangleFilenames)) {
 			files.emplace_back(std::make_pair(tsf, LoadingOption::ObjTriangles));

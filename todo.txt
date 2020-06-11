@@ -1,6 +1,6 @@
 Priority:
 1. implement mbvh
----- set circular queue (compare against stack)
+---- use circular queue in sbvh & mbvh (compare against stack)
 ---- start search from specified node
 ---- enoki settings on ubuntu (geometry-box) & windows
 ---- restrict branching factor to 4, with SIMD wide leaves

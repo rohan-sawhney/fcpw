@@ -337,6 +337,20 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 		lineSegments.emplace_back(std::make_shared<LineSegment>(soup, isFlat, 2*i));
 	}
 
+	if (isFlat && N > 0 && soup->indices[0] == soup->indices[2*(N - 1) + 1]) {
+		// swap indices if segments of closed curve are oriented in clockwise order
+		float signedVolume = 0.0f;
+		for (int i = 0; i < N; i++) {
+			signedVolume += lineSegments[i]->signedVolume();
+		}
+
+		if (signedVolume < 0) {
+			for (int i = 0; i < N; i++) {
+				std::swap(soup->indices[2*i], soup->indices[2*i + 1]);
+			}
+		}
+	}
+
 	// compute weighted normals if requested
 	if (isFlat && computeWeightedNormals) {
 		computeWeightedLineSegmentNormals(lineSegments, soup);

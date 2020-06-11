@@ -15,3 +15,5 @@ GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/walker.obj --nQuer
 GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/plus-shape.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene --nThreads=8
 GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/spiral.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene --nThreads=8
 GLOG_logtostderr=1 ./aggregate_tests --dim=3 --lFile ../input/walker.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene --nThreads=8
+
+GLOG_logtostderr=1 ./csg_tests --dim=3 --lFile ../input/spiral.obj --lFile ../input/plus-shape.obj --lFile ../input/walker.obj --csgFile ../input/csg.txt --instanceFile ../input/instances2d.txt --nThreads=8
