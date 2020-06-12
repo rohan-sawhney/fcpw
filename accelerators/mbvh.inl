@@ -119,7 +119,8 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 template<int WIDTH, int DIM>
 inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 {
-	if (objectType != ObjectType::Generic) {
+	if (objectType == ObjectType::LineSegments ||
+		objectType == ObjectType::Triangles) {
 		// populate leaf nodes
 		int leafIndex = 0;
 		int shift = objectType == ObjectType::LineSegments ? 2 : 3;
@@ -413,7 +414,8 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (objectType != ObjectType::Generic) {
+			if (objectType == ObjectType::LineSegments ||
+				objectType == ObjectType::Triangles) {
 				// perform vectorized intersection query
 				hits += objectType == ObjectType::LineSegments ?
 						intersectLineSegment(node, nodeIndex, r, is, countHits) :
@@ -653,7 +655,8 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (objectType != ObjectType::Generic) {
+			if (objectType == ObjectType::LineSegments ||
+				objectType == ObjectType::Triangles) {
 				// perform vectorized closest point query to triangle
 				bool found = objectType == ObjectType::LineSegments ?
 							 findClosestPointLineSegment(node, nodeIndex, s, i) :
