@@ -212,7 +212,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 
 template<int DIM>
 inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												   int nodeStartIndex, const Vector<DIM>& dirGuess,
+												   int nodeStartIndex, const Vector<DIM>& boundaryHint,
 												   int& nodesVisited) const
 {
 	bool notFound = true;

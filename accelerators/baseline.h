@@ -32,7 +32,7 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int nodeStartIndex, const Vector<DIM>& dirGuess,
+								  int nodeStartIndex, const Vector<DIM>& boundaryHint,
 								  int& nodesVisited) const;
 
 protected:
