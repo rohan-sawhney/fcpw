@@ -70,6 +70,9 @@ public:
 								  int& nodesVisited) const;
 
 protected:
+	// determines object type
+	void determineObjectType();
+
 	// computes split cost based on heuristic
 	float computeSplitCost(const BoundingBox<DIM>& boxLeft,
 						   const BoundingBox<DIM>& boxRight,
@@ -151,6 +154,7 @@ protected:
 	std::vector<int> references, referencesToAdd;
 	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
+	ObjectType objectType;
 	bool packLeaves;
 
 	template<int U, int V>

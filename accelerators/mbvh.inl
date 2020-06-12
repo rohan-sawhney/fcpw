@@ -119,25 +119,6 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 template<int WIDTH, int DIM>
 inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 {
-	// check if primitive type is supported
-	for (int p = 0; p < (int)primitives.size(); p++) {
-		const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[p].get());
-		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[p].get());
-
-		if (lineSegment) {
-			if (p > 0 && objectType != ObjectType::LineSegments) objectType = ObjectType::Generic;
-			else objectType = ObjectType::LineSegments;
-
-		} else if (triangle) {
-			if (p > 0 && objectType != ObjectType::Triangles) objectType = ObjectType::Generic;
-			else objectType = ObjectType::Triangles;
-
-		} else {
-			objectType = ObjectType::Generic;
-			break;
-		}
-	}
-
 	if (objectType != ObjectType::Generic) {
 		// populate leaf nodes
 		int leafIndex = 0;
@@ -164,7 +145,7 @@ nNodes(0),
 nLeafs(0),
 maxDepth(0),
 maxLevel(std::log2(WIDTH)),
-objectType(ObjectType::Generic)
+objectType(sbvh_->objectType)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();

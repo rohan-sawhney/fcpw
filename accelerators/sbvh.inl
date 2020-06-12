@@ -11,7 +11,6 @@ rootSurfaceArea(0.0f),
 rootVolume(0.0f),
 nNodes(0),
 nLeafs(0),
-packLeaves(packLeaves_),
 leafSize(leafSize_),
 nBuckets(nBuckets_),
 nBins(nBins_),
@@ -21,11 +20,17 @@ depthGuess(std::log2(primitives_.size())),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBinBoxes(nBins, std::make_pair(BoundingBox<DIM>(), 0)),
-bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0))
+bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0)),
+objectType(ObjectType::Generic),
+packLeaves(packLeaves_)
 {
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
+	// determine object type
+	determineObjectType();
+
+	// build sbvh
 	build();
 	this->setNormals = false;
 
@@ -38,6 +43,28 @@ bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0))
 			  << primitives.size() << " primitives, "
 			  << references.size() << " references in "
 			  << timeSpan.count() << " seconds" << std::endl;
+}
+
+template<int DIM>
+inline void Sbvh<DIM>::determineObjectType()
+{
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[p].get());
+		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[p].get());
+
+		if (lineSegment) {
+			if (p > 0 && objectType != ObjectType::LineSegments) objectType = ObjectType::Generic;
+			else objectType = ObjectType::LineSegments;
+
+		} else if (triangle) {
+			if (p > 0 && objectType != ObjectType::Triangles) objectType = ObjectType::Generic;
+			else objectType = ObjectType::Triangles;
+
+		} else {
+			objectType = ObjectType::Generic;
+			break;
+		}
+	}
 }
 
 template<int DIM>
