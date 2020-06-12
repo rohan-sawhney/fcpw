@@ -11,7 +11,7 @@ template<size_t DIM>
 inline BoundingBox<DIM> Baseline<DIM>::boundingBox() const
 {
 	BoundingBox<DIM> bb;
-	for (int p = 0; p < (int)primitives.size(); p++) {
+	for (size_t p = 0; p < primitives.size(); p++) {
 		bb.expandToInclude(primitives[p]->boundingBox());
 	}
 
@@ -22,9 +22,9 @@ template<size_t DIM>
 inline Vector<DIM> Baseline<DIM>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
-	int nPrimitives = (int)primitives.size();
+	int nPrimitives = primitives.size();
 
-	for (int p = 0; p < nPrimitives; p++) {
+	for (size_t p = 0; p < nPrimitives; p++) {
 		c += primitives[p]->centroid();
 	}
 
@@ -35,7 +35,7 @@ template<size_t DIM>
 inline float Baseline<DIM>::surfaceArea() const
 {
 	float area = 0.0f;
-	for (int p = 0; p < (int)primitives.size(); p++) {
+	for (size_t p = 0; p < primitives.size(); p++) {
 		area += primitives[p]->surfaceArea();
 	}
 
@@ -46,7 +46,7 @@ template<size_t DIM>
 inline float Baseline<DIM>::signedVolume() const
 {
 	float volume = 0.0f;
-	for (int p = 0; p < (int)primitives.size(); p++) {
+	for (size_t p = 0; p < primitives.size(); p++) {
 		volume += primitives[p]->signedVolume();
 	}
 
@@ -66,7 +66,7 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 	if (!countHits) is.resize(1);
 
 	// find closest hit
-	for (int p = 0; p < (int)primitives.size(); p++) {
+	for (size_t p = 0; p < primitives.size(); p++) {
 		if (this->ignorePrimitive(primitives[p].get())) continue;
 
 		std::vector<Interaction<DIM>> cs;
@@ -92,12 +92,12 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 		if (countHits) {
 			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 			is = removeDuplicates<DIM>(is);
-			hits = (int)is.size();
+			hits = is.size();
 		}
 
 		// set normals
 		if (this->setNormals) {
-			for (int i = 0; i < (int)is.size(); i++) {
+			for (size_t i = 0; i < is.size(); i++) {
 				is[i].n = is[i].primitive->normal(is[i].uv);
 			}
 		}
@@ -119,7 +119,7 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 
 	// find closest point
 	bool notFound = true;
-	for (int p = 0; p < (int)primitives.size(); p++) {
+	for (size_t p = 0; p < primitives.size(); p++) {
 		if (this->ignorePrimitive(primitives[p].get())) continue;
 
 		Interaction<DIM> c;

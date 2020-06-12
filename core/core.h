@@ -68,7 +68,7 @@ template<size_t DIM>
 inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
 {
 	Vector<DIM> v;
-	for (int i = 0; i < DIM; i++) {
+	for (size_t i = 0; i < DIM; i++) {
 		v[i] = uniformRealRandomNumber(a, b);
 	}
 

@@ -131,11 +131,11 @@ struct BoundingBox {
 		BoundingBox<DIM> b;
 		int nCorners = 1 << DIM;
 
-		for (int i = 0; i < nCorners; i++) {
+		for (size_t i = 0; i < nCorners; i++) {
 			Vector<DIM> p = zeroVector<DIM>();
 			int temp = i;
 
-			for (int j = 0; j < DIM; j++) {
+			for (size_t j = 0; j < DIM; j++) {
 				int idx = temp%2;
 				p[j] = idx == 0 ? pMin[j] : pMax[j];
 				temp /= 2;

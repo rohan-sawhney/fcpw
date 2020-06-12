@@ -20,7 +20,7 @@ void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatt
 {
 	Vector<DIM> e = boundingBox.extent();
 
-	for (int i = 0; i < nPoints; i++) {
+	for (size_t i = 0; i < nPoints; i++) {
 		Vector<DIM> o = boundingBox.pMin + cwiseProduct<DIM>(e, uniformRealRandomVector<DIM>());
 		Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f);
 		if (std::fabs(e[DIM - 1]) < epsilon) d[DIM - 1] = 0.0;
@@ -64,7 +64,7 @@ void clampToCsg(const std::string& method,
 				const BoundingBox<DIM>& boundingBox,
 				std::vector<Vector<DIM>>& clampedPoints)
 {
-	int N = (int)scatteredPoints.size();
+	int N = scatteredPoints.size();
 	int pCurrent = 0;
 	int pRange = std::max(100, N/nThreads);
 	std::vector<Vector<DIM>> hitPoints(N);
@@ -78,7 +78,7 @@ void clampToCsg(const std::string& method,
 				PROFILE_THREAD_SCOPED();
 			#endif
 
-			for (int i = pCurrent; i < pEnd; i++) {
+			for (size_t i = pCurrent; i < pEnd; i++) {
 				Ray<DIM> r(scatteredPoints[i], randomDirections[i]);
 
 				if (method == "intersect") {
@@ -106,7 +106,7 @@ void clampToCsg(const std::string& method,
 	pool.wait_until_nothing_in_flight();
 
 	// add points for which hit was found
-	for (int i = 0; i < N; i++) {
+	for (size_t i = 0; i < N; i++) {
 		if (didHit[i]) clampedPoints.emplace_back(hitPoints[i]);
 	}
 }
@@ -156,25 +156,25 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 
 	if (DIM == 3) {
 		// register surface meshes
-		for (int i = 0; i < (int)scene.soups.size(); i++) {
+		for (size_t i = 0; i < scene.soups.size(); i++) {
 			std::string meshName = "Polygon_Soup_" + std::to_string(i);
 
 			if (scene.objectTypes[i] == ObjectType::Triangles) {
-				int N = (int)scene.soups[i]->indices.size()/3;
+				int N = scene.soups[i]->indices.size()/3;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
 				const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
-				for (int j = 0; j < N; j++) {
-					for (int k = 0; k < 3; k++) {
+				for (size_t j = 0; j < N; j++) {
+					for (size_t k = 0; k < 3; k++) {
 						indices[j][k] = scene.soups[i]->indices[3*j + k];
 					}
 				}
 
 				if (scene.instanceTransforms[i].size() > 0) {
-					for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
+					for (size_t j = 0; j < scene.instanceTransforms[i].size(); j++) {
 						std::string transformedMeshName = meshName + "_" + std::to_string(j);
 						std::vector<Vector<DIM>> transformedPositions;
 
-						for (int k = 0; k < (int)positions.size(); k++) {
+						for (size_t k = 0; k < positions.size(); k++) {
 							transformedPositions.emplace_back(transformVector<DIM>(
 															scene.instanceTransforms[i][j], positions[k]));
 						}
@@ -187,21 +187,21 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 				}
 
 			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
-				int N = (int)scene.soups[i]->indices.size()/2;
+				int N = scene.soups[i]->indices.size()/2;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
 				const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
-				for (int j = 0; j < N; j++) {
-					for (int k = 0; k < 2; k++) {
+				for (size_t j = 0; j < N; j++) {
+					for (size_t k = 0; k < 2; k++) {
 						indices[j][k] = scene.soups[i]->indices[2*j + k];
 					}
 				}
 
 				if (scene.instanceTransforms[i].size() > 0) {
-					for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
+					for (size_t j = 0; j < scene.instanceTransforms[i].size(); j++) {
 						std::string transformedMeshName = meshName + "_" + std::to_string(j);
 						std::vector<Vector<DIM>> transformedPositions;
 
-						for (int k = 0; k < (int)positions.size(); k++) {
+						for (size_t k = 0; k < positions.size(); k++) {
 							transformedPositions.emplace_back(transformVector<DIM>(
 															scene.instanceTransforms[i][j], positions[k]));
 						}

@@ -136,7 +136,7 @@ public:
 
 	// checks if primitive should be ignored
 	bool ignorePrimitive(const Primitive<DIM> *prim) const {
-		for (int i = 0; i < (int)ignoreList.size(); i++) {
+		for (size_t i = 0; i < ignoreList.size(); i++) {
 			if (prim == ignoreList[i]) {
 				return true;
 			}
@@ -211,7 +211,7 @@ public:
 		// apply transform to ray and interactions
 		r.tMax = rInv.transform(t).tMax;
 		if (hits > 0) {
-			for (int i = 0; i < (int)is.size(); i++) {
+			for (size_t i = 0; i < is.size(); i++) {
 				is[i].applyTransform(t, tInv, r.o);
 			}
 		}

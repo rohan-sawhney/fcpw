@@ -131,7 +131,7 @@ inline float minCoeff(const Vector<DIM>& v, int& index)
 	index = 0;
 	float value = v[0];
 
-	for (int i = 1; i < DIM; i++) {
+	for (size_t i = 1; i < DIM; i++) {
 		auto mask = v[i] < value;
 		enoki::masked(index, mask) = i;
 		enoki::masked(value, mask) = v[i];
@@ -150,7 +150,7 @@ inline float maxCoeff(const Vector<DIM>& v, int& index)
 	index = 0;
 	float value = v[0];
 
-	for (int i = 1; i < DIM; i++) {
+	for (size_t i = 1; i < DIM; i++) {
 		auto mask = v[i] > value;
 		enoki::masked(index, mask) = i;
 		enoki::masked(value, mask) = v[i];
