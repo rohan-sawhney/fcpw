@@ -81,11 +81,12 @@ protected:
 								  BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 	// members
-	int nNodes, nLeafs, maxDepth, maxLevel, primitiveType;
+	int nNodes, nLeafs, maxDepth, maxLevel;
 	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
 	std::vector<MbvhNode<WIDTH, DIM>> flatTree;
 	std::vector<VectorP<WIDTH, DIM>> leafNodes;
 	std::vector<int> references;
+	ObjectType objectType;
 };
 
 } // namespace fcpw

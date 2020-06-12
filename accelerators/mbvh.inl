@@ -73,10 +73,9 @@ inline bool Mbvh<WIDTH, DIM>::isLeafNode(const MbvhNode<WIDTH, DIM>& node) const
 }
 
 template<int WIDTH, int DIM>
-inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
-											   int leafIndex)
+inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node, int leafIndex)
 {
-	if (primitiveType == 1) {
+	if (objectType == ObjectType::LineSegments) {
 		// populate leaf node with line segments
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
@@ -94,7 +93,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 			}
 		}
 
-	} else if (primitiveType == 2) {
+	} else if (objectType == ObjectType::Triangles) {
 		// populate leaf node with triangles
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
@@ -126,23 +125,23 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[p].get());
 
 		if (lineSegment) {
-			if (p > 0 && primitiveType != 1) primitiveType = 0;
-			else primitiveType = 1;
+			if (p > 0 && objectType != ObjectType::LineSegments) objectType = ObjectType::Generic;
+			else objectType = ObjectType::LineSegments;
 
 		} else if (triangle) {
-			if (p > 0 && primitiveType != 2) primitiveType = 0;
-			else primitiveType = 2;
+			if (p > 0 && objectType != ObjectType::Triangles) objectType = ObjectType::Generic;
+			else objectType = ObjectType::Triangles;
 
 		} else {
-			primitiveType = 0;
+			objectType = ObjectType::Generic;
 			break;
 		}
 	}
 
-	if (primitiveType > 0) {
+	if (objectType != ObjectType::Generic) {
 		// populate leaf nodes
 		int leafIndex = 0;
-		int shift = primitiveType == 1 ? 2 : 3;
+		int shift = objectType == ObjectType::LineSegments ? 2 : 3;
 		leafNodes.resize(nLeafs*shift);
 
 		for (int i = 0; i < nNodes; i++) {
@@ -165,7 +164,7 @@ nNodes(0),
 nLeafs(0),
 maxDepth(0),
 maxLevel(std::log2(WIDTH)),
-primitiveType(0)
+objectType(ObjectType::Generic)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -433,9 +432,9 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (primitiveType > 0) {
+			if (objectType != ObjectType::Generic) {
 				// perform vectorized intersection query
-				hits += primitiveType == 1 ?
+				hits += objectType == ObjectType::LineSegments ?
 						intersectLineSegment(node, nodeIndex, r, is, countHits) :
 						intersectTriangle(node, nodeIndex, r, is, countHits);
 				nodesVisited++;
@@ -673,9 +672,9 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (primitiveType > 0) {
+			if (objectType != ObjectType::Generic) {
 				// perform vectorized closest point query to triangle
-				bool found = primitiveType == 1 ?
+				bool found = objectType == ObjectType::LineSegments ?
 							 findClosestPointLineSegment(node, nodeIndex, s, i) :
 							 findClosestPointTriangle(node, nodeIndex, s, i);
 				if (found) notFound = false;
