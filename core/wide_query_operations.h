@@ -45,8 +45,18 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Ray<DIM>& r, const VectorP<WI
 											 const VectorP<WIDTH, DIM>& pb, FloatP<WIDTH>& d,
 											 VectorP<WIDTH, DIM>& pt, FloatP<WIDTH>& t)
 {
-	VectorP<WIDTH, DIM> u = pa - r.o;
-	VectorP<WIDTH, DIM> v = pb - pa;
+	LOG(FATAL) << "intersectWideLineSegment(): DIM " << DIM << " not supported";
+	return false;
+}
+
+// overloaded version specialized to DIM = 3
+template<size_t WIDTH>
+inline MaskP<WIDTH> intersectWideLineSegment(const Ray<3>& r, const Vector3P<WIDTH>& pa,
+											 const Vector3P<WIDTH>& pb, FloatP<WIDTH>& d,
+											 Vector3P<WIDTH>& pt, FloatP<WIDTH>& t)
+{
+	Vector3P<WIDTH> u = pa - r.o;
+	Vector3P<WIDTH> v = pb - pa;
 
 	// track non-parallel line segments and rays
 	FloatP<WIDTH> dv = enoki::cross(r.d, v)[2];
@@ -63,7 +73,7 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Ray<DIM>& r, const VectorP<WI
 	FloatP<WIDTH> uv = enoki::cross(u, v)[2];
 	d = uv*invDv;
 	active &= d > epsilon && d <= r.tMax;
-	pt = r.o + r.d*VectorP<WIDTH, DIM>(d);
+	pt = r.o + r.d*Vector3P<WIDTH>(d);
 
 	return active;
 }
@@ -75,26 +85,37 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<DIM>& r, const VectorP<WIDTH
 										  FloatP<WIDTH>& d, VectorP<WIDTH, DIM>& pt,
 										  VectorP<WIDTH, DIM - 1>& t)
 {
+	LOG(FATAL) << "intersectWideTriangle(): DIM " << DIM << " not supported";
+	return false;
+}
+
+// overloaded version specialized to DIM = 3
+template<size_t WIDTH>
+inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>& pa,
+										  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+										  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt,
+										  Vector2P<WIDTH>& t)
+{
 	// vectorized Möller–Trumbore intersection algorithm
-	VectorP<WIDTH, DIM> v1 = pb - pa;
-	VectorP<WIDTH, DIM> v2 = pc - pa;
-	VectorP<WIDTH, DIM> p = enoki::cross(r.d, v2);
+	Vector3P<WIDTH> v1 = pb - pa;
+	Vector3P<WIDTH> v2 = pc - pa;
+	Vector3P<WIDTH> p = enoki::cross(r.d, v2);
 	FloatP<WIDTH> det = enoki::dot(v1, p);
 
 	MaskP<WIDTH> active = enoki::abs(det) >= epsilon;
 	FloatP<WIDTH> invDet = enoki::rcp(det);
 
-	VectorP<WIDTH, DIM> s = r.o - pa;
+	Vector3P<WIDTH> s = r.o - pa;
 	FloatP<WIDTH> u = enoki::dot(s, p)*invDet;
 	active &= u >= 0.0f && u <= 1.0f;
 
-	VectorP<WIDTH, DIM> q = enoki::cross(s, v1);
+	Vector3P<WIDTH> q = enoki::cross(s, v1);
 	FloatP<WIDTH> v = enoki::dot(r.d, q)*invDet;
 	active &= v >= 0.0f && u + v <= 1.0f;
 
 	d = enoki::dot(v2, q)*invDet;
 	active &= d > epsilon && d <= r.tMax;
-	pt = r.o + r.d*VectorP<WIDTH, DIM>(d);
+	pt = r.o + r.d*Vector3P<WIDTH>(d);
 	t[0] = u;
 	t[1] = v;
 
@@ -107,8 +128,18 @@ inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector<DIM>& x, const
 													 const VectorP<WIDTH, DIM>& pb, VectorP<WIDTH, DIM>& pt,
 													 FloatP<WIDTH>& t)
 {
-	VectorP<WIDTH, DIM> u = pb - pa;
-	VectorP<WIDTH, DIM> v = x - pa;
+	LOG(FATAL) << "findClosestPointWideLineSegment(): DIM " << DIM << " not supported";
+	return 0.0f;
+}
+
+// overloaded version specialized to DIM = 3
+template<size_t WIDTH>
+inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector3& x, const Vector3P<WIDTH>& pa,
+													 const Vector3P<WIDTH>& pb, Vector3P<WIDTH>& pt,
+													 FloatP<WIDTH>& t)
+{
+	Vector3P<WIDTH> u = pb - pa;
+	Vector3P<WIDTH> v = x - pa;
 
 	// project x onto u
 	FloatP<WIDTH> c1 = enoki::dot(u, v);
@@ -131,10 +162,20 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 												  const VectorP<WIDTH, DIM>& pb, const VectorP<WIDTH, DIM>& pc,
 												  VectorP<WIDTH, DIM>& pt, VectorP<WIDTH, DIM - 1>& t)
 {
+	LOG(FATAL) << "findClosestPointWideTriangle(): DIM " << DIM << " not supported";
+	return 0.0f;
+}
+
+// overloaded version specialized to DIM = 3
+template<size_t WIDTH>
+inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3& x, const Vector3P<WIDTH>& pa,
+												  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+												  Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
+{
 	// check if x in vertex region outside pa
-	VectorP<WIDTH, DIM> ab = pb - pa;
-	VectorP<WIDTH, DIM> ac = pc - pa;
-	VectorP<WIDTH, DIM> ax = x - pa;
+	Vector3P<WIDTH> ab = pb - pa;
+	Vector3P<WIDTH> ac = pc - pa;
+	Vector3P<WIDTH> ax = x - pa;
 	FloatP<WIDTH> d1 = enoki::dot(ab, ax);
 	FloatP<WIDTH> d2 = enoki::dot(ac, ax);
 	MaskP<WIDTH> active1 = d1 <= 0.0f && d2 <= 0.0f;
@@ -147,7 +188,7 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 	if (enoki::all(active7)) return enoki::norm(x - pt);
 
 	// check if x in vertex region outside pb
-	VectorP<WIDTH, DIM> bx = x - pb;
+	Vector3P<WIDTH> bx = x - pb;
 	FloatP<WIDTH> d3 = enoki::dot(ab, bx);
 	FloatP<WIDTH> d4 = enoki::dot(ac, bx);
 	MaskP<WIDTH> active2 = d3 >= 0.0f && d4 <= d3;
@@ -160,7 +201,7 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 	if (enoki::all(active7)) return enoki::norm(x - pt);
 
 	// check if x in vertex region outside pc
-	VectorP<WIDTH, DIM> cx = x - pc;
+	Vector3P<WIDTH> cx = x - pc;
 	FloatP<WIDTH> d5 = enoki::dot(ab, cx);
 	FloatP<WIDTH> d6 = enoki::dot(ac, cx);
 	MaskP<WIDTH> active3 = d6 >= 0.0f && d5 <= d6;

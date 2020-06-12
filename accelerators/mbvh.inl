@@ -249,7 +249,7 @@ inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& no
 	FloatP<WIDTH> t;
 	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
 	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
-	MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH, DIM>(r, pa, pb, d, pt, t);
+	MaskP<WIDTH> mask = intersectWideLineSegment(r, pa, pb, d, pt, t);
 
 	int hits = 0;
 	if (countHits) {
@@ -323,7 +323,7 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
 	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
 	const VectorP<WIDTH, DIM>& pc = leafNodes[node.leafIndex + 2];
-	MaskP<WIDTH> mask = intersectWideTriangle<WIDTH, DIM>(r, pa, pb, pc, d, pt, t);
+	MaskP<WIDTH> mask = intersectWideTriangle(r, pa, pb, pc, d, pt, t);
 
 	int hits = 0;
 	if (countHits) {
@@ -540,7 +540,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, 
 	FloatP<WIDTH> t;
 	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
 	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
-	FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH, DIM>(s.c, pa, pb, pt, t);
+	FloatP<WIDTH> d = findClosestPointWideLineSegment(s.c, pa, pb, pt, t);
 	FloatP<WIDTH> d2 = d*d;
 
 	// determine closest primitive
@@ -589,7 +589,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
 	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
 	const VectorP<WIDTH, DIM>& pc = leafNodes[node.leafIndex + 2];
-	FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH, DIM>(s.c, pa, pb, pc, pt, t);
+	FloatP<WIDTH> d = findClosestPointWideTriangle(s.c, pa, pb, pc, pt, t);
 	FloatP<WIDTH> d2 = d*d;
 
 	// determine closest primitive
