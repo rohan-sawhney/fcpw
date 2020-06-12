@@ -98,7 +98,7 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	args->valid[0] = 0; // ignore all hits
 
 	// check if interaction has already been added
-	for (size_t i = 0; i < is.size(); i++) {
+	for (int i = 0; i < (int)is.size(); i++) {
 		if (is[i].primitive == primitives[hit->primID].get()) {
 			return;
 		}
@@ -248,13 +248,13 @@ soup(soup_)
 																	soup->indices.size()/3);
 
 	if (vertices && indices) {
-		for (size_t i = 0; i < soup->positions.size(); i++) {
-			for (size_t j = 0; j < 3; j++) {
+		for (int i = 0; i < (int)soup->positions.size(); i++) {
+			for (int j = 0; j < 3; j++) {
 				vertices[3*i + j] = soup->positions[i][j];
 			}
 		}
 
-		for (size_t i = 0; i < soup->indices.size(); i++) {
+		for (int i = 0; i < (int)soup->indices.size(); i++) {
 			indices[i] = soup->indices[i];
 		}
 	}
@@ -353,7 +353,7 @@ inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>
 		// sort interactions
 		std::sort(is.begin(), is.end(), compareInteractions<3>);
 		is = removeDuplicates<3>(is);
-		hits = is.size();
+		hits = (int)is.size();
 		r.tMax = is[0].d;
 
 	} else {
@@ -372,7 +372,7 @@ inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>
 
 	// set normals
 	if (this->setNormals) {
-		for (size_t i = 0; i < is.size(); i++) {
+		for (int i = 0; i < (int)is.size(); i++) {
 			is[i].n = is[i].primitive->normal(is[i].uv);
 		}
 	}

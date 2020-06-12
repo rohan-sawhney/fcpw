@@ -56,13 +56,13 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 	splitBoxRecursive<DIM>(boundingBox, boxes, 6);
 
 	// generate queries in each box
-	int nBoxes = boxes.size();
+	int nBoxes = (int)boxes.size();
 	int nQueriesPerBox = std::ceil(nQueries/nBoxes);
 
-	for (size_t i = 0; i < nBoxes; i++) {
+	for (int i = 0; i < nBoxes; i++) {
 		Vector<DIM> e = boxes[i].extent();
 
-		for (size_t j = 0; j < nQueriesPerBox; j++) {
+		for (int j = 0; j < nQueriesPerBox; j++) {
 			Vector<DIM> o = boxes[i].pMin + cwiseProduct<DIM>(e, uniformRealRandomVector<DIM>());
 			Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f);
 			if (std::fabs(e[DIM - 1]) < epsilon) d[DIM - 1] = 0.0;
@@ -87,7 +87,7 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 							 bool queriesCoherent=false)
 {
 	int pCurrent = 0;
-	int pRange = std::max(100, nQueries/nThreads);
+	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::atomic<int> totalNodesVisited(0);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
@@ -102,7 +102,7 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 			int nodesVisitedByThread = 0;
 			Interaction<DIM> cPrev;
 
-			for (size_t i = pCurrent; i < pEnd; i++) {
+			for (int i = pCurrent; i < pEnd; i++) {
 				int I = indices[i];
 				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
@@ -142,7 +142,7 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 							 bool queriesCoherent=false)
 {
 	int pCurrent = 0;
-	int pRange = std::max(100, nQueries/nThreads);
+	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::atomic<int> totalNodesVisited(0);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
@@ -158,7 +158,7 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 			Interaction<DIM> cPrev;
 			Vector<DIM> queryPrev = zeroVector<DIM>();
 
-			for (size_t i = pCurrent; i < pEnd; i++) {
+			for (int i = pCurrent; i < pEnd; i++) {
 				int I = indices[i];
 				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
 				float r2 = i == pCurrent ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
@@ -204,7 +204,7 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 bool queriesCoherent=false)
 {
 	int pCurrent = 0;
-	int pRange = std::max(100, nQueries/nThreads);
+	int pRange = std::max(100, (int)nQueries/nThreads);
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
@@ -216,7 +216,7 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 
 			Interaction<DIM> cPrev;
 
-			for (size_t i = pCurrent; i < pEnd; i++) {
+			for (int i = pCurrent; i < pEnd; i++) {
 				int I = indices[i];
 				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
@@ -269,7 +269,7 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 							 bool queriesCoherent=false)
 {
 	int pCurrent = 0;
-	int pRange = std::max(100, nQueries/nThreads);
+	int pRange = std::max(100, (int)nQueries/nThreads);
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
@@ -282,7 +282,7 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 			Interaction<DIM> cPrev;
 			Vector<DIM> queryPrev = zeroVector<DIM>();
 
-			for (size_t i = pCurrent; i < pEnd; i++) {
+			for (int i = pCurrent; i < pEnd; i++) {
 				int I = indices[i];
 				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
 				float r2 = i == pCurrent ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
@@ -323,7 +323,7 @@ void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 						   std::vector<Vector<DIM>>& interiorPoints)
 {
 	int pCurrent = 0;
-	int pRange = std::max(100, nQueries/nThreads);
+	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::vector<bool> isInterior(nQueries, false);
 
 	while (pCurrent < nQueries) {
@@ -333,7 +333,7 @@ void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 				PROFILE_THREAD_SCOPED();
 			#endif
 
-			for (size_t i = pCurrent; i < pEnd; i++) {
+			for (int i = pCurrent; i < pEnd; i++) {
 				if (aggregate->contains(queryPoints[i])) {
 					isInterior[i] = true;
 				}
@@ -346,7 +346,7 @@ void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 	pool.wait_until_empty();
 	pool.wait_until_nothing_in_flight();
 
-	for (size_t i = 0; i < nQueries; i++) {
+	for (int i = 0; i < nQueries; i++) {
 		if (isInterior[i]) interiorPoints.emplace_back(queryPoints[i]);
 	}
 }
@@ -372,14 +372,14 @@ void visualizeScene(const Scene<DIM>& scene,
 
 	if (DIM == 3) {
 		// register surface meshes
-		for (size_t i = 0; i < scene.soups.size(); i++) {
+		for (int i = 0; i < (int)scene.soups.size(); i++) {
 			std::string meshName = "Polygon_Soup_" + std::to_string(i);
 
 			if (scene.objectTypes[i] == ObjectType::Triangles) {
-				int N = scene.soups[i]->indices.size()/3;
+				int N = (int)scene.soups[i]->indices.size()/3;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
-				for (size_t j = 0; j < N; j++) {
-					for (size_t k = 0; k < 3; k++) {
+				for (int j = 0; j < N; j++) {
+					for (int k = 0; k < 3; k++) {
 						indices[j][k] = scene.soups[i]->indices[3*j + k];
 					}
 				}
@@ -387,10 +387,10 @@ void visualizeScene(const Scene<DIM>& scene,
 				polyscope::registerSurfaceMesh(meshName, scene.soups[i]->positions, indices);
 
 			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
-				int N = scene.soups[i]->indices.size()/2;
+				int N = (int)scene.soups[i]->indices.size()/2;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
-				for (size_t j = 0; j < N; j++) {
-					for (size_t k = 0; k < 2; k++) {
+				for (int j = 0; j < N; j++) {
+					for (int k = 0; k < 2; k++) {
 						indices[j][k] = scene.soups[i]->indices[2*j + k];
 					}
 				}
@@ -422,7 +422,7 @@ void run()
 
 	// generate indices
 	std::vector<int> indices, shuffledIndices;
-	for (size_t i = 0; i < nQueries; i++) {
+	for (int i = 0; i < nQueries; i++) {
 		indices.emplace_back(i);
 		shuffledIndices.emplace_back(i);
 	}
@@ -445,8 +445,8 @@ void run()
 		//							   shuffledIndices, "Baseline");
 
 		// build bvh aggregates and benchmark queries
-		for (size_t bvh = 1; bvh < 8; bvh++) {
-			for (size_t vec = 0; vec < 2; vec++) {
+		for (int bvh = 1; bvh < 8; bvh++) {
+			for (int vec = 0; vec < 2; vec++) {
 				scene.buildAggregate(static_cast<AggregateType>(bvh), vec == 1);
 				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
 											 shuffledIndices, bvhTypes[bvh - 1]);
@@ -487,10 +487,10 @@ void run()
 		Scene<DIM> bvhScene;
 		bvhScene.loadFiles(true);
 
-		for (size_t bvh = 1; bvh < 8; bvh++) {
+		for (int bvh = 1; bvh < 8; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
 
-			for (size_t vec = 0; vec < 2; vec++) {
+			for (int vec = 0; vec < 2; vec++) {
 				bvhScene.buildAggregate(static_cast<AggregateType>(bvh), vec == 1);
 				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
 											 queryPoints, randomDirections, shuffledIndices);

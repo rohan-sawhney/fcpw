@@ -48,7 +48,7 @@ packLeaves(packLeaves_)
 template<size_t DIM>
 inline void Sbvh<DIM>::determineObjectType()
 {
-	for (size_t p = 0; p < primitives.size(); p++) {
+	for (int p = 0; p < (int)primitives.size(); p++) {
 		const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[p].get());
 		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[p].get());
 
@@ -165,19 +165,19 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 		float volume = nodeBoundingBox.volume();
 
 		// find the best split across all dimensions
-		for (size_t dim = 0; dim < DIM; dim++) {
+		for (int dim = 0; dim < DIM; dim++) {
 			// ignore flat dimension
 			if (extent[dim] < 1e-6) continue;
 
 			// bin references into buckets
 			float bucketWidth = extent[dim]/nBuckets;
-			for (size_t b = 0; b < nBuckets; b++) {
+			for (int b = 0; b < nBuckets; b++) {
 				buckets[b].first = BoundingBox<DIM>();
 				buckets[b].second = 0;
 			}
 
-			for (size_t p = nodeStart; p < nodeEnd; p++) {
-				int bucketIndex = (referenceCentroids[p][dim] - nodeBoundingBox.pMin[dim])/bucketWidth;
+			for (int p = nodeStart; p < nodeEnd; p++) {
+				int bucketIndex = (int)((referenceCentroids[p][dim] - nodeBoundingBox.pMin[dim])/bucketWidth);
 				bucketIndex = clamp(bucketIndex, 0, nBuckets - 1);
 				buckets[bucketIndex].first.expandToInclude(referenceBoxes[p]);
 				buckets[bucketIndex].second += 1;
@@ -185,7 +185,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 
 			// sweep right to left to build right bucket bounding boxes
 			BoundingBox<DIM> boxRefRight;
-			for (size_t b = nBuckets - 1; b > 0; b--) {
+			for (int b = nBuckets - 1; b > 0; b--) {
 				boxRefRight.expandToInclude(buckets[b].first);
 				rightBucketBoxes[b].first = boxRefRight;
 				rightBucketBoxes[b].second = buckets[b].second;
@@ -195,7 +195,7 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 			// evaluate bucket split costs
 			BoundingBox<DIM> boxRefLeft;
 			int nReferencesLeft = 0;
-			for (size_t b = 1; b < nBuckets; b++) {
+			for (int b = 1; b < nBuckets; b++) {
 				boxRefLeft.expandToInclude(buckets[b - 1].first);
 				nReferencesLeft += buckets[b - 1].second;
 
@@ -233,7 +233,7 @@ inline int Sbvh<DIM>::performObjectSplit(int nodeStart, int nodeEnd, int splitDi
 										 std::vector<Vector<DIM>>& referenceCentroids)
 {
 	int mid = nodeStart;
-	for (size_t i = nodeStart; i < nodeEnd; i++) {
+	for (int i = nodeStart; i < nodeEnd; i++) {
 		if (referenceCentroids[i][splitDim] < splitCoord) {
 			std::swap(references[i], references[mid]);
 			std::swap(referenceBoxes[i], referenceBoxes[mid]);
@@ -280,23 +280,23 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 
 	// bin references
 	float binWidth = extent[splitDim]/nBins;
-	for (size_t b = 0; b < nBins; b++) {
+	for (int b = 0; b < nBins; b++) {
 		std::get<0>(bins[b]) = BoundingBox<DIM>();
 		std::get<1>(bins[b]) = 0;
 		std::get<2>(bins[b]) = 0;
 	}
 
-	for (size_t p = nodeStart; p < nodeEnd; p++) {
+	for (int p = nodeStart; p < nodeEnd; p++) {
 		// find the bins the reference is contained in
 		const std::shared_ptr<Primitive<DIM>>& primitive = primitives[references[p]];
-		int firstBinIndex = (referenceBoxes[p].pMin[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth;
-		int lastBinIndex = (referenceBoxes[p].pMax[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth;
+		int firstBinIndex = (int)((referenceBoxes[p].pMin[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth);
+		int lastBinIndex = (int)((referenceBoxes[p].pMax[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth);
 		firstBinIndex = clamp(firstBinIndex, 0, nBins - 1);
 		lastBinIndex = clamp(lastBinIndex, 0, nBins - 1);
 		BoundingBox<DIM> boxReference = referenceBoxes[p];
 
 		// loop over those bins, splitting the reference and growing the bin boxes
-		for (size_t b = firstBinIndex; b < lastBinIndex; b++) {
+		for (int b = firstBinIndex; b < lastBinIndex; b++) {
 			BoundingBox<DIM> boxRefLeft, boxRefRight;
 			float coord = nodeBoundingBox.pMin[splitDim] + (b + 1)*binWidth;
 			splitPrimitive(primitive, splitDim, coord, boxReference, boxRefLeft, boxRefRight);
@@ -311,7 +311,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 
 	// sweep right to left to build right bin bounding boxes
 	BoundingBox<DIM> boxRefRight;
-	for (size_t b = nBins - 1; b > 0; b--) {
+	for (int b = nBins - 1; b > 0; b--) {
 		boxRefRight.expandToInclude(std::get<0>(bins[b]));
 		rightBinBoxes[b].first = boxRefRight;
 		rightBinBoxes[b].second = std::get<2>(bins[b]);
@@ -321,7 +321,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 	// evaluate bin split costs
 	BoundingBox<DIM> boxRefLeft;
 	int nReferencesLeft = 0;
-	for (size_t b = 1; b < nBins; b++) {
+	for (int b = 1; b < nBins; b++) {
 		boxRefLeft.expandToInclude(std::get<0>(bins[b - 1]));
 		nReferencesLeft += std::get<1>(bins[b - 1]);
 
@@ -358,7 +358,7 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const
 	int rightStart = nodeEnd;
 	int rightEnd = nodeEnd;
 
-	for (size_t i = leftStart; i < rightEnd; i++) {
+	for (int i = leftStart; i < rightEnd; i++) {
 		if (referenceBoxes[i].pMax[splitDim] <= splitCoord) {
 			std::swap(references[i], references[leftEnd]);
 			std::swap(referenceBoxes[i], referenceBoxes[leftEnd]);
@@ -367,7 +367,7 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const
 		}
 	}
 
-	for (size_t i = rightEnd - 1; i >= leftEnd; i--) {
+	for (int i = rightEnd - 1; i >= leftEnd; i--) {
 		if (referenceBoxes[i].pMin[splitDim] >= splitCoord) {
 			rightStart--;
 			std::swap(references[i], references[rightStart]);
@@ -385,7 +385,7 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const
 		referenceCentroids.resize(memoryBudget);
 	}
 
-	if (referencesToAdd.size() < nPossibleNewReferences) {
+	if ((int)referencesToAdd.size() < nPossibleNewReferences) {
 		referencesToAdd.resize(nPossibleNewReferences);
 		referenceBoxesToAdd.resize(nPossibleNewReferences);
 		referenceCentroidsToAdd.resize(nPossibleNewReferences);
@@ -434,14 +434,14 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const
 	if (nReferencesAdded > 0) {
 		// move entries between [nodeEnd, nTotalReferences) to
 		// [nodeEnd + nReferencesAdded, nTotalReferences + nReferencesAdded)
-		for (size_t i = nTotalReferences - 1; i >= nodeEnd; i--) {
+		for (int i = nTotalReferences - 1; i >= nodeEnd; i--) {
 			references[i + nReferencesAdded] = references[i];
 			referenceBoxes[i + nReferencesAdded] = referenceBoxes[i];
 			referenceCentroids[i + nReferencesAdded] = referenceCentroids[i];
 		}
 
 		// copy added references to range [nodeEnd, nodeEnd + nReferencesAdded)
-		for (size_t i = 0; i < nReferencesAdded; i++) {
+		for (int i = 0; i < nReferencesAdded; i++) {
 			references[nodeEnd + i] = referencesToAdd[i];
 			referenceBoxes[nodeEnd + i] = referenceBoxesToAdd[i];
 			referenceCentroids[nodeEnd + i] = referenceCentroidsToAdd[i];
@@ -477,7 +477,7 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 
 	// calculate the bounding box for this node
 	BoundingBox<DIM> bb, bc;
-	for (size_t p = start; p < end; p++) {
+	for (int p = start; p < end; p++) {
 		bb.expandToInclude(referenceBoxes[p]);
 		bc.expandToInclude(referenceCentroids[p]);
 	}
@@ -564,7 +564,7 @@ inline void Sbvh<DIM>::build()
 #endif
 
 	// precompute bounding boxes and centroids
-	int nReferences = primitives.size();
+	int nReferences = (int)primitives.size();
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
 
@@ -575,7 +575,7 @@ inline void Sbvh<DIM>::build()
 	flatTree.reserve(nReferences*2);
 	BoundingBox<DIM> boxRoot;
 
-	for (size_t i = 0; i < nReferences; i++) {
+	for (int i = 0; i < nReferences; i++) {
 		references[i] = i;
 		referenceBoxes[i] = primitives[i]->boundingBox();
 		referenceCentroids[i] = primitives[i]->centroid();
@@ -611,9 +611,9 @@ template<size_t DIM>
 inline Vector<DIM> Sbvh<DIM>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
-	int nPrimitives = primitives.size();
+	int nPrimitives = (int)primitives.size();
 
-	for (size_t p = 0; p < nPrimitives; p++) {
+	for (int p = 0; p < nPrimitives; p++) {
 		c += primitives[p]->centroid();
 	}
 
@@ -624,7 +624,7 @@ template<size_t DIM>
 inline float Sbvh<DIM>::surfaceArea() const
 {
 	float area = 0.0f;
-	for (size_t p = 0; p < primitives.size(); p++) {
+	for (int p = 0; p < (int)primitives.size(); p++) {
 		area += primitives[p]->surfaceArea();
 	}
 
@@ -635,7 +635,7 @@ template<size_t DIM>
 inline float Sbvh<DIM>::signedVolume() const
 {
 	float volume = 0.0f;
-	for (size_t p = 0; p < primitives.size(); p++) {
+	for (int p = 0; p < (int)primitives.size(); p++) {
 		volume += primitives[p]->signedVolume();
 	}
 
@@ -661,14 +661,14 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 
 		// is leaf -> intersect
 		if (node.rightOffset == 0) {
-			for (size_t p = 0; p < node.nReferences; p++) {
+			for (int p = 0; p < node.nReferences; p++) {
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
 				if (this->ignorePrimitive(prim.get())) continue;
 
 				// check if primitive has already been seen
 				bool seenPrim = false;
-				int nInteractions = is.size();
-				for (size_t sp = 0; sp < nInteractions; sp++) {
+				int nInteractions = (int)is.size();
+				for (int sp = 0; sp < nInteractions; sp++) {
 					if (prim.get() == is[sp].primitive) {
 						seenPrim = true;
 						break;
@@ -685,7 +685,7 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 						hits += hit;
 						if (countHits) {
 							is.insert(is.end(), cs.begin(), cs.end());
-							for (size_t sp = nInteractions; sp < is.size(); sp++) {
+							for (int sp = nInteractions; sp < (int)is.size(); sp++) {
 								is[sp].nodeIndex = nodeIndex;
 							}
 
@@ -798,12 +798,12 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 		if (countHits) {
 			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 			is = removeDuplicates<DIM>(is);
-			hits = is.size();
+			hits = (int)is.size();
 		}
 
 		// set normals
 		if (this->setNormals) {
-			for (size_t i = 0; i < is.size(); i++) {
+			for (int i = 0; i < (int)is.size(); i++) {
 				is[i].n = is[i].primitive->normal(is[i].uv);
 			}
 		}
@@ -835,7 +835,7 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 
 		// is leaf -> compute squared distance
 		if (node.rightOffset == 0) {
-			for (size_t p = 0; p < node.nReferences; p++) {
+			for (int p = 0; p < node.nReferences; p++) {
 				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
 				if (this->ignorePrimitive(prim.get())) continue;
 

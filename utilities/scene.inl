@@ -52,11 +52,11 @@ inline void loadInstanceTransforms(std::vector<std::vector<Transform<DIM>>>& ins
 		int object;
 		ss >> object;
 
-		int nTransform = instanceTransforms[object].size();
+		int nTransform = (int)instanceTransforms[object].size();
 		instanceTransforms[object].emplace_back(Transform<DIM>());
 
-		for (size_t i = 0; i <= DIM; i++) {
-			for (size_t j = 0; j <= DIM; j++) {
+		for (int i = 0; i <= DIM; i++) {
+			for (int j = 0; j <= DIM; j++) {
 				ss >> instanceTransforms[object][nTransform].matrix()(i, j);
 			}
 		}
@@ -101,14 +101,14 @@ inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 template<size_t DIM>
 inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 {
-	int nFiles = files.size();
+	int nFiles = (int)files.size();
 	soups.resize(nFiles);
 	objects.resize(nFiles);
 	instanceTransforms.resize(nFiles);
 	objectTypes.resize(nFiles);
 
 	// load soups and primitives
-	for (size_t i = 0; i < nFiles; i++) {
+	for (int i = 0; i < nFiles; i++) {
 		soups[i] = readSoupFromFile<DIM>(files[i].first, files[i].second, computeWeightedNormals,
 										 objects[i], objectTypes[i]);
 	}
@@ -199,23 +199,23 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	objectInstances.clear();
 
 	// build object aggregates
-	int nObjects = objects.size();
+	int nObjects = (int)objects.size();
 	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
 
-	for (size_t i = 0; i < nObjects; i++) {
+	for (int i = 0; i < nObjects; i++) {
 		objectAggregates[i] = makeAggregate<DIM>(aggregateType, vectorize, objects[i]);
 		objectAggregates[i]->setNormals = true;
 	}
 
 	// build object instances
-	for (size_t i = 0; i < nObjects; i++) {
-		int nObjectInstances = instanceTransforms[i].size();
+	for (int i = 0; i < nObjects; i++) {
+		int nObjectInstances = (int)instanceTransforms[i].size();
 
 		if (nObjectInstances == 0) {
 			objectInstances.emplace_back(objectAggregates[i]);
 
 		} else {
-			for (size_t j = 0; j < nObjectInstances; j++) {
+			for (int j = 0; j < nObjectInstances; j++) {
 				objectInstances.emplace_back(std::make_shared<TransformedAggregate<DIM>>(
 											 objectAggregates[i], instanceTransforms[i][j]));
 			}
@@ -241,7 +241,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 template<size_t DIM>
 inline bool Scene<DIM>::buildEmbreeAggregate()
 {
-	int nObjects = objects.size();
+	int nObjects = (int)objects.size();
 	if (nObjects > 1) {
 		LOG(INFO) << "Scene::buildEmbreeAggregate(): Not supported for multiple objects";
 		return false;

@@ -239,11 +239,11 @@ bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) cons
 void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<Primitive<3>>>& lineSegments,
 									   std::shared_ptr<PolygonSoup<3>>& soup)
 {
-	int N = soup->indices.size()/2;
-	int V = soup->positions.size();
+	int N = (int)soup->indices.size()/2;
+	int V = (int)soup->positions.size();
 	soup->vNormals.resize(V, zeroVector<3>());
 
-	for (size_t i = 0; i < N; i++) {
+	for (int i = 0; i < N; i++) {
 		const LineSegment *lineSegment = static_cast<const LineSegment *>(lineSegments[i].get());
 		Vector3 n = lineSegment->normal(true);
 
@@ -251,7 +251,7 @@ void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<Primiti
 		soup->vNormals[soup->indices[lineSegment->index + 1]] += n;
 	}
 
-	for (size_t i = 0; i < V; i++) {
+	for (int i = 0; i < V; i++) {
 		soup->vNormals[i] = unit<3>(soup->vNormals[i]);
 	}
 }
@@ -302,8 +302,8 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 			}
 
 			if (tokenIsF) {
-				int F = indices.size();
-				for (size_t i = 0; i < F - 1; i++) {
+				int F = (int)indices.size();
+				for (int i = 0; i < F - 1; i++) {
 					int j = (i + 1)%F;
 					soup->indices.emplace_back(indices[i]);
 					soup->indices.emplace_back(indices[j]);
@@ -325,7 +325,7 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 	// read soup and initialize line segments
 	bool isFlat = true;
 	std::shared_ptr<PolygonSoup<3>> soup = readLineSegmentSoupFromOBJFile(filename, isFlat);
-	int N = soup->indices.size();
+	int N = (int)soup->indices.size();
 	if (N%2 != 0) {
 		LOG(FATAL) << "Soup has non line segment curves: " << filename;
 	}
@@ -333,19 +333,19 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 	N /= 2;
 	lineSegments.clear();
 
-	for (size_t i = 0; i < N; i++) {
+	for (int i = 0; i < N; i++) {
 		lineSegments.emplace_back(std::make_shared<LineSegment>(soup, isFlat, 2*i));
 	}
 
 	if (isFlat && N > 0 && soup->indices[0] == soup->indices[2*(N - 1) + 1]) {
 		// swap indices if segments of closed curve are oriented in clockwise order
 		float signedVolume = 0.0f;
-		for (size_t i = 0; i < N; i++) {
+		for (int i = 0; i < N; i++) {
 			signedVolume += lineSegments[i]->signedVolume();
 		}
 
 		if (signedVolume < 0) {
-			for (size_t i = 0; i < N; i++) {
+			for (int i = 0; i < N; i++) {
 				std::swap(soup->indices[2*i], soup->indices[2*i + 1]);
 			}
 		}

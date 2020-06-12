@@ -19,7 +19,7 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 
 	if (sbvhNode.rightOffset == 0) {
 		// sbvh node is a leaf node; assign mbvh node its reference indices
-		for (size_t p = 0; p < sbvhNode.nReferences; p++) {
+		for (int p = 0; p < sbvhNode.nReferences; p++) {
 			flatTree[mbvhNodeIndex].child[p] = -(references[sbvhNode.start + p] + 1);
 		}
 
@@ -51,7 +51,7 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 
 			} else {
 				// assign mbvh node this sbvh node's bounding box and index
-				for (size_t i = 0; i < DIM; i++) {
+				for (int i = 0; i < DIM; i++) {
 					flatTree[mbvhNodeIndex].boxMin[i][nNodesCollapsed] = sbvhNode.box.pMin[i];
 					flatTree[mbvhNodeIndex].boxMax[i][nNodesCollapsed] = sbvhNode.box.pMax[i];
 				}
@@ -77,7 +77,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 {
 	if (objectType == ObjectType::LineSegments) {
 		// populate leaf node with line segments
-		for (size_t w = 0; w < WIDTH; w++) {
+		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
 				const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[index].get());
@@ -86,7 +86,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 				const Vector3& pa = lineSegment->soup->positions[paIndex];
 				const Vector3& pb = lineSegment->soup->positions[pbIndex];
 
-				for (size_t i = 0; i < DIM; i++) {
+				for (int i = 0; i < DIM; i++) {
 					leafNodes[leafIndex + 0][i][w] = pa[i];
 					leafNodes[leafIndex + 1][i][w] = pb[i];
 				}
@@ -95,7 +95,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 
 	} else if (objectType == ObjectType::Triangles) {
 		// populate leaf node with triangles
-		for (size_t w = 0; w < WIDTH; w++) {
+		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
 				const Triangle *triangle = static_cast<const Triangle *>(primitives[index].get());
@@ -106,7 +106,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 				const Vector3& pb = triangle->soup->positions[pbIndex];
 				const Vector3& pc = triangle->soup->positions[pcIndex];
 
-				for (size_t i = 0; i < DIM; i++) {
+				for (int i = 0; i < DIM; i++) {
 					leafNodes[leafIndex + 0][i][w] = pa[i];
 					leafNodes[leafIndex + 1][i][w] = pb[i];
 					leafNodes[leafIndex + 2][i][w] = pc[i];
@@ -126,7 +126,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 		int shift = objectType == ObjectType::LineSegments ? 2 : 3;
 		leafNodes.resize(nLeafs*shift);
 
-		for (size_t i = 0; i < nNodes; i++) {
+		for (int i = 0; i < nNodes; i++) {
 			MbvhNode<WIDTH, DIM>& node = flatTree[i];
 
 			if (isLeafNode(node)) {
@@ -166,9 +166,9 @@ objectType(sbvh_->objectType)
 
 	// compute empty nodes
 	float nEmptyLeafs = 0;
-	for (size_t i = 0; i < nNodes; i++) {
+	for (int i = 0; i < nNodes; i++) {
 		if (isLeafNode(flatTree[i])) {
-			for (size_t w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < WIDTH; w++) {
 				if (flatTree[i].child[w] == maxInt) {
 					nEmptyLeafs += 1;
 				}
@@ -203,9 +203,9 @@ template<size_t WIDTH, size_t DIM>
 inline Vector<DIM> Mbvh<WIDTH, DIM>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
-	int nPrimitives = primitives.size();
+	int nPrimitives = (int)primitives.size();
 
-	for (size_t p = 0; p < nPrimitives; p++) {
+	for (int p = 0; p < nPrimitives; p++) {
 		c += primitives[p]->centroid();
 	}
 
@@ -216,7 +216,7 @@ template<size_t WIDTH, size_t DIM>
 inline float Mbvh<WIDTH, DIM>::surfaceArea() const
 {
 	float area = 0.0f;
-	for (size_t p = 0; p < primitives.size(); p++) {
+	for (int p = 0; p < (int)primitives.size(); p++) {
 		area += primitives[p]->surfaceArea();
 	}
 
@@ -227,7 +227,7 @@ template<size_t WIDTH, size_t DIM>
 inline float Mbvh<WIDTH, DIM>::signedVolume() const
 {
 	float volume = 0.0f;
-	for (size_t p = 0; p < primitives.size(); p++) {
+	for (int p = 0; p < (int)primitives.size(); p++) {
 		volume += primitives[p]->signedVolume();
 	}
 
@@ -254,7 +254,7 @@ inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& no
 	int hits = 0;
 	if (countHits) {
 		// record all interactions
-		for (size_t w = 0; w < WIDTH; w++) {
+		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w]) {
 				int index = -node.child[w] - 1;
 				if (this->ignorePrimitive(primitives[index].get())) continue;
@@ -277,7 +277,7 @@ inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& no
 	} else {
 		// determine closest primitive
 		int W = maxInt;
-		for (size_t w = 0; w < WIDTH; w++) {
+		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
 				int index = -node.child[w] - 1;
 				if (this->ignorePrimitive(primitives[index].get())) continue;
@@ -328,7 +328,7 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	int hits = 0;
 	if (countHits) {
 		// record all interactions
-		for (size_t w = 0; w < WIDTH; w++) {
+		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w]) {
 				int index = -node.child[w] - 1;
 				if (this->ignorePrimitive(primitives[index].get())) continue;
@@ -351,7 +351,7 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	} else {
 		// determine closest primitive
 		int W = maxInt;
-		for (size_t w = 0; w < WIDTH; w++) {
+		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
 				int index = -node.child[w] - 1;
 				if (this->ignorePrimitive(primitives[index].get())) continue;
@@ -426,7 +426,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			} else {
 				// primitive type does not support vectorized intersection query,
 				// perform query to each primitive one by one
-				for (size_t w = 0; w < WIDTH; w++) {
+				for (int w = 0; w < WIDTH; w++) {
 					if (node.child[w] != maxInt) {
 						int index = -node.child[w] - 1;
 						const std::shared_ptr<Primitive<DIM>>& prim = primitives[index];
@@ -434,8 +434,8 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 
 						// check if primitive has already been seen
 						bool seenPrim = false;
-						int nInteractions = is.size();
-						for (size_t sp = 0; sp < nInteractions; sp++) {
+						int nInteractions = (int)is.size();
+						for (int sp = 0; sp < nInteractions; sp++) {
 							if (prim.get() == is[sp].primitive) {
 								seenPrim = true;
 								break;
@@ -452,7 +452,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 								hits += hit;
 								if (countHits) {
 									is.insert(is.end(), cs.begin(), cs.end());
-									for (size_t sp = nInteractions; sp < is.size(); sp++) {
+									for (int sp = nInteractions; sp < (int)is.size(); sp++) {
 										is[sp].nodeIndex = nodeIndex;
 									}
 
@@ -478,7 +478,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			int closestIndex = -1;
 			float minHit = r.tMax;
 
-			for (size_t w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < WIDTH; w++) {
 				if (node.child[w] != maxInt && mask[w] && tMin[w] < minHit) {
 					closestIndex = w;
 					minHit = tMin[w];
@@ -486,7 +486,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 			}
 
 			// enqueue remaining intersecting nodes first
-			for (size_t w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < WIDTH; w++) {
 				if (node.child[w] != maxInt && mask[w] && w != closestIndex) {
 					stackPtr++;
 					subtree[stackPtr].node = node.child[w];
@@ -510,12 +510,12 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 		if (countHits) {
 			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 			is = removeDuplicates<DIM>(is);
-			hits = is.size();
+			hits = (int)is.size();
 		}
 
 		// set normals
 		if (this->setNormals) {
-			for (size_t i = 0; i < is.size(); i++) {
+			for (int i = 0; i < (int)is.size(); i++) {
 				is[i].n = is[i].primitive->normal(is[i].uv);
 			}
 		}
@@ -545,7 +545,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, 
 
 	// determine closest primitive
 	int W = maxInt;
-	for (size_t w = 0; w < WIDTH; w++) {
+	for (int w = 0; w < WIDTH; w++) {
 		if (node.child[w] != maxInt && d2[w] <= s.r2) {
 			int index = -node.child[w] - 1;
 			if (this->ignorePrimitive(primitives[index].get())) continue;
@@ -594,7 +594,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 
 	// determine closest primitive
 	int W = maxInt;
-	for (size_t w = 0; w < WIDTH; w++) {
+	for (int w = 0; w < WIDTH; w++) {
 		if (node.child[w] != maxInt && d2[w] <= s.r2) {
 			int index = -node.child[w] - 1;
 			if (this->ignorePrimitive(primitives[index].get())) continue;
@@ -667,7 +667,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			} else {
 				// primitive type does not support vectorized closest point query,
 				// perform query to each primitive one by one
-				for (size_t w = 0; w < WIDTH; w++) {
+				for (int w = 0; w < WIDTH; w++) {
 					if (node.child[w] != maxInt) {
 						int index = -node.child[w] - 1;
 						const std::shared_ptr<Primitive<DIM>>& prim = primitives[index];
@@ -699,7 +699,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			int closestIndex = -1;
 			float minDist = s.r2;
 
-			for (size_t w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < WIDTH; w++) {
 				if (node.child[w] != maxInt && mask[w] && d2Min[w] < minDist) {
 					closestIndex = w;
 					minDist = d2Min[w];
@@ -707,7 +707,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 			}
 
 			// enqueue remaining overlapping nodes first
-			for (size_t w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < WIDTH; w++) {
 				if (node.child[w] != maxInt && mask[w] && w != closestIndex) {
 					if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[w]);
 					stackPtr++;

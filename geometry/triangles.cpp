@@ -134,7 +134,7 @@ Vector2 Triangle::textureCoordinates(const Vector2& uv) const
 void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 					 BoundingBox<3>& boxRight) const
 {
-	for (size_t i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 		const Vector3& pa = soup->positions[soup->indices[index + i]];
 		const Vector3& pb = soup->positions[soup->indices[index + (i + 1)%3]];
 
@@ -349,11 +349,11 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 {
 	// set edge indices
 	int E = 0;
-	int N = soup->indices.size()/3;
+	int N = (int)soup->indices.size()/3;
 	std::map<std::pair<int, int>, int> indexMap;
 
-	for (size_t i = 0; i < N; i++) {
-		for (size_t j = 0; j < 3; j++) {
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < 3; j++) {
 			int k = (j + 1)%3;
 			int I = soup->indices[3*i + j];
 			int J = soup->indices[3*i + k];
@@ -366,22 +366,22 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Primitive<
 	}
 
 	// compute normals
-	int V = soup->positions.size();
+	int V = (int)soup->positions.size();
 	soup->vNormals.resize(V, zeroVector<3>());
 	soup->eNormals.resize(E, zeroVector<3>());
 
-	for (size_t i = 0; i < N; i++) {
+	for (int i = 0; i < N; i++) {
 		const Triangle *triangle = static_cast<const Triangle *>(triangles[i].get());
 		Vector3 n = triangle->normal(true);
 
-		for (size_t j = 0; j < 3; j++) {
+		for (int j = 0; j < 3; j++) {
 			soup->vNormals[soup->indices[triangle->index + j]] += n;
 			soup->eNormals[soup->eIndices[triangle->index + j]] += n;
 		}
 	}
 
-	for (size_t i = 0; i < V; i++) soup->vNormals[i] = unit<3>(soup->vNormals[i]);
-	for (size_t i = 0; i < E; i++) soup->eNormals[i] = unit<3>(soup->eNormals[i]);
+	for (int i = 0; i < V; i++) soup->vNormals[i] = unit<3>(soup->vNormals[i]);
+	for (int i = 0; i < E; i++) soup->eNormals[i] = unit<3>(soup->eNormals[i]);
 }
 
 std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename)
@@ -447,7 +447,7 @@ std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 {
 	// read soup and initialize triangles
 	std::shared_ptr<PolygonSoup<3>> soup = readTriangleSoupFromOBJFile(filename);
-	int N = soup->indices.size();
+	int N = (int)soup->indices.size();
 	if (N%3 != 0) {
 		LOG(FATAL) << "Soup has non-triangular polygons: " << filename;
 	}
@@ -455,7 +455,7 @@ std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 	N /= 3;
 	triangles.clear();
 
-	for (size_t i = 0; i < N; i++) {
+	for (int i = 0; i < N; i++) {
 		triangles.emplace_back(std::make_shared<Triangle>(soup, 3*i));
 	}
 

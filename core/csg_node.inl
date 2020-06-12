@@ -85,8 +85,8 @@ inline void CsgNode<DIM>::computeInteractions(const std::vector<Interaction<DIM>
 {
 	int nLeft = 0;
 	int nRight = 0;
-	int hitsLeft = isLeft.size();
-	int hitsRight = isRight.size();
+	int hitsLeft = (int)isLeft.size();
+	int hitsRight = (int)isRight.size();
 	bool isLeftIntervalStart = hitsLeft%2 == 0;
 	bool isRightIntervalStart = hitsRight%2 == (operation == BooleanOperation::Difference ? 1 : 0);
 	int counter = 0;
@@ -148,7 +148,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 
 		// set normals
 		if (hitsLeft > 0 && this->setNormals) {
-			for (size_t i = 0; i < isLeft.size(); i++) {
+			for (int i = 0; i < (int)isLeft.size(); i++) {
 				isLeft[i].n = isLeft[i].primitive->normal(isLeft[i].uv);
 			}
 		}
@@ -166,7 +166,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 
 		// set normals
 		if (hitsRight > 0 && this->setNormals) {
-			for (size_t i = 0; i < isRight.size(); i++) {
+			for (int i = 0; i < (int)isRight.size(); i++) {
 				isRight[i].n = isRight[i].primitive->normal(isRight[i].uv);
 			}
 		}
@@ -203,7 +203,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		}
 
 		// shrink ray's tMax if possible
-		hits = is.size();
+		hits = (int)is.size();
 		if (!countHits) r.tMax = is[0].d; // list is already sorted
 	}
 

@@ -60,15 +60,15 @@ inline bool compareInteractions(const Interaction<DIM>& i, const Interaction<DIM
 
 template<size_t DIM>
 inline std::vector<Interaction<DIM>> removeDuplicates(const std::vector<Interaction<DIM>>& is) {
-	int N = is.size();
+	int N = (int)is.size();
 	std::vector<bool> isDuplicate(N, false);
 	std::vector<Interaction<DIM>> cs;
 
-	for (size_t i = 0; i < N - 1; i++) {
+	for (int i = 0; i < N - 1; i++) {
 		if (is[i] == is[i + 1]) isDuplicate[i + 1] = true;
 	}
 
-	for (size_t i = 0; i < N; i++) {
+	for (int i = 0; i < N; i++) {
 		if (!isDuplicate[i]) cs.emplace_back(is[i]);
 	}
 
