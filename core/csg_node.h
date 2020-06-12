@@ -11,7 +11,7 @@ enum class BooleanOperation {
 	None
 };
 
-template<int DIM>
+template<size_t DIM>
 class CsgNode: public Aggregate<DIM> {
 public:
 	// constructor

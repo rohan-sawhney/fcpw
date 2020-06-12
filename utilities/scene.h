@@ -39,7 +39,7 @@ std::vector<std::pair<std::string, LoadingOption>> files;
 std::string instanceFilename = "";
 std::string csgFilename = "";
 
-template<int DIM>
+template<size_t DIM>
 class Scene {
 public:
 	// loads files

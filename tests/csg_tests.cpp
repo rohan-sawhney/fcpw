@@ -13,7 +13,7 @@ using namespace fcpw;
 static progschj::ThreadPool pool;
 static int nThreads = 8;
 
-template<int DIM>
+template<size_t DIM>
 void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatteredPoints,
 									std::vector<Vector<DIM>>& randomDirections,
 									const BoundingBox<DIM>& boundingBox)
@@ -31,7 +31,7 @@ void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatt
 	}
 }
 
-template<int DIM>
+template<size_t DIM>
 bool raymarch(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 			  const BoundingBox<DIM>& boundingBox,
 			  Ray<DIM> r, Interaction<DIM>& i)
@@ -56,7 +56,7 @@ bool raymarch(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 	return false;
 }
 
-template<int DIM>
+template<size_t DIM>
 void clampToCsg(const std::string& method,
 				const std::vector<Vector<DIM>>& scatteredPoints,
 				const std::vector<Vector<DIM>>& randomDirections,
@@ -111,7 +111,7 @@ void clampToCsg(const std::string& method,
 	}
 }
 
-template<int DIM>
+template<size_t DIM>
 void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
 				 std::vector<Vector<DIM>>& intersectedPoints,
 				 std::vector<Vector<DIM>>& raymarchedPoints)
@@ -140,7 +140,7 @@ void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
 	ImGui::PopItemWidth();
 }
 
-template<int DIM>
+template<size_t DIM>
 void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
 					std::vector<Vector<DIM>>& intersectedPoints,
 					std::vector<Vector<DIM>>& raymarchedPoints)
@@ -230,7 +230,7 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 	polyscope::show();
 }
 
-template<int DIM>
+template<size_t DIM>
 void run()
 {
 	// build scene

@@ -6,7 +6,7 @@
 
 namespace fcpw {
 
-template<int DIM>
+template<size_t DIM>
 class Primitive {
 public:
 	// constructor
@@ -42,7 +42,7 @@ public:
 	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const = 0;
 };
 
-template<int DIM>
+template<size_t DIM>
 class Aggregate: public Primitive<DIM> {
 public:
 	// returns normalized normal
@@ -165,7 +165,7 @@ public:
 													// ignoreList.size() << primitives.size()
 };
 
-template<int DIM>
+template<size_t DIM>
 class TransformedAggregate: public Aggregate<DIM> {
 public:
 	// constructor

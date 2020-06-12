@@ -4,7 +4,7 @@
 
 namespace fcpw {
 
-template<int DIM>
+template<size_t DIM>
 class Baseline: public Aggregate<DIM> {
 public:
 	// constructor

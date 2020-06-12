@@ -4,7 +4,7 @@
 
 namespace fcpw {
 
-template<int DIM>
+template<size_t DIM>
 struct Ray {
 	// constructor
 	Ray(const Vector<DIM>& o_, const Vector<DIM>& d_, float tMax_=maxFloat):

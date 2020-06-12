@@ -4,7 +4,7 @@
 
 namespace fcpw {
 
-template <int DIM>
+template<size_t DIM>
 struct PolygonSoup {
 	// constructor
 	PolygonSoup() {}

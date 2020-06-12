@@ -1,10 +1,10 @@
 Priority:
 1. refactor to bypass inheritance costs
 2. optimize sbvh construction for large meshes
-3. give the closest point a rough guess of direction (things can go very wrong if guess
-   is totally off for certain geometries, e.g., hairy ball)
-4. start search from specified node (and walk up/laterally in the tree)
-5. rebalance trees
+3. rebalance trees
+4. give the closest point a rough guess of direction (things can possibly go
+   very wrong if guess is totally off for certain geometric distributions)
+5. start search from specified node (and walk up/laterally in the tree)
 6. mbvh
 ---- enoki settings on ubuntu & windows
 ---- restrict branching factor to 4, with SIMD wide leaves

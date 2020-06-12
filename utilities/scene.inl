@@ -11,7 +11,7 @@
 
 namespace fcpw {
 
-template<int DIM>
+template<size_t DIM>
 inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(
 			const std::string& filename, const LoadingOption& loadingOption, bool computeWeightedNormals,
 			std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, ObjectType& objectType)
@@ -38,7 +38,7 @@ inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
 	return nullptr;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline void loadInstanceTransforms(std::vector<std::vector<Transform<DIM>>>& instanceTransforms)
 {
 	// load file
@@ -66,7 +66,7 @@ inline void loadInstanceTransforms(std::vector<std::vector<Transform<DIM>>>& ins
 	in.close();
 }
 
-template<int DIM>
+template<size_t DIM>
 inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 {
 	// load scene
@@ -98,7 +98,7 @@ inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 	in.close();
 }
 
-template<int DIM>
+template<size_t DIM>
 inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 {
 	int nFiles = (int)files.size();
@@ -120,7 +120,7 @@ inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 	if (!csgFilename.empty()) loadCsgTree<DIM>(csgTree);
 }
 
-template<int DIM>
+template<size_t DIM>
 inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 				int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
 				std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances)
@@ -137,7 +137,7 @@ inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 	return std::make_shared<CsgNode<DIM>>(instance1, instance2, node.operation);
 }
 
-template<int DIM>
+template<size_t DIM>
 inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType, bool vectorize,
 													 std::vector<std::shared_ptr<Primitive<DIM>>>& primitives)
 {
@@ -191,7 +191,7 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 	return sbvh;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool vectorize)
 {
 	// initialize instances and aggregate
@@ -238,7 +238,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 }
 
 #ifdef BENCHMARK_EMBREE
-template<int DIM>
+template<size_t DIM>
 inline bool Scene<DIM>::buildEmbreeAggregate()
 {
 	int nObjects = (int)objects.size();

@@ -1,13 +1,13 @@
 namespace fcpw {
 
-template<int DIM>
+template<size_t DIM>
 inline Baseline<DIM>::Baseline(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_):
 primitives(primitives_)
 {
 	this->setNormals = false;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline BoundingBox<DIM> Baseline<DIM>::boundingBox() const
 {
 	BoundingBox<DIM> bb;
@@ -18,7 +18,7 @@ inline BoundingBox<DIM> Baseline<DIM>::boundingBox() const
 	return bb;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> Baseline<DIM>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
@@ -31,7 +31,7 @@ inline Vector<DIM> Baseline<DIM>::centroid() const
 	return c/nPrimitives;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float Baseline<DIM>::surfaceArea() const
 {
 	float area = 0.0f;
@@ -42,7 +42,7 @@ inline float Baseline<DIM>::surfaceArea() const
 	return area;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float Baseline<DIM>::signedVolume() const
 {
 	float volume = 0.0f;
@@ -53,7 +53,7 @@ inline float Baseline<DIM>::signedVolume() const
 	return volume;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											int nodeStartIndex, int& nodesVisited,
 											bool checkOcclusion, bool countHits) const
@@ -108,7 +108,7 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 	return 0;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													int nodeStartIndex, const Vector<DIM>& boundaryHint,
 													int& nodesVisited) const

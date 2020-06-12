@@ -2,7 +2,7 @@
 
 namespace fcpw {
 
-template<int DIM>
+template<size_t DIM>
 inline EmbreeBvh<DIM>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
 								 const std::shared_ptr<PolygonSoup<DIM>>& soup_):
 Baseline<DIM>(primitives_),
@@ -11,37 +11,37 @@ soup(soup_)
 	LOG(INFO) << "EmbreeBvh<DIM>(): No embree support for dimension: " << DIM;
 }
 
-template<int DIM>
+template<size_t DIM>
 inline EmbreeBvh<DIM>::~EmbreeBvh()
 {
 	// nothing to do
 }
 
-template<int DIM>
+template<size_t DIM>
 inline BoundingBox<DIM> EmbreeBvh<DIM>::boundingBox() const
 {
 	return Baseline<DIM>::boundingBox();
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> EmbreeBvh<DIM>::centroid() const
 {
 	return Baseline<DIM>::centroid();
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float EmbreeBvh<DIM>::surfaceArea() const
 {
 	return Baseline<DIM>::surfaceArea();
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float EmbreeBvh<DIM>::signedVolume() const
 {
 	return Baseline<DIM>::signedVolume();
 }
 
-template<int DIM>
+template<size_t DIM>
 inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											 int nodeStartIndex, int& nodesVisited,
 											 bool checkOcclusion, bool countHits) const
@@ -50,7 +50,7 @@ inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interactio
 											checkOcclusion, countHits);
 }
 
-template<int DIM>
+template<size_t DIM>
 inline bool EmbreeBvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													 int nodeStartIndex, const Vector<DIM>& boundaryHint,
 													 int& nodesVisited) const

@@ -5,7 +5,7 @@
 namespace fcpw {
 
 // performs wide version of ray box intersection test
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline MaskP<WIDTH> intersectWideBox(const Ray<DIM>& r,
 									 const VectorP<WIDTH, DIM>& bMin,
 									 const VectorP<WIDTH, DIM>& bMax,
@@ -25,7 +25,7 @@ inline MaskP<WIDTH> intersectWideBox(const Ray<DIM>& r,
 }
 
 // performs wide version of sphere box overlap test
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
 								   const VectorP<WIDTH, DIM>& bMin,
 								   const VectorP<WIDTH, DIM>& bMax,
@@ -40,7 +40,7 @@ inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
 }
 
 // performs wide version of ray line segment intersection test
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline MaskP<WIDTH> intersectWideLineSegment(const Ray<DIM>& r, const VectorP<WIDTH, DIM>& pa,
 											 const VectorP<WIDTH, DIM>& pb, FloatP<WIDTH>& d,
 											 VectorP<WIDTH, DIM>& pt, FloatP<WIDTH>& t)
@@ -69,7 +69,7 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Ray<DIM>& r, const VectorP<WI
 }
 
 // performs wide version of ray triangle intersection test
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline MaskP<WIDTH> intersectWideTriangle(const Ray<DIM>& r, const VectorP<WIDTH, DIM>& pa,
 										  const VectorP<WIDTH, DIM>& pb, const VectorP<WIDTH, DIM>& pc,
 										  FloatP<WIDTH>& d, VectorP<WIDTH, DIM>& pt,
@@ -102,7 +102,7 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<DIM>& r, const VectorP<WIDTH
 }
 
 // finds closest point on wide line segment to point
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector<DIM>& x, const VectorP<WIDTH, DIM>& pa,
 													 const VectorP<WIDTH, DIM>& pb, VectorP<WIDTH, DIM>& pt,
 													 FloatP<WIDTH>& t)
@@ -126,7 +126,7 @@ inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector<DIM>& x, const
 }
 
 // finds closest point on wide triangle to point
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const VectorP<WIDTH, DIM>& pa,
 												  const VectorP<WIDTH, DIM>& pb, const VectorP<WIDTH, DIM>& pc,
 												  VectorP<WIDTH, DIM>& pt, VectorP<WIDTH, DIM - 1>& t)

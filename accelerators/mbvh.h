@@ -4,7 +4,7 @@
 
 namespace fcpw {
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 struct MbvhNode {
 	// constructor
 	MbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
@@ -17,7 +17,7 @@ struct MbvhNode {
 	int parent, leafIndex;
 };
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 class Mbvh: public Aggregate<DIM> {
 public:
 	// constructor

@@ -2,7 +2,7 @@
 
 namespace fcpw {
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
 										  int sbvhNodeIndex, int parent, int depth)
 {
@@ -66,13 +66,13 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	return mbvhNodeIndex;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline bool Mbvh<WIDTH, DIM>::isLeafNode(const MbvhNode<WIDTH, DIM>& node) const
 {
 	return node.child[0] < 0;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node, int leafIndex)
 {
 	if (objectType == ObjectType::LineSegments) {
@@ -116,7 +116,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 	}
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 {
 	if (objectType == ObjectType::LineSegments ||
@@ -138,7 +138,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 	}
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline Mbvh<WIDTH, DIM>::Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
 primitives(sbvh_->primitives),
 references(sbvh_->references),
@@ -188,7 +188,7 @@ objectType(sbvh_->objectType)
 			  << timeSpan.count() << " seconds" << std::endl;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline BoundingBox<DIM> Mbvh<WIDTH, DIM>::boundingBox() const
 {
 	BoundingBox<DIM> box;
@@ -199,7 +199,7 @@ inline BoundingBox<DIM> Mbvh<WIDTH, DIM>::boundingBox() const
 	return box;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline Vector<DIM> Mbvh<WIDTH, DIM>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
@@ -212,7 +212,7 @@ inline Vector<DIM> Mbvh<WIDTH, DIM>::centroid() const
 	return c/nPrimitives;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline float Mbvh<WIDTH, DIM>::surfaceArea() const
 {
 	float area = 0.0f;
@@ -223,7 +223,7 @@ inline float Mbvh<WIDTH, DIM>::surfaceArea() const
 	return area;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline float Mbvh<WIDTH, DIM>::signedVolume() const
 {
 	float volume = 0.0f;
@@ -234,7 +234,7 @@ inline float Mbvh<WIDTH, DIM>::signedVolume() const
 	return volume;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
 												  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 												  bool countHits) const
@@ -307,7 +307,7 @@ inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& no
 	return hits;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
 											   Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											   bool countHits) const
@@ -381,7 +381,7 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	return hits;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 											   int nodeStartIndex, int& nodesVisited,
 											   bool checkOcclusion, bool countHits) const
@@ -526,7 +526,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	return 0;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, DIM>& node,
 														  int nodeIndex, BoundingSphere<DIM>& s,
 														  Interaction<DIM>& i) const
@@ -574,7 +574,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, 
 	return false;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node,
 													   int nodeIndex, BoundingSphere<DIM>& s,
 													   Interaction<DIM>& i) const
@@ -623,7 +623,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	return false;
 }
 
-template<int WIDTH, int DIM>
+template<size_t WIDTH, size_t DIM>
 inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													   int nodeStartIndex, const Vector<DIM>& boundaryHint,
 													   int& nodesVisited) const

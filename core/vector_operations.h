@@ -9,32 +9,32 @@
 namespace fcpw {
 
 #ifdef BUILD_ENOKI
-	template<int DIM>
+	template<size_t DIM>
 	using Vector = enoki::Array<float, DIM>;
-	template<int WIDTH>
+	template<size_t WIDTH>
 	using IntP = enoki::Packet<int, WIDTH>;
-	template<int WIDTH>
+	template<size_t WIDTH>
 	using FloatP = enoki::Packet<float, WIDTH>;
-	template<int WIDTH>
+	template<size_t WIDTH>
 	using MaskP = enoki::mask_t<FloatP<WIDTH>>;
-	template<int WIDTH, int DIM>
+	template<size_t WIDTH, size_t DIM>
 	using VectorP = enoki::Array<FloatP<WIDTH>, DIM>;
-	template<int WIDTH>
+	template<size_t WIDTH>
 	using Vector2P = VectorP<WIDTH, 2>;
-	template<int WIDTH>
+	template<size_t WIDTH>
 	using Vector3P = VectorP<WIDTH, 3>;
 #else
-	template<int DIM>
+	template<size_t DIM>
 	using Vector = Eigen::Matrix<float, DIM, 1>;
 #endif
 
 using Vector2 = Vector<2>;
 using Vector3 = Vector<3>;
 
-template<int DIM>
+template<size_t DIM>
 using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> zeroVector()
 {
 #ifdef BUILD_ENOKI
@@ -44,7 +44,7 @@ inline Vector<DIM> zeroVector()
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> constantVector(float constant)
 {
 #ifdef BUILD_ENOKI
@@ -54,7 +54,7 @@ inline Vector<DIM> constantVector(float constant)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> unit(const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -64,7 +64,7 @@ inline Vector<DIM> unit(const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float norm(const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -74,7 +74,7 @@ inline float norm(const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float squaredNorm(const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -84,7 +84,7 @@ inline float squaredNorm(const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float sum(const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -94,7 +94,7 @@ inline float sum(const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float product(const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -104,7 +104,7 @@ inline float product(const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float minCoeff(const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -114,7 +114,7 @@ inline float minCoeff(const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float maxCoeff(const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -124,7 +124,7 @@ inline float maxCoeff(const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float minCoeff(const Vector<DIM>& v, int& index)
 {
 #ifdef BUILD_ENOKI
@@ -143,7 +143,7 @@ inline float minCoeff(const Vector<DIM>& v, int& index)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float maxCoeff(const Vector<DIM>& v, int& index)
 {
 #ifdef BUILD_ENOKI
@@ -162,7 +162,7 @@ inline float maxCoeff(const Vector<DIM>& v, int& index)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline float dot(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -181,7 +181,7 @@ inline Vector3 cross(const Vector3& u, const Vector3& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> cwiseMin(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -191,7 +191,7 @@ inline Vector<DIM> cwiseMin(const Vector<DIM>& u, const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> cwiseMax(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -201,7 +201,7 @@ inline Vector<DIM> cwiseMax(const Vector<DIM>& u, const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> cwiseMin(const Vector<DIM>& v, float s)
 {
 #ifdef BUILD_ENOKI
@@ -211,7 +211,7 @@ inline Vector<DIM> cwiseMin(const Vector<DIM>& v, float s)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> cwiseMax(const Vector<DIM>& v, float s)
 {
 #ifdef BUILD_ENOKI
@@ -221,7 +221,7 @@ inline Vector<DIM> cwiseMax(const Vector<DIM>& v, float s)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> cwiseProduct(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -231,7 +231,7 @@ inline Vector<DIM> cwiseProduct(const Vector<DIM>& u, const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> cwiseQuotient(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -241,7 +241,7 @@ inline Vector<DIM> cwiseQuotient(const Vector<DIM>& u, const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> cwiseInverse(const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -251,7 +251,7 @@ inline Vector<DIM> cwiseInverse(const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline Vector<DIM> transformVector(const Transform<DIM>& t, const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -270,7 +270,7 @@ inline Vector<DIM> transformVector(const Transform<DIM>& t, const Vector<DIM>& v
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline bool allLeq(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
@@ -280,7 +280,7 @@ inline bool allLeq(const Vector<DIM>& u, const Vector<DIM>& v)
 #endif
 }
 
-template<int DIM>
+template<size_t DIM>
 inline bool allGeq(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef BUILD_ENOKI
