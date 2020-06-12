@@ -86,7 +86,7 @@ protected:
 	std::vector<MbvhNode<WIDTH, DIM>> flatTree;
 	std::vector<VectorP<WIDTH, DIM>> leafNodes;
 	std::vector<int> references;
-	ObjectType objectType;
+	ObjectType vectorizedLeafType;
 };
 
 } // namespace fcpw
