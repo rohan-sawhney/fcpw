@@ -31,6 +31,8 @@ struct Interaction;
 template<size_t DIM>
 class Primitive;
 template<size_t DIM>
+class GeometricPrimitive;
+template<size_t DIM>
 class Aggregate;
 template<size_t DIM>
 class TransformedAggregate;

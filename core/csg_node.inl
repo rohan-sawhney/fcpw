@@ -149,7 +149,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		// set normals
 		if (hitsLeft > 0 && this->setNormals) {
 			for (int i = 0; i < (int)isLeft.size(); i++) {
-				isLeft[i].n = isLeft[i].primitive->normal(isLeft[i].uv);
+				isLeft[i].computeNormal();
 			}
 		}
 
@@ -167,7 +167,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		// set normals
 		if (hitsRight > 0 && this->setNormals) {
 			for (int i = 0; i < (int)isRight.size(); i++) {
-				isRight[i].n = isRight[i].primitive->normal(isRight[i].uv);
+				isRight[i].computeNormal();
 			}
 		}
 
@@ -228,7 +228,7 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 
 		// set normal
 		if (foundLeft && this->setNormals) {
-			iLeft.n = iLeft.primitive->normal(iLeft.uv);
+			iLeft.computeNormal();
 		}
 
 		// return if no closest point for the left child is found and
@@ -244,7 +244,7 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 
 		// set normal
 		if (foundRight && this->setNormals) {
-			iRight.n = iRight.primitive->normal(iRight.uv);
+			iRight.computeNormal();
 		}
 
 		// return if no closest point was found to both children

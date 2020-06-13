@@ -7,7 +7,6 @@ namespace fcpw {
 
 LineSegment::LineSegment(const std::shared_ptr<PolygonSoup<3>>& soup_,
 						 bool isFlat_, int index_):
-Primitive<3>(),
 soup(soup_),
 isFlat(isFlat_),
 index(index_)
@@ -89,12 +88,12 @@ Vector3 LineSegment::normal(const Vector2& uv) const
 	return normal(vIndex);
 }
 
-float LineSegment::barycentricCoordinates(const Vector3& p) const
+Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 {
 	const Vector3& pa = soup->positions[soup->indices[index]];
 	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
-	return norm<3>(p - pa)/norm<3>(pb - pa);
+	return Vector2(norm<3>(p - pa)/norm<3>(pb - pa), 0.0f);
 }
 
 void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,

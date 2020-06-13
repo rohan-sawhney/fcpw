@@ -4,7 +4,7 @@
 
 namespace fcpw {
 
-class Triangle: public Primitive<3> {
+class Triangle: public GeometricPrimitive<3> {
 public:
 	// constructor
 	Triangle(const std::shared_ptr<PolygonSoup<3>>& soup_, int index_);

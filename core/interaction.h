@@ -33,6 +33,11 @@ struct Interaction {
 		return sign == 0 ? (dot<DIM>(x - p, n) > 0.0f ? 1.0f : -1.0f)*d : sign*d;
 	}
 
+	// computes normal from geometric primitive
+	void computeNormal() {
+		n = static_cast<const GeometricPrimitive<DIM> *>(primitive)->normal(uv);
+	}
+
 	// applies transform
 	void applyTransform(const Transform<DIM>& t,
 						const Transform<DIM>& tInv,

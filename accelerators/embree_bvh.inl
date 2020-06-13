@@ -373,7 +373,7 @@ inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>
 	// set normals
 	if (this->setNormals) {
 		for (int i = 0; i < (int)is.size(); i++) {
-			is[i].n = is[i].primitive->normal(is[i].uv);
+			is[i].computeNormal();
 		}
 	}
 
@@ -414,7 +414,7 @@ inline bool EmbreeBvh<3>::findClosestPointFromNode(BoundingSphere<3>& s, Interac
 		i.d = norm<3>(i.p - s.c);
 		i.primitive = this->primitives[result.primID].get();
 		i.uv = static_cast<const Triangle *>(i.primitive)->barycentricCoordinates(i.p);
-		if (this->setNormals) i.n = static_cast<const Triangle *>(i.primitive)->normal(i.uv);
+		if (this->setNormals) i.computeNormal();
 		s.r2 = i.d*i.d;
 
 		return true;

@@ -25,6 +25,7 @@ packLeaves(packLeaves_)
 {
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
 	// build sbvh
 	build();
 	this->setNormals = false;
@@ -777,7 +778,7 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 		// set normals
 		if (this->setNormals) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].n = is[i].primitive->normal(is[i].uv);
+				is[i].computeNormal();
 			}
 		}
 
@@ -931,7 +932,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	if (!notFound) {
 		// set normal
 		if (this->setNormals) {
-			i.n = i.primitive->normal(i.uv);
+			i.computeNormal();
 		}
 
 		return true;

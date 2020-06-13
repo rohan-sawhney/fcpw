@@ -27,9 +27,6 @@ public:
 	// returns signed volume
 	virtual float signedVolume() const = 0;
 
-	// returns normalized normal
-	virtual Vector<DIM> normal(const Vector<DIM - 1>& uv) const = 0;
-
 	// splits the primitive along the provided coordinate and axis
 	virtual void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
 					   BoundingBox<DIM>& boxRight) const = 0;
@@ -43,12 +40,35 @@ public:
 };
 
 template<size_t DIM>
+class GeometricPrimitive: public Primitive<DIM> {
+public:
+	// returns normal
+	virtual Vector<DIM> normal(bool normalize=false) const = 0;
+
+	// returns the normalized normal based on the local parameterization
+	virtual Vector<DIM> normal(const Vector<DIM - 1>& uv) const = 0;
+
+	// returns barycentric coordinates
+	virtual Vector<DIM - 1> barycentricCoordinates(const Vector<DIM>& p) const = 0;
+};
+
+template<size_t DIM>
 class Aggregate: public Primitive<DIM> {
 public:
-	// returns normalized normal
-	Vector<DIM> normal(const Vector<DIM - 1>& uv) const {
-		LOG(FATAL) << "Aggregate::normal<DIM>(): Not defined";
-		return zeroVector<DIM>();
+	// splits the primitive along the provided coordinate and axis
+	void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
+			   BoundingBox<DIM>& boxRight) const {
+		BoundingBox<DIM> box = this->boundingBox();
+
+		if (box.pMin[dim] <= splitCoord) {
+			boxLeft = box;
+			boxLeft.pMax[dim] = splitCoord;
+		}
+
+		if (box.pMax[dim] >= splitCoord) {
+			boxRight = box;
+			boxRight.pMin[dim] = splitCoord;
+		}
 	}
 
 	// intersects with ray
@@ -116,22 +136,6 @@ public:
 		LOG_IF(FATAL, i.distanceInfo == DistanceInfo::Bounded)
 							  << "Cannot clamp to boundary since exact distance isn't available";
 		x = i.p;
-	}
-
-	// splits the primitive along the provided coordinate and axis
-	void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
-			   BoundingBox<DIM>& boxRight) const {
-		BoundingBox<DIM> box = this->boundingBox();
-
-		if (box.pMin[dim] <= splitCoord) {
-			boxLeft = box;
-			boxLeft.pMax[dim] = splitCoord;
-		}
-
-		if (box.pMax[dim] >= splitCoord) {
-			boxRight = box;
-			boxRight.pMin[dim] = splitCoord;
-		}
 	}
 
 	// checks if primitive should be ignored

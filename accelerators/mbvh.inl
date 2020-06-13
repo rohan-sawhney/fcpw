@@ -545,7 +545,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 		// set normals
 		if (this->setNormals) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].n = is[i].primitive->normal(is[i].uv);
+				is[i].computeNormal();
 			}
 		}
 
@@ -760,7 +760,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 	if (!notFound) {
 		// set normal
 		if (this->setNormals) {
-			i.n = i.primitive->normal(i.uv);
+			i.computeNormal();
 		}
 
 		return true;

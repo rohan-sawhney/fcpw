@@ -6,7 +6,6 @@
 namespace fcpw {
 
 Triangle::Triangle(const std::shared_ptr<PolygonSoup<3>>& soup_, int index_):
-Primitive<3>(),
 soup(soup_),
 index(index_)
 {

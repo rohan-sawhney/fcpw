@@ -98,7 +98,7 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 		// set normals
 		if (this->setNormals) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].n = is[i].primitive->normal(is[i].uv);
+				is[i].computeNormal();
 			}
 		}
 
@@ -137,7 +137,7 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 	if (!notFound) {
 		// set normal
 		if (this->setNormals) {
-			i.n = i.primitive->normal(i.uv);
+			i.computeNormal();
 		}
 
 		return true;

@@ -4,7 +4,7 @@
 
 namespace fcpw {
 
-class LineSegment: public Primitive<3> {
+class LineSegment: public GeometricPrimitive<3> {
 public:
 	// constructor
 	LineSegment(const std::shared_ptr<PolygonSoup<3>>& soup_, bool isFlat_, int index_);
@@ -28,7 +28,7 @@ public:
 	Vector3 normal(const Vector2& uv) const;
 
 	// returns barycentric coordinates
-	float barycentricCoordinates(const Vector3& p) const;
+	Vector2 barycentricCoordinates(const Vector3& p) const;
 
 	// splits the line segment along the provided coordinate and axis
 	void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
