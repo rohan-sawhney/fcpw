@@ -296,7 +296,7 @@ inline bool isNaN(const Vector<DIM>& v)
 #ifdef BUILD_ENOKI
 	return enoki::any(enoki::isnan(v));
 #else
-	return v.isNaN().any();
+	return v.array().isNaN().any();
 #endif
 }
 
