@@ -618,8 +618,8 @@ inline float Sbvh<DIM>::signedVolume() const
 
 template<size_t DIM>
 inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-													 bool checkOcclusion, bool countHits,
-													 std::vector<BvhTraversal>& subtree,
+													 int nodeStartIndex, bool checkOcclusion,
+													 bool countHits, std::vector<BvhTraversal>& subtree,
 													 float *boxHits, int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
@@ -650,9 +650,13 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 				}
 
 				if (!seenPrim) {
-					std::vector<Interaction<DIM>> cs;
-					int hit = prim->intersect(r, cs, checkOcclusion, countHits);
 					nodesVisited++;
+
+					std::vector<Interaction<DIM>> cs;
+					const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(prim.get());
+					int hit = aggregate ? aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited,
+																	   checkOcclusion, countHits) :
+										  prim->intersect(r, cs, checkOcclusion, countHits);
 
 					// keep the closest intersection only
 					if (hit > 0) {
@@ -739,8 +743,9 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 	if (flatTree[0].box.intersect(r, boxHits[0], boxHits[1])) {
 		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
-		bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
-													  subtree, boxHits, hits, nodesVisited);
+		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, checkOcclusion,
+													  countHits, subtree, boxHits, hits,
+													  nodesVisited);
 		if (occluded) return 1;
 	}
 
@@ -767,10 +772,9 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 
 template<size_t DIM>
 inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													 const Vector<DIM>& boundaryHint,
-													 std::vector<BvhTraversal>& subtree,
-													 float *boxHits, bool& notFound,
-													 int& nodesVisited) const
+													 int nodeStartIndex, const Vector<DIM>& boundaryHint,
+													 std::vector<BvhTraversal>& subtree, float *boxHits,
+													 bool& notFound, int& nodesVisited) const
 {
 	// TODO: use direction to boundary guess
 	int stackPtr = 0;
@@ -791,9 +795,13 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 				if (this->ignorePrimitive(prim.get())) continue;
 
 				if (prim.get() != i.primitive) {
-					Interaction<DIM> c;
-					bool found = prim->findClosestPoint(s, c);
 					nodesVisited++;
+
+					Interaction<DIM> c;
+					const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(prim.get());
+					bool found = aggregate ? aggregate->findClosestPointFromNode(s, c, nodeStartIndex,
+																		   boundaryHint, nodesVisited) :
+											 prim->findClosestPoint(s, c);
 
 					// keep the closest point only
 					if (found) {
@@ -875,7 +883,8 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 		if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
 		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
-		processSubtreeForClosestPoint(s, i, boundaryHint, subtree, boxHits, notFound, nodesVisited);
+		processSubtreeForClosestPoint(s, i, nodeStartIndex, boundaryHint, subtree,
+									  boxHits, notFound, nodesVisited);
 	}
 
 	if (!notFound) {

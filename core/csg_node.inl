@@ -6,6 +6,8 @@ inline CsgNode<DIM>::CsgNode(const std::shared_ptr<Primitive<DIM>>& left_,
 							 const BooleanOperation& operation_):
 left(left_),
 right(right_),
+leftAggregate(dynamic_cast<const Aggregate<DIM> *>(left_.get())),
+rightAggregate(dynamic_cast<const Aggregate<DIM> *>(right_.get())),
 operation(operation_)
 {
 	LOG_IF(FATAL, left == nullptr || right == nullptr) << "Children cannot be null";
@@ -143,8 +145,10 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		// perform intersection query for left child
 		Ray<DIM> rLeft = r;
 		std::vector<Interaction<DIM>> isLeft;
-		int hitsLeft = this->ignorePrimitive(left.get()) ?
-					   0 : left->intersect(rLeft, isLeft, false, true);
+		int hitsLeft = this->ignorePrimitive(left.get()) ? 0 :
+					   leftAggregate ? leftAggregate->intersectFromNode(rLeft, isLeft,
+											nodeStartIndex, nodesVisited, false, true) :
+					   left->intersect(rLeft, isLeft, false, true);
 
 		// set normals
 		if (hitsLeft > 0 && this->setNormals) {
@@ -161,8 +165,10 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 		// perform intersection query for right child
 		Ray<DIM> rRight = r;
 		std::vector<Interaction<DIM>> isRight;
-		int hitsRight = this->ignorePrimitive(right.get()) ?
-						0 : right->intersect(rRight, isRight, false, true);
+		int hitsRight = this->ignorePrimitive(right.get()) ? 0 :
+						rightAggregate ? rightAggregate->intersectFromNode(rRight, isRight,
+												 nodeStartIndex, nodesVisited, false, true) :
+						right->intersect(rRight, isRight, false, true);
 
 		// set normals
 		if (hitsRight > 0 && this->setNormals) {
@@ -223,8 +229,10 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 		// perform closest point query on left child
 		Interaction<DIM> iLeft;
 		BoundingSphere<DIM> sLeft = s;
-		bool foundLeft = this->ignorePrimitive(left.get()) ?
-						 false : left->findClosestPoint(sLeft, iLeft);
+		bool foundLeft = this->ignorePrimitive(left.get()) ? false :
+						 leftAggregate ? leftAggregate->findClosestPointFromNode(sLeft, iLeft,
+							 					   nodeStartIndex, boundaryHint, nodesVisited) :
+										 left->findClosestPoint(sLeft, iLeft);
 
 		// set normal
 		if (foundLeft && this->setNormals) {
@@ -239,8 +247,10 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 		// perform closest point query on right child
 		Interaction<DIM> iRight;
 		BoundingSphere<DIM> sRight = s;
-		bool foundRight = this->ignorePrimitive(right.get()) ?
-						  false : right->findClosestPoint(sRight, iRight);
+		bool foundRight = this->ignorePrimitive(right.get()) ? false :
+						  rightAggregate ? rightAggregate->findClosestPointFromNode(sRight, iRight,
+														nodeStartIndex, boundaryHint, nodesVisited) :
+										   right->findClosestPoint(sRight, iRight);
 
 		// set normal
 		if (foundRight && this->setNormals) {

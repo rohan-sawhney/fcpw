@@ -56,6 +56,8 @@ private:
 	// members
 	std::shared_ptr<Primitive<DIM>> left;
 	std::shared_ptr<Primitive<DIM>> right;
+	const Aggregate<DIM> *leftAggregate;
+	const Aggregate<DIM> *rightAggregate;
 	BooleanOperation operation;
 	BoundingBox<DIM> box;
 };

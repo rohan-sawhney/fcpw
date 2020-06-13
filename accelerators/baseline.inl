@@ -68,10 +68,13 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 	// find closest hit
 	for (int p = 0; p < (int)primitives.size(); p++) {
 		if (this->ignorePrimitive(primitives[p].get())) continue;
+		nodesVisited++;
 
 		std::vector<Interaction<DIM>> cs;
-		int hit = primitives[p]->intersect(r, cs, checkOcclusion, countHits);
-		nodesVisited++;
+		const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(primitives[p].get());
+		int hit = aggregate ? aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited,
+														   checkOcclusion, countHits) :
+							  primitives[p]->intersect(r, cs, checkOcclusion, countHits);
 
 		if (hit > 0) {
 			hits += hit;
@@ -121,10 +124,13 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 	bool notFound = true;
 	for (int p = 0; p < (int)primitives.size(); p++) {
 		if (this->ignorePrimitive(primitives[p].get())) continue;
+		nodesVisited++;
 
 		Interaction<DIM> c;
-		bool found = primitives[p]->findClosestPoint(s, c);
-		nodesVisited++;
+		const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(primitives[p].get());
+		bool found = aggregate ? aggregate->findClosestPointFromNode(s, c, nodeStartIndex,
+															   boundaryHint, nodesVisited) :
+								 primitives[p]->findClosestPoint(s, c);
 
 		// keep the closest point only
 		if (found) {

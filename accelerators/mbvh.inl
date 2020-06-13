@@ -470,9 +470,13 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 						}
 
 						if (!seenPrim) {
-							std::vector<Interaction<DIM>> cs;
-							int hit = prim->intersect(r, cs, checkOcclusion, countHits);
 							nodesVisited++;
+
+							std::vector<Interaction<DIM>> cs;
+							const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(prim.get());
+							int hit = aggregate ? aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited,
+																			   checkOcclusion, countHits) :
+												  prim->intersect(r, cs, checkOcclusion, countHits);
 
 							// keep the closest intersection only
 							if (hit > 0) {
@@ -699,9 +703,13 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 						if (this->ignorePrimitive(prim.get())) continue;
 
 						if (prim.get() != i.primitive) {
-							Interaction<DIM> c;
-							bool found = prim->findClosestPoint(s, c);
 							nodesVisited++;
+
+							Interaction<DIM> c;
+							const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(prim.get());
+							bool found = aggregate ? aggregate->findClosestPointFromNode(s, c, nodeStartIndex,
+																				   boundaryHint, nodesVisited) :
+													 prim->findClosestPoint(s, c);
 
 							// keep the closest point only
 							if (found) {

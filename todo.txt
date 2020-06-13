@@ -1,20 +1,19 @@
 Priority:
 1. refactor to bypass inheritance costs
 2. optimize sbvh construction for large meshes
-3. call *fromNode functions for aggregates embedded inside aggregates
-4. give the closest point a rough guess of direction (things can possibly go
+3. give the closest point a rough guess of direction (things can possibly go
    very wrong if guess is totally off for certain geometric distributions)
-5. start search from specified node (and walk up/laterally in the tree)
-6. mbvh
+4. start search from specified node (and walk up/laterally in the tree)
+5. mbvh
 ---- enoki settings on ubuntu & windows
 ---- restrict branching factor to 4, with SIMD wide leaves
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- more aggressive culling for closest points?
-7. rebalance treess
-8. queue vs stack vs both?
-9. benchmark
-10. travis/circle CI
-11. README (tutorial, features, benchmark, compiling, logo)
+6. rebalance treess
+7. queue vs stack vs both?
+8. benchmark
+9. travis/circle CI
+10. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. cache alignment - sbvh & mbvh nodes
