@@ -420,8 +420,6 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 #endif
 
 	// TODO: start from nodeStartIndex
-	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
-								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	int hits = 0;
 	if (!countHits) is.resize(1);
 	std::vector<BvhTraversal> subtree((maxDepth + 1)*(WIDTH - 1));
@@ -662,8 +660,6 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 #endif
 
 	// TODO: start from nodeStartIndex & use direction to boundary guess
-	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
-								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
 	bool notFound = true;
 	std::vector<BvhTraversal> subtree((maxDepth + 1)*(WIDTH - 1));
 	FloatP<WIDTH> d2Min, d2Max;

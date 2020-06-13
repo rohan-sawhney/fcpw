@@ -730,41 +730,18 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 	PROFILE_SCOPED();
 #endif
 
-	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
-								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
+	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!countHits) is.resize(1);
 	std::vector<BvhTraversal> subtree(maxDepth + 1);
 	float boxHits[4];
 
-	// push the start node onto the working set and process its subtree if it intersects ray
-	if (flatTree[nodeStartIndex].box.intersect(r, boxHits[0], boxHits[1])) {
-		subtree[0].node = nodeStartIndex;
+	if (flatTree[0].box.intersect(r, boxHits[0], boxHits[1])) {
+		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
 		bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
 													  subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
-	}
-
-	int nodeParentIndex = flatTree[nodeStartIndex].parent;
-	while (nodeParentIndex != 0xfffffffc) {
-		// determine the sibling node's index
-		int nodeSiblingIndex = nodeParentIndex + 1 == nodeStartIndex ?
-							   nodeParentIndex + flatTree[nodeParentIndex].rightOffset :
-							   nodeParentIndex + 1;
-
-		// push the sibling node onto the working set and process its subtree if it intersects ray
-		if (flatTree[nodeSiblingIndex].box.intersect(r, boxHits[2], boxHits[3])) {
-			subtree[0].node = nodeSiblingIndex;
-			subtree[0].distance = boxHits[2];
-			bool occluded = processSubtreeForIntersection(r, is, checkOcclusion, countHits,
-														  subtree, boxHits, hits, nodesVisited);
-			if (occluded) return 1;
-		}
-
-		// update the start node index to its parent index
-		nodeStartIndex = nodeParentIndex;
-		nodeParentIndex = flatTree[nodeStartIndex].parent;
 	}
 
 	if (hits > 0) {
@@ -889,45 +866,17 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 	PROFILE_SCOPED();
 #endif
 
-	LOG_IF(FATAL, nodeStartIndex < 0 || nodeStartIndex >= nNodes) << "Start node index: "
-								 << nodeStartIndex << " out of range [0, " << nNodes << ")";
+	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
 	std::vector<BvhTraversal> subtree(maxDepth + 1);
 	float boxHits[4];
 
-	subtree[0].node = 0;
-	subtree[0].distance = minFloat;
-	processSubtreeForClosestPoint(s, i, boundaryHint, subtree, boxHits, notFound, nodesVisited);
-
-	/*
-	// push the start node onto the working set
-	if (flatTree[nodeStartIndex].box.overlap(s, boxHits[0], boxHits[1])) {
+	if (flatTree[0].box.overlap(s, boxHits[0], boxHits[1])) {
 		if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
-		subtree[0].node = nodeStartIndex;
+		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
 		processSubtreeForClosestPoint(s, i, boundaryHint, subtree, boxHits, notFound, nodesVisited);
 	}
-
-	int nodeParentIndex = flatTree[nodeStartIndex].parent;
-	while (nodeParentIndex != 0xfffffffc) {
-		// determine the sibling node's index
-		int nodeSiblingIndex = nodeParentIndex + 1 == nodeStartIndex ?
-							   nodeParentIndex + flatTree[nodeParentIndex].rightOffset :
-							   nodeParentIndex + 1;
-
-		// push the sibling node onto the working set
-		if (flatTree[nodeSiblingIndex].box.overlap(s, boxHits[2], boxHits[3])) {
-			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[3]);
-			subtree[0].node = nodeSiblingIndex;
-			subtree[0].distance = boxHits[2];
-			processSubtreeForClosestPoint(s, i, boundaryHint, subtree, boxHits, notFound, nodesVisited);
-		}
-
-		// update the start node index to its parent index
-		nodeStartIndex = nodeParentIndex;
-		nodeParentIndex = flatTree[nodeStartIndex].parent;
-	}
-	*/
 
 	if (!notFound) {
 		// set normal
