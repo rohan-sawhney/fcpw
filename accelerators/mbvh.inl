@@ -80,7 +80,7 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
-				const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[index].get());
+				const LineSegment *lineSegment = static_cast<const LineSegment *>(primitives[index].get());
 				int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
 				int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
 				const Vector3& pa = lineSegment->soup->positions[paIndex];
