@@ -204,7 +204,6 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 	for (int i = 0; i < nObjects; i++) {
 		objectAggregates[i] = makeAggregate<DIM>(aggregateType, vectorize, objects[i]);
-		objectAggregates[i]->setNormals = true;
 	}
 
 	// build object instances

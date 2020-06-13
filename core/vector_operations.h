@@ -290,4 +290,14 @@ inline bool allGeq(const Vector<DIM>& u, const Vector<DIM>& v)
 #endif
 }
 
+template<size_t DIM>
+inline bool isNaN(const Vector<DIM>& v)
+{
+#ifdef BUILD_ENOKI
+	return enoki::any(enoki::isnan(v));
+#else
+	return v.isNaN().any();
+#endif
+}
+
 } // namespace fcpw

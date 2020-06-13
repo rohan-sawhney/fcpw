@@ -28,7 +28,6 @@ packLeaves(packLeaves_)
 
 	// build sbvh
 	build();
-	this->setNormals = false;
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
@@ -758,10 +757,8 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 		}
 
 		// set normals
-		if (this->setNormals) {
-			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal();
-			}
+		for (int i = 0; i < (int)is.size(); i++) {
+			is[i].computeNormal();
 		}
 
 		return hits;
@@ -889,9 +886,7 @@ inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interact
 
 	if (!notFound) {
 		// set normal
-		if (this->setNormals) {
-			i.computeNormal();
-		}
+		i.computeNormal();
 
 		return true;
 	}

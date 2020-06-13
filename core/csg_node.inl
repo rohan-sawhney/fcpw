@@ -16,7 +16,6 @@ operation(operation_)
 										  (operation == BooleanOperation::Difference ? "Difference" :
 										   "None")));
 	computeBoundingBox();
-	this->setNormals = false;
 }
 
 template<size_t DIM>
@@ -151,7 +150,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 					   left->intersect(rLeft, isLeft, false, true);
 
 		// set normals
-		if (hitsLeft > 0 && this->setNormals) {
+		if (hitsLeft > 0) {
 			for (int i = 0; i < (int)isLeft.size(); i++) {
 				isLeft[i].computeNormal();
 			}
@@ -171,7 +170,7 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 						right->intersect(rRight, isRight, false, true);
 
 		// set normals
-		if (hitsRight > 0 && this->setNormals) {
+		if (hitsRight > 0) {
 			for (int i = 0; i < (int)isRight.size(); i++) {
 				isRight[i].computeNormal();
 			}
@@ -235,7 +234,7 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 										 left->findClosestPoint(sLeft, iLeft);
 
 		// set normal
-		if (foundLeft && this->setNormals) {
+		if (foundLeft) {
 			iLeft.computeNormal();
 		}
 
@@ -253,7 +252,7 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 										   right->findClosestPoint(sRight, iRight);
 
 		// set normal
-		if (foundRight && this->setNormals) {
+		if (foundRight) {
 			iRight.computeNormal();
 		}
 

@@ -4,7 +4,7 @@ template<size_t DIM>
 inline Baseline<DIM>::Baseline(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_):
 primitives(primitives_)
 {
-	this->setNormals = false;
+
 }
 
 template<size_t DIM>
@@ -99,10 +99,8 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 		}
 
 		// set normals
-		if (this->setNormals) {
-			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal();
-			}
+		for (int i = 0; i < (int)is.size(); i++) {
+			is[i].computeNormal();
 		}
 
 		return hits;
@@ -142,9 +140,7 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 
 	if (!notFound) {
 		// set normal
-		if (this->setNormals) {
-			i.computeNormal();
-		}
+		i.computeNormal();
 
 		return true;
 	}

@@ -13,7 +13,7 @@ template<size_t DIM>
 struct Interaction {
 	// constructor
 	Interaction(): d(maxFloat), sign(0), nodeIndex(-1), distanceInfo(DistanceInfo::Exact),
-				   primitive(nullptr), p(zeroVector<DIM>()), n(zeroVector<DIM>()),
+				   primitive(nullptr), p(zeroVector<DIM>()), n(constantVector<DIM>(NAN)),
 				   uv(zeroVector<DIM - 1>()) {}
 
 	// comparison operators
@@ -33,9 +33,11 @@ struct Interaction {
 		return sign == 0 ? (dot<DIM>(x - p, n) > 0.0f ? 1.0f : -1.0f)*d : sign*d;
 	}
 
-	// computes normal from geometric primitive
+	// computes normal from geometric primitive if unspecified
 	void computeNormal() {
-		n = static_cast<const GeometricPrimitive<DIM> *>(primitive)->normal(uv);
+		if (isNaN(n)) {
+			n = static_cast<const GeometricPrimitive<DIM> *>(primitive)->normal(uv);
+		}
 	}
 
 	// applies transform

@@ -191,7 +191,6 @@ vectorizedLeafType(ObjectType::Generic)
 
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
-	this->setNormals = false;
 
 	// compute empty nodes
 	float nEmptyLeafs = 0;
@@ -545,10 +544,8 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 		}
 
 		// set normals
-		if (this->setNormals) {
-			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal();
-			}
+		for (int i = 0; i < (int)is.size(); i++) {
+			is[i].computeNormal();
 		}
 
 		return hits;
@@ -763,9 +760,7 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 
 	if (!notFound) {
 		// set normal
-		if (this->setNormals) {
-			i.computeNormal();
-		}
+		i.computeNormal();
 
 		return true;
 	}

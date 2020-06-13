@@ -162,8 +162,7 @@ public:
 										  int nodeStartIndex, const Vector<DIM>& boundaryHint,
 										  int& nodesVisited) const = 0;
 
-	// members
-	bool setNormals;
+	// member
 	std::vector<const Primitive<DIM> *> ignoreList; // primitives to igonore during ray intersection &
 													// closest point traversal; NOTE: keep
 													// ignoreList.size() << primitives.size()
