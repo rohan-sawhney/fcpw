@@ -12,7 +12,7 @@ Priority:
 ---- more aggressive culling for closest points?
 6. rebalance treess
 7. queue vs stack vs both?
-8. benchmark
+8. benchmark (https://github.com/jdumas/aabb_benchmark)
 9. travis/circle CI
 10. README (tutorial, features, benchmark, compiling, logo)
 

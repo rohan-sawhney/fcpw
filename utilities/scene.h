@@ -15,7 +15,7 @@ enum class LoadingOption {
 enum class ObjectType {
 	LineSegments,
 	Triangles,
-	Generic
+	Mixed
 };
 
 enum class AggregateType {

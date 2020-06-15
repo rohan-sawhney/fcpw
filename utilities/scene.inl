@@ -137,11 +137,11 @@ inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 	return std::make_shared<CsgNode<DIM>>(instance1, instance2, node.operation);
 }
 
-template<size_t DIM>
+template<size_t DIM, typename PrimitiveType>
 inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType, bool vectorize,
-													 std::vector<std::shared_ptr<Primitive<DIM>>>& primitives)
+													 std::vector<std::shared_ptr<PrimitiveType>>& primitives)
 {
-	std::shared_ptr<Sbvh<DIM>> sbvh = nullptr;
+	std::shared_ptr<Sbvh<DIM, PrimitiveType>> sbvh = nullptr;
 	int leafSize = 4;
 	bool packLeaves = false;
 
@@ -153,39 +153,39 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 #endif
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::LongestAxisCenter,
-										   1.0f, false, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::LongestAxisCenter,
+														  1.0f, false, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea,
-										   1.0f, packLeaves, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::SurfaceArea,
+														  1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapSurfaceArea,
-										   1.0f, packLeaves, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::OverlapSurfaceArea,
+														  1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume,
-										   1.0f, packLeaves, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::Volume,
+														  1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::OverlapVolume,
-										   1.0f, packLeaves, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::OverlapVolume,
+														  1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::SurfaceArea,
-										   1e-5, packLeaves, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::SurfaceArea,
+														  1e-5, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_Volume) {
-		sbvh = std::make_shared<Sbvh<DIM>>(primitives, CostHeuristic::Volume,
-										   1e-5, packLeaves, leafSize);
+		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::Volume,
+														  1e-5, packLeaves, leafSize);
 
 	} else {
-		return std::make_shared<Baseline<DIM>>(primitives);
+		return std::make_shared<Baseline<DIM, PrimitiveType>>(primitives);
 	}
 
 #ifdef BUILD_ENOKI
-	if (vectorize) return std::make_shared<Mbvh<SIMD_WIDTH, DIM>>(sbvh);
+	if (vectorize) return std::make_shared<Mbvh<SIMD_WIDTH, DIM, PrimitiveType>>(sbvh);
 #endif
 
 	return sbvh;
@@ -203,7 +203,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
 
 	for (int i = 0; i < nObjects; i++) {
-		objectAggregates[i] = makeAggregate<DIM>(aggregateType, vectorize, objects[i]);
+		objectAggregates[i] = makeAggregate<DIM, Primitive<DIM>>(aggregateType, vectorize, objects[i]);
 	}
 
 	// build object instances
@@ -232,7 +232,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 	} else {
 		// make aggregate
-		aggregate = makeAggregate<DIM>(aggregateType, vectorize, objectInstances);
+		aggregate = makeAggregate<DIM, Primitive<DIM>>(aggregateType, vectorize, objectInstances);
 	}
 }
 

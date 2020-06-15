@@ -163,7 +163,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	// determine object type
 	vectorizedLeafType = std::is_same<PrimitiveType, Triangle>::value ? ObjectType::Triangles :
 						 std::is_same<PrimitiveType, LineSegment>::value ? ObjectType::LineSegments :
-						 ObjectType::Generic;
+						 ObjectType::Mixed;
 
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
