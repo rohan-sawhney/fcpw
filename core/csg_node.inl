@@ -1,13 +1,14 @@
 namespace fcpw {
 
-template<size_t DIM, typename PrimitiveType>
-inline CsgNode<DIM, PrimitiveType>::CsgNode(const std::shared_ptr<PrimitiveType>& left_,
-											const std::shared_ptr<PrimitiveType>& right_,
-											const BooleanOperation& operation_):
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::CsgNode(const std::shared_ptr<PrimitiveTypeLeft>& left_,
+																	const std::shared_ptr<PrimitiveTypeRight>& right_,
+																	const BooleanOperation& operation_):
 left(left_),
 right(right_),
 operation(operation_),
-primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
+leftPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeLeft>::value),
+rightPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeRight>::value)
 {
 	LOG_IF(FATAL, left == nullptr || right == nullptr) << "Children cannot be null";
 	LOG(INFO) << "Boolean Operation: " << (operation == BooleanOperation::Union ? "Union" :
@@ -17,8 +18,8 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	computeBoundingBox();
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline void CsgNode<DIM, PrimitiveType>::computeBoundingBox()
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeBoundingBox()
 {
 	if (operation == BooleanOperation::Intersection) {
 		// use the child bounding box with the smaller extent; this is not the tightest fit box
@@ -42,27 +43,27 @@ inline void CsgNode<DIM, PrimitiveType>::computeBoundingBox()
 	}
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline BoundingBox<DIM> CsgNode<DIM, PrimitiveType>::boundingBox() const
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline BoundingBox<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::boundingBox() const
 {
 	return box;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline Vector<DIM> CsgNode<DIM, PrimitiveType>::centroid() const
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline Vector<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::centroid() const
 {
 	return box.centroid();
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline float CsgNode<DIM, PrimitiveType>::surfaceArea() const
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline float CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::surfaceArea() const
 {
 	// NOTE: this is an overestimate
 	return left->surfaceArea() + right->surfaceArea();
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline float CsgNode<DIM, PrimitiveType>::signedVolume() const
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline float CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::signedVolume() const
 {
 	// NOTE: these are overestimates
 	float boxVolume = box.volume();
@@ -78,10 +79,10 @@ inline float CsgNode<DIM, PrimitiveType>::signedVolume() const
 	return std::min(boxVolume, left->signedVolume() + right->signedVolume());
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline void CsgNode<DIM, PrimitiveType>::computeInteractions(const std::vector<Interaction<DIM>>& isLeft,
-															 const std::vector<Interaction<DIM>>& isRight,
-															 std::vector<Interaction<DIM>>& is) const
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeInteractions(const std::vector<Interaction<DIM>>& isLeft,
+																					 const std::vector<Interaction<DIM>>& isRight,
+																					 std::vector<Interaction<DIM>>& is) const
 {
 	int nLeft = 0;
 	int nRight = 0;
@@ -128,10 +129,10 @@ inline void CsgNode<DIM, PrimitiveType>::computeInteractions(const std::vector<I
 	}
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline int CsgNode<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-														  int nodeStartIndex, int& nodesVisited,
-														  bool checkOcclusion, bool countHits) const
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+																				  int nodeStartIndex, int& nodesVisited,
+																				  bool checkOcclusion, bool countHits) const
 {
 	// TODO: optimize for checkOcclusion == true
 	int hits = 0;
@@ -145,7 +146,7 @@ inline int CsgNode<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vect
 		Ray<DIM> rLeft = r;
 		std::vector<Interaction<DIM>> isLeft;
 		if (!this->ignorePrimitive(left.get())) {
-			if (primitiveTypeIsAggregate) {
+			if (leftPrimitiveTypeIsAggregate) {
 				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(left.get());
 				hitsLeft = aggregate->intersectFromNode(rLeft, isLeft, nodeStartIndex, nodesVisited, false, true);
 
@@ -171,7 +172,7 @@ inline int CsgNode<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vect
 		Ray<DIM> rRight = r;
 		std::vector<Interaction<DIM>> isRight;
 		if (!this->ignorePrimitive(right.get())) {
-			if (primitiveTypeIsAggregate) {
+			if (rightPrimitiveTypeIsAggregate) {
 				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(right.get());
 				hitsRight = aggregate->intersectFromNode(rRight, isRight, nodeStartIndex, nodesVisited, false, true);
 
@@ -226,10 +227,10 @@ inline int CsgNode<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vect
 	return hits;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline bool CsgNode<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-																  int nodeStartIndex, const Vector<DIM>& boundaryHint,
-																  int& nodesVisited) const
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																						  int nodeStartIndex, const Vector<DIM>& boundaryHint,
+																						  int& nodesVisited) const
 {
 	bool notFound = true;
 	float d2Min, d2Max;
@@ -241,7 +242,7 @@ inline bool CsgNode<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere
 		Interaction<DIM> iLeft;
 		BoundingSphere<DIM> sLeft = s;
 		if (!this->ignorePrimitive(left.get())) {
-			if (primitiveTypeIsAggregate) {
+			if (leftPrimitiveTypeIsAggregate) {
 				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(left.get());
 				foundLeft = aggregate->findClosestPointFromNode(sLeft, iLeft, nodeStartIndex, boundaryHint, nodesVisited);
 
@@ -265,7 +266,7 @@ inline bool CsgNode<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere
 		Interaction<DIM> iRight;
 		BoundingSphere<DIM> sRight = s;
 		if (!this->ignorePrimitive(right.get())) {
-			if (primitiveTypeIsAggregate) {
+			if (rightPrimitiveTypeIsAggregate) {
 				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(right.get());
 				foundRight = aggregate->findClosestPointFromNode(sRight, iRight, nodeStartIndex, boundaryHint, nodesVisited);
 

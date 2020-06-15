@@ -120,23 +120,6 @@ inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 	if (!csgFilename.empty()) loadCsgTree<DIM>(csgTree);
 }
 
-template<size_t DIM>
-inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
-				int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
-				std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances)
-{
-	const CsgTreeNode& node = csgTree[nodeIndex];
-	std::shared_ptr<Primitive<DIM>> instance1, instance2;
-
-	if (node.isLeafChild1) instance1 = objectInstances[node.child1];
-	else instance1 = buildCsgAggregateRecursive(node.child1, csgTree, objectInstances);
-
-	if (node.isLeafChild2) instance2 = objectInstances[node.child2];
-	else instance2 = buildCsgAggregateRecursive(node.child2, csgTree, objectInstances);
-
-	return std::make_shared<CsgNode<DIM>>(instance1, instance2, node.operation);
-}
-
 template<size_t DIM, typename PrimitiveType>
 inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType, bool vectorize,
 													 std::vector<std::shared_ptr<PrimitiveType>>& primitives)
@@ -189,6 +172,23 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 #endif
 
 	return sbvh;
+}
+
+template<size_t DIM>
+inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
+				int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
+				std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances)
+{
+	const CsgTreeNode& node = csgTree[nodeIndex];
+	std::shared_ptr<Primitive<DIM>> instance1, instance2;
+
+	if (node.isLeafChild1) instance1 = objectInstances[node.child1];
+	else instance1 = buildCsgAggregateRecursive(node.child1, csgTree, objectInstances);
+
+	if (node.isLeafChild2) instance2 = objectInstances[node.child2];
+	else instance2 = buildCsgAggregateRecursive(node.child2, csgTree, objectInstances);
+
+	return std::make_shared<CsgNode<DIM>>(instance1, instance2, node.operation);
 }
 
 template<size_t DIM>
