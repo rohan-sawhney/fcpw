@@ -1,14 +1,13 @@
 namespace fcpw {
 
-template<size_t DIM>
-inline CsgNode<DIM>::CsgNode(const std::shared_ptr<Primitive<DIM>>& left_,
-							 const std::shared_ptr<Primitive<DIM>>& right_,
-							 const BooleanOperation& operation_):
+template<size_t DIM, typename PrimitiveType>
+inline CsgNode<DIM, PrimitiveType>::CsgNode(const std::shared_ptr<PrimitiveType>& left_,
+											const std::shared_ptr<PrimitiveType>& right_,
+											const BooleanOperation& operation_):
 left(left_),
 right(right_),
-leftAggregate(dynamic_cast<const Aggregate<DIM> *>(left_.get())),
-rightAggregate(dynamic_cast<const Aggregate<DIM> *>(right_.get())),
-operation(operation_)
+operation(operation_),
+primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
 	LOG_IF(FATAL, left == nullptr || right == nullptr) << "Children cannot be null";
 	LOG(INFO) << "Boolean Operation: " << (operation == BooleanOperation::Union ? "Union" :
@@ -18,8 +17,8 @@ operation(operation_)
 	computeBoundingBox();
 }
 
-template<size_t DIM>
-inline void CsgNode<DIM>::computeBoundingBox()
+template<size_t DIM, typename PrimitiveType>
+inline void CsgNode<DIM, PrimitiveType>::computeBoundingBox()
 {
 	if (operation == BooleanOperation::Intersection) {
 		// use the child bounding box with the smaller extent; this is not the tightest fit box
@@ -43,27 +42,27 @@ inline void CsgNode<DIM>::computeBoundingBox()
 	}
 }
 
-template<size_t DIM>
-inline BoundingBox<DIM> CsgNode<DIM>::boundingBox() const
+template<size_t DIM, typename PrimitiveType>
+inline BoundingBox<DIM> CsgNode<DIM, PrimitiveType>::boundingBox() const
 {
 	return box;
 }
 
-template<size_t DIM>
-inline Vector<DIM> CsgNode<DIM>::centroid() const
+template<size_t DIM, typename PrimitiveType>
+inline Vector<DIM> CsgNode<DIM, PrimitiveType>::centroid() const
 {
 	return box.centroid();
 }
 
-template<size_t DIM>
-inline float CsgNode<DIM>::surfaceArea() const
+template<size_t DIM, typename PrimitiveType>
+inline float CsgNode<DIM, PrimitiveType>::surfaceArea() const
 {
 	// NOTE: this is an overestimate
 	return left->surfaceArea() + right->surfaceArea();
 }
 
-template<size_t DIM>
-inline float CsgNode<DIM>::signedVolume() const
+template<size_t DIM, typename PrimitiveType>
+inline float CsgNode<DIM, PrimitiveType>::signedVolume() const
 {
 	// NOTE: these are overestimates
 	float boxVolume = box.volume();
@@ -79,10 +78,10 @@ inline float CsgNode<DIM>::signedVolume() const
 	return std::min(boxVolume, left->signedVolume() + right->signedVolume());
 }
 
-template<size_t DIM>
-inline void CsgNode<DIM>::computeInteractions(const std::vector<Interaction<DIM>>& isLeft,
-											  const std::vector<Interaction<DIM>>& isRight,
-											  std::vector<Interaction<DIM>>& is) const
+template<size_t DIM, typename PrimitiveType>
+inline void CsgNode<DIM, PrimitiveType>::computeInteractions(const std::vector<Interaction<DIM>>& isLeft,
+															 const std::vector<Interaction<DIM>>& isRight,
+															 std::vector<Interaction<DIM>>& is) const
 {
 	int nLeft = 0;
 	int nRight = 0;
@@ -129,10 +128,10 @@ inline void CsgNode<DIM>::computeInteractions(const std::vector<Interaction<DIM>
 	}
 }
 
-template<size_t DIM>
-inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										   int nodeStartIndex, int& nodesVisited,
-										   bool checkOcclusion, bool countHits) const
+template<size_t DIM, typename PrimitiveType>
+inline int CsgNode<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+														  int nodeStartIndex, int& nodesVisited,
+														  bool checkOcclusion, bool countHits) const
 {
 	// TODO: optimize for checkOcclusion == true
 	int hits = 0;
@@ -142,12 +141,18 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 
 	if (box.intersect(r, tMin, tMax)) {
 		// perform intersection query for left child
+		int hitsLeft = 0;
 		Ray<DIM> rLeft = r;
 		std::vector<Interaction<DIM>> isLeft;
-		int hitsLeft = this->ignorePrimitive(left.get()) ? 0 :
-					   leftAggregate ? leftAggregate->intersectFromNode(rLeft, isLeft,
-											nodeStartIndex, nodesVisited, false, true) :
-					   left->intersect(rLeft, isLeft, false, true);
+		if (!this->ignorePrimitive(left.get())) {
+			if (primitiveTypeIsAggregate) {
+				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(left.get());
+				hitsLeft = aggregate->intersectFromNode(rLeft, isLeft, nodeStartIndex, nodesVisited, false, true);
+
+			} else {
+				hitsLeft = left->intersect(rLeft, isLeft, false, true);
+			}
+		}
 
 		// set normals
 		if (hitsLeft > 0) {
@@ -162,12 +167,18 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 							  operation == BooleanOperation::Difference)) return 0;
 
 		// perform intersection query for right child
+		int hitsRight = 0;
 		Ray<DIM> rRight = r;
 		std::vector<Interaction<DIM>> isRight;
-		int hitsRight = this->ignorePrimitive(right.get()) ? 0 :
-						rightAggregate ? rightAggregate->intersectFromNode(rRight, isRight,
-												 nodeStartIndex, nodesVisited, false, true) :
-						right->intersect(rRight, isRight, false, true);
+		if (!this->ignorePrimitive(right.get())) {
+			if (primitiveTypeIsAggregate) {
+				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(right.get());
+				hitsRight = aggregate->intersectFromNode(rRight, isRight, nodeStartIndex, nodesVisited, false, true);
+
+			} else {
+				hitsRight = right->intersect(rRight, isRight, false, true);
+			}
+		}
 
 		// set normals
 		if (hitsRight > 0) {
@@ -215,10 +226,10 @@ inline int CsgNode<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<
 	return hits;
 }
 
-template<size_t DIM>
-inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												   int nodeStartIndex, const Vector<DIM>& boundaryHint,
-												   int& nodesVisited) const
+template<size_t DIM, typename PrimitiveType>
+inline bool CsgNode<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																  int nodeStartIndex, const Vector<DIM>& boundaryHint,
+																  int& nodesVisited) const
 {
 	bool notFound = true;
 	float d2Min, d2Max;
@@ -226,12 +237,18 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 
 	if (box.overlap(s, d2Min, d2Max)) {
 		// perform closest point query on left child
+		bool foundLeft = false;
 		Interaction<DIM> iLeft;
 		BoundingSphere<DIM> sLeft = s;
-		bool foundLeft = this->ignorePrimitive(left.get()) ? false :
-						 leftAggregate ? leftAggregate->findClosestPointFromNode(sLeft, iLeft,
-							 					   nodeStartIndex, boundaryHint, nodesVisited) :
-										 left->findClosestPoint(sLeft, iLeft);
+		if (!this->ignorePrimitive(left.get())) {
+			if (primitiveTypeIsAggregate) {
+				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(left.get());
+				foundLeft = aggregate->findClosestPointFromNode(sLeft, iLeft, nodeStartIndex, boundaryHint, nodesVisited);
+
+			} else {
+				foundLeft = left->findClosestPoint(sLeft, iLeft);
+			}
+		}
 
 		// set normal
 		if (foundLeft) {
@@ -244,12 +261,18 @@ inline bool CsgNode<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inter
 						   operation == BooleanOperation::Difference)) return false;
 
 		// perform closest point query on right child
+		bool foundRight = false;
 		Interaction<DIM> iRight;
 		BoundingSphere<DIM> sRight = s;
-		bool foundRight = this->ignorePrimitive(right.get()) ? false :
-						  rightAggregate ? rightAggregate->findClosestPointFromNode(sRight, iRight,
-														nodeStartIndex, boundaryHint, nodesVisited) :
-										   right->findClosestPoint(sRight, iRight);
+		if (!this->ignorePrimitive(right.get())) {
+			if (primitiveTypeIsAggregate) {
+				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(right.get());
+				foundRight = aggregate->findClosestPointFromNode(sRight, iRight, nodeStartIndex, boundaryHint, nodesVisited);
+
+			} else {
+				foundRight = right->findClosestPoint(sRight, iRight);
+			}
+		}
 
 		// set normal
 		if (foundRight) {

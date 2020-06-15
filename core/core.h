@@ -11,6 +11,7 @@
 #include <functional>
 #include <chrono>
 #include <random>
+#include <type_traits>
 #include <glog/logging.h>
 #include <glog/raw_logging.h>
 #include "vector_operations.h"
@@ -36,7 +37,7 @@ template<size_t DIM>
 class Aggregate;
 template<size_t DIM>
 class TransformedAggregate;
-template<size_t DIM>
+template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class CsgNode;
 
 static const float minFloat = std::numeric_limits<float>::lowest();

@@ -11,12 +11,12 @@ enum class BooleanOperation {
 	None
 };
 
-template<size_t DIM>
+template<size_t DIM, typename PrimitiveType>
 class CsgNode: public Aggregate<DIM> {
 public:
 	// constructor
-	CsgNode(const std::shared_ptr<Primitive<DIM>>& left_,
-			const std::shared_ptr<Primitive<DIM>>& right_,
+	CsgNode(const std::shared_ptr<PrimitiveType>& left_,
+			const std::shared_ptr<PrimitiveType>& right_,
 			const BooleanOperation& operation_);
 
 	// returns bounding box
@@ -54,12 +54,10 @@ private:
 							 std::vector<Interaction<DIM>>& is) const;
 
 	// members
-	std::shared_ptr<Primitive<DIM>> left;
-	std::shared_ptr<Primitive<DIM>> right;
-	const Aggregate<DIM> *leftAggregate;
-	const Aggregate<DIM> *rightAggregate;
+	std::shared_ptr<PrimitiveType> left, right;
 	BooleanOperation operation;
 	BoundingBox<DIM> box;
+	bool primitiveTypeIsAggregate;
 };
 
 } // namespace fcpw

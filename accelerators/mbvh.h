@@ -17,11 +17,11 @@ struct MbvhNode {
 	int parent, leafIndex;
 };
 
-template<size_t WIDTH, size_t DIM>
+template<size_t WIDTH, size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class Mbvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_);
+	Mbvh(const std::shared_ptr<Sbvh<DIM, PrimitiveType>>& sbvh_);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -50,7 +50,7 @@ public:
 
 protected:
 	// collapses sbvh into a mbvh
-	int collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
+	int collapseSbvh(const std::shared_ptr<Sbvh<DIM, PrimitiveType>>& sbvh,
 					 int sbvhNodeIndex, int parent, int depth);
 
 	// determines whether mbvh node is a leaf node
@@ -82,11 +82,12 @@ protected:
 
 	// members
 	int nNodes, nLeafs, maxDepth, maxLevel;
-	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
+	const std::vector<std::shared_ptr<PrimitiveType>>& primitives;
 	std::vector<MbvhNode<WIDTH, DIM>> flatTree;
 	std::vector<VectorP<WIDTH, DIM>> leafNodes;
 	std::vector<int> references;
 	ObjectType vectorizedLeafType;
+	bool primitiveTypeIsAggregate;
 };
 
 } // namespace fcpw

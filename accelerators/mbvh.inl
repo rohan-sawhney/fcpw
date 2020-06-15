@@ -2,9 +2,9 @@
 
 namespace fcpw {
 
-template<size_t WIDTH, size_t DIM>
-inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh,
-										  int sbvhNodeIndex, int parent, int depth)
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const std::shared_ptr<Sbvh<DIM, PrimitiveType>>& sbvh,
+														 int sbvhNodeIndex, int parent, int depth)
 {
 	const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 	maxDepth = std::max(depth, maxDepth);
@@ -66,14 +66,15 @@ inline int Mbvh<WIDTH, DIM>::collapseSbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh
 	return mbvhNodeIndex;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline bool Mbvh<WIDTH, DIM>::isLeafNode(const MbvhNode<WIDTH, DIM>& node) const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline bool Mbvh<WIDTH, DIM, PrimitiveType>::isLeafNode(const MbvhNode<WIDTH, DIM>& node) const
 {
 	return node.child[0] < 0;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node, int leafIndex)
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
+															  int leafIndex)
 {
 	if (vectorizedLeafType == ObjectType::LineSegments) {
 		// populate leaf node with line segments
@@ -116,39 +117,9 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
 	}
 }
 
-template<size_t WIDTH, size_t DIM>
-inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 {
-	// determine object type
-	for (int p = 0; p < (int)primitives.size(); p++) {
-		const LineSegment *lineSegment = dynamic_cast<const LineSegment *>(primitives[p].get());
-		const Triangle *triangle = dynamic_cast<const Triangle *>(primitives[p].get());
-
-		if (lineSegment) {
-			if (p > 0 && vectorizedLeafType != ObjectType::LineSegments) {
-				vectorizedLeafType = ObjectType::Generic;
-				break;
-
-			} else {
-				vectorizedLeafType = ObjectType::LineSegments;
-			}
-
-		} else if (triangle) {
-			if (p > 0 && vectorizedLeafType != ObjectType::Triangles) {
-				vectorizedLeafType = ObjectType::Generic;
-				break;
-
-			} else {
-				vectorizedLeafType = ObjectType::Triangles;
-			}
-
-		} else {
-			vectorizedLeafType = ObjectType::Generic;
-			break;
-		}
-	}
-
-	// populate leaf nodes
 	if (vectorizedLeafType == ObjectType::LineSegments ||
 		vectorizedLeafType == ObjectType::Triangles) {
 		int leafIndex = 0;
@@ -167,15 +138,15 @@ inline void Mbvh<WIDTH, DIM>::populateLeafNodes()
 	}
 }
 
-template<size_t WIDTH, size_t DIM>
-inline Mbvh<WIDTH, DIM>::Mbvh(const std::shared_ptr<Sbvh<DIM>>& sbvh_):
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const std::shared_ptr<Sbvh<DIM, PrimitiveType>>& sbvh_):
 primitives(sbvh_->primitives),
 references(sbvh_->references),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
 maxLevel(std::log2(WIDTH)),
-vectorizedLeafType(ObjectType::Generic)
+primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -188,6 +159,11 @@ vectorizedLeafType(ObjectType::Generic)
 
 	// collapse sbvh
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
+
+	// determine object type
+	vectorizedLeafType = std::is_same<PrimitiveType, Triangle>::value ? ObjectType::Triangles :
+						 std::is_same<PrimitiveType, LineSegment>::value ? ObjectType::LineSegments :
+						 ObjectType::Generic;
 
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
@@ -216,8 +192,8 @@ vectorizedLeafType(ObjectType::Generic)
 			  << timeSpan.count() << " seconds" << std::endl;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline BoundingBox<DIM> Mbvh<WIDTH, DIM>::boundingBox() const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline BoundingBox<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::boundingBox() const
 {
 	BoundingBox<DIM> box;
 	if (flatTree.size() == 0) return box;
@@ -227,8 +203,8 @@ inline BoundingBox<DIM> Mbvh<WIDTH, DIM>::boundingBox() const
 	return box;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline Vector<DIM> Mbvh<WIDTH, DIM>::centroid() const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline Vector<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
 	int nPrimitives = (int)primitives.size();
@@ -240,8 +216,8 @@ inline Vector<DIM> Mbvh<WIDTH, DIM>::centroid() const
 	return c/nPrimitives;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline float Mbvh<WIDTH, DIM>::surfaceArea() const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline float Mbvh<WIDTH, DIM, PrimitiveType>::surfaceArea() const
 {
 	float area = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -251,8 +227,8 @@ inline float Mbvh<WIDTH, DIM>::surfaceArea() const
 	return area;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline float Mbvh<WIDTH, DIM>::signedVolume() const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 {
 	float volume = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -262,10 +238,10 @@ inline float Mbvh<WIDTH, DIM>::signedVolume() const
 	return volume;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
-												  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-												  bool countHits) const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+																 Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+																 bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -335,10 +311,10 @@ inline int Mbvh<WIDTH, DIM>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& no
 	return hits;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
-											   Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-											   bool countHits) const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+															  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+															  bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -409,10 +385,10 @@ inline int Mbvh<WIDTH, DIM>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node,
 	return hits;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-											   int nodeStartIndex, int& nodesVisited,
-											   bool checkOcclusion, bool countHits) const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+															  int nodeStartIndex, int& nodesVisited,
+															  bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -455,7 +431,7 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 				for (int w = 0; w < WIDTH; w++) {
 					if (node.child[w] != maxInt) {
 						int index = -node.child[w] - 1;
-						const std::shared_ptr<Primitive<DIM>>& prim = primitives[index];
+						const std::shared_ptr<PrimitiveType>& prim = primitives[index];
 						if (this->ignorePrimitive(prim.get())) continue;
 
 						// check if primitive has already been seen
@@ -471,11 +447,15 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 						if (!seenPrim) {
 							nodesVisited++;
 
+							int hit = 0;
 							std::vector<Interaction<DIM>> cs;
-							const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(prim.get());
-							int hit = aggregate ? aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited,
-																			   checkOcclusion, countHits) :
-												  prim->intersect(r, cs, checkOcclusion, countHits);
+							if (primitiveTypeIsAggregate) {
+								const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(prim.get());
+								hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
+
+							} else {
+								hit = prim->intersect(r, cs, checkOcclusion, countHits);
+							}
 
 							// keep the closest intersection only
 							if (hit > 0) {
@@ -554,10 +534,10 @@ inline int Mbvh<WIDTH, DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interact
 	return 0;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, DIM>& node,
-														  int nodeIndex, BoundingSphere<DIM>& s,
-														  Interaction<DIM>& i) const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const MbvhNode<WIDTH, DIM>& node,
+																		 int nodeIndex, BoundingSphere<DIM>& s,
+																		 Interaction<DIM>& i) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -602,10 +582,10 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointLineSegment(const MbvhNode<WIDTH, 
 	return false;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node,
-													   int nodeIndex, BoundingSphere<DIM>& s,
-													   Interaction<DIM>& i) const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node,
+																	  int nodeIndex, BoundingSphere<DIM>& s,
+																	  Interaction<DIM>& i) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -651,10 +631,10 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM
 	return false;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													   int nodeStartIndex, const Vector<DIM>& boundaryHint,
-													   int& nodesVisited) const
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																	  int nodeStartIndex, const Vector<DIM>& boundaryHint,
+																	  int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -696,17 +676,21 @@ inline bool Mbvh<WIDTH, DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, I
 				for (int w = 0; w < WIDTH; w++) {
 					if (node.child[w] != maxInt) {
 						int index = -node.child[w] - 1;
-						const std::shared_ptr<Primitive<DIM>>& prim = primitives[index];
+						const std::shared_ptr<PrimitiveType>& prim = primitives[index];
 						if (this->ignorePrimitive(prim.get())) continue;
 
 						if (prim.get() != i.primitive) {
 							nodesVisited++;
 
+							bool found = false;
 							Interaction<DIM> c;
-							const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(prim.get());
-							bool found = aggregate ? aggregate->findClosestPointFromNode(s, c, nodeStartIndex,
-																				   boundaryHint, nodesVisited) :
-													 prim->findClosestPoint(s, c);
+							if (primitiveTypeIsAggregate) {
+								const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(prim.get());
+								found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
+
+							} else {
+								found = prim->findClosestPoint(s, c);
+							}
 
 							// keep the closest point only
 							if (found) {

@@ -1,9 +1,9 @@
 namespace fcpw {
 
-template<size_t DIM>
-inline Sbvh<DIM>::Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-					   const CostHeuristic& costHeuristic_, float splitAlpha_,
-					   bool packLeaves_, int leafSize_, int nBuckets_, int nBins_):
+template<size_t DIM, typename PrimitiveType>
+inline Sbvh<DIM, PrimitiveType>::Sbvh(std::vector<std::shared_ptr<PrimitiveType>>& primitives_,
+									  const CostHeuristic& costHeuristic_, float splitAlpha_,
+									  bool packLeaves_, int leafSize_, int nBuckets_, int nBins_):
 primitives(primitives_),
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),
@@ -21,7 +21,8 @@ buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBinBoxes(nBins, std::make_pair(BoundingBox<DIM>(), 0)),
 bins(nBins, std::make_tuple(BoundingBox<DIM>(), 0, 0)),
-packLeaves(packLeaves_)
+packLeaves(packLeaves_),
+primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -40,12 +41,12 @@ packLeaves(packLeaves_)
 			  << timeSpan.count() << " seconds" << std::endl;
 }
 
-template<size_t DIM>
-inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
-										 const BoundingBox<DIM>& boxRight,
-										 float parentSurfaceArea, float parentVolume,
-										 int nReferencesLeft, int nReferencesRight,
-										 int depth) const
+template<size_t DIM, typename PrimitiveType>
+inline float Sbvh<DIM, PrimitiveType>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
+														const BoundingBox<DIM>& boxRight,
+														float parentSurfaceArea, float parentVolume,
+														int nReferencesLeft, int nReferencesRight,
+														int depth) const
 {
 	float cost = maxFloat;
 
@@ -82,15 +83,15 @@ inline float Sbvh<DIM>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
 	return cost;
 }
 
-template<size_t DIM>
-inline void Sbvh<DIM>::computeUnsplittingCosts(const BoundingBox<DIM>& boxLeft,
-											   const BoundingBox<DIM>& boxRight,
-											   const BoundingBox<DIM>& boxReference,
-											   const BoundingBox<DIM>& boxRefLeft,
-											   const BoundingBox<DIM>& boxRefRight,
-											   int nReferencesLeft, int nReferencesRight,
-											   float& costDuplicate, float& costUnsplitLeft,
-											   float& costUnsplitRight) const
+template<size_t DIM, typename PrimitiveType>
+inline void Sbvh<DIM, PrimitiveType>::computeUnsplittingCosts(const BoundingBox<DIM>& boxLeft,
+															  const BoundingBox<DIM>& boxRight,
+															  const BoundingBox<DIM>& boxReference,
+															  const BoundingBox<DIM>& boxRefLeft,
+															  const BoundingBox<DIM>& boxRefRight,
+															  int nReferencesLeft, int nReferencesRight,
+															  float& costDuplicate, float& costUnsplitLeft,
+															  float& costUnsplitRight) const
 {
 	BoundingBox<DIM> boxLeftUnsplit = boxLeft;
 	BoundingBox<DIM> boxRightUnsplit = boxRight;
@@ -119,13 +120,13 @@ inline void Sbvh<DIM>::computeUnsplittingCosts(const BoundingBox<DIM>& boxLeft,
 	}
 }
 
-template<size_t DIM>
-inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
-										   const BoundingBox<DIM>& nodeCentroidBox,
-										   const std::vector<BoundingBox<DIM>>& referenceBoxes,
-										   const std::vector<Vector<DIM>>& referenceCentroids,
-										   int depth, int nodeStart, int nodeEnd, int& splitDim,
-										   float& splitCoord, BoundingBox<DIM>& boxIntersected)
+template<size_t DIM, typename PrimitiveType>
+inline float Sbvh<DIM, PrimitiveType>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
+														  const BoundingBox<DIM>& nodeCentroidBox,
+														  const std::vector<BoundingBox<DIM>>& referenceBoxes,
+														  const std::vector<Vector<DIM>>& referenceCentroids,
+														  int depth, int nodeStart, int nodeEnd, int& splitDim,
+														  float& splitCoord, BoundingBox<DIM>& boxIntersected)
 {
 	float splitCost = maxFloat;
 	splitDim = -1;
@@ -200,10 +201,10 @@ inline float Sbvh<DIM>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingB
 	return splitCost;
 }
 
-template<size_t DIM>
-inline int Sbvh<DIM>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
-										 std::vector<BoundingBox<DIM>>& referenceBoxes,
-										 std::vector<Vector<DIM>>& referenceCentroids)
+template<size_t DIM, typename PrimitiveType>
+inline int Sbvh<DIM, PrimitiveType>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
+														std::vector<BoundingBox<DIM>>& referenceBoxes,
+														std::vector<Vector<DIM>>& referenceCentroids)
 {
 	int mid = nodeStart;
 	for (int i = nodeStart; i < nodeEnd; i++) {
@@ -223,10 +224,10 @@ inline int Sbvh<DIM>::performObjectSplit(int nodeStart, int nodeEnd, int splitDi
 	return mid;
 }
 
-template<size_t DIM>
-inline void Sbvh<DIM>::splitPrimitive(const std::shared_ptr<Primitive<DIM>>& primitive, int dim,
-									  float splitCoord, const BoundingBox<DIM>& boxReference,
-									  BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight) const
+template<size_t DIM, typename PrimitiveType>
+inline void Sbvh<DIM, PrimitiveType>::splitPrimitive(const std::shared_ptr<PrimitiveType>& primitive, int dim,
+													 float splitCoord, const BoundingBox<DIM>& boxReference,
+													 BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight) const
 {
 	// split primitive along the provided coordinate and axis
 	primitive->split(dim, splitCoord, boxLeft, boxRight);
@@ -236,12 +237,12 @@ inline void Sbvh<DIM>::splitPrimitive(const std::shared_ptr<Primitive<DIM>>& pri
 	boxRight = boxRight.intersect(boxReference);
 }
 
-template<size_t DIM>
-inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
-											const std::vector<BoundingBox<DIM>>& referenceBoxes,
-											int depth, int nodeStart, int nodeEnd, int splitDim,
-											float& splitCoord, BoundingBox<DIM>& boxLeft,
-											BoundingBox<DIM>& boxRight)
+template<size_t DIM, typename PrimitiveType>
+inline float Sbvh<DIM, PrimitiveType>::computeSpatialSplit(const BoundingBox<DIM>& nodeBoundingBox,
+														   const std::vector<BoundingBox<DIM>>& referenceBoxes,
+														   int depth, int nodeStart, int nodeEnd, int splitDim,
+														   float& splitCoord, BoundingBox<DIM>& boxLeft,
+														   BoundingBox<DIM>& boxRight)
 {
 	// find the best split along splitDim
 	float splitCost = maxFloat;
@@ -261,7 +262,7 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 
 	for (int p = nodeStart; p < nodeEnd; p++) {
 		// find the bins the reference is contained in
-		const std::shared_ptr<Primitive<DIM>>& primitive = primitives[references[p]];
+		const std::shared_ptr<PrimitiveType>& primitive = primitives[references[p]];
 		int firstBinIndex = (int)((referenceBoxes[p].pMin[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth);
 		int lastBinIndex = (int)((referenceBoxes[p].pMax[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth);
 		firstBinIndex = clamp(firstBinIndex, 0, nBins - 1);
@@ -315,12 +316,12 @@ inline float Sbvh<DIM>::computeSpatialSplit(const BoundingBox<DIM>& nodeBounding
 	return splitCost;
 }
 
-template<size_t DIM>
-inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const BoundingBox<DIM>& boxRight,
-										  int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
-										  int& nReferencesAdded, int& nTotalReferences,
-										  std::vector<BoundingBox<DIM>>& referenceBoxes,
-										  std::vector<Vector<DIM>>& referenceCentroids)
+template<size_t DIM, typename PrimitiveType>
+inline int Sbvh<DIM, PrimitiveType>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const BoundingBox<DIM>& boxRight,
+														 int splitDim, float splitCoord, int nodeStart, int& nodeEnd,
+														 int& nReferencesAdded, int& nTotalReferences,
+														 std::vector<BoundingBox<DIM>>& referenceBoxes,
+														 std::vector<Vector<DIM>>& referenceCentroids)
 {
 	// categorize references into the following buckets:
 	// [leftStart, leftEnd),
@@ -426,12 +427,12 @@ inline int Sbvh<DIM>::performSpatialSplit(const BoundingBox<DIM>& boxLeft, const
 	return leftEnd;
 }
 
-template<size_t DIM>
-inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
-									 std::vector<Vector<DIM>>& referenceCentroids,
-									 std::vector<SbvhNode<DIM>>& buildNodes,
-									 int parent, int start, int end, int depth,
-									 int& nTotalReferences)
+template<size_t DIM, typename PrimitiveType>
+inline int Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+													std::vector<Vector<DIM>>& referenceCentroids,
+													std::vector<SbvhNode<DIM>>& buildNodes,
+													int parent, int start, int end, int depth,
+													int& nTotalReferences)
 {
 	const int Untouched    = 0xffffffff;
 	const int TouchedTwice = 0xfffffffd;
@@ -529,8 +530,8 @@ inline int Sbvh<DIM>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBox
 	return nTotalReferencesAdded;
 }
 
-template<size_t DIM>
-inline void Sbvh<DIM>::build()
+template<size_t DIM, typename PrimitiveType>
+inline void Sbvh<DIM, PrimitiveType>::build()
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -574,14 +575,14 @@ inline void Sbvh<DIM>::build()
 	bins.clear();
 }
 
-template<size_t DIM>
-inline BoundingBox<DIM> Sbvh<DIM>::boundingBox() const
+template<size_t DIM, typename PrimitiveType>
+inline BoundingBox<DIM> Sbvh<DIM, PrimitiveType>::boundingBox() const
 {
 	return flatTree.size() > 0 ? flatTree[0].box : BoundingBox<DIM>();
 }
 
-template<size_t DIM>
-inline Vector<DIM> Sbvh<DIM>::centroid() const
+template<size_t DIM, typename PrimitiveType>
+inline Vector<DIM> Sbvh<DIM, PrimitiveType>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
 	int nPrimitives = (int)primitives.size();
@@ -593,8 +594,8 @@ inline Vector<DIM> Sbvh<DIM>::centroid() const
 	return c/nPrimitives;
 }
 
-template<size_t DIM>
-inline float Sbvh<DIM>::surfaceArea() const
+template<size_t DIM, typename PrimitiveType>
+inline float Sbvh<DIM, PrimitiveType>::surfaceArea() const
 {
 	float area = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -604,8 +605,8 @@ inline float Sbvh<DIM>::surfaceArea() const
 	return area;
 }
 
-template<size_t DIM>
-inline float Sbvh<DIM>::signedVolume() const
+template<size_t DIM, typename PrimitiveType>
+inline float Sbvh<DIM, PrimitiveType>::signedVolume() const
 {
 	float volume = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -615,11 +616,11 @@ inline float Sbvh<DIM>::signedVolume() const
 	return volume;
 }
 
-template<size_t DIM>
-inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-													 int nodeStartIndex, bool checkOcclusion,
-													 bool countHits, std::vector<BvhTraversal>& subtree,
-													 float *boxHits, int& hits, int& nodesVisited) const
+template<size_t DIM, typename PrimitiveType>
+inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+																	int nodeStartIndex, bool checkOcclusion,
+																	bool countHits, std::vector<BvhTraversal>& subtree,
+																	float *boxHits, int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
 	while (stackPtr >= 0) {
@@ -635,7 +636,7 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 		// is leaf -> intersect
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
+				const std::shared_ptr<PrimitiveType>& prim = primitives[references[node.start + p]];
 				if (this->ignorePrimitive(prim.get())) continue;
 
 				// check if primitive has already been seen
@@ -651,11 +652,15 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 				if (!seenPrim) {
 					nodesVisited++;
 
+					int hit = 0;
 					std::vector<Interaction<DIM>> cs;
-					const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(prim.get());
-					int hit = aggregate ? aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited,
-																	   checkOcclusion, countHits) :
-										  prim->intersect(r, cs, checkOcclusion, countHits);
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(prim.get());
+						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
+
+					} else {
+						hit = prim->intersect(r, cs, checkOcclusion, countHits);
+					}
 
 					// keep the closest intersection only
 					if (hit > 0) {
@@ -724,10 +729,10 @@ inline bool Sbvh<DIM>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<In
 	return false;
 }
 
-template<size_t DIM>
-inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-										int nodeStartIndex, int& nodesVisited,
-										bool checkOcclusion, bool countHits) const
+template<size_t DIM, typename PrimitiveType>
+inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+													   int nodeStartIndex, int& nodesVisited,
+													   bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -767,11 +772,11 @@ inline int Sbvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM
 	return 0;
 }
 
-template<size_t DIM>
-inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													 int nodeStartIndex, const Vector<DIM>& boundaryHint,
-													 std::vector<BvhTraversal>& subtree, float *boxHits,
-													 bool& notFound, int& nodesVisited) const
+template<size_t DIM, typename PrimitiveType>
+inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																	int nodeStartIndex, const Vector<DIM>& boundaryHint,
+																	std::vector<BvhTraversal>& subtree, float *boxHits,
+																	bool& notFound, int& nodesVisited) const
 {
 	// TODO: use direction to boundary guess
 	int stackPtr = 0;
@@ -788,17 +793,21 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 		// is leaf -> compute squared distance
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				const std::shared_ptr<Primitive<DIM>>& prim = primitives[references[node.start + p]];
+				const std::shared_ptr<PrimitiveType>& prim = primitives[references[node.start + p]];
 				if (this->ignorePrimitive(prim.get())) continue;
 
 				if (prim.get() != i.primitive) {
 					nodesVisited++;
 
+					bool found = false;
 					Interaction<DIM> c;
-					const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(prim.get());
-					bool found = aggregate ? aggregate->findClosestPointFromNode(s, c, nodeStartIndex,
-																		   boundaryHint, nodesVisited) :
-											 prim->findClosestPoint(s, c);
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(prim.get());
+						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
+
+					} else {
+						found = prim->findClosestPoint(s, c);
+					}
 
 					// keep the closest point only
 					if (found) {
@@ -862,10 +871,10 @@ inline void Sbvh<DIM>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Int
 	}
 }
 
-template<size_t DIM>
-inline bool Sbvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-												int nodeStartIndex, const Vector<DIM>& boundaryHint,
-												int& nodesVisited) const
+template<size_t DIM, typename PrimitiveType>
+inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+															   int nodeStartIndex, const Vector<DIM>& boundaryHint,
+															   int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();

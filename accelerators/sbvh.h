@@ -36,11 +36,11 @@ struct BvhTraversal {
 	float distance; // minimum distance (parametric, squared, ...) to this node
 };
 
-template<size_t DIM>
+template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class Sbvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Sbvh(std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
+	Sbvh(std::vector<std::shared_ptr<PrimitiveType>>& primitives_,
 		 const CostHeuristic& costHeuristic_, float splitAlpha_,
 		 bool packLeaves_=false, int leafSize_=4, int nBuckets_=8, int nBins_=8);
 
@@ -101,7 +101,7 @@ protected:
 						   std::vector<Vector<DIM>>& referenceCentroids);
 
 	// splits primitive
-	void splitPrimitive(const std::shared_ptr<Primitive<DIM>>& primitive, int dim,
+	void splitPrimitive(const std::shared_ptr<PrimitiveType>& primitive, int dim,
 						float splitCoord, const BoundingBox<DIM>& boxReference,
 						BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight) const;
 
@@ -147,14 +147,14 @@ protected:
 	int nNodes, nLeafs, leafSize, nBuckets, nBins, memoryBudget, maxDepth, depthGuess;
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes, rightBinBoxes;
 	std::vector<std::tuple<BoundingBox<DIM>, int, int>> bins;
-	const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives;
+	const std::vector<std::shared_ptr<PrimitiveType>>& primitives;
 	std::vector<SbvhNode<DIM>> flatTree;
 	std::vector<int> references, referencesToAdd;
 	std::vector<BoundingBox<DIM>> referenceBoxesToAdd;
 	std::vector<Vector<DIM>> referenceCentroidsToAdd;
-	bool packLeaves;
+	bool packLeaves, primitiveTypeIsAggregate;
 
-	template<size_t U, size_t V>
+	template<size_t U, size_t V, typename W>
 	friend class Mbvh;
 };
 

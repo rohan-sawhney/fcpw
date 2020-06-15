@@ -1,14 +1,15 @@
 namespace fcpw {
 
-template<size_t DIM>
-inline Baseline<DIM>::Baseline(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_):
-primitives(primitives_)
+template<size_t DIM, typename PrimitiveType>
+inline Baseline<DIM, PrimitiveType>::Baseline(const std::vector<std::shared_ptr<PrimitiveType>>& primitives_):
+primitives(primitives_),
+primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
 
 }
 
-template<size_t DIM>
-inline BoundingBox<DIM> Baseline<DIM>::boundingBox() const
+template<size_t DIM, typename PrimitiveType>
+inline BoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingBox() const
 {
 	BoundingBox<DIM> bb;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -18,8 +19,8 @@ inline BoundingBox<DIM> Baseline<DIM>::boundingBox() const
 	return bb;
 }
 
-template<size_t DIM>
-inline Vector<DIM> Baseline<DIM>::centroid() const
+template<size_t DIM, typename PrimitiveType>
+inline Vector<DIM> Baseline<DIM, PrimitiveType>::centroid() const
 {
 	Vector<DIM> c = zeroVector<DIM>();
 	int nPrimitives = (int)primitives.size();
@@ -31,8 +32,8 @@ inline Vector<DIM> Baseline<DIM>::centroid() const
 	return c/nPrimitives;
 }
 
-template<size_t DIM>
-inline float Baseline<DIM>::surfaceArea() const
+template<size_t DIM, typename PrimitiveType>
+inline float Baseline<DIM, PrimitiveType>::surfaceArea() const
 {
 	float area = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -42,8 +43,8 @@ inline float Baseline<DIM>::surfaceArea() const
 	return area;
 }
 
-template<size_t DIM>
-inline float Baseline<DIM>::signedVolume() const
+template<size_t DIM, typename PrimitiveType>
+inline float Baseline<DIM, PrimitiveType>::signedVolume() const
 {
 	float volume = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -53,10 +54,10 @@ inline float Baseline<DIM>::signedVolume() const
 	return volume;
 }
 
-template<size_t DIM>
-inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-											int nodeStartIndex, int& nodesVisited,
-											bool checkOcclusion, bool countHits) const
+template<size_t DIM, typename PrimitiveType>
+inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+														   int nodeStartIndex, int& nodesVisited,
+														   bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -70,11 +71,15 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 		if (this->ignorePrimitive(primitives[p].get())) continue;
 		nodesVisited++;
 
+		int hit = 0;
 		std::vector<Interaction<DIM>> cs;
-		const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(primitives[p].get());
-		int hit = aggregate ? aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited,
-														   checkOcclusion, countHits) :
-							  primitives[p]->intersect(r, cs, checkOcclusion, countHits);
+		if (primitiveTypeIsAggregate) {
+			const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(primitives[p].get());
+			hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
+
+		} else {
+			hit = primitives[p]->intersect(r, cs, checkOcclusion, countHits);
+		}
 
 		if (hit > 0) {
 			hits += hit;
@@ -109,10 +114,10 @@ inline int Baseline<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction
 	return 0;
 }
 
-template<size_t DIM>
-inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													int nodeStartIndex, const Vector<DIM>& boundaryHint,
-													int& nodesVisited) const
+template<size_t DIM, typename PrimitiveType>
+inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																   int nodeStartIndex, const Vector<DIM>& boundaryHint,
+																   int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -124,11 +129,15 @@ inline bool Baseline<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Inte
 		if (this->ignorePrimitive(primitives[p].get())) continue;
 		nodesVisited++;
 
+		bool found = false;
 		Interaction<DIM> c;
-		const Aggregate<DIM> *aggregate = dynamic_cast<const Aggregate<DIM> *>(primitives[p].get());
-		bool found = aggregate ? aggregate->findClosestPointFromNode(s, c, nodeStartIndex,
-															   boundaryHint, nodesVisited) :
-								 primitives[p]->findClosestPoint(s, c);
+		if (primitiveTypeIsAggregate) {
+			const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(primitives[p].get());
+			found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
+
+		} else {
+			found = primitives[p]->findClosestPoint(s, c);
+		}
 
 		// keep the closest point only
 		if (found) {
