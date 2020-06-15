@@ -11,7 +11,7 @@ enum class BooleanOperation {
 	None
 };
 
-template<size_t DIM, typename PrimitiveType>
+template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class CsgNode: public Aggregate<DIM> {
 public:
 	// constructor

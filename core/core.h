@@ -35,10 +35,6 @@ template<size_t DIM>
 class GeometricPrimitive;
 template<size_t DIM>
 class Aggregate;
-template<size_t DIM>
-class TransformedAggregate;
-template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
-class CsgNode;
 
 static const float minFloat = std::numeric_limits<float>::lowest();
 static const float maxFloat = std::numeric_limits<float>::max();
