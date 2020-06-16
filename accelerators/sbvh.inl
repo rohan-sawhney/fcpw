@@ -655,7 +655,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 					int hit = 0;
 					std::vector<Interaction<DIM>> cs;
 					if (primitiveTypeIsAggregate) {
-						const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(prim.get());
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim.get());
 						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
 
 					} else {
@@ -802,7 +802,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 					bool found = false;
 					Interaction<DIM> c;
 					if (primitiveTypeIsAggregate) {
-						const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(prim.get());
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim.get());
 						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
 
 					} else {

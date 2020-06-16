@@ -147,7 +147,7 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 		std::vector<Interaction<DIM>> isLeft;
 		if (!this->ignorePrimitive(left.get())) {
 			if (leftPrimitiveTypeIsAggregate) {
-				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(left.get());
+				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left.get());
 				hitsLeft = aggregate->intersectFromNode(rLeft, isLeft, nodeStartIndex, nodesVisited, false, true);
 
 			} else {
@@ -173,7 +173,7 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 		std::vector<Interaction<DIM>> isRight;
 		if (!this->ignorePrimitive(right.get())) {
 			if (rightPrimitiveTypeIsAggregate) {
-				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(right.get());
+				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right.get());
 				hitsRight = aggregate->intersectFromNode(rRight, isRight, nodeStartIndex, nodesVisited, false, true);
 
 			} else {
@@ -243,7 +243,7 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 		BoundingSphere<DIM> sLeft = s;
 		if (!this->ignorePrimitive(left.get())) {
 			if (leftPrimitiveTypeIsAggregate) {
-				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(left.get());
+				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left.get());
 				foundLeft = aggregate->findClosestPointFromNode(sLeft, iLeft, nodeStartIndex, boundaryHint, nodesVisited);
 
 			} else {
@@ -267,7 +267,7 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 		BoundingSphere<DIM> sRight = s;
 		if (!this->ignorePrimitive(right.get())) {
 			if (rightPrimitiveTypeIsAggregate) {
-				const Aggregate<DIM> *aggregate = static_cast<const Aggregate<DIM> *>(right.get());
+				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right.get());
 				foundRight = aggregate->findClosestPointFromNode(sRight, iRight, nodeStartIndex, boundaryHint, nodesVisited);
 
 			} else {
