@@ -108,43 +108,44 @@ inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 template<size_t DIM>
 inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 {
-	// compute the number of line segment and triangle files, and map their
-	// indices to the global files vector
+	// compute the number of line segment and triangle files
 	int nFiles = (int)files.size();
 	int nLineSegmentFiles = 0;
 	int nTriangleFiles = 0;
-	int nMixedFiles = 0;
-	lineSegmentObjectMap.clear();
-	triangleObjectMap.clear();
-	mixedObjectMap.clear();
+	soups.resize(nFiles);
+	objectTypes.resize(nFiles);
+	instanceTransforms.resize(nFiles);
+	mixedObjects.clear();
 
 	for (int i = 0; i < nFiles; i++) {
 		if (files[i].second == LoadingOption::ObjLineSegments) {
-			lineSegmentObjectMap[nLineSegmentFiles++] = i;
+			objectTypes[i] = ObjectType::LineSegments;
+			nLineSegmentFiles++;
 
 		} else if (files[i].second == LoadingOption::ObjTriangles) {
-			triangleObjectMap[nTriangleFiles++] = i;
+			objectTypes[i] = ObjectType::Triangles;
+			nTriangleFiles++;
 		}
 	}
 
-	soups.resize(nFiles);
 	lineSegmentObjects.resize(nLineSegmentFiles);
 	triangleObjects.resize(nTriangleFiles);
-	mixedObjects.resize(nMixedFiles);
-	instanceTransforms.resize(nFiles);
 
-	// load line segment soups
-	for (int i = 0; i < nLineSegmentFiles; i++) {
-		int I = lineSegmentObjectMap[i];
-		soups[I] = readSoupFromFile<3, LineSegment>(files[I].first, files[I].second,
-									  computeWeightedNormals, lineSegmentObjects[i]);
-	}
+	// load soups
+	nLineSegmentFiles = 0;
+	nTriangleFiles = 0;
 
-	// load triangle soups
-	for (int i = 0; i < nTriangleFiles; i++) {
-		int I = triangleObjectMap[i];
-		soups[I] = readSoupFromFile<3, Triangle>(files[I].first, files[I].second,
-									  computeWeightedNormals, triangleObjects[i]);
+	for (int i = 0; i < nFiles; i++) {
+		if (objectTypes[i] == ObjectType::LineSegments) {
+			soups[i] = readSoupFromFile<3, LineSegment>(files[i].first, files[i].second,
+						  computeWeightedNormals, lineSegmentObjects[nLineSegmentFiles]);
+			nLineSegmentFiles++;
+
+		} else if (objectTypes[i] == ObjectType::Triangles) {
+			soups[i] = readSoupFromFile<3, Triangle>(files[i].first, files[i].second,
+							 computeWeightedNormals, triangleObjects[nTriangleFiles]);
+			nTriangleFiles++;
+		}
 	}
 
 	// load instance transforms
@@ -233,31 +234,28 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	objectInstances.clear();
 
 	// build object aggregates
-	int nLineSegmentObjects = (int)lineSegmentObjects.size();
-	LOG_IF(FATAL, nLineSegmentObjects != lineSegmentObjectMap.size()) << "Line segment objects and objectMap not equal in size";
-
-	int nTriangleObjects = (int)triangleObjects.size();
-	LOG_IF(FATAL, nTriangleObjects != triangleObjectMap.size()) << "Triangle objects and objectMap not equal in size";
-
-	int nMixedObjects = (int)mixedObjects.size();
-	LOG_IF(FATAL, nMixedObjects != mixedObjectMap.size()) << "Mixed objects and objectMap not equal in size";
-
-	int nObjects = nLineSegmentObjects + nTriangleObjects + nMixedObjects;
+	int nObjects = (int)soups.size();
 	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
+	int nLineSegmentObjects = 0;
+	int nTriangleObjects = 0;
+	int nMixedObjects = 0;
 
-	for (int i = 0; i < nLineSegmentObjects; i++) {
-		int I = lineSegmentObjectMap[i];
-		objectAggregates[I] = makeAggregate<DIM, LineSegment>(aggregateType, vectorize, lineSegmentObjects[i]);
-	}
+	for (int i = 0; i < nObjects; i++) {
+		if (objectTypes[i] == ObjectType::LineSegments) {
+			objectAggregates[i] = makeAggregate<DIM, LineSegment>(aggregateType, vectorize,
+												   lineSegmentObjects[nLineSegmentObjects]);
+			nLineSegmentObjects++;
 
-	for (int i = 0; i < nTriangleObjects; i++) {
-		int I = triangleObjectMap[i];
-		objectAggregates[I] = makeAggregate<DIM, Triangle>(aggregateType, vectorize, triangleObjects[i]);
-	}
+		} else if (objectTypes[i] == ObjectType::Triangles) {
+			objectAggregates[i] = makeAggregate<DIM, Triangle>(aggregateType, vectorize,
+													  triangleObjects[nTriangleObjects]);
+			nTriangleObjects++;
 
-	for (int i = 0; i < nMixedObjects; i++) {
-		int I = mixedObjectMap[i];
-		objectAggregates[I] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType, vectorize, mixedObjects[i]);
+		} else if (objectTypes[i] == ObjectType::Mixed) {
+			objectAggregates[i] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType, vectorize,
+																		   mixedObjects[nMixedObjects]);
+			nMixedObjects++;
+		}
 	}
 
 	// build object instances
@@ -294,16 +292,21 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 template<size_t DIM>
 inline bool Scene<DIM>::buildEmbreeAggregate()
 {
-	if (triangleObjects.size() != 1 && triangleObjectMap.size() != 1) {
+	objectInstances.clear();
+	if (triangleObjects.size() != 1) {
 		LOG(INFO) << "Scene::buildEmbreeAggregate(): Only a single triangle object is supported at the moment";
 		return false;
 	}
 
-	int index = triangleObjectMap[0];
-	aggregate = std::make_shared<EmbreeBvh>(triangleObjects[0], soups[index]);
-	objectInstances.clear();
+	for (int i = 0; i < (int)soups.size(); i++) {
+		if (objectTypes[i] == ObjectType::Triangles) {
+			aggregate = std::make_shared<EmbreeBvh>(triangleObjects[0], soups[i]);
+			return true;
+		}
+	}
 
-	return true;
+	LOG(INFO) << "Scene::buildEmbreeAggregate(): Only triangles supported at the moment";
+	return false;
 }
 #endif
 
