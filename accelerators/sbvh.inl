@@ -408,18 +408,26 @@ inline int Sbvh<DIM, PrimitiveType>::performSpatialSplit(const BoundingBox<DIM>&
 	if (nReferencesAdded > 0) {
 		// move entries between [nodeEnd, nTotalReferences) to
 		// [nodeEnd + nReferencesAdded, nTotalReferences + nReferencesAdded)
-		for (int i = nTotalReferences - 1; i >= nodeEnd; i--) {
-			references[i + nReferencesAdded] = references[i];
-			referenceBoxes[i + nReferencesAdded] = referenceBoxes[i];
-			referenceCentroids[i + nReferencesAdded] = referenceCentroids[i];
-		}
+		std::move_backward(references.begin() + nodeEnd,
+						   references.begin() + nTotalReferences,
+						   references.begin() + nTotalReferences + nReferencesAdded);
+		std::move_backward(referenceBoxes.begin() + nodeEnd,
+						   referenceBoxes.begin() + nTotalReferences,
+						   referenceBoxes.begin() + nTotalReferences + nReferencesAdded);
+		std::move_backward(referenceCentroids.begin() + nodeEnd,
+						   referenceCentroids.begin() + nTotalReferences,
+						   referenceCentroids.begin() + nTotalReferences + nReferencesAdded);
 
 		// copy added references to range [nodeEnd, nodeEnd + nReferencesAdded)
-		for (int i = 0; i < nReferencesAdded; i++) {
-			references[nodeEnd + i] = referencesToAdd[i];
-			referenceBoxes[nodeEnd + i] = referenceBoxesToAdd[i];
-			referenceCentroids[nodeEnd + i] = referenceCentroidsToAdd[i];
-		}
+		std::copy(referencesToAdd.begin(),
+				  referencesToAdd.begin() + nReferencesAdded,
+				  references.begin() + nodeEnd);
+		std::copy(referenceBoxesToAdd.begin(),
+				  referenceBoxesToAdd.begin() + nReferencesAdded,
+				  referenceBoxes.begin() + nodeEnd);
+		std::copy(referenceCentroidsToAdd.begin(),
+				  referenceCentroidsToAdd.begin() + nReferencesAdded,
+				  referenceCentroids.begin() + nodeEnd);
 	}
 
 	nodeEnd += nReferencesAdded;
