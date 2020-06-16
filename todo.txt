@@ -1,6 +1,5 @@
 Priority:
 1. refactor to bypass inheritance costs
--- scene: objectInstances -> aggregates
 -- flatten scene memory
 2. optimize sbvh construction for large meshes
 3. give the closest point a rough guess of direction (things can possibly go
