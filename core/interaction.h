@@ -35,7 +35,9 @@ struct Interaction {
 
 	// computes normal from geometric primitive if unspecified
 	void computeNormal() {
-		if (isNaN<DIM>(n)) n = primitive->normal(uv);
+		if (isNaN<DIM>(n)) {
+			n = static_cast<const GeometricPrimitive<DIM> *>(primitive)->normal(uv);
+		}
 	}
 
 	// applies transform
@@ -55,7 +57,7 @@ struct Interaction {
 	Vector<DIM> p, n;
 	Vector<DIM - 1> uv;
 	DistanceInfo distanceInfo;
-	const GeometricPrimitive<DIM> *primitive;
+	const Primitive<DIM> *primitive;
 };
 
 template<size_t DIM>

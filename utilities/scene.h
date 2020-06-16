@@ -69,7 +69,7 @@ public:
 
 private:
 	// member
-	std::vector<std::shared_ptr<Primitive<DIM>>> objectInstances;
+	std::vector<std::shared_ptr<Aggregate<DIM>>> objectInstances;
 };
 
 } // namespace fcpw

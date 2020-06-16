@@ -211,10 +211,10 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 template<size_t DIM>
 inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 				int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
-				std::vector<std::shared_ptr<Primitive<DIM>>>& objectInstances)
+				std::vector<std::shared_ptr<Aggregate<DIM>>>& objectInstances)
 {
 	const CsgTreeNode& node = csgTree[nodeIndex];
-	std::shared_ptr<Primitive<DIM>> instance1, instance2;
+	std::shared_ptr<Aggregate<DIM>> instance1, instance2;
 
 	if (node.isLeafChild1) instance1 = objectInstances[node.child1];
 	else instance1 = buildCsgAggregateRecursive(node.child1, csgTree, objectInstances);
@@ -222,7 +222,7 @@ inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 	if (node.isLeafChild2) instance2 = objectInstances[node.child2];
 	else instance2 = buildCsgAggregateRecursive(node.child2, csgTree, objectInstances);
 
-	return std::make_shared<CsgNode<DIM>>(instance1, instance2, node.operation);
+	return std::make_shared<CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>>(instance1, instance2, node.operation);
 }
 
 template<size_t DIM>
@@ -279,7 +279,6 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	if (objectInstances.size() == 1) {
 		// set to object aggregate if there is only a single object instance in the scene
 		aggregate = objectAggregates[0];
-		objectInstances.clear();
 
 	} else if (csgTree.size() > 0) {
 		// build csg aggregate if csg tree is specified
@@ -287,7 +286,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 	} else {
 		// make aggregate
-		aggregate = makeAggregate<DIM, Primitive<DIM>>(aggregateType, vectorize, objectInstances);
+		aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, vectorize, objectInstances);
 	}
 }
 
