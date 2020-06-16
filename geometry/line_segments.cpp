@@ -235,7 +235,7 @@ bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) cons
 	return false;
 }
 
-void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<Primitive<3>>>& lineSegments,
+void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<LineSegment>>& lineSegments,
 									   std::shared_ptr<PolygonSoup<3>>& soup)
 {
 	int N = (int)soup->indices.size()/2;
@@ -243,11 +243,9 @@ void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<Primiti
 	soup->vNormals.resize(V, zeroVector<3>());
 
 	for (int i = 0; i < N; i++) {
-		const LineSegment *lineSegment = static_cast<const LineSegment *>(lineSegments[i].get());
-		Vector3 n = lineSegment->normal(true);
-
-		soup->vNormals[soup->indices[lineSegment->index]] += n;
-		soup->vNormals[soup->indices[lineSegment->index + 1]] += n;
+		Vector3 n = lineSegments[i]->normal(true);
+		soup->vNormals[soup->indices[lineSegments[i]->index]] += n;
+		soup->vNormals[soup->indices[lineSegments[i]->index + 1]] += n;
 	}
 
 	for (int i = 0; i < V; i++) {
@@ -318,8 +316,8 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 }
 
 std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-								  std::vector<std::shared_ptr<Primitive<3>>>& lineSegments,
-								  bool computeWeightedNormals)
+								   std::vector<std::shared_ptr<LineSegment>>& lineSegments,
+								   bool computeWeightedNormals)
 {
 	// read soup and initialize line segments
 	bool isFlat = true;

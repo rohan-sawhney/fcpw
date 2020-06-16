@@ -141,7 +141,7 @@ void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
 }
 
 template<size_t DIM>
-void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
+void visualizeScene(const BoundingBox<DIM>& boundingBox, Scene<DIM>& scene, 
 					std::vector<Vector<DIM>>& intersectedPoints,
 					std::vector<Vector<DIM>>& raymarchedPoints)
 {
@@ -155,63 +155,67 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 	polyscope::init();
 
 	if (DIM == 3) {
+		// register curve networks
+		for (int i = 0; i < (int)scene.lineSegmentObjects.size(); i++) {
+			std::string meshName = "LineSegment_Soup_" + std::to_string(i);
+			int I = scene.lineSegmentObjectMap[i];
+
+			int N = (int)scene.soups[I]->indices.size()/2;
+			std::vector<std::vector<int>> indices(N, std::vector<int>(2));
+			const std::vector<Vector<DIM>>& positions = scene.soups[I]->positions;
+			for (int j = 0; j < N; j++) {
+				for (int k = 0; k < 2; k++) {
+					indices[j][k] = scene.soups[I]->indices[2*j + k];
+				}
+			}
+
+			if (scene.instanceTransforms[I].size() > 0) {
+				for (int j = 0; j < (int)scene.instanceTransforms[I].size(); j++) {
+					std::string transformedMeshName = meshName + "_" + std::to_string(j);
+					std::vector<Vector<DIM>> transformedPositions;
+
+					for (int k = 0; k < (int)positions.size(); k++) {
+						transformedPositions.emplace_back(transformVector<DIM>(
+														scene.instanceTransforms[I][j], positions[k]));
+					}
+
+					polyscope::registerCurveNetwork(transformedMeshName, transformedPositions, indices);
+				}
+
+			} else {
+				polyscope::registerCurveNetwork(meshName, positions, indices);
+			}
+		}
+
 		// register surface meshes
-		for (int i = 0; i < (int)scene.soups.size(); i++) {
-			std::string meshName = "Polygon_Soup_" + std::to_string(i);
+		for (int i = 0; i < (int)scene.triangleObjects.size(); i++) {
+			std::string meshName = "Triangle_Soup_" + std::to_string(i);
+			int I = scene.triangleObjectMap[i];
 
-			if (scene.objectTypes[i] == ObjectType::Triangles) {
-				int N = (int)scene.soups[i]->indices.size()/3;
-				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
-				const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
-				for (int j = 0; j < N; j++) {
-					for (int k = 0; k < 3; k++) {
-						indices[j][k] = scene.soups[i]->indices[3*j + k];
-					}
+			int N = (int)scene.soups[I]->indices.size()/3;
+			std::vector<std::vector<int>> indices(N, std::vector<int>(3));
+			const std::vector<Vector<DIM>>& positions = scene.soups[I]->positions;
+			for (int j = 0; j < N; j++) {
+				for (int k = 0; k < 3; k++) {
+					indices[j][k] = scene.soups[I]->indices[3*j + k];
 				}
+			}
 
-				if (scene.instanceTransforms[i].size() > 0) {
-					for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
-						std::string transformedMeshName = meshName + "_" + std::to_string(j);
-						std::vector<Vector<DIM>> transformedPositions;
+			if (scene.instanceTransforms[I].size() > 0) {
+				for (int j = 0; j < (int)scene.instanceTransforms[I].size(); j++) {
+					std::string transformedMeshName = meshName + "_" + std::to_string(j);
+					std::vector<Vector<DIM>> transformedPositions;
 
-						for (int k = 0; k < (int)positions.size(); k++) {
-							transformedPositions.emplace_back(transformVector<DIM>(
-															scene.instanceTransforms[i][j], positions[k]));
-						}
-
-						polyscope::registerSurfaceMesh(transformedMeshName, transformedPositions, indices);
+					for (int k = 0; k < (int)positions.size(); k++) {
+						transformedPositions.emplace_back(transformVector<DIM>(
+														scene.instanceTransforms[I][j], positions[k]));
 					}
 
-				} else {
-					polyscope::registerSurfaceMesh(meshName, positions, indices);
+					polyscope::registerSurfaceMesh(transformedMeshName, transformedPositions, indices);
 				}
 
-			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
-				int N = (int)scene.soups[i]->indices.size()/2;
-				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
-				const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
-				for (int j = 0; j < N; j++) {
-					for (int k = 0; k < 2; k++) {
-						indices[j][k] = scene.soups[i]->indices[2*j + k];
-					}
-				}
-
-				if (scene.instanceTransforms[i].size() > 0) {
-					for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
-						std::string transformedMeshName = meshName + "_" + std::to_string(j);
-						std::vector<Vector<DIM>> transformedPositions;
-
-						for (int k = 0; k < (int)positions.size(); k++) {
-							transformedPositions.emplace_back(transformVector<DIM>(
-															scene.instanceTransforms[i][j], positions[k]));
-						}
-
-						polyscope::registerCurveNetwork(transformedMeshName, transformedPositions, indices);
-					}
-
-				} else {
-					polyscope::registerCurveNetwork(meshName, positions, indices);
-				}
+			} else {
+				polyscope::registerSurfaceMesh(meshName, positions, indices);
 			}
 		}
 	}
@@ -251,7 +255,7 @@ void run()
 					scene.aggregate, boundingBox, raymarchedPoints);
 
 	// visualize scene
-	visualizeScene<DIM>(scene, boundingBox, intersectedPoints, raymarchedPoints);
+	visualizeScene<DIM>(boundingBox, scene, intersectedPoints, raymarchedPoints);
 }
 
 int main(int argc, const char *argv[]) {

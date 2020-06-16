@@ -53,14 +53,16 @@ public:
 	bool buildEmbreeAggregate();
 #endif
 
-	// members;
+	// members
 	// NOTE: if initializing scene manually, populate soups, objects,
-	// objectTypes, instanceTransforms & csgTree before calling buildAggregate -
-	// the first 4 must have the same size as the number of objects in the scene
-	// (see loadFiles implementation for example)
+	// objectMaps, instanceTransforms & csgTree before calling buildAggregate;
+	// Each objectMap maps the local index of an object in its objects vector to
+	// the index of its corresponding soup, instanceTransforms & csg node child index
 	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;
-	std::vector<std::vector<std::shared_ptr<Primitive<DIM>>>> objects;
-	std::vector<ObjectType> objectTypes;
+	std::vector<std::vector<std::shared_ptr<LineSegment>>> lineSegmentObjects;
+	std::vector<std::vector<std::shared_ptr<Triangle>>> triangleObjects;
+	std::vector<std::vector<std::shared_ptr<GeometricPrimitive<DIM>>>> mixedObjects;
+	std::unordered_map<int, int> lineSegmentObjectMap, triangleObjectMap, mixedObjectMap;
 	std::vector<std::vector<Transform<DIM>>> instanceTransforms;
 	std::unordered_map<int, CsgTreeNode> csgTree;
 	std::shared_ptr<Aggregate<DIM>> aggregate;

@@ -11,30 +11,38 @@
 
 namespace fcpw {
 
-template<size_t DIM>
-inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(
-			const std::string& filename, const LoadingOption& loadingOption, bool computeWeightedNormals,
-			std::vector<std::shared_ptr<Primitive<DIM>>>& primitives, ObjectType& objectType)
+template<size_t DIM, typename PrimitiveType>
+inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(const std::string& filename,
+					  const LoadingOption& loadingOption, bool computeWeightedNormals,
+					  std::vector<std::shared_ptr<PrimitiveType>>& primitives)
 {
-	LOG(FATAL) << "readSoupFromFile<DIM>(): Not implemented";
+	LOG(FATAL) << "readSoupFromFile<DIM, PrimitiveType>(): Not supported";
 	return nullptr;
 }
 
 template<>
-inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile(
-			const std::string& filename, const LoadingOption& loadingOption, bool computeWeightedNormals,
-			std::vector<std::shared_ptr<Primitive<3>>>& primitives, ObjectType& objectType)
+inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile<3, LineSegment>(const std::string& filename,
+									const LoadingOption& loadingOption, bool computeWeightedNormals,
+									std::vector<std::shared_ptr<LineSegment>>& lineSegments)
 {
 	if (loadingOption == LoadingOption::ObjLineSegments) {
-		objectType = ObjectType::LineSegments;
-		return readLineSegmentSoupFromOBJFile(filename, primitives, computeWeightedNormals);
-
-	} else if (loadingOption == LoadingOption::ObjTriangles) {
-		objectType = ObjectType::Triangles;
-		return readTriangleSoupFromOBJFile(filename, primitives, computeWeightedNormals);
+		return readLineSegmentSoupFromOBJFile(filename, lineSegments, computeWeightedNormals);
 	}
 
-	LOG(FATAL) << "readSoupFromFile<3>(): Invalid loading option";
+	LOG(FATAL) << "readSoupFromFile<3, LineSegment>(): Invalid loading option";
+	return nullptr;
+}
+
+template<>
+inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile<3, Triangle>(const std::string& filename,
+								 const LoadingOption& loadingOption, bool computeWeightedNormals,
+								 std::vector<std::shared_ptr<Triangle>>& triangles)
+{
+	if (loadingOption == LoadingOption::ObjTriangles) {
+		return readTriangleSoupFromOBJFile(filename, triangles, computeWeightedNormals);
+	}
+
+	LOG(FATAL) << "readSoupFromFile<3, Triangle>(): Invalid loading option";
 	return nullptr;
 }
 
@@ -66,7 +74,6 @@ inline void loadInstanceTransforms(std::vector<std::vector<Transform<DIM>>>& ins
 	in.close();
 }
 
-template<size_t DIM>
 inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 {
 	// load scene
@@ -101,23 +108,50 @@ inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 template<size_t DIM>
 inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 {
+	// compute the number of line segment and triangle files, and map their
+	// indices to the global files vector
 	int nFiles = (int)files.size();
-	soups.resize(nFiles);
-	objects.resize(nFiles);
-	instanceTransforms.resize(nFiles);
-	objectTypes.resize(nFiles);
+	int nLineSegmentFiles = 0;
+	int nTriangleFiles = 0;
+	int nMixedFiles = 0;
+	lineSegmentObjectMap.clear();
+	triangleObjectMap.clear();
+	mixedObjectMap.clear();
 
-	// load soups and primitives
 	for (int i = 0; i < nFiles; i++) {
-		soups[i] = readSoupFromFile<DIM>(files[i].first, files[i].second, computeWeightedNormals,
-										 objects[i], objectTypes[i]);
+		if (files[i].second == LoadingOption::ObjLineSegments) {
+			lineSegmentObjectMap[nLineSegmentFiles++] = i;
+
+		} else if (files[i].second == LoadingOption::ObjTriangles) {
+			triangleObjectMap[nTriangleFiles++] = i;
+		}
+	}
+
+	soups.resize(nFiles);
+	lineSegmentObjects.resize(nLineSegmentFiles);
+	triangleObjects.resize(nTriangleFiles);
+	mixedObjects.resize(nMixedFiles);
+	instanceTransforms.resize(nFiles);
+
+	// load line segment soups
+	for (int i = 0; i < nLineSegmentFiles; i++) {
+		int I = lineSegmentObjectMap[i];
+		soups[I] = readSoupFromFile<3, LineSegment>(files[I].first, files[I].second,
+									  computeWeightedNormals, lineSegmentObjects[i]);
+	}
+
+	// load triangle soups
+	for (int i = 0; i < nTriangleFiles; i++) {
+		int I = triangleObjectMap[i];
+		soups[I] = readSoupFromFile<3, Triangle>(files[I].first, files[I].second,
+									  computeWeightedNormals, triangleObjects[i]);
 	}
 
 	// load instance transforms
 	if (!instanceFilename.empty()) loadInstanceTransforms<DIM>(instanceTransforms);
 
 	// load csg tree
-	if (!csgFilename.empty()) loadCsgTree<DIM>(csgTree);
+	if (!csgFilename.empty()) loadCsgTree(csgTree);
 }
 
 template<size_t DIM, typename PrimitiveType>
@@ -199,11 +233,31 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	objectInstances.clear();
 
 	// build object aggregates
-	int nObjects = (int)objects.size();
+	int nLineSegmentObjects = (int)lineSegmentObjects.size();
+	LOG_IF(FATAL, nLineSegmentObjects != lineSegmentObjectMap.size()) << "Line segment objects and objectMap not equal in size";
+
+	int nTriangleObjects = (int)triangleObjects.size();
+	LOG_IF(FATAL, nTriangleObjects != triangleObjectMap.size()) << "Triangle objects and objectMap not equal in size";
+
+	int nMixedObjects = (int)mixedObjects.size();
+	LOG_IF(FATAL, nMixedObjects != mixedObjectMap.size()) << "Mixed objects and objectMap not equal in size";
+
+	int nObjects = nLineSegmentObjects + nTriangleObjects + nMixedObjects;
 	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
 
-	for (int i = 0; i < nObjects; i++) {
-		objectAggregates[i] = makeAggregate<DIM, Primitive<DIM>>(aggregateType, vectorize, objects[i]);
+	for (int i = 0; i < nLineSegmentObjects; i++) {
+		int I = lineSegmentObjectMap[i];
+		objectAggregates[I] = makeAggregate<DIM, LineSegment>(aggregateType, vectorize, lineSegmentObjects[i]);
+	}
+
+	for (int i = 0; i < nTriangleObjects; i++) {
+		int I = triangleObjectMap[i];
+		objectAggregates[I] = makeAggregate<DIM, Triangle>(aggregateType, vectorize, triangleObjects[i]);
+	}
+
+	for (int i = 0; i < nMixedObjects; i++) {
+		int I = mixedObjectMap[i];
+		objectAggregates[I] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType, vectorize, mixedObjects[i]);
 	}
 
 	// build object instances
@@ -215,8 +269,8 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 		} else {
 			for (int j = 0; j < nObjectInstances; j++) {
-				objectInstances.emplace_back(std::make_shared<TransformedAggregate<DIM>>(
-											 objectAggregates[i], instanceTransforms[i][j]));
+				objectInstances.emplace_back(std::make_shared<TransformedAggregate<DIM>>(objectAggregates[i],
+																				  instanceTransforms[i][j]));
 			}
 		}
 	}
@@ -225,6 +279,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	if (objectInstances.size() == 1) {
 		// set to object aggregate if there is only a single object instance in the scene
 		aggregate = objectAggregates[0];
+		objectInstances.clear();
 
 	} else if (csgTree.size() > 0) {
 		// build csg aggregate if csg tree is specified
@@ -240,21 +295,16 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 template<size_t DIM>
 inline bool Scene<DIM>::buildEmbreeAggregate()
 {
-	int nObjects = (int)objects.size();
-	if (nObjects > 1) {
-		LOG(INFO) << "Scene::buildEmbreeAggregate(): Not supported for multiple objects";
+	if (triangleObjects.size() != 1 && triangleObjectMap.size() != 1) {
+		LOG(INFO) << "Scene::buildEmbreeAggregate(): Only a single triangle object is supported at the moment";
 		return false;
 	}
 
-	if (objectTypes[0] == ObjectType::Triangles) {
-		aggregate = std::make_shared<EmbreeBvh<DIM>>(objects[0], soups[0]);
-		objectInstances.clear();
+	int index = triangleObjectMap[0];
+	aggregate = std::make_shared<EmbreeBvh>(triangleObjects[0], soups[index]);
+	objectInstances.clear();
 
-		return true;
-	}
-
-	LOG(INFO) << "Scene::buildEmbreeAggregate(): Only triangles supported at the moment";
-	return false;
+	return true;
 }
 #endif
 

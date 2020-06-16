@@ -352,10 +352,10 @@ void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 }
 
 template<size_t DIM>
-void visualizeScene(const Scene<DIM>& scene,
-					const std::vector<Vector<DIM>>& queryPoints,
+void visualizeScene(const std::vector<Vector<DIM>>& queryPoints,
 					const std::vector<Vector<DIM>>& randomDirections,
-					const std::vector<Vector<DIM>>& interiorPoints)
+					const std::vector<Vector<DIM>>& interiorPoints,
+					Scene<DIM>& scene)
 {
 	// set a few options
 	polyscope::options::programName = "Aggregate Tests";
@@ -371,32 +371,36 @@ void visualizeScene(const Scene<DIM>& scene,
 	if (plotInteriorPoints) polyscope::registerPointCloud("Interior_Points", interiorPoints);
 
 	if (DIM == 3) {
-		// register surface meshes
-		for (int i = 0; i < (int)scene.soups.size(); i++) {
-			std::string meshName = "Polygon_Soup_" + std::to_string(i);
+		// register curve networks
+		for (int i = 0; i < (int)scene.lineSegmentObjects.size(); i++) {
+			std::string meshName = "LineSegment_Soup_" + std::to_string(i);
+			int I = scene.lineSegmentObjectMap[i];
 
-			if (scene.objectTypes[i] == ObjectType::Triangles) {
-				int N = (int)scene.soups[i]->indices.size()/3;
-				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
-				for (int j = 0; j < N; j++) {
-					for (int k = 0; k < 3; k++) {
-						indices[j][k] = scene.soups[i]->indices[3*j + k];
-					}
+			int N = (int)scene.soups[I]->indices.size()/2;
+			std::vector<std::vector<int>> indices(N, std::vector<int>(2));
+			for (int j = 0; j < N; j++) {
+				for (int k = 0; k < 2; k++) {
+					indices[j][k] = scene.soups[I]->indices[2*j + k];
 				}
-
-				polyscope::registerSurfaceMesh(meshName, scene.soups[i]->positions, indices);
-
-			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
-				int N = (int)scene.soups[i]->indices.size()/2;
-				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
-				for (int j = 0; j < N; j++) {
-					for (int k = 0; k < 2; k++) {
-						indices[j][k] = scene.soups[i]->indices[2*j + k];
-					}
-				}
-
-				polyscope::registerCurveNetwork(meshName, scene.soups[i]->positions, indices);
 			}
+
+			polyscope::registerCurveNetwork(meshName, scene.soups[I]->positions, indices);
+		}
+
+		// register surface meshes
+		for (int i = 0; i < (int)scene.triangleObjects.size(); i++) {
+			std::string meshName = "Triangle_Soup_" + std::to_string(i);
+			int I = scene.triangleObjectMap[i];
+
+			int N = (int)scene.soups[I]->indices.size()/3;
+			std::vector<std::vector<int>> indices(N, std::vector<int>(3));
+			for (int j = 0; j < N; j++) {
+				for (int k = 0; k < 3; k++) {
+					indices[j][k] = scene.soups[I]->indices[3*j + k];
+				}
+			}
+
+			polyscope::registerSurfaceMesh(meshName, scene.soups[I]->positions, indices);
 		}
 
 		// add direction vectors
@@ -534,7 +538,7 @@ void run()
 		if (plotInteriorPoints) isolateInteriorPoints<DIM>(scene.aggregate, queryPoints, interiorPoints);
 
 		// visualize scene
-		visualizeScene<DIM>(scene, queryPoints, randomDirections, interiorPoints);
+		visualizeScene<DIM>(queryPoints, randomDirections, interiorPoints, scene);
 	}
 }
 

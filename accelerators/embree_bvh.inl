@@ -2,62 +2,6 @@
 
 namespace fcpw {
 
-template<size_t DIM>
-inline EmbreeBvh<DIM>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-								 const std::shared_ptr<PolygonSoup<DIM>>& soup_):
-Baseline<DIM>(primitives_),
-soup(soup_)
-{
-	LOG(INFO) << "EmbreeBvh<DIM>(): No embree support for dimension: " << DIM;
-}
-
-template<size_t DIM>
-inline EmbreeBvh<DIM>::~EmbreeBvh()
-{
-	// nothing to do
-}
-
-template<size_t DIM>
-inline BoundingBox<DIM> EmbreeBvh<DIM>::boundingBox() const
-{
-	return Baseline<DIM>::boundingBox();
-}
-
-template<size_t DIM>
-inline Vector<DIM> EmbreeBvh<DIM>::centroid() const
-{
-	return Baseline<DIM>::centroid();
-}
-
-template<size_t DIM>
-inline float EmbreeBvh<DIM>::surfaceArea() const
-{
-	return Baseline<DIM>::surfaceArea();
-}
-
-template<size_t DIM>
-inline float EmbreeBvh<DIM>::signedVolume() const
-{
-	return Baseline<DIM>::signedVolume();
-}
-
-template<size_t DIM>
-inline int EmbreeBvh<DIM>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-											 int nodeStartIndex, int& nodesVisited,
-											 bool checkOcclusion, bool countHits) const
-{
-	return Baseline<DIM>::intersectFromNode(r, is, nodeStartIndex, nodesVisited,
-											checkOcclusion, countHits);
-}
-
-template<size_t DIM>
-inline bool EmbreeBvh<DIM>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-													 int nodeStartIndex, const Vector<DIM>& boundaryHint,
-													 int& nodesVisited) const
-{
-	return Baseline<DIM>::findClosestPointFromNode(s, i, nodeStartIndex, boundaryHint, nodesVisited);
-}
-
 void errorFunction(void *userPtr, enum RTCError error, const char *str)
 {
 	if (error == RTC_ERROR_NONE) return;
@@ -78,12 +22,12 @@ void errorFunction(void *userPtr, enum RTCError error, const char *str)
 
 struct IntersectContext {
 	// constructor
-	IntersectContext(const std::vector<std::shared_ptr<Primitive<3>>>& primitives_,
-					 std::vector<Interaction<3>>& is_): primitives(primitives_), is(is_) {}
+	IntersectContext(const std::vector<std::shared_ptr<Triangle>>& triangles_,
+					 std::vector<Interaction<3>>& is_): triangles(triangles_), is(is_) {}
 
 	// members
 	RTCIntersectContext context;
-	const std::vector<std::shared_ptr<Primitive<3>>>& primitives;
+	const std::vector<std::shared_ptr<Triangle>>& triangles;
 	std::vector<Interaction<3>>& is;
 };
 
@@ -93,13 +37,13 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	RTCRay *ray = (RTCRay *)args->ray;
 	RTCHit *hit = (RTCHit *)args->hit;
 	IntersectContext *context = (IntersectContext *)args->context;
-	const std::vector<std::shared_ptr<Primitive<3>>>& primitives = context->primitives;
+	const std::vector<std::shared_ptr<Triangle>>& triangles = context->triangles;
 	std::vector<Interaction<3>>& is = context->is;
 	args->valid[0] = 0; // ignore all hits
 
 	// check if interaction has already been added
 	for (int i = 0; i < (int)is.size(); i++) {
-		if (is[i].primitive == primitives[hit->primID].get()) {
+		if (is[i].primitive == triangles[hit->primID].get()) {
 			return;
 		}
 	}
@@ -111,7 +55,7 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 			Vector3(ray->dir_x, ray->dir_y, ray->dir_z)*it->d;
 	it->uv[0] = hit->u;
 	it->uv[1] = hit->v;
-	it->primitive = primitives[hit->primID].get();
+	it->primitive = triangles[hit->primID].get();
 }
 
 embree::Vec3fa closestPointTriangle(embree::Vec3fa const& p, embree::Vec3fa const& a,
@@ -209,10 +153,9 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 	return false;
 }
 
-template<>
-inline EmbreeBvh<3>::EmbreeBvh(const std::vector<std::shared_ptr<Primitive<3>>>& primitives_,
-							   const std::shared_ptr<PolygonSoup<3>>& soup_):
-Baseline<3>(primitives_),
+inline EmbreeBvh::EmbreeBvh(const std::vector<std::shared_ptr<Triangle>>& triangles_,
+							const std::shared_ptr<PolygonSoup<3>>& soup_):
+Baseline<3, Triangle>(triangles_),
 soup(soup_)
 {
 	using namespace std::chrono;
@@ -220,7 +163,7 @@ soup(soup_)
 
 	// initialize device
 	device = rtcNewDevice(NULL); // specify flags e.g. threads, isa, verbose, tri_accel=bvh4.triangle4v if required
-	if (!device) LOG(FATAL) << "EmbreeBvh<3>(): Unable to create device: " << rtcGetDeviceError(NULL);
+	if (!device) LOG(FATAL) << "EmbreeBvh(): Unable to create device: " << rtcGetDeviceError(NULL);
 
 	// register error callback
 	rtcSetDeviceErrorFunction(device, errorFunction, NULL);
@@ -270,45 +213,39 @@ soup(soup_)
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 	std::cout << "Built Embree Bvh with "
-			  << primitives.size() << " primitives in "
+			  << this->primitives.size() << " triangles in "
 			  << timeSpan.count() << " seconds" << std::endl;
 }
 
-template<>
-inline EmbreeBvh<3>::~EmbreeBvh()
+inline EmbreeBvh::~EmbreeBvh()
 {
 	rtcReleaseScene(scene);
 	rtcReleaseDevice(device);
 }
 
-template<>
-inline BoundingBox<3> EmbreeBvh<3>::boundingBox() const
+inline BoundingBox<3> EmbreeBvh::boundingBox() const
 {
-	return Baseline<3>::boundingBox();
+	return Baseline<3, Triangle>::boundingBox();
 }
 
-template<>
-inline Vector3 EmbreeBvh<3>::centroid() const
+inline Vector3 EmbreeBvh::centroid() const
 {
-	return Baseline<3>::centroid();
+	return Baseline<3, Triangle>::centroid();
 }
 
-template<>
-inline float EmbreeBvh<3>::surfaceArea() const
+inline float EmbreeBvh::surfaceArea() const
 {
-	return Baseline<3>::surfaceArea();
+	return Baseline<3, Triangle>::surfaceArea();
 }
 
-template<>
-inline float EmbreeBvh<3>::signedVolume() const
+inline float EmbreeBvh::signedVolume() const
 {
-	return Baseline<3>::signedVolume();
+	return Baseline<3, Triangle>::signedVolume();
 }
 
-template<>
-inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
-										   int nodeStartIndex, int& nodesVisited,
-										   bool checkOcclusion, bool countHits) const
+inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
+										int nodeStartIndex, int& nodesVisited,
+										bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -377,10 +314,9 @@ inline int EmbreeBvh<3>::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>
 	return hits;
 }
 
-template<>
-inline bool EmbreeBvh<3>::findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
-												   int nodeStartIndex, const Vector3& boundaryHint,
-												   int& nodesVisited) const
+inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
+												int nodeStartIndex, const Vector3& boundaryHint,
+												int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -409,9 +345,10 @@ inline bool EmbreeBvh<3>::findClosestPointFromNode(BoundingSphere<3>& s, Interac
 		i.p[1] = result.p.y;
 		i.p[2] = result.p.z;
 		i.d = norm<3>(i.p - s.c);
-		i.primitive = this->primitives[result.primID].get();
-		i.uv = static_cast<const Triangle *>(i.primitive)->barycentricCoordinates(i.p);
-		i.computeNormal();
+		const Triangle *triangle = this->primitives[result.primID].get();
+		i.uv = triangle->barycentricCoordinates(i.p);
+		i.n = triangle->normal(i.uv);
+		i.primitive = triangle;
 		s.r2 = i.d*i.d;
 
 		return true;

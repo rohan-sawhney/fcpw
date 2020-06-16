@@ -59,7 +59,7 @@ std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 
 // reads triangle soup from obj file
 std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename,
-								   std::vector<std::shared_ptr<Primitive<3>>>& triangles,
-								   bool computeWeightedNormals);
+									  std::vector<std::shared_ptr<Triangle>>& triangles,
+									  bool computeWeightedNormals);
 
 } // namespace fcpw

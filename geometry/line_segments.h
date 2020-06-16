@@ -58,7 +58,7 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 
 // reads line segment soup from obj file
 std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-								  std::vector<std::shared_ptr<Primitive<3>>>& lineSegments,
-								  bool computeWeightedNormals);
+								   std::vector<std::shared_ptr<LineSegment>>& lineSegments,
+								   bool computeWeightedNormals);
 
 } // namespace fcpw

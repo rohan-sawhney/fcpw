@@ -6,21 +6,20 @@
 
 namespace fcpw {
 
-template<size_t DIM>
-class EmbreeBvh: public Baseline<DIM> {
+class EmbreeBvh: public Baseline<3, Triangle> {
 public:
 	// constructor
-	EmbreeBvh(const std::vector<std::shared_ptr<Primitive<DIM>>>& primitives_,
-			  const std::shared_ptr<PolygonSoup<DIM>>& soup_);
+	EmbreeBvh(const std::vector<std::shared_ptr<Triangle>>& triangles_,
+			  const std::shared_ptr<PolygonSoup<3>>& soup_);
 
 	// destructor
 	~EmbreeBvh();
 
 	// returns bounding box
-	BoundingBox<DIM> boundingBox() const;
+	BoundingBox<3> boundingBox() const;
 
 	// returns centroid
-	Vector<DIM> centroid() const;
+	Vector3 centroid() const;
 
 	// returns surface area
 	float surfaceArea() const;
@@ -31,19 +30,19 @@ public:
 	// intersects with ray, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	// NOTE: interactions are invalid when checkOcclusion is enabled
-	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+	int intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
 						  int nodeStartIndex, int& nodesVisited,
 						  bool checkOcclusion=false, bool countHits=false) const;
 
 	// finds closest point to sphere center, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
-	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int nodeStartIndex, const Vector<DIM>& boundaryHint,
+	bool findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
+								  int nodeStartIndex, const Vector3& boundaryHint,
 								  int& nodesVisited) const;
 
 protected:
 	// members
-	std::shared_ptr<PolygonSoup<DIM>> soup;
+	std::shared_ptr<PolygonSoup<3>> soup;
 	RTCDevice device;
 	RTCScene scene;
 };
