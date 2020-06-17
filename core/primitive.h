@@ -177,11 +177,6 @@ public:
 						 aggregate(aggregate_), t(transform_), tInv(t.inverse()),
 						 det(t.matrix().determinant()), sqrtDet(std::sqrt(det)) {}
 
-	// destructor
-	~TransformedAggregate() {
-		// delete aggregate;
-	}
-
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const {
 		return aggregate->boundingBox().transform(t);
