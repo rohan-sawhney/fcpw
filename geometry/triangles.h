@@ -6,7 +6,8 @@ namespace fcpw {
 
 class Triangle: public GeometricPrimitive<3> {
 public:
-	// constructor
+	// constructors
+	Triangle();
 	Triangle(const PolygonSoup<3> *soup_, int index_);
 
 	// returns bounding box

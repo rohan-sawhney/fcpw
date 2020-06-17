@@ -5,6 +5,13 @@
 
 namespace fcpw {
 
+Triangle::Triangle():
+soup(nullptr),
+index(-1)
+{
+
+}
+
 Triangle::Triangle(const PolygonSoup<3> *soup_, int index_):
 soup(soup_),
 index(index_)
@@ -449,10 +456,13 @@ PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::ve
 	}
 
 	N /= 3;
-	triangles.clear();
+	triangles.resize(N, nullptr);
+	Triangle *contiguousTriangles = new Triangle[N];
 
 	for (int i = 0; i < N; i++) {
-		triangles.emplace_back(new Triangle(soup, 3*i));
+		triangles[i] = &contiguousTriangles[i];
+		triangles[i]->soup = soup;
+		triangles[i]->index = 3*i;
 	}
 
 	// compute weighted normals if requested

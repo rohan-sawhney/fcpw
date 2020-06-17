@@ -28,15 +28,15 @@ inline void Scene<DIM>::clearData()
 
 	// clear line segments
 	for (int i = 0; i < (int)lineSegmentObjects.size(); i++) {
-		for (int j = 0; j < (int)lineSegmentObjects[i].size(); j++) {
-			delete lineSegmentObjects[i][j];
+		if (lineSegmentObjects[i].size() > 0) {
+			delete[] *lineSegmentObjects[i].data();
 		}
 	}
 
 	// clear triangles
 	for (int i = 0; i < (int)triangleObjects.size(); i++) {
-		for (int j = 0; j < (int)triangleObjects[i].size(); j++) {
-			delete triangleObjects[i][j];
+		if (triangleObjects[i].size() > 0) {
+			delete[] *triangleObjects[i].data();
 		}
 	}
 
@@ -324,9 +324,9 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 			objectInstances.emplace_back(objectAggregates[i]);
 
 		} else {
+			std::shared_ptr<Aggregate<DIM>> aggregate(objectAggregates[i]);
 			for (int j = 0; j < nObjectInstances; j++) {
-				objectInstances.emplace_back(new TransformedAggregate<DIM>(objectAggregates[i],
-																	instanceTransforms[i][j]));
+				objectInstances.emplace_back(new TransformedAggregate<DIM>(aggregate, instanceTransforms[i][j]));
 			}
 		}
 	}

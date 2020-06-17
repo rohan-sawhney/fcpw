@@ -5,6 +5,14 @@
 
 namespace fcpw {
 
+LineSegment::LineSegment():
+soup(nullptr),
+isFlat(false),
+index(-1)
+{
+
+}
+
 LineSegment::LineSegment(const PolygonSoup<3> *soup_, bool isFlat_, int index_):
 soup(soup_),
 isFlat(isFlat_),
@@ -324,10 +332,14 @@ PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std:
 	}
 
 	N /= 2;
-	lineSegments.clear();
+	lineSegments.resize(N, nullptr);
+	LineSegment *contiguousLineSegments = new LineSegment[N];
 
 	for (int i = 0; i < N; i++) {
-		lineSegments.emplace_back(new LineSegment(soup, isFlat, 2*i));
+		lineSegments[i] = &contiguousLineSegments[i];
+		lineSegments[i]->soup = soup;
+		lineSegments[i]->isFlat = isFlat;
+		lineSegments[i]->index = 2*i;
 	}
 
 	if (isFlat && N > 0 && soup->indices[0] == soup->indices[2*(N - 1) + 1]) {

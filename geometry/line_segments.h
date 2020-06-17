@@ -6,7 +6,8 @@ namespace fcpw {
 
 class LineSegment: public GeometricPrimitive<3> {
 public:
-	// constructor
+	// constructors
+	LineSegment();
 	LineSegment(const PolygonSoup<3> *soup_, bool isFlat_, int index_);
 
 	// returns bounding box
