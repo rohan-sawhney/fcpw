@@ -1,9 +1,8 @@
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveType>
-inline Sbvh<DIM, PrimitiveType>::Sbvh(std::vector<std::shared_ptr<PrimitiveType>>& primitives_,
-									  const CostHeuristic& costHeuristic_, float splitAlpha_,
-									  bool packLeaves_, int leafSize_, int nBuckets_, int nBins_):
+inline Sbvh<DIM, PrimitiveType>::Sbvh(std::vector<PrimitiveType *>& primitives_, const CostHeuristic& costHeuristic_,
+									  float splitAlpha_, bool packLeaves_, int leafSize_, int nBuckets_, int nBins_):
 primitives(primitives_),
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),
@@ -225,7 +224,7 @@ inline int Sbvh<DIM, PrimitiveType>::performObjectSplit(int nodeStart, int nodeE
 }
 
 template<size_t DIM, typename PrimitiveType>
-inline void Sbvh<DIM, PrimitiveType>::splitPrimitive(const std::shared_ptr<PrimitiveType>& primitive, int dim,
+inline void Sbvh<DIM, PrimitiveType>::splitPrimitive(const PrimitiveType *primitive, int dim,
 													 float splitCoord, const BoundingBox<DIM>& boxReference,
 													 BoundingBox<DIM>& boxLeft, BoundingBox<DIM>& boxRight) const
 {
@@ -262,7 +261,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeSpatialSplit(const BoundingBox<DIM
 
 	for (int p = nodeStart; p < nodeEnd; p++) {
 		// find the bins the reference is contained in
-		const std::shared_ptr<PrimitiveType>& primitive = primitives[references[p]];
+		const PrimitiveType *primitive = primitives[references[p]];
 		int firstBinIndex = (int)((referenceBoxes[p].pMin[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth);
 		int lastBinIndex = (int)((referenceBoxes[p].pMax[splitDim] - nodeBoundingBox.pMin[splitDim])/binWidth);
 		firstBinIndex = clamp(firstBinIndex, 0, nBins - 1);
@@ -644,14 +643,14 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 		// is leaf -> intersect
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				const std::shared_ptr<PrimitiveType>& prim = primitives[references[node.start + p]];
-				if (this->ignorePrimitive(prim.get())) continue;
+				const PrimitiveType *prim = primitives[references[node.start + p]];
+				if (this->ignorePrimitive(prim)) continue;
 
 				// check if primitive has already been seen
 				bool seenPrim = false;
 				int nInteractions = (int)is.size();
 				for (int sp = 0; sp < nInteractions; sp++) {
-					if (prim.get() == is[sp].primitive) {
+					if (prim == is[sp].primitive) {
 						seenPrim = true;
 						break;
 					}
@@ -663,7 +662,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 					int hit = 0;
 					std::vector<Interaction<DIM>> cs;
 					if (primitiveTypeIsAggregate) {
-						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim.get());
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
 
 					} else {
@@ -801,16 +800,16 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 		// is leaf -> compute squared distance
 		if (node.rightOffset == 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				const std::shared_ptr<PrimitiveType>& prim = primitives[references[node.start + p]];
-				if (this->ignorePrimitive(prim.get())) continue;
+				const PrimitiveType *prim = primitives[references[node.start + p]];
+				if (this->ignorePrimitive(prim)) continue;
 
-				if (prim.get() != i.primitive) {
+				if (prim != i.primitive) {
 					nodesVisited++;
 
 					bool found = false;
 					Interaction<DIM> c;
 					if (primitiveTypeIsAggregate) {
-						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim.get());
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
 
 					} else {

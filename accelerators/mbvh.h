@@ -21,7 +21,7 @@ template<size_t WIDTH, size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class Mbvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Mbvh(const std::shared_ptr<Sbvh<DIM, PrimitiveType>>& sbvh_);
+	Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -50,8 +50,7 @@ public:
 
 protected:
 	// collapses sbvh into a mbvh
-	int collapseSbvh(const std::shared_ptr<Sbvh<DIM, PrimitiveType>>& sbvh,
-					 int sbvhNodeIndex, int parent, int depth);
+	int collapseSbvh(const Sbvh<DIM, PrimitiveType> *sbvh, int sbvhNodeIndex, int parent, int depth);
 
 	// determines whether mbvh node is a leaf node
 	bool isLeafNode(const MbvhNode<WIDTH, DIM>& node) const;
@@ -82,7 +81,7 @@ protected:
 
 	// members
 	int nNodes, nLeafs, maxDepth, maxLevel;
-	const std::vector<std::shared_ptr<PrimitiveType>>& primitives;
+	const std::vector<PrimitiveType *>& primitives;
 	std::vector<MbvhNode<WIDTH, DIM>> flatTree;
 	std::vector<VectorP<WIDTH, DIM>> leafNodes;
 	std::vector<int> references;

@@ -42,6 +42,12 @@ std::string csgFilename = "";
 template<size_t DIM>
 class Scene {
 public:
+	// constructor
+	Scene();
+
+	// destructor
+	~Scene();
+
 	// loads files
 	void loadFiles(bool computeWeightedNormals=false);
 
@@ -56,18 +62,24 @@ public:
 	// members; NOTE: if initializing scene manually, populate soups, objects,
 	// objectTypes, instanceTransforms & csgTree before calling buildAggregate;
 	// see loadFiles for example
-	std::vector<std::shared_ptr<PolygonSoup<DIM>>> soups;
-	std::vector<std::vector<std::shared_ptr<LineSegment>>> lineSegmentObjects;
-	std::vector<std::vector<std::shared_ptr<Triangle>>> triangleObjects;
-	std::vector<std::vector<std::shared_ptr<GeometricPrimitive<DIM>>>> mixedObjects;
+	std::vector<PolygonSoup<DIM> *> soups;
+	std::vector<std::vector<LineSegment *>> lineSegmentObjects;
+	std::vector<std::vector<Triangle *>> triangleObjects;
+	std::vector<std::vector<GeometricPrimitive<DIM> *>> mixedObjects;
 	std::vector<ObjectType> objectTypes;
 	std::vector<std::vector<Transform<DIM>>> instanceTransforms;
 	std::unordered_map<int, CsgTreeNode> csgTree;
-	std::shared_ptr<Aggregate<DIM>> aggregate;
+	Aggregate<DIM> *aggregate;
 
 private:
+	// clears data
+	void clearData();
+
+	// clears aggregate
+	void clearAggregate();
+
 	// member
-	std::vector<std::shared_ptr<Aggregate<DIM>>> objectInstances;
+	std::vector<Aggregate<DIM> *> objectInstances;
 };
 
 } // namespace fcpw

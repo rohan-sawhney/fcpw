@@ -1,8 +1,8 @@
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
-inline CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::CsgNode(const std::shared_ptr<PrimitiveTypeLeft>& left_,
-																	const std::shared_ptr<PrimitiveTypeRight>& right_,
+inline CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::CsgNode(const PrimitiveTypeLeft *left_,
+																	const PrimitiveTypeRight *right_,
 																	const BooleanOperation& operation_):
 left(left_),
 right(right_),
@@ -16,6 +16,13 @@ rightPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeRight
 										  (operation == BooleanOperation::Difference ? "Difference" :
 										   "None")));
 	computeBoundingBox();
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::~CsgNode()
+{
+	delete left;
+	delete right;
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
@@ -145,9 +152,9 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 		int hitsLeft = 0;
 		Ray<DIM> rLeft = r;
 		std::vector<Interaction<DIM>> isLeft;
-		if (!this->ignorePrimitive(left.get())) {
+		if (!this->ignorePrimitive(left)) {
 			if (leftPrimitiveTypeIsAggregate) {
-				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left.get());
+				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left);
 				hitsLeft = aggregate->intersectFromNode(rLeft, isLeft, nodeStartIndex, nodesVisited, false, true);
 
 			} else {
@@ -171,9 +178,9 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 		int hitsRight = 0;
 		Ray<DIM> rRight = r;
 		std::vector<Interaction<DIM>> isRight;
-		if (!this->ignorePrimitive(right.get())) {
+		if (!this->ignorePrimitive(right)) {
 			if (rightPrimitiveTypeIsAggregate) {
-				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right.get());
+				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right);
 				hitsRight = aggregate->intersectFromNode(rRight, isRight, nodeStartIndex, nodesVisited, false, true);
 
 			} else {
@@ -241,9 +248,9 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 		bool foundLeft = false;
 		Interaction<DIM> iLeft;
 		BoundingSphere<DIM> sLeft = s;
-		if (!this->ignorePrimitive(left.get())) {
+		if (!this->ignorePrimitive(left)) {
 			if (leftPrimitiveTypeIsAggregate) {
-				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left.get());
+				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left);
 				foundLeft = aggregate->findClosestPointFromNode(sLeft, iLeft, nodeStartIndex, boundaryHint, nodesVisited);
 
 			} else {
@@ -265,9 +272,9 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 		bool foundRight = false;
 		Interaction<DIM> iRight;
 		BoundingSphere<DIM> sRight = s;
-		if (!this->ignorePrimitive(right.get())) {
+		if (!this->ignorePrimitive(right)) {
 			if (rightPrimitiveTypeIsAggregate) {
-				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right.get());
+				const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right);
 				foundRight = aggregate->findClosestPointFromNode(sRight, iRight, nodeStartIndex, boundaryHint, nodesVisited);
 
 			} else {

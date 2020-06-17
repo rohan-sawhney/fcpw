@@ -5,7 +5,7 @@
 
 namespace fcpw {
 
-Triangle::Triangle(const std::shared_ptr<PolygonSoup<3>>& soup_, int index_):
+Triangle::Triangle(const PolygonSoup<3> *soup_, int index_):
 soup(soup_),
 index(index_)
 {
@@ -343,8 +343,7 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 	return false;
 }
 
-void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Triangle>>& triangles,
-									std::shared_ptr<PolygonSoup<3>>& soup)
+void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3> *soup)
 {
 	// set edge indices
 	int E = 0;
@@ -382,14 +381,14 @@ void computeWeightedTriangleNormals(const std::vector<std::shared_ptr<Triangle>>
 	for (int i = 0; i < E; i++) soup->eNormals[i] = unit<3>(soup->eNormals[i]);
 }
 
-std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename)
+PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
 	// initialize
-	std::shared_ptr<PolygonSoup<3>> soup = std::make_shared<PolygonSoup<3>>();
+	PolygonSoup<3> *soup = new PolygonSoup<3>();
 	std::ifstream in(filename);
 	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
 
@@ -439,12 +438,11 @@ std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 	return soup;
 }
 
-std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename,
-									  std::vector<std::shared_ptr<Triangle>>& triangles,
-									  bool computeWeightedNormals)
+PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::vector<Triangle *>& triangles,
+											bool computeWeightedNormals)
 {
 	// read soup and initialize triangles
-	std::shared_ptr<PolygonSoup<3>> soup = readTriangleSoupFromOBJFile(filename);
+	PolygonSoup<3> *soup = readTriangleSoupFromOBJFile(filename);
 	int N = (int)soup->indices.size();
 	if (N%3 != 0) {
 		LOG(FATAL) << "Soup has non-triangular polygons: " << filename;
@@ -454,7 +452,7 @@ std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 	triangles.clear();
 
 	for (int i = 0; i < N; i++) {
-		triangles.emplace_back(std::make_shared<Triangle>(soup, 3*i));
+		triangles.emplace_back(new Triangle(soup, 3*i));
 	}
 
 	// compute weighted normals if requested

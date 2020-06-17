@@ -172,10 +172,14 @@ template<size_t DIM>
 class TransformedAggregate: public Aggregate<DIM> {
 public:
 	// constructor
-	TransformedAggregate(const std::shared_ptr<Aggregate<DIM>>& aggregate_,
-						 const Transform<DIM>& transform_):
+	TransformedAggregate(const Aggregate<DIM> *aggregate_, const Transform<DIM>& transform_):
 						 aggregate(aggregate_), t(transform_), tInv(t.inverse()),
 						 det(t.matrix().determinant()), sqrtDet(std::sqrt(det)) {}
+
+	// destructor
+	~TransformedAggregate() {
+		delete aggregate;
+	}
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const {
@@ -279,7 +283,7 @@ public:
 
 private:
 	// members
-	std::shared_ptr<Aggregate<DIM>> aggregate;
+	const Aggregate<DIM> *aggregate;
 	Transform<DIM> t, tInv;
 	float det, sqrtDet;
 };

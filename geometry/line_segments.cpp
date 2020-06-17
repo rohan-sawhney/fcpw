@@ -5,8 +5,7 @@
 
 namespace fcpw {
 
-LineSegment::LineSegment(const std::shared_ptr<PolygonSoup<3>>& soup_,
-						 bool isFlat_, int index_):
+LineSegment::LineSegment(const PolygonSoup<3> *soup_, bool isFlat_, int index_):
 soup(soup_),
 isFlat(isFlat_),
 index(index_)
@@ -235,8 +234,7 @@ bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) cons
 	return false;
 }
 
-void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<LineSegment>>& lineSegments,
-									   std::shared_ptr<PolygonSoup<3>>& soup)
+void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments, PolygonSoup<3> *soup)
 {
 	int N = (int)soup->indices.size()/2;
 	int V = (int)soup->positions.size();
@@ -253,15 +251,14 @@ void computeWeightedLineSegmentNormals(const std::vector<std::shared_ptr<LineSeg
 	}
 }
 
-std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-															   bool& isFlat)
+PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, bool& isFlat)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
 	// initialize
-	std::shared_ptr<PolygonSoup<3>> soup = std::make_shared<PolygonSoup<3>>();
+	PolygonSoup<3> *soup = new PolygonSoup<3>();
 	std::ifstream in(filename);
 	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
 
@@ -315,13 +312,12 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 	return soup;
 }
 
-std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-								   std::vector<std::shared_ptr<LineSegment>>& lineSegments,
-								   bool computeWeightedNormals)
+PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std::vector<LineSegment *>& lineSegments,
+											   bool computeWeightedNormals)
 {
 	// read soup and initialize line segments
 	bool isFlat = true;
-	std::shared_ptr<PolygonSoup<3>> soup = readLineSegmentSoupFromOBJFile(filename, isFlat);
+	PolygonSoup<3> *soup = readLineSegmentSoupFromOBJFile(filename, isFlat);
 	int N = (int)soup->indices.size();
 	if (N%2 != 0) {
 		LOG(FATAL) << "Soup has non line segment curves: " << filename;
@@ -331,7 +327,7 @@ std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 	lineSegments.clear();
 
 	for (int i = 0; i < N; i++) {
-		lineSegments.emplace_back(std::make_shared<LineSegment>(soup, isFlat, 2*i));
+		lineSegments.emplace_back(new LineSegment(soup, isFlat, 2*i));
 	}
 
 	if (isFlat && N > 0 && soup->indices[0] == soup->indices[2*(N - 1) + 1]) {

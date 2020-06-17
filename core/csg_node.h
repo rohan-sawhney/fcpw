@@ -15,9 +15,12 @@ template<size_t DIM, typename PrimitiveTypeLeft=Primitive<DIM>, typename Primiti
 class CsgNode: public Aggregate<DIM> {
 public:
 	// constructor
-	CsgNode(const std::shared_ptr<PrimitiveTypeLeft>& left_,
-			const std::shared_ptr<PrimitiveTypeRight>& right_,
+	CsgNode(const PrimitiveTypeLeft *left_,
+			const PrimitiveTypeRight *right_,
 			const BooleanOperation& operation_);
+
+	// destructor
+	~CsgNode();
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -54,8 +57,8 @@ private:
 							 std::vector<Interaction<DIM>>& is) const;
 
 	// members
-	std::shared_ptr<PrimitiveTypeLeft> left;
-	std::shared_ptr<PrimitiveTypeRight> right;
+	const PrimitiveTypeLeft *left;
+	const PrimitiveTypeRight *right;
 	BooleanOperation operation;
 	BoundingBox<DIM> box;
 	bool leftPrimitiveTypeIsAggregate, rightPrimitiveTypeIsAggregate;

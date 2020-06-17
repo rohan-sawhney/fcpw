@@ -22,12 +22,12 @@ void errorFunction(void *userPtr, enum RTCError error, const char *str)
 
 struct IntersectContext {
 	// constructor
-	IntersectContext(const std::vector<std::shared_ptr<Triangle>>& triangles_,
+	IntersectContext(const std::vector<Triangle *>& triangles_,
 					 std::vector<Interaction<3>>& is_): triangles(triangles_), is(is_) {}
 
 	// members
 	RTCIntersectContext context;
-	const std::vector<std::shared_ptr<Triangle>>& triangles;
+	const std::vector<Triangle *>& triangles;
 	std::vector<Interaction<3>>& is;
 };
 
@@ -37,13 +37,13 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	RTCRay *ray = (RTCRay *)args->ray;
 	RTCHit *hit = (RTCHit *)args->hit;
 	IntersectContext *context = (IntersectContext *)args->context;
-	const std::vector<std::shared_ptr<Triangle>>& triangles = context->triangles;
+	const std::vector<Triangle *>& triangles = context->triangles;
 	std::vector<Interaction<3>>& is = context->is;
 	args->valid[0] = 0; // ignore all hits
 
 	// check if interaction has already been added
 	for (int i = 0; i < (int)is.size(); i++) {
-		if (is[i].primitive == triangles[hit->primID].get()) {
+		if (is[i].primitive == triangles[hit->primID]) {
 			return;
 		}
 	}
@@ -55,7 +55,7 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 			Vector3(ray->dir_x, ray->dir_y, ray->dir_z)*it->d;
 	it->uv[0] = hit->u;
 	it->uv[1] = hit->v;
-	it->primitive = triangles[hit->primID].get();
+	it->primitive = triangles[hit->primID];
 }
 
 embree::Vec3fa closestPointTriangle(embree::Vec3fa const& p, embree::Vec3fa const& a,
@@ -118,7 +118,7 @@ struct ClosestPointResult {
 // and using that function as the callback, or using std::bind to wrap the soup that
 // needs to be passed to closestPointTriangleCallback don't work since their function
 // signatures don't match those of the callback.
-static std::shared_ptr<PolygonSoup<3>> callbackSoup = nullptr;
+static PolygonSoup<3> *callbackSoup = nullptr;
 
 bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 {
@@ -153,8 +153,7 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 	return false;
 }
 
-inline EmbreeBvh::EmbreeBvh(const std::vector<std::shared_ptr<Triangle>>& triangles_,
-							const std::shared_ptr<PolygonSoup<3>>& soup_):
+inline EmbreeBvh::EmbreeBvh(const std::vector<Triangle *>& triangles_, PolygonSoup<3> *soup_):
 Baseline<3, Triangle>(triangles_),
 soup(soup_)
 {
@@ -300,7 +299,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 			it->p = r(it->d);
 			it->uv[0] = rayhit.hit.u;
 			it->uv[1] = rayhit.hit.v;
-			it->primitive = this->primitives[rayhit.hit.primID].get();
+			it->primitive = this->primitives[rayhit.hit.primID];
 			r.tMax = it->d;
 			hits++;
 		}
@@ -345,7 +344,7 @@ inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interactio
 		i.p[1] = result.p.y;
 		i.p[2] = result.p.z;
 		i.d = norm<3>(i.p - s.c);
-		const Triangle *triangle = this->primitives[result.primID].get();
+		const Triangle *triangle = this->primitives[result.primID];
 		i.uv = triangle->barycentricCoordinates(i.p);
 		i.n = triangle->normal(i.uv);
 		i.primitive = triangle;

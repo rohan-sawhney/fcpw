@@ -1,6 +1,6 @@
 Priority:
 1. refactor to bypass inheritance costs
--- flatten scene memory (don't use nested std::vectors)? get rid of pointers?
+---- flatten scene memory (don't use nested std::vectors)? get rid of pointers?
 2. sbvh - move_backward is very inefficient for large meshes
 3. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)

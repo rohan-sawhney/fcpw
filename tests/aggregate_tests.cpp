@@ -79,7 +79,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 }
 
 template<size_t DIM>
-void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
+void timeIntersectionQueries(const Aggregate<DIM> *aggregate,
 							 const std::vector<Vector<DIM>>& rayOrigins,
 							 const std::vector<Vector<DIM>>& rayDirections,
 							 const std::vector<int>& indices,
@@ -135,7 +135,7 @@ void timeIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 }
 
 template<size_t DIM>
-void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
+void timeClosestPointQueries(const Aggregate<DIM> *aggregate,
 							 const std::vector<Vector<DIM>>& queryPoints,
 							 const std::vector<int>& indices,
 							 const std::string& aggregateType,
@@ -196,8 +196,8 @@ void timeClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate,
 }
 
 template<size_t DIM>
-void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
-							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
+void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
+							 const Aggregate<DIM> *aggregate2,
 							 const std::vector<Vector<DIM>>& rayOrigins,
 							 const std::vector<Vector<DIM>>& rayDirections,
 							 const std::vector<int>& indices,
@@ -262,8 +262,8 @@ void testIntersectionQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 }
 
 template<size_t DIM>
-void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
-							 const std::shared_ptr<Aggregate<DIM>>& aggregate2,
+void testClosestPointQueries(const Aggregate<DIM> *aggregate1,
+							 const Aggregate<DIM> *aggregate2,
 							 const std::vector<Vector<DIM>>& queryPoints,
 							 const std::vector<int>& indices,
 							 bool queriesCoherent=false)
@@ -318,7 +318,7 @@ void testClosestPointQueries(const std::shared_ptr<Aggregate<DIM>>& aggregate1,
 }
 
 template<size_t DIM>
-void isolateInteriorPoints(const std::shared_ptr<Aggregate<DIM>>& aggregate,
+void isolateInteriorPoints(const Aggregate<DIM> *aggregate,
 						   const std::vector<Vector<DIM>>& queryPoints,
 						   std::vector<Vector<DIM>>& interiorPoints)
 {
@@ -474,7 +474,6 @@ void run()
 			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
 										 indices, "Embree Bvh");
 		}
-
 #endif
 	}
 
@@ -522,7 +521,6 @@ void run()
 			testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
 										 queryPoints, indices);
 		}
-
 #endif
 	}
 

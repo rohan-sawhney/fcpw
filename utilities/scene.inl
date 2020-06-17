@@ -11,19 +11,87 @@
 
 namespace fcpw {
 
+template<size_t DIM>
+inline Scene<DIM>::Scene():
+aggregate(nullptr)
+{
+
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::clearData()
+{
+	// clear soups
+	for (int i = 0; i < (int)soups.size(); i++) {
+		delete soups[i];
+	}
+
+	// clear line segments
+	for (int i = 0; i < (int)lineSegmentObjects.size(); i++) {
+		for (int j = 0; j < (int)lineSegmentObjects[i].size(); j++) {
+			delete lineSegmentObjects[i][j];
+		}
+	}
+
+	// clear triangles
+	for (int i = 0; i < (int)triangleObjects.size(); i++) {
+		for (int j = 0; j < (int)triangleObjects[i].size(); j++) {
+			delete triangleObjects[i][j];
+		}
+	}
+
+	// clear mixed objects
+	for (int i = 0; i < (int)mixedObjects.size(); i++) {
+		for (int j = 0; j < (int)mixedObjects[i].size(); j++) {
+			delete mixedObjects[i][j];
+		}
+	}
+
+	// clear vectors
+	soups.clear();
+	lineSegmentObjects.clear();
+	triangleObjects.clear();
+	mixedObjects.clear();
+	objectTypes.clear();
+	instanceTransforms.clear();
+	csgTree.clear();
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::clearAggregate()
+{
+	// clear object instances
+	for (int i = 0; i < (int)objectInstances.size(); i++) {
+		delete objectInstances[i];
+	}
+
+	// delete aggregate
+	objectInstances.clear();
+	if (aggregate) {
+		delete aggregate;
+		aggregate = nullptr;
+	}
+}
+
+template<size_t DIM>
+inline Scene<DIM>::~Scene()
+{
+	clearData();
+	clearAggregate();
+}
+
 template<size_t DIM, typename PrimitiveType>
-inline std::shared_ptr<PolygonSoup<DIM>> readSoupFromFile(const std::string& filename,
-					  const LoadingOption& loadingOption, bool computeWeightedNormals,
-					  std::vector<std::shared_ptr<PrimitiveType>>& primitives)
+inline PolygonSoup<DIM>* readSoupFromFile(const std::string& filename, const LoadingOption& loadingOption,
+										  bool computeWeightedNormals, std::vector<PrimitiveType *>& primitives)
 {
 	LOG(FATAL) << "readSoupFromFile<DIM, PrimitiveType>(): Not supported";
 	return nullptr;
 }
 
 template<>
-inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile<3, LineSegment>(const std::string& filename,
-									const LoadingOption& loadingOption, bool computeWeightedNormals,
-									std::vector<std::shared_ptr<LineSegment>>& lineSegments)
+inline PolygonSoup<3>* readSoupFromFile<3, LineSegment>(const std::string& filename,
+					const LoadingOption& loadingOption, bool computeWeightedNormals,
+					std::vector<LineSegment *>& lineSegments)
 {
 	if (loadingOption == LoadingOption::ObjLineSegments) {
 		return readLineSegmentSoupFromOBJFile(filename, lineSegments, computeWeightedNormals);
@@ -34,9 +102,9 @@ inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile<3, LineSegment>(const st
 }
 
 template<>
-inline std::shared_ptr<PolygonSoup<3>> readSoupFromFile<3, Triangle>(const std::string& filename,
-								 const LoadingOption& loadingOption, bool computeWeightedNormals,
-								 std::vector<std::shared_ptr<Triangle>>& triangles)
+inline PolygonSoup<3>* readSoupFromFile<3, Triangle>(const std::string& filename,
+				 const LoadingOption& loadingOption, bool computeWeightedNormals,
+				 std::vector<Triangle *>& triangles)
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
 		return readTriangleSoupFromOBJFile(filename, triangles, computeWeightedNormals);
@@ -109,13 +177,13 @@ template<size_t DIM>
 inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 {
 	// compute the number of line segment and triangle files
+	clearData();
 	int nFiles = (int)files.size();
 	int nLineSegmentFiles = 0;
 	int nTriangleFiles = 0;
 	soups.resize(nFiles);
 	objectTypes.resize(nFiles);
 	instanceTransforms.resize(nFiles);
-	mixedObjects.clear();
 
 	for (int i = 0; i < nFiles; i++) {
 		if (files[i].second == LoadingOption::ObjLineSegments) {
@@ -156,10 +224,10 @@ inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 }
 
 template<size_t DIM, typename PrimitiveType>
-inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType, bool vectorize,
-													 std::vector<std::shared_ptr<PrimitiveType>>& primitives)
+inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType, bool vectorize,
+									 std::vector<PrimitiveType *>& primitives)
 {
-	std::shared_ptr<Sbvh<DIM, PrimitiveType>> sbvh = nullptr;
+	Sbvh<DIM, PrimitiveType> *sbvh = nullptr;
 	int leafSize = 4;
 	bool packLeaves = false;
 
@@ -171,51 +239,44 @@ inline std::shared_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 #endif
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::LongestAxisCenter,
-														  1.0f, false, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::LongestAxisCenter, 1.0f, false, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::SurfaceArea,
-														  1.0f, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea, 1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::OverlapSurfaceArea,
-														  1.0f, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapSurfaceArea, 1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::Volume,
-														  1.0f, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume, 1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::OverlapVolume,
-														  1.0f, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapVolume, 1.0f, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
-		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::SurfaceArea,
-														  1e-5, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea, 1e-5, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_Volume) {
-		sbvh = std::make_shared<Sbvh<DIM, PrimitiveType>>(primitives, CostHeuristic::Volume,
-														  1e-5, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume, 1e-5, packLeaves, leafSize);
 
 	} else {
-		return std::make_shared<Baseline<DIM, PrimitiveType>>(primitives);
+		return new Baseline<DIM, PrimitiveType>(primitives);
 	}
 
 #ifdef BUILD_ENOKI
-	if (vectorize) return std::make_shared<Mbvh<SIMD_WIDTH, DIM, PrimitiveType>>(sbvh);
+	if (vectorize) return new Mbvh<SIMD_WIDTH, DIM, PrimitiveType>(sbvh);
 #endif
 
 	return sbvh;
 }
 
 template<size_t DIM>
-inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
-				int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
-				std::vector<std::shared_ptr<Aggregate<DIM>>>& objectInstances)
+inline Aggregate<DIM>* buildCsgAggregateRecursive(int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
+												  std::vector<Aggregate<DIM> *>& objectInstances)
 {
 	const CsgTreeNode& node = csgTree[nodeIndex];
-	std::shared_ptr<Aggregate<DIM>> instance1, instance2;
+	Aggregate<DIM> *instance1 = nullptr;
+	Aggregate<DIM> *instance2 = nullptr;
 
 	if (node.isLeafChild1) instance1 = objectInstances[node.child1];
 	else instance1 = buildCsgAggregateRecursive(node.child1, csgTree, objectInstances);
@@ -223,19 +284,16 @@ inline std::shared_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 	if (node.isLeafChild2) instance2 = objectInstances[node.child2];
 	else instance2 = buildCsgAggregateRecursive(node.child2, csgTree, objectInstances);
 
-	return std::make_shared<CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>>(instance1, instance2, node.operation);
+	return new CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>(instance1, instance2, node.operation);
 }
 
 template<size_t DIM>
 inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool vectorize)
 {
-	// initialize instances and aggregate
-	aggregate = nullptr;
-	objectInstances.clear();
-
 	// build object aggregates
+	clearAggregate();
 	int nObjects = (int)soups.size();
-	std::vector<std::shared_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
+	std::vector<Aggregate<DIM> *> objectAggregates(nObjects);
 	int nLineSegmentObjects = 0;
 	int nTriangleObjects = 0;
 	int nMixedObjects = 0;
@@ -267,8 +325,8 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 		} else {
 			for (int j = 0; j < nObjectInstances; j++) {
-				objectInstances.emplace_back(std::make_shared<TransformedAggregate<DIM>>(objectAggregates[i],
-																				  instanceTransforms[i][j]));
+				objectInstances.emplace_back(new TransformedAggregate<DIM>(objectAggregates[i],
+																	instanceTransforms[i][j]));
 			}
 		}
 	}
@@ -277,10 +335,12 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	if (objectInstances.size() == 1) {
 		// set to object aggregate if there is only a single object instance in the scene
 		aggregate = objectAggregates[0];
+		objectInstances.clear();
 
 	} else if (csgTree.size() > 0) {
 		// build csg aggregate if csg tree is specified
 		aggregate = buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
+		objectInstances.clear();
 
 	} else {
 		// make aggregate
@@ -292,7 +352,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 template<size_t DIM>
 inline bool Scene<DIM>::buildEmbreeAggregate()
 {
-	objectInstances.clear();
+	clearAggregate();
 	if (triangleObjects.size() != 1) {
 		LOG(INFO) << "Scene::buildEmbreeAggregate(): Only a single triangle object is supported at the moment";
 		return false;
@@ -300,7 +360,7 @@ inline bool Scene<DIM>::buildEmbreeAggregate()
 
 	for (int i = 0; i < (int)soups.size(); i++) {
 		if (objectTypes[i] == ObjectType::Triangles) {
-			aggregate = std::make_shared<EmbreeBvh>(triangleObjects[0], soups[i]);
+			aggregate = new EmbreeBvh(triangleObjects[0], soups[i]);
 			return true;
 		}
 	}

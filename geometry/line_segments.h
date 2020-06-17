@@ -7,7 +7,7 @@ namespace fcpw {
 class LineSegment: public GeometricPrimitive<3> {
 public:
 	// constructor
-	LineSegment(const std::shared_ptr<PolygonSoup<3>>& soup_, bool isFlat_, int index_);
+	LineSegment(const PolygonSoup<3> *soup_, bool isFlat_, int index_);
 
 	// returns bounding box
 	BoundingBox<3> boundingBox() const;
@@ -42,7 +42,7 @@ public:
 	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;
 
 	// members
-	std::shared_ptr<PolygonSoup<3>> soup;
+	const PolygonSoup<3> *soup;
 	bool isFlat;
 	int index;
 
@@ -53,12 +53,10 @@ private:
 };
 
 // reads soup from obj file
-std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-															   bool& isFlat);
+PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, bool& isFlat);
 
 // reads line segment soup from obj file
-std::shared_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-								   std::vector<std::shared_ptr<LineSegment>>& lineSegments,
-								   bool computeWeightedNormals);
+PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std::vector<LineSegment *>& lineSegments,
+											   bool computeWeightedNormals);
 
 } // namespace fcpw

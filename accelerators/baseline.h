@@ -8,7 +8,7 @@ template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class Baseline: public Aggregate<DIM> {
 public:
 	// constructor
-	Baseline(const std::vector<std::shared_ptr<PrimitiveType>>& primitives_);
+	Baseline(const std::vector<PrimitiveType *>& primitives_);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -37,7 +37,7 @@ public:
 
 protected:
 	// members
-	const std::vector<std::shared_ptr<PrimitiveType>>& primitives;
+	const std::vector<PrimitiveType *>& primitives;
 	bool primitiveTypeIsAggregate;
 };
 

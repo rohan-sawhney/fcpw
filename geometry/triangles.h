@@ -7,7 +7,7 @@ namespace fcpw {
 class Triangle: public GeometricPrimitive<3> {
 public:
 	// constructor
-	Triangle(const std::shared_ptr<PolygonSoup<3>>& soup_, int index_);
+	Triangle(const PolygonSoup<3> *soup_, int index_);
 
 	// returns bounding box
 	BoundingBox<3> boundingBox() const;
@@ -45,7 +45,7 @@ public:
 	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;
 
 	// members
-	std::shared_ptr<PolygonSoup<3>> soup;
+	const PolygonSoup<3> *soup;
 	int index;
 
 private:
@@ -55,11 +55,10 @@ private:
 };
 
 // reads soup from obj file
-std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename);
+PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename);
 
 // reads triangle soup from obj file
-std::shared_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename,
-									  std::vector<std::shared_ptr<Triangle>>& triangles,
-									  bool computeWeightedNormals);
+PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::vector<Triangle *>& triangles,
+											bool computeWeightedNormals);
 
 } // namespace fcpw

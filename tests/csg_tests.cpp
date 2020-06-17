@@ -32,7 +32,7 @@ void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatt
 }
 
 template<size_t DIM>
-bool raymarch(const std::shared_ptr<Aggregate<DIM>>& aggregate,
+bool raymarch(const Aggregate<DIM> *aggregate,
 			  const BoundingBox<DIM>& boundingBox,
 			  Ray<DIM> r, Interaction<DIM>& i)
 {
@@ -60,7 +60,7 @@ template<size_t DIM>
 void clampToCsg(const std::string& method,
 				const std::vector<Vector<DIM>>& scatteredPoints,
 				const std::vector<Vector<DIM>>& randomDirections,
-				const std::shared_ptr<Aggregate<DIM>>& aggregate,
+				const Aggregate<DIM> *aggregate,
 				const BoundingBox<DIM>& boundingBox,
 				std::vector<Vector<DIM>>& clampedPoints)
 {

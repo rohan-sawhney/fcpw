@@ -3,7 +3,7 @@
 namespace fcpw {
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const std::shared_ptr<Sbvh<DIM, PrimitiveType>>& sbvh,
+inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, PrimitiveType> *sbvh,
 														 int sbvhNodeIndex, int parent, int depth)
 {
 	const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
@@ -81,7 +81,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<WID
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
-				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index].get());
+				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
 				int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
 				int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
 				const Vector3& pa = lineSegment->soup->positions[paIndex];
@@ -99,7 +99,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<WID
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt) {
 				int index = -node.child[w] - 1;
-				const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index].get());
+				const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
 				int paIndex = triangle->soup->indices[triangle->index + 0];
 				int pbIndex = triangle->soup->indices[triangle->index + 1];
 				int pcIndex = triangle->soup->indices[triangle->index + 2];
@@ -139,7 +139,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const std::shared_ptr<Sbvh<DIM, PrimitiveType>>& sbvh_):
+inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_):
 primitives(sbvh_->primitives),
 references(sbvh_->references),
 nNodes(0),
@@ -261,9 +261,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w]) {
 				int index = -node.child[w] - 1;
-				if (this->ignorePrimitive(primitives[index].get())) continue;
+				if (this->ignorePrimitive(primitives[index])) continue;
 
-				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index].get());
+				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
 				auto it = is.emplace(is.end(), Interaction<DIM>());
 				it->d = d[w];
 				it->p[0] = pt[0][w];
@@ -284,7 +284,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
 				int index = -node.child[w] - 1;
-				if (this->ignorePrimitive(primitives[index].get())) continue;
+				if (this->ignorePrimitive(primitives[index])) continue;
 
 				r.tMax = d[w];
 				W = w;
@@ -294,7 +294,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 		// update interaction
 		if (W != maxInt) {
 			int index = -node.child[W] - 1;
-			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index].get());
+			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
 			is[0].d = d[W];
 			is[0].p[0] = pt[0][W];
 			is[0].p[1] = pt[1][W];
@@ -335,9 +335,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<WID
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w]) {
 				int index = -node.child[w] - 1;
-				if (this->ignorePrimitive(primitives[index].get())) continue;
+				if (this->ignorePrimitive(primitives[index])) continue;
 
-				const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index].get());
+				const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
 				auto it = is.emplace(is.end(), Interaction<DIM>());
 				it->d = d[w];
 				it->p[0] = pt[0][w];
@@ -358,7 +358,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<WID
 		for (int w = 0; w < WIDTH; w++) {
 			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
 				int index = -node.child[w] - 1;
-				if (this->ignorePrimitive(primitives[index].get())) continue;
+				if (this->ignorePrimitive(primitives[index])) continue;
 
 				r.tMax = d[w];
 				W = w;
@@ -368,7 +368,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<WID
 		// update interaction
 		if (W != maxInt) {
 			int index = -node.child[W] - 1;
-			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index].get());
+			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
 			is[0].d = d[W];
 			is[0].p[0] = pt[0][W];
 			is[0].p[1] = pt[1][W];
@@ -431,14 +431,14 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				for (int w = 0; w < WIDTH; w++) {
 					if (node.child[w] != maxInt) {
 						int index = -node.child[w] - 1;
-						const std::shared_ptr<PrimitiveType>& prim = primitives[index];
-						if (this->ignorePrimitive(prim.get())) continue;
+						const PrimitiveType *prim = primitives[index];
+						if (this->ignorePrimitive(prim)) continue;
 
 						// check if primitive has already been seen
 						bool seenPrim = false;
 						int nInteractions = (int)is.size();
 						for (int sp = 0; sp < nInteractions; sp++) {
-							if (prim.get() == is[sp].primitive) {
+							if (prim == is[sp].primitive) {
 								seenPrim = true;
 								break;
 							}
@@ -450,7 +450,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 							int hit = 0;
 							std::vector<Interaction<DIM>> cs;
 							if (primitiveTypeIsAggregate) {
-								const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim.get());
+								const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 								hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
 
 							} else {
@@ -556,7 +556,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 	for (int w = 0; w < WIDTH; w++) {
 		if (node.child[w] != maxInt && d2[w] <= s.r2) {
 			int index = -node.child[w] - 1;
-			if (this->ignorePrimitive(primitives[index].get())) continue;
+			if (this->ignorePrimitive(primitives[index])) continue;
 
 			s.r2 = d2[w];
 			W = w;
@@ -566,7 +566,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 	// update interaction
 	if (W != maxInt) {
 		int index = -node.child[W] - 1;
-		const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index].get());
+		const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
 		i.d = d[W];
 		i.p[0] = pt[0][W];
 		i.p[1] = pt[1][W];
@@ -605,7 +605,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 	for (int w = 0; w < WIDTH; w++) {
 		if (node.child[w] != maxInt && d2[w] <= s.r2) {
 			int index = -node.child[w] - 1;
-			if (this->ignorePrimitive(primitives[index].get())) continue;
+			if (this->ignorePrimitive(primitives[index])) continue;
 
 			s.r2 = d2[w];
 			W = w;
@@ -615,7 +615,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 	// update interaction
 	if (W != maxInt) {
 		int index = -node.child[W] - 1;
-		const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index].get());
+		const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
 		i.d = d[W];
 		i.p[0] = pt[0][W];
 		i.p[1] = pt[1][W];
@@ -676,16 +676,16 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 				for (int w = 0; w < WIDTH; w++) {
 					if (node.child[w] != maxInt) {
 						int index = -node.child[w] - 1;
-						const std::shared_ptr<PrimitiveType>& prim = primitives[index];
-						if (this->ignorePrimitive(prim.get())) continue;
+						const PrimitiveType *prim = primitives[index];
+						if (this->ignorePrimitive(prim)) continue;
 
-						if (prim.get() != i.primitive) {
+						if (prim != i.primitive) {
 							nodesVisited++;
 
 							bool found = false;
 							Interaction<DIM> c;
 							if (primitiveTypeIsAggregate) {
-								const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim.get());
+								const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 								found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
 
 							} else {

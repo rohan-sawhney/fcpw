@@ -1,7 +1,7 @@
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveType>
-inline Baseline<DIM, PrimitiveType>::Baseline(const std::vector<std::shared_ptr<PrimitiveType>>& primitives_):
+inline Baseline<DIM, PrimitiveType>::Baseline(const std::vector<PrimitiveType *>& primitives_):
 primitives(primitives_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
@@ -68,13 +68,13 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 
 	// find closest hit
 	for (int p = 0; p < (int)primitives.size(); p++) {
-		if (this->ignorePrimitive(primitives[p].get())) continue;
+		if (this->ignorePrimitive(primitives[p])) continue;
 		nodesVisited++;
 
 		int hit = 0;
 		std::vector<Interaction<DIM>> cs;
 		if (primitiveTypeIsAggregate) {
-			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p].get());
+			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
 			hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
 
 		} else {
@@ -126,13 +126,13 @@ inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSpher
 	// find closest point
 	bool notFound = true;
 	for (int p = 0; p < (int)primitives.size(); p++) {
-		if (this->ignorePrimitive(primitives[p].get())) continue;
+		if (this->ignorePrimitive(primitives[p])) continue;
 		nodesVisited++;
 
 		bool found = false;
 		Interaction<DIM> c;
 		if (primitiveTypeIsAggregate) {
-			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p].get());
+			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
 			found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
 
 		} else {
