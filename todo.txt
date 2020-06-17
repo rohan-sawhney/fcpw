@@ -9,15 +9,15 @@ Priority:
 ---- restrict branching factor to 4, with SIMD wide leaves
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- start search from specified node (and walk up/laterally in the tree)
-5. rebalance trees
+5. cache alignment - sbvh & mbvh nodes
 6. benchmark (https://github.com/jdumas/aabb_benchmark)
 7. travis/circle CI
 8. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
-1. cache alignment - sbvh & mbvh nodes
-2. vectorize + parallelize bvh construction
-3. support oriented bounding boxes + RSS
+1. vectorize + thread bvh construction
+2. support oriented bounding boxes + RSS
+3. rebalance trees
 4. traversal optimization for closest point queries:
 ---- implement "stackless" closest point traversal
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
