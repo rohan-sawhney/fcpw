@@ -8,7 +8,7 @@ class LineSegment: public GeometricPrimitive<3> {
 public:
 	// constructors
 	LineSegment();
-	LineSegment(const PolygonSoup<3> *soup_, bool isFlat_, int index_);
+	LineSegment(const PolygonSoup<3> *soup_, int index_);
 
 	// returns bounding box
 	BoundingBox<3> boundingBox() const;
@@ -19,10 +19,10 @@ public:
 	// returns surface area
 	float surfaceArea() const;
 
-	// returns signed volume; NOTE: only defined for flat line segment (z = 0)
+	// returns signed volume; NOTE: specialized to flat line segment (z = 0)
 	float signedVolume() const;
 
-	// returns normal; NOTE: only defined for flat line segment (z = 0)
+	// returns normal; NOTE: specialized to flat line segment (z = 0)
 	Vector3 normal(bool normalize=false) const;
 
 	// returns the normalized normal based on the local parameterization
@@ -35,7 +35,7 @@ public:
 	void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 			   BoundingBox<3>& boxRight) const;
 
-	// intersects with ray; NOTE: only implemented for flat line segment (z = 0)
+	// intersects with ray; NOTE: specialized to flat line segment (z = 0)
 	int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 				  bool checkOcclusion=false, bool countHits=false) const;
 
@@ -44,7 +44,6 @@ public:
 
 	// members
 	const PolygonSoup<3> *soup;
-	bool isFlat;
 	int index;
 
 private:

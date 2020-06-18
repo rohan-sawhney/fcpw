@@ -7,15 +7,13 @@ namespace fcpw {
 
 LineSegment::LineSegment():
 soup(nullptr),
-isFlat(false),
 index(-1)
 {
 
 }
 
-LineSegment::LineSegment(const PolygonSoup<3> *soup_, bool isFlat_, int index_):
+LineSegment::LineSegment(const PolygonSoup<3> *soup_, int index_):
 soup(soup_),
-isFlat(isFlat_),
 index(index_)
 {
 
@@ -50,31 +48,21 @@ float LineSegment::surfaceArea() const
 
 float LineSegment::signedVolume() const
 {
-	if (isFlat) {
-		const Vector3& pa = soup->positions[soup->indices[index]];
-		const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
-		return 0.5f*cross(pa, pb)[2];
-	}
-
-	// signedVolume is undefined in 3d
-	return 0.0f;
+	return 0.5f*cross(pa, pb)[2];
 }
 
 Vector3 LineSegment::normal(bool normalize) const
 {
-	if (isFlat) {
-		const Vector3& pa = soup->positions[soup->indices[index]];
-		const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
-		Vector3 s = pb - pa;
-		Vector3 n(s[1], -s[0], 0);
+	Vector3 s = pb - pa;
+	Vector3 n(s[1], -s[0], 0);
 
-		return normalize ? unit<3>(n) : n;
-	}
-
-	// normal is undefined in 3d
-	return Vector3();
+	return normalize ? unit<3>(n) : n;
 }
 
 Vector3 LineSegment::normal(int vIndex) const
@@ -151,44 +139,38 @@ int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 #endif
 
 	is.clear();
+	const Vector3& pa = soup->positions[soup->indices[index]];
+	const Vector3& pb = soup->positions[soup->indices[index + 1]];
 
-	if (isFlat) {
-		const Vector3& pa = soup->positions[soup->indices[index]];
-		const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	Vector3 u = pa - r.o;
+	Vector3 v = pb - pa;
 
-		Vector3 u = pa - r.o;
-		Vector3 v = pb - pa;
+	// return if line segment and ray are parallel
+	float dv = cross(r.d, v)[2];
+	if (std::fabs(dv) < epsilon) return 0;
 
-		// return if line segment and ray are parallel
-		float dv = cross(r.d, v)[2];
-		if (std::fabs(dv) < epsilon) return 0;
+	// solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
+	// s = (u x r.d)/(r.d x v)
+	float ud = cross(u, r.d)[2];
+	float s = ud/dv;
 
-		// solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
-		// s = (u x r.d)/(r.d x v)
-		float ud = cross(u, r.d)[2];
-		float s = ud/dv;
+	if (s >= 0.0f && s <= 1.0f) {
+		// t = (u x v)/(r.d x v)
+		float uv = cross(u, v)[2];
+		float t = uv/dv;
 
-		if (s >= 0.0f && s <= 1.0f) {
-			// t = (u x v)/(r.d x v)
-			float uv = cross(u, v)[2];
-			float t = uv/dv;
+		if (t > epsilon && t <= r.tMax) {
+			auto it = is.emplace(is.end(), Interaction<3>());
+			it->d = t;
+			it->p = r(t);
+			it->uv[0] = s;
+			it->uv[1] = -1;
+			it->primitive = this;
 
-			if (t > epsilon && t <= r.tMax) {
-				auto it = is.emplace(is.end(), Interaction<3>());
-				it->d = t;
-				it->p = r(t);
-				it->uv[0] = s;
-				it->uv[1] = -1;
-				it->primitive = this;
-
-				return 1;
-			}
+			return 1;
 		}
-
-		return 0;
 	}
 
-	// not implemented for 3d
 	return 0;
 }
 
@@ -338,7 +320,6 @@ PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std:
 	for (int i = 0; i < N; i++) {
 		lineSegments[i] = &contiguousLineSegments[i];
 		lineSegments[i]->soup = soup;
-		lineSegments[i]->isFlat = isFlat;
 		lineSegments[i]->index = 2*i;
 	}
 

@@ -31,6 +31,7 @@ Future Optimizations & Features:
 8. packet (coherent) queries
 ---- keyword: breadth first ray tracing
 9. refit bvh
+10. double precision
 
 Done:
 1. Closest point and ray intersections queries leveraging coherency between queries
