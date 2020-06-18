@@ -49,7 +49,7 @@ public:
 	~Scene();
 
 	// loads files
-	void loadFiles(bool computeWeightedNormals=false);
+	void loadFiles();
 
 	// builds aggregate
 	void buildAggregate(const AggregateType& aggregateType, bool vectorize=false);

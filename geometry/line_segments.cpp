@@ -302,8 +302,7 @@ PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, bool
 	return soup;
 }
 
-PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std::vector<LineSegment *>& lineSegments,
-											   bool computeWeightedNormals)
+PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std::vector<LineSegment *>& lineSegments)
 {
 	// read soup and initialize line segments
 	bool isFlat = true;
@@ -337,10 +336,8 @@ PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std:
 		}
 	}
 
-	// compute weighted normals if requested
-	if (isFlat && computeWeightedNormals) {
-		computeWeightedLineSegmentNormals(lineSegments, soup);
-	}
+	// compute weighted normals
+	computeWeightedLineSegmentNormals(lineSegments, soup);
 
 	return soup;
 }

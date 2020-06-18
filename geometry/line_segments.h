@@ -56,7 +56,6 @@ private:
 PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, bool& isFlat);
 
 // reads line segment soup from obj file
-PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std::vector<LineSegment *>& lineSegments,
-											   bool computeWeightedNormals);
+PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, std::vector<LineSegment *>& lineSegments);
 
 } // namespace fcpw

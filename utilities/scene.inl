@@ -82,7 +82,7 @@ inline Scene<DIM>::~Scene()
 
 template<size_t DIM, typename PrimitiveType>
 inline PolygonSoup<DIM>* readSoupFromFile(const std::string& filename, const LoadingOption& loadingOption,
-										  bool computeWeightedNormals, std::vector<PrimitiveType *>& primitives)
+										  std::vector<PrimitiveType *>& primitives)
 {
 	LOG(FATAL) << "readSoupFromFile<DIM, PrimitiveType>(): Not supported";
 	return nullptr;
@@ -90,11 +90,10 @@ inline PolygonSoup<DIM>* readSoupFromFile(const std::string& filename, const Loa
 
 template<>
 inline PolygonSoup<3>* readSoupFromFile<3, LineSegment>(const std::string& filename,
-					const LoadingOption& loadingOption, bool computeWeightedNormals,
-					std::vector<LineSegment *>& lineSegments)
+		const LoadingOption& loadingOption, std::vector<LineSegment *>& lineSegments)
 {
 	if (loadingOption == LoadingOption::ObjLineSegments) {
-		return readLineSegmentSoupFromOBJFile(filename, lineSegments, computeWeightedNormals);
+		return readLineSegmentSoupFromOBJFile(filename, lineSegments);
 	}
 
 	LOG(FATAL) << "readSoupFromFile<3, LineSegment>(): Invalid loading option";
@@ -103,11 +102,10 @@ inline PolygonSoup<3>* readSoupFromFile<3, LineSegment>(const std::string& filen
 
 template<>
 inline PolygonSoup<3>* readSoupFromFile<3, Triangle>(const std::string& filename,
-				 const LoadingOption& loadingOption, bool computeWeightedNormals,
-				 std::vector<Triangle *>& triangles)
+			const LoadingOption& loadingOption, std::vector<Triangle *>& triangles)
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
-		return readTriangleSoupFromOBJFile(filename, triangles, computeWeightedNormals);
+		return readTriangleSoupFromOBJFile(filename, triangles);
 	}
 
 	LOG(FATAL) << "readSoupFromFile<3, Triangle>(): Invalid loading option";
@@ -174,7 +172,7 @@ inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
+inline void Scene<DIM>::loadFiles()
 {
 	// compute the number of line segment and triangle files
 	clearData();
@@ -206,12 +204,12 @@ inline void Scene<DIM>::loadFiles(bool computeWeightedNormals)
 	for (int i = 0; i < nFiles; i++) {
 		if (objectTypes[i] == ObjectType::LineSegments) {
 			soups[i] = readSoupFromFile<3, LineSegment>(files[i].first, files[i].second,
-						  computeWeightedNormals, lineSegmentObjects[nLineSegmentFiles]);
+														lineSegmentObjects[nLineSegmentFiles]);
 			nLineSegmentFiles++;
 
 		} else if (objectTypes[i] == ObjectType::Triangles) {
 			soups[i] = readSoupFromFile<3, Triangle>(files[i].first, files[i].second,
-							 computeWeightedNormals, triangleObjects[nTriangleFiles]);
+													 triangleObjects[nTriangleFiles]);
 			nTriangleFiles++;
 		}
 	}

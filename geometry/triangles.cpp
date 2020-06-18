@@ -445,8 +445,7 @@ PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename)
 	return soup;
 }
 
-PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::vector<Triangle *>& triangles,
-											bool computeWeightedNormals)
+PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::vector<Triangle *>& triangles)
 {
 	// read soup and initialize triangles
 	PolygonSoup<3> *soup = readTriangleSoupFromOBJFile(filename);
@@ -465,10 +464,8 @@ PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::ve
 		triangles[i]->index = 3*i;
 	}
 
-	// compute weighted normals if requested
-	if (computeWeightedNormals) {
-		computeWeightedTriangleNormals(triangles, soup);
-	}
+	// compute weighted normals
+	computeWeightedTriangleNormals(triangles, soup);
 
 	return soup;
 }

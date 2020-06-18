@@ -59,7 +59,6 @@ private:
 PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename);
 
 // reads triangle soup from obj file
-PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::vector<Triangle *>& triangles,
-											bool computeWeightedNormals);
+PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::vector<Triangle *>& triangles);
 
 } // namespace fcpw
