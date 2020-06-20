@@ -13,7 +13,6 @@ nLeafs(0),
 leafSize(leafSize_),
 nBuckets(nBuckets_),
 nBins(nBins_),
-memoryBudget(0),
 maxDepth(0),
 depthGuess(std::log2(primitives_.size())),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
@@ -349,13 +348,11 @@ inline int Sbvh<DIM, PrimitiveType>::performSpatialSplit(const BoundingBox<DIM>&
 		}
 	}
 
-	// resize if memory is about to be exceeded
+	// perform object split if memory is about to be exceeded
 	int nPossibleNewReferences = rightStart - leftEnd;
-	if (nTotalReferences + nPossibleNewReferences >= memoryBudget) {
-		memoryBudget *= 2;
-		references.resize(memoryBudget, -1);
-		referenceBoxes.resize(memoryBudget);
-		referenceCentroids.resize(memoryBudget);
+	if (nTotalReferences + nPossibleNewReferences >= (int)references.size()) {
+		return performObjectSplit(leftEnd, rightStart, splitDim, splitCoord,
+								  referenceBoxes, referenceCentroids);
 	}
 
 	if ((int)referencesToAdd.size() < nPossibleNewReferences) {
@@ -549,7 +546,7 @@ inline void Sbvh<DIM, PrimitiveType>::build()
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
 
-	memoryBudget = nReferences*2;
+	int memoryBudget = nReferences*2;
 	references.resize(memoryBudget, -1);
 	referenceBoxes.resize(memoryBudget);
 	referenceCentroids.resize(memoryBudget);

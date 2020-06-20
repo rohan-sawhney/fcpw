@@ -144,7 +144,7 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	float splitAlpha, rootSurfaceArea, rootVolume;
-	int nNodes, nLeafs, leafSize, nBuckets, nBins, memoryBudget, maxDepth, depthGuess;
+	int nNodes, nLeafs, leafSize, nBuckets, nBins, maxDepth, depthGuess;
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes, rightBinBoxes;
 	std::vector<std::tuple<BoundingBox<DIM>, int, int>> bins;
 	const std::vector<PrimitiveType *>& primitives;
