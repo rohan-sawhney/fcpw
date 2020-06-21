@@ -1,18 +1,20 @@
 Priority:
-1. sbvh - move_backward is very inefficient for large meshes
-2. give the closest point a rough guess of direction to guide traversal (things can
+1. sbvh cache alignment: union start & rightOffset
+2. enforce max tree depth & allocate fixed size stack for traversal on stack
+3. sbvh - move_backward is very inefficient for large meshes
+4. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
-3. start search from specified node (and walk up/laterally in the tree)
-4. mbvh
+5. start search from specified node (and walk up/laterally in the tree)
+6. mbvh
 ---- clear scene memory?
 ---- enoki settings on ubuntu & windows
 ---- restrict branching factor to 4, with SIMD wide leaves
+---- cache alignment
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- start search from specified node (and walk up/laterally in the tree)
-5. cache alignment - sbvh & mbvh nodes
-6. benchmark (https://github.com/jdumas/aabb_benchmark)
-7. travis/circle CI
-8. README (tutorial, features, benchmark, compiling, logo)
+7. benchmark (https://github.com/jdumas/aabb_benchmark)
+8. travis/circle CI
+9. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. vectorize + thread bvh construction
