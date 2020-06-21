@@ -9,12 +9,12 @@ struct MbvhNode {
 	// constructor
 	MbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
 				boxMax(FloatP<WIDTH>(minFloat)),
-				child(maxInt), parent(-1), leafIndex(-1) {}
+				child(maxInt), leafIndex(-1) {}
 
 	// members
 	VectorP<WIDTH, DIM> boxMin, boxMax;
 	IntP<WIDTH> child; // use sign to differentiate between inner and leaf nodes
-	int parent, leafIndex;
+	int leafIndex;
 };
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType=Primitive<DIM>>

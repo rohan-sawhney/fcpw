@@ -18,12 +18,13 @@ enum class CostHeuristic {
 
 template<size_t DIM>
 struct SbvhNode {
-	// constructor
-	SbvhNode(): parent(-1), start(-1), nReferences(-1), rightOffset(-1) {}
-
 	// members
 	BoundingBox<DIM> box;
-	int parent, start, nReferences, rightOffset;
+	union {
+		int referenceOffset;
+		int secondChildOffset;
+	};
+	int nReferences;
 };
 
 struct BvhTraversal {

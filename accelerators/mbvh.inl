@@ -14,13 +14,12 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 	int mbvhNodeIndex = nNodes;
 
 	nNodes++;
-	mbvhNode.parent = parent;
 	flatTree.emplace_back(mbvhNode);
 
-	if (sbvhNode.rightOffset == 0) {
+	if (sbvhNode.nReferences > 0) {
 		// sbvh node is a leaf node; assign mbvh node its reference indices
 		for (int p = 0; p < sbvhNode.nReferences; p++) {
-			flatTree[mbvhNodeIndex].child[p] = -(references[sbvhNode.start + p] + 1);
+			flatTree[mbvhNodeIndex].child[p] = -(references[sbvhNode.referenceOffset + p] + 1);
 		}
 
 		nLeafs++;
@@ -39,14 +38,14 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 			stackPtr--;
 
 			const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
-			if (level < maxLevel && sbvhNode.rightOffset != 0) {
+			if (level < maxLevel && sbvhNode.nReferences == 0) {
 				// enqueue sbvh children nodes till max level or leaf node is reached
 				stackPtr++;
 				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + 1;
 				stackSbvhNodes[stackPtr][1] = level + 1;
 
 				stackPtr++;
-				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + sbvhNode.rightOffset;
+				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + sbvhNode.secondChildOffset;
 				stackSbvhNodes[stackPtr][1] = level + 1;
 
 			} else {

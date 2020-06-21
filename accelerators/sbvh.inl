@@ -448,10 +448,6 @@ inline int Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM>
 	int nReferences = end - start;
 
 	nNodes++;
-	node.parent = parent;
-	node.start = start;
-	node.nReferences = nReferences;
-	node.rightOffset = Untouched;
 
 	// calculate the bounding box for this node
 	BoundingBox<DIM> bb, bc;
@@ -463,10 +459,15 @@ inline int Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM>
 	node.box = bb;
 
 	// if the number of references at this point is less than the leaf
-	// size, then this will become a leaf (signified by rightOffset == 0)
+	// size, then this will become a leaf
 	if (nReferences <= leafSize) {
-		node.rightOffset = 0;
+		node.referenceOffset = start;
+		node.nReferences = nReferences;
 		nLeafs++;
+
+	} else {
+		node.secondChildOffset = Untouched;
+		node.nReferences = 0;
 	}
 
 	buildNodes.emplace_back(node);
@@ -474,17 +475,17 @@ inline int Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM>
 	// child touches parent...
 	// special case: don't do this for the root
 	if (parent != 0xfffffffc) {
-		buildNodes[parent].rightOffset--;
+		buildNodes[parent].secondChildOffset--;
 
 		// when this is the second touch, this is the right child;
 		// the right child sets up the offset for the flat tree
-		if (buildNodes[parent].rightOffset == TouchedTwice) {
-			buildNodes[parent].rightOffset = nNodes - 1 - parent;
+		if (buildNodes[parent].secondChildOffset == TouchedTwice) {
+			buildNodes[parent].secondChildOffset = nNodes - 1 - parent;
 		}
 	}
 
 	// if this is a leaf, no need to subdivide
-	if (node.rightOffset == 0) return 0;
+	if (node.nReferences > 0) return 0;
 
 	// compute object split
 	int splitDim;
@@ -529,7 +530,6 @@ inline int Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM>
 											   end + nReferencesAddedLeft, depth + 1,
 											   nTotalReferences);
 	int nTotalReferencesAdded = nReferencesAdded + nReferencesAddedLeft + nReferencesAddedRight;
-	buildNodes[currentNodeIndex].nReferences += nTotalReferencesAdded;
 
 	return nTotalReferencesAdded;
 }
@@ -638,9 +638,9 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		// is leaf -> intersect
-		if (node.rightOffset == 0) {
+		if (node.nReferences > 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				const PrimitiveType *prim = primitives[references[node.start + p]];
+				const PrimitiveType *prim = primitives[references[node.referenceOffset + p]];
 				if (this->ignorePrimitive(prim)) continue;
 
 				// check if primitive has already been seen
@@ -688,13 +688,13 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 
 		} else { // not a leaf
 			bool hit0 = flatTree[nodeIndex + 1].box.intersect(r, boxHits[0], boxHits[1]);
-			bool hit1 = flatTree[nodeIndex + node.rightOffset].box.intersect(r, boxHits[2], boxHits[3]);
+			bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.intersect(r, boxHits[2], boxHits[3]);
 
 			// did we hit both nodes?
 			if (hit0 && hit1) {
 				// we assume that the left child is a closer hit...
 				int closer = nodeIndex + 1;
-				int other = nodeIndex + node.rightOffset;
+				int other = nodeIndex + node.secondChildOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
 				if (boxHits[2] < boxHits[0]) {
@@ -722,7 +722,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 
 			} else if (hit1) {
 				stackPtr++;
-				subtree[stackPtr].node = nodeIndex + node.rightOffset;
+				subtree[stackPtr].node = nodeIndex + node.secondChildOffset;
 				subtree[stackPtr].distance = boxHits[2];
 			}
 
@@ -795,9 +795,9 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		// is leaf -> compute squared distance
-		if (node.rightOffset == 0) {
+		if (node.nReferences > 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				const PrimitiveType *prim = primitives[references[node.start + p]];
+				const PrimitiveType *prim = primitives[references[node.referenceOffset + p]];
 				if (this->ignorePrimitive(prim)) continue;
 
 				if (prim != i.primitive) {
@@ -827,14 +827,14 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 			bool hit0 = flatTree[nodeIndex + 1].box.overlap(s, boxHits[0], boxHits[1]);
 			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
 
-			bool hit1 = flatTree[nodeIndex + node.rightOffset].box.overlap(s, boxHits[2], boxHits[3]);
+			bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.overlap(s, boxHits[2], boxHits[3]);
 			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[3]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {
 				// we assume that the left child is a closer hit...
 				int closer = nodeIndex + 1;
-				int other = nodeIndex + node.rightOffset;
+				int other = nodeIndex + node.secondChildOffset;
 
 				// ... if the right child was actually closer, swap the relavent values
 				if (boxHits[0] == 0.0f && boxHits[2] == 0.0f) {
@@ -866,7 +866,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 
 			} else if (hit1) {
 				stackPtr++;
-				subtree[stackPtr].node = nodeIndex + node.rightOffset;
+				subtree[stackPtr].node = nodeIndex + node.secondChildOffset;
 				subtree[stackPtr].distance = boxHits[2];
 			}
 
