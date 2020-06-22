@@ -133,13 +133,13 @@ protected:
 	// processes subtree for intersection
 	bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 									   int nodeStartIndex, bool checkOcclusion,
-									   bool countHits, std::vector<BvhTraversal>& subtree,
+									   bool countHits, BvhTraversal *subtree,
 									   float *boxHits, int& hits, int& nodesVisited) const;
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 									   int nodeStartIndex, const Vector<DIM>& boundaryHint,
-									   std::vector<BvhTraversal>& subtree, float *boxHits,
+									   BvhTraversal *subtree, float *boxHits,
 									   bool& notFound, int& nodesVisited) const;
 
 	// members

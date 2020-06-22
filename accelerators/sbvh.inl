@@ -1,3 +1,5 @@
+#define SBVH_MAX_DEPTH 64
+
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveType>
@@ -460,7 +462,7 @@ inline int Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM>
 
 	// if the number of references at this point is less than the leaf
 	// size, then this will become a leaf
-	if (nReferences <= leafSize) {
+	if (nReferences <= leafSize || depth == SBVH_MAX_DEPTH - 2) {
 		node.referenceOffset = start;
 		node.nReferences = nReferences;
 		nLeafs++;
@@ -623,7 +625,7 @@ inline float Sbvh<DIM, PrimitiveType>::signedVolume() const
 template<size_t DIM, typename PrimitiveType>
 inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 																	int nodeStartIndex, bool checkOcclusion,
-																	bool countHits, std::vector<BvhTraversal>& subtree,
+																	bool countHits, BvhTraversal *subtree,
 																	float *boxHits, int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
@@ -745,7 +747,7 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	std::vector<BvhTraversal> subtree(maxDepth + 1);
+	BvhTraversal subtree[SBVH_MAX_DEPTH];
 	float boxHits[4];
 
 	if (flatTree[0].box.intersect(r, boxHits[0], boxHits[1])) {
@@ -779,7 +781,7 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 template<size_t DIM, typename PrimitiveType>
 inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																	int nodeStartIndex, const Vector<DIM>& boundaryHint,
-																	std::vector<BvhTraversal>& subtree, float *boxHits,
+																	BvhTraversal *subtree, float *boxHits,
 																	bool& notFound, int& nodesVisited) const
 {
 	// TODO: use direction to boundary guess
@@ -886,7 +888,7 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 
 	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
-	std::vector<BvhTraversal> subtree(maxDepth + 1);
+	BvhTraversal subtree[SBVH_MAX_DEPTH];
 	float boxHits[4];
 
 	if (flatTree[0].box.overlap(s, boxHits[0], boxHits[1])) {
