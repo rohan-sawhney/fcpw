@@ -487,7 +487,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			float minHit = r.tMax;
 
 			for (int w = 0; w < WIDTH; w++) {
-				if (node.child[w] != maxInt && mask[w] && tMin[w] < minHit) {
+				if (mask[w] && tMin[w] < minHit && node.child[w] != maxInt) {
 					closestIndex = w;
 					minHit = tMin[w];
 				}
@@ -495,7 +495,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 			// enqueue remaining intersecting nodes first
 			for (int w = 0; w < WIDTH; w++) {
-				if (node.child[w] != maxInt && mask[w] && w != closestIndex) {
+				if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
 					stackPtr++;
 					subtree[stackPtr].node = node.child[w];
 					subtree[stackPtr].distance = tMin[w];
@@ -540,44 +540,53 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
-/*
-	// perform vectorized closest point query
-	VectorP<WIDTH, DIM> pt;
-	FloatP<WIDTH> t;
-	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
-	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
-	FloatP<WIDTH> d = findClosestPointWideLineSegment(s.c, pa, pb, pt, t);
-	FloatP<WIDTH> d2 = d*d;
 
-	// determine closest primitive
-	int W = maxInt;
-	for (int w = 0; w < WIDTH; w++) {
-		if (node.child[w] != maxInt && d2[w] <= s.r2) {
-			int index = -node.child[w] - 1;
-			if (this->ignorePrimitive(primitives[index])) continue;
+	int leafOffset = -node.child[0] - 1;
+	int nLeafs = node.child[1];
+	int referenceOffset = node.child[2];
+	int nReferences = node.child[3];
+	int closestIndex = -1;
+	int startReference = 0;
 
-			s.r2 = d2[w];
-			W = w;
+	for (int l = 0; l < nLeafs; l++) {
+		// perform vectorized closest point query
+		VectorP<WIDTH, DIM> pt;
+		FloatP<WIDTH> t;
+		int leafIndex = leafOffset + 2*l;
+		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
+		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
+		FloatP<WIDTH> d = findClosestPointWideLineSegment(s.c, pa, pb, pt, t);
+		FloatP<WIDTH> d2 = d*d;
+
+		// determine closest primitive
+		int endReference = startReference + WIDTH;
+		if (endReference > nReferences) endReference = nReferences;
+
+		for (int p = startReference; p < endReference; p++) {
+			int w = p - startReference;
+
+			if (d2[w] <= s.r2) {
+				int index = references[referenceOffset + p];
+				if (this->ignorePrimitive(primitives[index])) continue;
+
+				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
+				closestIndex = index;
+				s.r2 = d2[w];
+				i.d = d[w];
+				i.p[0] = pt[0][w];
+				i.p[1] = pt[1][w];
+				i.p[2] = pt[2][w];
+				i.uv[0] = t[w];
+				i.uv[1] = -1;
+				i.nodeIndex = nodeIndex;
+				i.primitive = lineSegment;
+			}
 		}
+
+		startReference += WIDTH;
 	}
 
-	// update interaction
-	if (W != maxInt) {
-		int index = -node.child[W] - 1;
-		const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
-		i.d = d[W];
-		i.p[0] = pt[0][W];
-		i.p[1] = pt[1][W];
-		i.p[2] = pt[2][W];
-		i.uv[0] = t[W];
-		i.uv[1] = -1;
-		i.nodeIndex = nodeIndex;
-		i.primitive = lineSegment;
-
-		return true;
-	}
-*/
-	return false;
+	return closestIndex != -1;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -588,45 +597,54 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
-/*
-	// perform vectorized closest point query
-	VectorP<WIDTH, DIM> pt;
-	VectorP<WIDTH, DIM - 1> t;
-	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
-	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
-	const VectorP<WIDTH, DIM>& pc = leafNodes[node.leafIndex + 2];
-	FloatP<WIDTH> d = findClosestPointWideTriangle(s.c, pa, pb, pc, pt, t);
-	FloatP<WIDTH> d2 = d*d;
 
-	// determine closest primitive
-	int W = maxInt;
-	for (int w = 0; w < WIDTH; w++) {
-		if (node.child[w] != maxInt && d2[w] <= s.r2) {
-			int index = -node.child[w] - 1;
-			if (this->ignorePrimitive(primitives[index])) continue;
+	int leafOffset = -node.child[0] - 1;
+	int nLeafs = node.child[1];
+	int referenceOffset = node.child[2];
+	int nReferences = node.child[3];
+	int closestIndex = -1;
+	int startReference = 0;
 
-			s.r2 = d2[w];
-			W = w;
+	for (int l = 0; l < nLeafs; l++) {
+		// perform vectorized closest point query
+		VectorP<WIDTH, DIM> pt;
+		VectorP<WIDTH, DIM - 1> t;
+		int leafIndex = leafOffset + 3*l;
+		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
+		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
+		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex + 2];
+		FloatP<WIDTH> d = findClosestPointWideTriangle(s.c, pa, pb, pc, pt, t);
+		FloatP<WIDTH> d2 = d*d;
+
+		// determine closest primitive
+		int endReference = startReference + WIDTH;
+		if (endReference > nReferences) endReference = nReferences;
+
+		for (int p = startReference; p < endReference; p++) {
+			int w = p - startReference;
+
+			if (d2[w] <= s.r2) {
+				int index = references[referenceOffset + p];
+				if (this->ignorePrimitive(primitives[index])) continue;
+
+				const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
+				closestIndex = index;
+				s.r2 = d2[w];
+				i.d = d[w];
+				i.p[0] = pt[0][w];
+				i.p[1] = pt[1][w];
+				i.p[2] = pt[2][w];
+				i.uv[0] = t[0][w];
+				i.uv[1] = t[1][w];
+				i.nodeIndex = nodeIndex;
+				i.primitive = triangle;
+			}
 		}
+
+		startReference += WIDTH;
 	}
 
-	// update interaction
-	if (W != maxInt) {
-		int index = -node.child[W] - 1;
-		const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
-		i.d = d[W];
-		i.p[0] = pt[0][W];
-		i.p[1] = pt[1][W];
-		i.p[2] = pt[2][W];
-		i.uv[0] = t[0][W];
-		i.uv[1] = t[1][W];
-		i.nodeIndex = nodeIndex;
-		i.primitive = triangle;
-
-		return true;
-	}
-*/
-	return false;
+	return closestIndex != -1;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -711,7 +729,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			float minDist = s.r2;
 
 			for (int w = 0; w < WIDTH; w++) {
-				if (node.child[w] != maxInt && mask[w] && d2Min[w] < minDist) {
+				if (mask[w] && d2Min[w] < minDist && node.child[w] != maxInt) {
 					closestIndex = w;
 					minDist = d2Min[w];
 				}
@@ -719,7 +737,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 			// enqueue remaining overlapping nodes first
 			for (int w = 0; w < WIDTH; w++) {
-				if (node.child[w] != maxInt && mask[w] && w != closestIndex) {
+				if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
 					if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[w]);
 					stackPtr++;
 					subtree[stackPtr].node = node.child[w];
