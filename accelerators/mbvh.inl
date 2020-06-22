@@ -18,11 +18,12 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 
 	if (sbvhNode.nReferences > 0) {
 		// sbvh node is a leaf node; assign mbvh node its reference indices
-		for (int p = 0; p < sbvhNode.nReferences; p++) {
-			flatTree[mbvhNodeIndex].child[p] = -(references[sbvhNode.referenceOffset + p] + 1);
-		}
-
-		nLeafs++;
+		MbvhNode<WIDTH, DIM>& mbvhNode = flatTree[mbvhNodeIndex];
+		mbvhNode.child[0] = -(nLeafs + 1); // negative value indicates that node is a leaf
+		mbvhNode.child[1] = sbvhNode.nReferences/WIDTH + 1;
+		mbvhNode.child[2] = sbvhNode.referenceOffset;
+		mbvhNode.child[3] = sbvhNode.nReferences;
+		nLeafs += mbvhNode.child[1];
 
 	} else {
 		// sbvh node is an inner node, flatten it
@@ -72,45 +73,50 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::isLeafNode(const MbvhNode<WIDTH, DI
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node,
-															  int leafIndex)
+inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node)
 {
+	int leafOffset = -node.child[0] - 1;
+	int referenceOffset = node.child[2];
+	int nReferences = node.child[3];
+
 	if (vectorizedLeafType == ObjectType::LineSegments) {
 		// populate leaf node with line segments
-		for (int w = 0; w < WIDTH; w++) {
-			if (node.child[w] != maxInt) {
-				int index = -node.child[w] - 1;
-				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
-				int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
-				int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
-				const Vector3& pa = lineSegment->soup->positions[paIndex];
-				const Vector3& pb = lineSegment->soup->positions[pbIndex];
+		for (int p = 0; p < nReferences; p++) {
+			int index = references[referenceOffset + p];
+			int leafIndex = leafOffset + 2*(p/WIDTH);
+			int w = p%WIDTH;
 
-				for (int i = 0; i < DIM; i++) {
-					leafNodes[leafIndex + 0][i][w] = pa[i];
-					leafNodes[leafIndex + 1][i][w] = pb[i];
-				}
+			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
+			int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
+			int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
+			const Vector3& pa = lineSegment->soup->positions[paIndex];
+			const Vector3& pb = lineSegment->soup->positions[pbIndex];
+
+			for (int i = 0; i < DIM; i++) {
+				leafNodes[leafIndex + 0][i][w] = pa[i];
+				leafNodes[leafIndex + 1][i][w] = pb[i];
 			}
 		}
 
 	} else if (vectorizedLeafType == ObjectType::Triangles) {
 		// populate leaf node with triangles
-		for (int w = 0; w < WIDTH; w++) {
-			if (node.child[w] != maxInt) {
-				int index = -node.child[w] - 1;
-				const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
-				int paIndex = triangle->soup->indices[triangle->index + 0];
-				int pbIndex = triangle->soup->indices[triangle->index + 1];
-				int pcIndex = triangle->soup->indices[triangle->index + 2];
-				const Vector3& pa = triangle->soup->positions[paIndex];
-				const Vector3& pb = triangle->soup->positions[pbIndex];
-				const Vector3& pc = triangle->soup->positions[pcIndex];
+		for (int p = 0; p < nReferences; p++) {
+			int index = references[referenceOffset + p];
+			int leafIndex = leafOffset + 3*(p/WIDTH);
+			int w = p%WIDTH;
 
-				for (int i = 0; i < DIM; i++) {
-					leafNodes[leafIndex + 0][i][w] = pa[i];
-					leafNodes[leafIndex + 1][i][w] = pb[i];
-					leafNodes[leafIndex + 2][i][w] = pc[i];
-				}
+			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
+			int paIndex = triangle->soup->indices[triangle->index + 0];
+			int pbIndex = triangle->soup->indices[triangle->index + 1];
+			int pcIndex = triangle->soup->indices[triangle->index + 2];
+			const Vector3& pa = triangle->soup->positions[paIndex];
+			const Vector3& pb = triangle->soup->positions[pbIndex];
+			const Vector3& pc = triangle->soup->positions[pcIndex];
+
+			for (int i = 0; i < DIM; i++) {
+				leafNodes[leafIndex + 0][i][w] = pa[i];
+				leafNodes[leafIndex + 1][i][w] = pb[i];
+				leafNodes[leafIndex + 2][i][w] = pc[i];
 			}
 		}
 	}
@@ -121,18 +127,12 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 {
 	if (vectorizedLeafType == ObjectType::LineSegments ||
 		vectorizedLeafType == ObjectType::Triangles) {
-		int leafIndex = 0;
 		int shift = vectorizedLeafType == ObjectType::LineSegments ? 2 : 3;
 		leafNodes.resize(nLeafs*shift);
 
 		for (int i = 0; i < nNodes; i++) {
 			MbvhNode<WIDTH, DIM>& node = flatTree[i];
-
-			if (isLeafNode(node)) {
-				populateLeafNode(node, leafIndex);
-				node.leafIndex = leafIndex;
-				leafIndex += shift;
-			}
+			if (isLeafNode(node)) populateLeafNode(node);
 		}
 	}
 }
@@ -151,7 +151,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	PROFILE_SCOPED();
 #endif
 
-	LOG_IF(FATAL, sbvh_->leafSize != WIDTH) << "Sbvh leaf size must equal mbvh width";
+	LOG_IF(FATAL, WIDTH < 4) << "SIMD WIDTH must be atleast 4";
 
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -167,23 +167,18 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
 
-	// compute empty nodes
-	float nEmptyLeafs = 0;
+	// count not-full leaves
+	float nLeafsNotFull = 0;
 	for (int i = 0; i < nNodes; i++) {
-		if (isLeafNode(flatTree[i])) {
-			for (int w = 0; w < WIDTH; w++) {
-				if (flatTree[i].child[w] == maxInt) {
-					nEmptyLeafs += 1;
-				}
-			}
-		}
+		MbvhNode<WIDTH, DIM>& node = flatTree[i];
+		if (isLeafNode(node) && node.child[3]%WIDTH != 0) nLeafsNotFull++;
 	}
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 	std::cout << "Built " << WIDTH << "-bvh with "
 			  << nNodes << " nodes, "
-			  << (nEmptyLeafs/nLeafs) << " empty leafs, "
+			  << (nLeafsNotFull/nLeafs) << "% leaves not full, "
 			  << nLeafs << " leaves, "
 			  << maxDepth << " max depth, "
 			  << primitives.size() << " primitives, "
@@ -245,7 +240,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
-
+/*
 	// perform vectorized intersection query
 	FloatP<WIDTH> d;
 	VectorP<WIDTH, DIM> pt;
@@ -308,6 +303,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 	}
 
 	return hits;
+*/
+	return 0;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -318,7 +315,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<WID
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
-
+/*
 	// perform vectorized intersection query
 	FloatP<WIDTH> d;
 	VectorP<WIDTH, DIM> pt;
@@ -382,6 +379,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<WID
 	}
 
 	return hits;
+*/
+	return 0;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -415,8 +414,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (vectorizedLeafType == ObjectType::LineSegments ||
-				vectorizedLeafType == ObjectType::Triangles) {
+			if (false) {
 				// perform vectorized intersection query
 				hits += vectorizedLeafType == ObjectType::LineSegments ?
 						intersectLineSegment(node, nodeIndex, r, is, countHits) :
@@ -427,52 +425,53 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			} else {
 				// primitive type does not support vectorized intersection query,
 				// perform query to each primitive one by one
-				for (int w = 0; w < WIDTH; w++) {
-					if (node.child[w] != maxInt) {
-						int index = -node.child[w] - 1;
-						const PrimitiveType *prim = primitives[index];
-						if (this->ignorePrimitive(prim)) continue;
+				int referenceOffset = node.child[2];
+				int nReferences = node.child[3];
 
-						// check if primitive has already been seen
-						bool seenPrim = false;
-						int nInteractions = (int)is.size();
-						for (int sp = 0; sp < nInteractions; sp++) {
-							if (prim == is[sp].primitive) {
-								seenPrim = true;
-								break;
-							}
+				for (int p = 0; p < nReferences; p++) {
+					int index = references[referenceOffset + p];
+					const PrimitiveType *prim = primitives[index];
+					if (this->ignorePrimitive(prim)) continue;
+
+					// check if primitive has already been seen
+					bool seenPrim = false;
+					int nInteractions = (int)is.size();
+					for (int sp = 0; sp < nInteractions; sp++) {
+						if (prim == is[sp].primitive) {
+							seenPrim = true;
+							break;
+						}
+					}
+
+					if (!seenPrim) {
+						nodesVisited++;
+
+						int hit = 0;
+						std::vector<Interaction<DIM>> cs;
+						if (primitiveTypeIsAggregate) {
+							const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+							hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
+
+						} else {
+							hit = prim->intersect(r, cs, checkOcclusion, countHits);
 						}
 
-						if (!seenPrim) {
-							nodesVisited++;
-
-							int hit = 0;
-							std::vector<Interaction<DIM>> cs;
-							if (primitiveTypeIsAggregate) {
-								const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-								hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
-
-							} else {
-								hit = prim->intersect(r, cs, checkOcclusion, countHits);
-							}
-
-							// keep the closest intersection only
-							if (hit > 0) {
-								hits += hit;
-								if (countHits) {
-									is.insert(is.end(), cs.begin(), cs.end());
-									for (int sp = nInteractions; sp < (int)is.size(); sp++) {
-										is[sp].nodeIndex = nodeIndex;
-									}
-
-								} else {
-									r.tMax = std::min(r.tMax, cs[0].d);
-									is[0] = cs[0];
-									is[0].nodeIndex = nodeIndex;
+						// keep the closest intersection only
+						if (hit > 0) {
+							hits += hit;
+							if (countHits) {
+								is.insert(is.end(), cs.begin(), cs.end());
+								for (int sp = nInteractions; sp < (int)is.size(); sp++) {
+									is[sp].nodeIndex = nodeIndex;
 								}
 
-								if (checkOcclusion) return 1;
+							} else {
+								r.tMax = std::min(r.tMax, cs[0].d);
+								is[0] = cs[0];
+								is[0].nodeIndex = nodeIndex;
 							}
+
+							if (checkOcclusion) return 1;
 						}
 					}
 				}
@@ -480,8 +479,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 		} else {
 			// intersect ray with boxes
-			MaskP<WIDTH> mask = intersectWideBox<WIDTH, DIM>(r, node.boxMin,
-													node.boxMax, tMin, tMax);
+			MaskP<WIDTH> mask = intersectWideBox<WIDTH, DIM>(r, node.boxMin, node.boxMax, tMin, tMax);
 
 			// find closest intersecting node
 			int closestIndex = -1;
@@ -541,7 +539,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
-
+/*
 	// perform vectorized closest point query
 	VectorP<WIDTH, DIM> pt;
 	FloatP<WIDTH> t;
@@ -577,7 +575,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 
 		return true;
 	}
-
+*/
 	return false;
 }
 
@@ -589,7 +587,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
-
+/*
 	// perform vectorized closest point query
 	VectorP<WIDTH, DIM> pt;
 	VectorP<WIDTH, DIM - 1> t;
@@ -626,7 +624,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 
 		return true;
 	}
-
+*/
 	return false;
 }
 
@@ -660,8 +658,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (vectorizedLeafType == ObjectType::LineSegments ||
-				vectorizedLeafType == ObjectType::Triangles) {
+			if (false) {
 				// perform vectorized closest point query to triangle
 				bool found = vectorizedLeafType == ObjectType::LineSegments ?
 							 findClosestPointLineSegment(node, nodeIndex, s, i) :
@@ -672,32 +669,33 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			} else {
 				// primitive type does not support vectorized closest point query,
 				// perform query to each primitive one by one
-				for (int w = 0; w < WIDTH; w++) {
-					if (node.child[w] != maxInt) {
-						int index = -node.child[w] - 1;
-						const PrimitiveType *prim = primitives[index];
-						if (this->ignorePrimitive(prim)) continue;
+				int referenceOffset = node.child[2];
+				int nReferences = node.child[3];
 
-						if (prim != i.primitive) {
-							nodesVisited++;
+				for (int p = 0; p < nReferences; p++) {
+					int index = references[referenceOffset + p];
+					const PrimitiveType *prim = primitives[index];
+					if (this->ignorePrimitive(prim)) continue;
 
-							bool found = false;
-							Interaction<DIM> c;
-							if (primitiveTypeIsAggregate) {
-								const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-								found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
+					if (prim != i.primitive) {
+						nodesVisited++;
 
-							} else {
-								found = prim->findClosestPoint(s, c);
-							}
+						bool found = false;
+						Interaction<DIM> c;
+						if (primitiveTypeIsAggregate) {
+							const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+							found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
 
-							// keep the closest point only
-							if (found) {
-								notFound = false;
-								s.r2 = std::min(s.r2, c.d*c.d);
-								i = c;
-								i.nodeIndex = nodeIndex;
-							}
+						} else {
+							found = prim->findClosestPoint(s, c);
+						}
+
+						// keep the closest point only
+						if (found) {
+							notFound = false;
+							s.r2 = std::min(s.r2, c.d*c.d);
+							i = c;
+							i.nodeIndex = nodeIndex;
 						}
 					}
 				}
@@ -705,8 +703,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 		} else {
 			// overlap sphere with boxes
-			MaskP<WIDTH> mask = overlapWideBox<WIDTH, DIM>(s, node.boxMin,
-												node.boxMax, d2Min, d2Max);
+			MaskP<WIDTH> mask = overlapWideBox<WIDTH, DIM>(s, node.boxMin, node.boxMax, d2Min, d2Max);
 
 			// find closest overlapping node
 			int closestIndex = -1;

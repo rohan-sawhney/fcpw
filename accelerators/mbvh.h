@@ -9,12 +9,11 @@ struct MbvhNode {
 	// constructor
 	MbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
 				boxMax(FloatP<WIDTH>(minFloat)),
-				child(maxInt), leafIndex(-1) {}
+				child(maxInt) {}
 
 	// members
 	VectorP<WIDTH, DIM> boxMin, boxMax;
 	IntP<WIDTH> child; // use sign to differentiate between inner and leaf nodes
-	int leafIndex;
 };
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType=Primitive<DIM>>
@@ -56,7 +55,7 @@ protected:
 	bool isLeafNode(const MbvhNode<WIDTH, DIM>& node) const;
 
 	// populates leaf node
-	void populateLeafNode(const MbvhNode<WIDTH, DIM>& node, int leafIndex);
+	void populateLeafNode(const MbvhNode<WIDTH, DIM>& node);
 
 	// populates leaf nodes
 	void populateLeafNodes();
