@@ -1,7 +1,7 @@
 Priority:
 Test MBVH correctness:
--- bvh build statistics should be the same
 -- try with different widths
+-- try different leaf sizes
 -- ignoreList
 
 1. enforce max tree depth & allocate fixed size stack for traversal on stack

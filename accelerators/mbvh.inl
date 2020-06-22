@@ -179,7 +179,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 	std::cout << "Built " << WIDTH << "-bvh with "
 			  << nNodes << " nodes, "
-			  << (nLeafsNotFull/nLeafs) << "% leaves not full, "
+			  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
 			  << nLeafs << " leaves, "
 			  << maxDepth << " max depth, "
 			  << primitives.size() << " primitives, "
@@ -241,71 +241,73 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
-/*
-	// perform vectorized intersection query
-	FloatP<WIDTH> d;
-	VectorP<WIDTH, DIM> pt;
-	FloatP<WIDTH> t;
-	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
-	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
-	MaskP<WIDTH> mask = intersectWideLineSegment(r, pa, pb, d, pt, t);
 
+	int leafOffset = -node.child[0] - 1;
+	int nLeafs = node.child[1];
+	int referenceOffset = node.child[2];
+	int nReferences = node.child[3];
+	int startReference = 0;
 	int hits = 0;
-	if (countHits) {
-		// record all interactions
-		for (int w = 0; w < WIDTH; w++) {
-			if (node.child[w] != maxInt && mask[w]) {
-				int index = -node.child[w] - 1;
-				if (this->ignorePrimitive(primitives[index])) continue;
 
-				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
-				auto it = is.emplace(is.end(), Interaction<DIM>());
-				it->d = d[w];
-				it->p[0] = pt[0][w];
-				it->p[1] = pt[1][w];
-				it->p[2] = pt[2][w];
-				it->uv[0] = t[w];
-				it->uv[1] = -1;
-				it->n = lineSegment->normal(true);
-				it->nodeIndex = nodeIndex;
-				it->primitive = lineSegment;
-				hits++;
+	for (int l = 0; l < nLeafs; l++) {
+		// perform vectorized intersection query
+		FloatP<WIDTH> d;
+		VectorP<WIDTH, DIM> pt;
+		FloatP<WIDTH> t;
+		int leafIndex = 2*(leafOffset + l);
+		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
+		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
+		MaskP<WIDTH> mask = intersectWideLineSegment(r, pa, pb, d, pt, t);
+
+		// record interactions
+		int endReference = startReference + WIDTH;
+		if (endReference > nReferences) endReference = nReferences;
+
+		for (int p = startReference; p < endReference; p++) {
+			int w = p - startReference;
+
+			if (countHits) {
+				if (mask[w]) {
+					int index = references[referenceOffset + p];
+					if (this->ignorePrimitive(primitives[index])) continue;
+
+					const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
+					hits++;
+					auto it = is.emplace(is.end(), Interaction<DIM>());
+					it->d = d[w];
+					it->p[0] = pt[0][w];
+					it->p[1] = pt[1][w];
+					it->p[2] = pt[2][w];
+					it->uv[0] = t[w];
+					it->uv[1] = -1;
+					it->nodeIndex = nodeIndex;
+					it->primitive = lineSegment;
+				}
+
+			} else {
+				if (mask[w] && d[w] <= r.tMax) {
+					int index = references[referenceOffset + p];
+					if (this->ignorePrimitive(primitives[index])) continue;
+
+					const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
+					hits = 1;
+					r.tMax = d[w];
+					is[0].d = d[w];
+					is[0].p[0] = pt[0][w];
+					is[0].p[1] = pt[1][w];
+					is[0].p[2] = pt[2][w];
+					is[0].uv[0] = t[w];
+					is[0].uv[1] = -1;
+					is[0].nodeIndex = nodeIndex;
+					is[0].primitive = lineSegment;
+				}
 			}
 		}
 
-	} else {
-		// determine closest primitive
-		int W = maxInt;
-		for (int w = 0; w < WIDTH; w++) {
-			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
-				int index = -node.child[w] - 1;
-				if (this->ignorePrimitive(primitives[index])) continue;
-
-				r.tMax = d[w];
-				W = w;
-			}
-		}
-
-		// update interaction
-		if (W != maxInt) {
-			int index = -node.child[W] - 1;
-			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
-			is[0].d = d[W];
-			is[0].p[0] = pt[0][W];
-			is[0].p[1] = pt[1][W];
-			is[0].p[2] = pt[2][W];
-			is[0].uv[0] = t[W];
-			is[0].uv[1] = -1;
-			is[0].n = lineSegment->normal(true);
-			is[0].nodeIndex = nodeIndex;
-			is[0].primitive = lineSegment;
-			hits = 1;
-		}
+		startReference += WIDTH;
 	}
 
 	return hits;
-*/
-	return 0;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -316,72 +318,74 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<WID
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
-/*
-	// perform vectorized intersection query
-	FloatP<WIDTH> d;
-	VectorP<WIDTH, DIM> pt;
-	VectorP<WIDTH, DIM - 1> t;
-	const VectorP<WIDTH, DIM>& pa = leafNodes[node.leafIndex + 0];
-	const VectorP<WIDTH, DIM>& pb = leafNodes[node.leafIndex + 1];
-	const VectorP<WIDTH, DIM>& pc = leafNodes[node.leafIndex + 2];
-	MaskP<WIDTH> mask = intersectWideTriangle(r, pa, pb, pc, d, pt, t);
 
+	int leafOffset = -node.child[0] - 1;
+	int nLeafs = node.child[1];
+	int referenceOffset = node.child[2];
+	int nReferences = node.child[3];
+	int startReference = 0;
 	int hits = 0;
-	if (countHits) {
-		// record all interactions
-		for (int w = 0; w < WIDTH; w++) {
-			if (node.child[w] != maxInt && mask[w]) {
-				int index = -node.child[w] - 1;
-				if (this->ignorePrimitive(primitives[index])) continue;
 
-				const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
-				auto it = is.emplace(is.end(), Interaction<DIM>());
-				it->d = d[w];
-				it->p[0] = pt[0][w];
-				it->p[1] = pt[1][w];
-				it->p[2] = pt[2][w];
-				it->uv[0] = t[0][w];
-				it->uv[1] = t[1][w];
-				it->n = triangle->normal(true);
-				it->nodeIndex = nodeIndex;
-				it->primitive = triangle;
-				hits++;
+	for (int l = 0; l < nLeafs; l++) {
+		// perform vectorized intersection query
+		FloatP<WIDTH> d;
+		VectorP<WIDTH, DIM> pt;
+		VectorP<WIDTH, DIM - 1> t;
+		int leafIndex = 3*(leafOffset + l);
+		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
+		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
+		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex + 2];
+		MaskP<WIDTH> mask = intersectWideTriangle(r, pa, pb, pc, d, pt, t);
+
+		// record interactions
+		int endReference = startReference + WIDTH;
+		if (endReference > nReferences) endReference = nReferences;
+
+		for (int p = startReference; p < endReference; p++) {
+			int w = p - startReference;
+
+			if (countHits) {
+				if (mask[w]) {
+					int index = references[referenceOffset + p];
+					if (this->ignorePrimitive(primitives[index])) continue;
+
+					const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
+					hits++;
+					auto it = is.emplace(is.end(), Interaction<DIM>());
+					it->d = d[w];
+					it->p[0] = pt[0][w];
+					it->p[1] = pt[1][w];
+					it->p[2] = pt[2][w];
+					it->uv[0] = t[0][w];
+					it->uv[1] = t[1][w];
+					it->nodeIndex = nodeIndex;
+					it->primitive = triangle;
+				}
+
+			} else {
+				if (mask[w] && d[w] <= r.tMax) {
+					int index = references[referenceOffset + p];
+					if (this->ignorePrimitive(primitives[index])) continue;
+
+					const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
+					hits = 1;
+					r.tMax = d[w];
+					is[0].d = d[w];
+					is[0].p[0] = pt[0][w];
+					is[0].p[1] = pt[1][w];
+					is[0].p[2] = pt[2][w];
+					is[0].uv[0] = t[0][w];
+					is[0].uv[1] = t[1][w];
+					is[0].nodeIndex = nodeIndex;
+					is[0].primitive = triangle;
+				}
 			}
 		}
 
-	} else {
-		// determine closest primitive
-		int W = maxInt;
-		for (int w = 0; w < WIDTH; w++) {
-			if (node.child[w] != maxInt && mask[w] && d[w] <= r.tMax) {
-				int index = -node.child[w] - 1;
-				if (this->ignorePrimitive(primitives[index])) continue;
-
-				r.tMax = d[w];
-				W = w;
-			}
-		}
-
-		// update interaction
-		if (W != maxInt) {
-			int index = -node.child[W] - 1;
-			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
-			is[0].d = d[W];
-			is[0].p[0] = pt[0][W];
-			is[0].p[1] = pt[1][W];
-			is[0].p[2] = pt[2][W];
-			is[0].uv[0] = t[0][W];
-			is[0].uv[1] = t[1][W];
-			is[0].n = triangle->normal(true);
-			is[0].nodeIndex = nodeIndex;
-			is[0].primitive = triangle;
-			hits = 1;
-		}
+		startReference += WIDTH;
 	}
 
 	return hits;
-*/
-	return 0;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -415,7 +419,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (false) {
+			if (vectorizedLeafType == ObjectType::LineSegments ||
+				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized intersection query
 				hits += vectorizedLeafType == ObjectType::LineSegments ?
 						intersectLineSegment(node, nodeIndex, r, is, countHits) :
