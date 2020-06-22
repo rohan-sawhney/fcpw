@@ -400,7 +400,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	std::vector<BvhTraversal> subtree((maxDepth + 1)*(MBVH_BRANCHING_FACTOR - 1));
+	BvhTraversal subtree[MBVH_MAX_DEPTH];
 	FloatP<MBVH_BRANCHING_FACTOR> tMin, tMax;
 
 	// push root node
@@ -664,7 +664,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
-	std::vector<BvhTraversal> subtree((maxDepth + 1)*(MBVH_BRANCHING_FACTOR - 1));
+	BvhTraversal subtree[MBVH_MAX_DEPTH];
 	FloatP<MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 
 	// push root node
