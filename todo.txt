@@ -1,7 +1,6 @@
 Priority:
 Test MBVH correctness:
 -- bvh build statistics should be the same
--- try without primitive vectorization
 -- try with different widths
 
 1. enforce max tree depth & allocate fixed size stack for traversal on stack

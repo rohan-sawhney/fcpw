@@ -20,7 +20,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 		// sbvh node is a leaf node; assign mbvh node its reference indices
 		MbvhNode<WIDTH, DIM>& mbvhNode = flatTree[mbvhNodeIndex];
 		mbvhNode.child[0] = -(nLeafs + 1); // negative value indicates that node is a leaf
-		mbvhNode.child[1] = sbvhNode.nReferences/WIDTH + 1;
+		mbvhNode.child[1] = sbvhNode.nReferences/WIDTH;
+		if (sbvhNode.nReferences%WIDTH != 0) mbvhNode.child[1] += 1;
 		mbvhNode.child[2] = sbvhNode.referenceOffset;
 		mbvhNode.child[3] = sbvhNode.nReferences;
 		nLeafs += mbvhNode.child[1];
