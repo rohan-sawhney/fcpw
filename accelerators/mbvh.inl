@@ -141,7 +141,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_):
 primitives(sbvh_->primitives),
-references(sbvh_->references),
+references(std::move(sbvh_->references)),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
@@ -159,6 +159,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 
 	// collapse sbvh
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
+	delete sbvh_;
 
 	// determine object type
 	vectorizedLeafType = std::is_same<PrimitiveType, Triangle>::value ? ObjectType::Triangles :
