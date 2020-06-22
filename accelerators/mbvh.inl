@@ -159,7 +159,6 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 
 	// collapse sbvh
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
-	delete sbvh_;
 
 	// determine object type
 	vectorizedLeafType = std::is_same<PrimitiveType, Triangle>::value ? ObjectType::Triangles :
