@@ -5,7 +5,6 @@ Priority:
 3. start search from specified node (and walk up/laterally in the tree)
 4. mbvh
 ---- allocate fixed size stack for traversal on stack
----- use user specified branching factor
 ---- clear scene memory when vectorizing primitives?
 ---- enoki settings on ubuntu & windows
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)

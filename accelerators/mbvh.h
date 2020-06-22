@@ -1,19 +1,26 @@
 #pragma once
 
 #include "sbvh.h"
+#ifdef USE_EIGHT_WIDE_BRANCHING
+	#define MBVH_BRANCHING_FACTOR 8
+	#define MBVH_MAX_DEPTH 154
+#else
+	#define MBVH_BRANCHING_FACTOR 4
+	#define MBVH_MAX_DEPTH 96
+#endif
 
 namespace fcpw {
 
-template<size_t WIDTH, size_t DIM>
+template<size_t DIM>
 struct MbvhNode {
 	// constructor
-	MbvhNode(): boxMin(FloatP<WIDTH>(maxFloat)),
-				boxMax(FloatP<WIDTH>(minFloat)),
+	MbvhNode(): boxMin(FloatP<MBVH_BRANCHING_FACTOR>(maxFloat)),
+				boxMax(FloatP<MBVH_BRANCHING_FACTOR>(minFloat)),
 				child(maxInt) {}
 
 	// members
-	VectorP<WIDTH, DIM> boxMin, boxMax;
-	IntP<WIDTH> child; // use sign to differentiate between inner and leaf nodes
+	VectorP<MBVH_BRANCHING_FACTOR, DIM> boxMin, boxMax;
+	IntP<MBVH_BRANCHING_FACTOR> child; // use sign to differentiate between inner and leaf nodes
 };
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType=Primitive<DIM>>
@@ -52,36 +59,36 @@ protected:
 	int collapseSbvh(const Sbvh<DIM, PrimitiveType> *sbvh, int sbvhNodeIndex, int parent, int depth);
 
 	// determines whether mbvh node is a leaf node
-	bool isLeafNode(const MbvhNode<WIDTH, DIM>& node) const;
+	bool isLeafNode(const MbvhNode<DIM>& node) const;
 
 	// populates leaf node
-	void populateLeafNode(const MbvhNode<WIDTH, DIM>& node);
+	void populateLeafNode(const MbvhNode<DIM>& node);
 
 	// populates leaf nodes
 	void populateLeafNodes();
 
 	// performs vectorized ray intersection query to line segment
-	int intersectLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+	int intersectLineSegment(const MbvhNode<DIM>& node, int nodeIndex,
 							 Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 							 bool countHits) const;
 
 	// performs vectorized ray intersection query to triangle
-	int intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+	int intersectTriangle(const MbvhNode<DIM>& node, int nodeIndex,
 						  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 						  bool countHits) const;
 
 	// performs vectorized closest point query to line segment
-	bool findClosestPointLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+	bool findClosestPointLineSegment(const MbvhNode<DIM>& node, int nodeIndex,
 									 BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 	// performs vectorized closest point query to triangle
-	bool findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+	bool findClosestPointTriangle(const MbvhNode<DIM>& node, int nodeIndex,
 								  BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
 
 	// members
 	int nNodes, nLeafs, maxDepth, maxLevel;
 	const std::vector<PrimitiveType *>& primitives;
-	std::vector<MbvhNode<WIDTH, DIM>> flatTree;
+	std::vector<MbvhNode<DIM>> flatTree;
 	std::vector<VectorP<WIDTH, DIM>> leafNodes;
 	std::vector<int> references;
 	ObjectType vectorizedLeafType;

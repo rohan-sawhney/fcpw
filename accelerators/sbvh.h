@@ -3,6 +3,7 @@
 #include "primitive.h"
 #include <tuple>
 #include <deque>
+#define SBVH_MAX_DEPTH 64
 
 namespace fcpw {
 // modified version of https://github.com/brandonpelfrey/Fast-BVH and

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.1.0)
 project(fcpw)
 
 option(BUILD_ENOKI "Build enoki" ON)
+option(USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
 option(BUILD_TESTS "Build tests" ON)
 option(BENCHMARK_EMBREE "Benchmark embree" OFF)
 option(PROFILE "Profile" OFF)
@@ -78,6 +79,10 @@ if(BUILD_ENOKI)
 		add_definitions(-DSIMD_WIDTH=16)
 	else()
 		add_definitions(-DSIMD_WIDTH=4)
+	endif()
+
+	if(USE_EIGHT_WIDE_BRANCHING)
+		add_definitions(-DUSE_EIGHT_WIDE_BRANCHING)
 	endif()
 endif()
 

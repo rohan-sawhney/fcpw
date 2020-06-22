@@ -10,7 +10,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 	maxDepth = std::max(depth, maxDepth);
 
 	// create mbvh node
-	MbvhNode<WIDTH, DIM> mbvhNode;
+	MbvhNode<DIM> mbvhNode;
 	int mbvhNodeIndex = nNodes;
 
 	nNodes++;
@@ -18,7 +18,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 
 	if (sbvhNode.nReferences > 0) {
 		// sbvh node is a leaf node; assign mbvh node its reference indices
-		MbvhNode<WIDTH, DIM>& mbvhNode = flatTree[mbvhNodeIndex];
+		MbvhNode<DIM>& mbvhNode = flatTree[mbvhNodeIndex];
 		mbvhNode.child[0] = -(nLeafs + 1); // negative value indicates that node is a leaf
 		mbvhNode.child[1] = sbvhNode.nReferences/WIDTH;
 		if (sbvhNode.nReferences%WIDTH != 0) mbvhNode.child[1] += 1;
@@ -30,7 +30,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 		// sbvh node is an inner node, flatten it
 		int stackPtr = 0;
 		int nNodesCollapsed = 0;
-		int stackSbvhNodes[WIDTH][2];
+		int stackSbvhNodes[MBVH_BRANCHING_FACTOR][2];
 		stackSbvhNodes[stackPtr][0] = sbvhNodeIndex;
 		stackSbvhNodes[stackPtr][1] = 0;
 
@@ -68,13 +68,13 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline bool Mbvh<WIDTH, DIM, PrimitiveType>::isLeafNode(const MbvhNode<WIDTH, DIM>& node) const
+inline bool Mbvh<WIDTH, DIM, PrimitiveType>::isLeafNode(const MbvhNode<DIM>& node) const
 {
 	return node.child[0] < 0;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<WIDTH, DIM>& node)
+inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM>& node)
 {
 	int leafOffset = -node.child[0] - 1;
 	int referenceOffset = node.child[2];
@@ -132,7 +132,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 		leafNodes.resize(nLeafs*shift);
 
 		for (int i = 0; i < nNodes; i++) {
-			MbvhNode<WIDTH, DIM>& node = flatTree[i];
+			MbvhNode<DIM>& node = flatTree[i];
 			if (isLeafNode(node)) populateLeafNode(node);
 		}
 	}
@@ -145,14 +145,14 @@ references(sbvh_->references),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
-maxLevel(std::log2(WIDTH)),
+maxLevel(std::log2(MBVH_BRANCHING_FACTOR)),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
-	LOG_IF(FATAL, WIDTH < 4) << "SIMD WIDTH must be atleast 4";
+	LOG_IF(FATAL, MBVH_BRANCHING_FACTOR < 4) << "Branching factor must be atleast 4";
 
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -171,13 +171,13 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	// count not-full leaves
 	float nLeafsNotFull = 0;
 	for (int i = 0; i < nNodes; i++) {
-		MbvhNode<WIDTH, DIM>& node = flatTree[i];
+		MbvhNode<DIM>& node = flatTree[i];
 		if (isLeafNode(node) && node.child[3]%WIDTH != 0) nLeafsNotFull++;
 	}
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << "Built " << WIDTH << "-bvh with "
+	std::cout << "Built " << MBVH_BRANCHING_FACTOR << "-bvh with "
 			  << nNodes << " nodes, "
 			  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
 			  << nLeafs << " leaves, "
@@ -234,7 +234,7 @@ inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<DIM>& node, int nodeIndex,
 																 Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 																 bool countHits) const
 {
@@ -311,7 +311,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<WIDTH, DIM>& node, int nodeIndex,
+inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM>& node, int nodeIndex,
 															  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 															  bool countHits) const
 {
@@ -400,8 +400,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!countHits) is.resize(1);
-	std::vector<BvhTraversal> subtree((maxDepth + 1)*(WIDTH - 1));
-	FloatP<WIDTH> tMin, tMax;
+	std::vector<BvhTraversal> subtree((maxDepth + 1)*(MBVH_BRANCHING_FACTOR - 1));
+	FloatP<MBVH_BRANCHING_FACTOR> tMin, tMax;
 
 	// push root node
 	subtree[0].node = 0;
@@ -416,7 +416,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 		// if this node is further than the closest found intersection, continue
 		if (!countHits && near > r.tMax) continue;
-		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
+		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
 			if (vectorizedLeafType == ObjectType::LineSegments ||
@@ -485,13 +485,14 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 		} else {
 			// intersect ray with boxes
-			MaskP<WIDTH> mask = intersectWideBox<WIDTH, DIM>(r, node.boxMin, node.boxMax, tMin, tMax);
+			MaskP<MBVH_BRANCHING_FACTOR> mask = intersectWideBox<MBVH_BRANCHING_FACTOR, DIM>(r,
+														  node.boxMin, node.boxMax, tMin, tMax);
 
 			// find closest intersecting node
 			int closestIndex = -1;
 			float minHit = r.tMax;
 
-			for (int w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
 				if (mask[w] && tMin[w] < minHit && node.child[w] != maxInt) {
 					closestIndex = w;
 					minHit = tMin[w];
@@ -499,7 +500,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			}
 
 			// enqueue remaining intersecting nodes first
-			for (int w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
 				if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
 					stackPtr++;
 					subtree[stackPtr].node = node.child[w];
@@ -538,7 +539,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const MbvhNode<WIDTH, DIM>& node,
+inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const MbvhNode<DIM>& node,
 																		 int nodeIndex, BoundingSphere<DIM>& s,
 																		 Interaction<DIM>& i) const
 {
@@ -595,7 +596,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const MbvhNode<WIDTH, DIM>& node,
+inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const MbvhNode<DIM>& node,
 																	  int nodeIndex, BoundingSphere<DIM>& s,
 																	  Interaction<DIM>& i) const
 {
@@ -663,8 +664,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
-	std::vector<BvhTraversal> subtree((maxDepth + 1)*(WIDTH - 1));
-	FloatP<WIDTH> d2Min, d2Max;
+	std::vector<BvhTraversal> subtree((maxDepth + 1)*(MBVH_BRANCHING_FACTOR - 1));
+	FloatP<MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 
 	// push root node
 	subtree[0].node = 0;
@@ -679,7 +680,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
-		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
+		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
 			if (vectorizedLeafType == ObjectType::LineSegments ||
@@ -728,13 +729,14 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 		} else {
 			// overlap sphere with boxes
-			MaskP<WIDTH> mask = overlapWideBox<WIDTH, DIM>(s, node.boxMin, node.boxMax, d2Min, d2Max);
+			MaskP<MBVH_BRANCHING_FACTOR> mask = overlapWideBox<MBVH_BRANCHING_FACTOR, DIM>(s,
+													  node.boxMin, node.boxMax, d2Min, d2Max);
 
 			// find closest overlapping node
 			int closestIndex = -1;
 			float minDist = s.r2;
 
-			for (int w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
 				if (mask[w] && d2Min[w] < minDist && node.child[w] != maxInt) {
 					closestIndex = w;
 					minDist = d2Min[w];
@@ -742,7 +744,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			}
 
 			// enqueue remaining overlapping nodes first
-			for (int w = 0; w < WIDTH; w++) {
+			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
 				if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
 					if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[w]);
 					stackPtr++;

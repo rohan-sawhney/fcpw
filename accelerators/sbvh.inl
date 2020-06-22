@@ -1,5 +1,3 @@
-#define SBVH_MAX_DEPTH 64
-
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveType>
