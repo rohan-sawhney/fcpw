@@ -84,7 +84,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<WID
 		// populate leaf node with line segments
 		for (int p = 0; p < nReferences; p++) {
 			int index = references[referenceOffset + p];
-			int leafIndex = leafOffset + 2*(p/WIDTH);
+			int leafIndex = 2*(leafOffset + p/WIDTH);
 			int w = p%WIDTH;
 
 			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
@@ -103,7 +103,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<WID
 		// populate leaf node with triangles
 		for (int p = 0; p < nReferences; p++) {
 			int index = references[referenceOffset + p];
-			int leafIndex = leafOffset + 3*(p/WIDTH);
+			int leafIndex = 3*(leafOffset + p/WIDTH);
 			int w = p%WIDTH;
 
 			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
@@ -552,7 +552,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 		// perform vectorized closest point query
 		VectorP<WIDTH, DIM> pt;
 		FloatP<WIDTH> t;
-		int leafIndex = leafOffset + 2*l;
+		int leafIndex = 2*(leafOffset + l);
 		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
 		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
 		FloatP<WIDTH> d = findClosestPointWideLineSegment(s.c, pa, pb, pt, t);
@@ -609,7 +609,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 		// perform vectorized closest point query
 		VectorP<WIDTH, DIM> pt;
 		VectorP<WIDTH, DIM - 1> t;
-		int leafIndex = leafOffset + 3*l;
+		int leafIndex = 3*(leafOffset + l);
 		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
 		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
 		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex + 2];
@@ -677,7 +677,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 		const MbvhNode<WIDTH, DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (false) {
+			if (vectorizedLeafType == ObjectType::LineSegments ||
+				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized closest point query to triangle
 				bool found = vectorizedLeafType == ObjectType::LineSegments ?
 							 findClosestPointLineSegment(node, nodeIndex, s, i) :
