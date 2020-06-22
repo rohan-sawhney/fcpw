@@ -1,9 +1,4 @@
 Priority:
-Test MBVH correctness:
--- try with different widths
--- try different leaf sizes
--- ignoreList
-
 1. enforce max tree depth & allocate fixed size stack for traversal on stack
 2. sbvh - move_backward is very inefficient for large meshes
 3. give the closest point a rough guess of direction to guide traversal (things can
