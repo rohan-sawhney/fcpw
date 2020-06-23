@@ -118,7 +118,7 @@ struct ClosestPointResult {
 // and using that function as the callback, or using std::bind to wrap the soup that
 // needs to be passed to closestPointTriangleCallback don't work since their function
 // signatures don't match those of the callback.
-static PolygonSoup<3> *callbackSoup = nullptr;
+static const PolygonSoup<3> *callbackSoup = nullptr;
 
 bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 {
@@ -153,9 +153,9 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 	return false;
 }
 
-inline EmbreeBvh::EmbreeBvh(const std::vector<Triangle *>& triangles_, PolygonSoup<3> *soup_):
-Baseline<3, Triangle>(triangles_),
-soup(soup_)
+inline EmbreeBvh::EmbreeBvh(const std::vector<Triangle *>& triangles_,
+							const PolygonSoup<3> *soup_):
+Baseline<3, Triangle>(triangles_)
 {
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -177,26 +177,26 @@ soup(soup_)
 	rtcSetGeometryBuildQuality(geometry, RTC_BUILD_QUALITY_HIGH);
 
 	// register closest point callback
-	callbackSoup = soup;
+	callbackSoup = soup_;
 	rtcSetGeometryPointQueryFunction(geometry, closestPointTriangleCallback);
 
 	// load geometry
 	float *vertices = (float *)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_VERTEX, 0,
 													   RTC_FORMAT_FLOAT3, 3*sizeof(float),
-													   soup->positions.size());
+													   soup_->positions.size());
 	unsigned int *indices = (unsigned int *)rtcSetNewGeometryBuffer(geometry, RTC_BUFFER_TYPE_INDEX, 0,
 																	RTC_FORMAT_UINT3, 3*sizeof(unsigned int),
-																	soup->indices.size()/3);
+																	soup_->indices.size()/3);
 
 	if (vertices && indices) {
-		for (int i = 0; i < (int)soup->positions.size(); i++) {
+		for (int i = 0; i < (int)soup_->positions.size(); i++) {
 			for (int j = 0; j < 3; j++) {
-				vertices[3*i + j] = soup->positions[i][j];
+				vertices[3*i + j] = soup_->positions[i][j];
 			}
 		}
 
-		for (int i = 0; i < (int)soup->indices.size(); i++) {
-			indices[i] = soup->indices[i];
+		for (int i = 0; i < (int)soup_->indices.size(); i++) {
+			indices[i] = soup_->indices[i];
 		}
 	}
 

@@ -9,7 +9,8 @@ namespace fcpw {
 class EmbreeBvh: public Baseline<3, Triangle> {
 public:
 	// constructor
-	EmbreeBvh(const std::vector<Triangle *>& triangles_, PolygonSoup<3> *soup_);
+	EmbreeBvh(const std::vector<Triangle *>& triangles_,
+			  const PolygonSoup<3> *soup_);
 
 	// destructor
 	~EmbreeBvh();
@@ -41,7 +42,6 @@ public:
 
 protected:
 	// members
-	PolygonSoup<3> *soup;
 	RTCDevice device;
 	RTCScene scene;
 };
