@@ -6,8 +6,6 @@
 #ifdef BENCHMARK_EMBREE
 	#include "accelerators/embree_bvh.h"
 #endif
-#include <fstream>
-#include <sstream>
 
 namespace fcpw {
 
@@ -113,65 +111,6 @@ inline PolygonSoup<3>* readSoupFromFile<3, Triangle>(const std::string& filename
 }
 
 template<size_t DIM>
-inline void loadInstanceTransforms(std::vector<std::vector<Transform<DIM>>>& instanceTransforms)
-{
-	// load file
-	std::ifstream in(instanceFilename);
-	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << instanceFilename;
-
-	// parse transforms
-	std::string line;
-	while (getline(in, line)) {
-		std::stringstream ss(line);
-		int object;
-		ss >> object;
-
-		int nTransform = (int)instanceTransforms[object].size();
-		instanceTransforms[object].emplace_back(Transform<DIM>());
-
-		for (int i = 0; i <= DIM; i++) {
-			for (int j = 0; j <= DIM; j++) {
-				ss >> instanceTransforms[object][nTransform].matrix()(i, j);
-			}
-		}
-	}
-
-	// close file
-	in.close();
-}
-
-inline void loadCsgTree(std::unordered_map<int, CsgTreeNode>& csgTree)
-{
-	// load scene
-	std::ifstream in(csgFilename);
-	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << csgFilename;
-
-	// parse obj format
-	std::string line;
-	while (getline(in, line)) {
-		std::stringstream ss(line);
-		int node;
-		ss >> node;
-
-		std::string operationStr, child1Str, child2Str;
-		ss >> operationStr >> child1Str >> child2Str;
-
-		std::size_t found1 = child1Str.find_last_of("_");
-		std::size_t found2 = child2Str.find_last_of("_");
-		csgTree[node].child1 = std::stoi(child1Str.substr(found1 + 1));
-		csgTree[node].child2 = std::stoi(child2Str.substr(found2 + 1));
-		csgTree[node].isLeafChild1 = child1Str.find("node_") == std::string::npos;
-		csgTree[node].isLeafChild2 = child2Str.find("node_") == std::string::npos;
-		csgTree[node].operation = operationStr == "Union" ? BooleanOperation::Union :
-								 (operationStr == "Intersection" ? BooleanOperation::Intersection :
-								 (operationStr == "Difference" ? BooleanOperation::Difference : BooleanOperation::None));
-	}
-
-	// close file
-	in.close();
-}
-
-template<size_t DIM>
 inline void Scene<DIM>::loadFiles()
 {
 	// compute the number of line segment and triangle files
@@ -215,10 +154,14 @@ inline void Scene<DIM>::loadFiles()
 	}
 
 	// load instance transforms
-	if (!instanceFilename.empty()) loadInstanceTransforms<DIM>(instanceTransforms);
+	if (!instanceFilename.empty()) {
+		loadInstanceTransforms<DIM>(instanceFilename, instanceTransforms);
+	}
 
 	// load csg tree
-	if (!csgFilename.empty()) loadCsgTree(csgTree);
+	if (!csgFilename.empty()) {
+		loadCsgTree(csgFilename, csgTree);
+	}
 }
 
 template<size_t DIM, typename PrimitiveType>

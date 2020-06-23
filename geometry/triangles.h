@@ -55,10 +55,4 @@ private:
 	Vector3 normal(int vIndex, int eIndex) const;
 };
 
-// reads soup from obj file
-PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename);
-
-// reads triangle soup from obj file
-PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename, std::vector<Triangle *>& triangles);
-
 } // namespace fcpw

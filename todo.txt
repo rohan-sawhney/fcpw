@@ -10,7 +10,7 @@ Priority:
 5. benchmark (https://github.com/jdumas/aabb_benchmark)
 6. travis/circle CI
 7. README (tutorial, features, benchmark, compiling, logo)
-8. Make logging, ThreadPool optional (cmake & in code), move obj loader to utilities, unique_ptr
+8. Make logging optional (cmake & in code), unique_ptr
 
 Future Optimizations & Features:
 1. vectorize + thread bvh construction

@@ -1,9 +1,6 @@
 #pragma once
 
-#include "core/csg_node.h"
-#include "geometry/line_segments.h"
-#include "geometry/triangles.h"
-#include <unordered_map>
+#include "file_io.h"
 
 namespace fcpw {
 
@@ -27,12 +24,6 @@ enum class AggregateType {
 	Bvh_OverlapVolume = 5,
 	Sbvh_SurfaceArea = 6,
 	Sbvh_Volume = 7
-};
-
-struct CsgTreeNode {
-	int child1, child2;
-	bool isLeafChild1, isLeafChild2;
-	BooleanOperation operation;
 };
 
 std::vector<std::pair<std::string, LoadingOption>> files;
