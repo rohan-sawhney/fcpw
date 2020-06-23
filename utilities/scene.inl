@@ -262,7 +262,12 @@ inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType, bool ve
 	}
 
 #ifdef BUILD_ENOKI
-	if (vectorize) return new Mbvh<SIMD_WIDTH, DIM, PrimitiveType>(sbvh);
+	if (vectorize) {
+		Mbvh<SIMD_WIDTH, DIM, PrimitiveType> *mbvh = new Mbvh<SIMD_WIDTH, DIM, PrimitiveType>(sbvh);
+		delete sbvh;
+
+		return mbvh;
+	}
 #endif
 
 	return sbvh;

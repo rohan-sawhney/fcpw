@@ -4,7 +4,6 @@ Priority:
    possibly go very wrong if guess is totally off for certain geometric distributions)
 3. start search from specified node (and walk up/laterally in the tree)
 4. mbvh
----- why does deleting sbvh cause slowdown?
 ---- enoki settings on ubuntu & windows
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- start search from specified node (and walk up/laterally in the tree)
