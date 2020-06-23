@@ -1,16 +1,16 @@
 Priority:
-1. sbvh - move_backward is very inefficient for large meshes
-2. give the closest point a rough guess of direction to guide traversal (things can
+1. switch logging to spdlog, use unique_ptr for memory management
+2. sbvh - move_backward is very inefficient for large meshes
+3. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
-3. start search from specified node (and walk up/laterally in the tree)
-4. mbvh
+4. start search from specified node (and walk up/laterally in the tree)
+5. mbvh
 ---- enoki settings on ubuntu & windows
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- start search from specified node (and walk up/laterally in the tree)
-5. benchmark (https://github.com/jdumas/aabb_benchmark)
-6. travis/circle CI
-7. README (tutorial, features, benchmark, compiling, logo)
-8. Switch logging to spdlog, unique_ptr
+6. benchmark (https://github.com/jdumas/aabb_benchmark)
+7. travis/circle CI
+8. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. vectorize + thread bvh construction
