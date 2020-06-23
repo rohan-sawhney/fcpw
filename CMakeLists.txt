@@ -144,10 +144,7 @@ list(APPEND ALL_FCPW_LIBS fcpw)
 
 ################################################################################
 if(BUILD_TESTS)
-  # If polyscope has already been included, use that version instead
-  if(NOT TARGET polyscope)
-    add_subdirectory(deps/polyscope)
-  endif()
+	add_subdirectory(deps/polyscope)
 
 	add_executable(aggregate_tests tests/aggregate_tests.cpp)
 	target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope)
