@@ -1,6 +1,6 @@
 #pragma once
 
-#include "csg_node.h"
+#include "core/csg_node.h"
 #include "geometry/line_segments.h"
 #include "geometry/triangles.h"
 #include <unordered_map>

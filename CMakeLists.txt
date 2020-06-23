@@ -121,7 +121,6 @@ add_library(fcpw STATIC
 target_include_directories(fcpw PUBLIC deps/glog/src ${CMAKE_BINARY_DIR}/deps/glog)
 target_include_directories(fcpw PUBLIC deps/eigen-git-mirror)
 target_include_directories(fcpw PUBLIC deps/ThreadPool)
-target_include_directories(fcpw PUBLIC core)
 
 list(APPEND ALL_FCPW_LIBS glog)
 

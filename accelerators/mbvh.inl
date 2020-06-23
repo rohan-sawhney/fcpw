@@ -1,4 +1,4 @@
-#include "wide_query_operations.h"
+#include "core/wide_query_operations.h"
 
 namespace fcpw {
 
