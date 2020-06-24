@@ -29,6 +29,9 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	// build sbvh
 	build();
 
+	// don't compute normals by default
+	this->computeNormals = false;
+
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 	std::cout << "Built bvh with "
@@ -766,9 +769,11 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 			hits = (int)is.size();
 		}
 
-		// set normals
-		for (int i = 0; i < (int)is.size(); i++) {
-			is[i].computeNormal();
+		// compute normals
+		if (this->computeNormals) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].computeNormal();
+			}
 		}
 
 		return hits;
@@ -899,8 +904,10 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 	}
 
 	if (!notFound) {
-		// set normal
-		i.computeNormal();
+		// compute normal
+		if (this->computeNormals) {
+			i.computeNormal();
+		}
 
 		return true;
 	}

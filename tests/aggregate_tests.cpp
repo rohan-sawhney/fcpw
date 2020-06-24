@@ -412,7 +412,7 @@ template<size_t DIM>
 void run()
 {
 	// build baseline scene
-	Scene<DIM> scene;
+	Scene<DIM> scene(false);
 	scene.loadFiles();
 	scene.buildAggregate(AggregateType::Baseline);
 
@@ -484,7 +484,7 @@ void run()
 		scene.buildAggregate(AggregateType::Baseline);
 
 		// build bvh aggregates and compare results with baseline
-		Scene<DIM> bvhScene;
+		Scene<DIM> bvhScene(false);
 		bvhScene.loadFiles();
 
 		for (int bvh = 1; bvh < 8; bvh++) {
@@ -512,7 +512,7 @@ void run()
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate and compare results with baseline
 		std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
-		Scene<DIM> embreeBvhScene;
+		Scene<DIM> embreeBvhScene(false);
 		embreeBvhScene.loadFiles();
 
 		if (embreeBvhScene.buildEmbreeAggregate()) {

@@ -208,6 +208,9 @@ Baseline<3, Triangle>(triangles_)
 	// commit scene
 	rtcCommitScene(scene);
 
+	// don't compute normals by default
+	this->computeNormals = false;
+
 	// print bvh stats
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
@@ -305,9 +308,11 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 		}
 	}
 
-	// set normals
-	for (int i = 0; i < (int)is.size(); i++) {
-		is[i].computeNormal();
+	// compute normals
+	if (this->computeNormals) {
+		for (int i = 0; i < (int)is.size(); i++) {
+			is[i].computeNormal();
+		}
 	}
 
 	return hits;
@@ -346,7 +351,7 @@ inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interactio
 		i.d = norm<3>(i.p - s.c);
 		const Triangle *triangle = this->primitives[result.primID];
 		i.uv = triangle->barycentricCoordinates(i.p);
-		i.n = triangle->normal(i.uv);
+		if (this->computeNormals) i.n = triangle->normal(i.uv);
 		i.primitive = triangle;
 		s.r2 = i.d*i.d;
 

@@ -34,7 +34,7 @@ template<size_t DIM>
 class Scene {
 public:
 	// constructor
-	Scene();
+	Scene(bool computeNormals_);
 
 	// destructor
 	~Scene();
@@ -69,8 +69,9 @@ private:
 	// clears aggregate
 	void clearAggregate();
 
-	// member
+	// members
 	std::vector<Aggregate<DIM> *> objectInstances;
+	bool computeNormals;
 };
 
 } // namespace fcpw

@@ -11,7 +11,12 @@ leftPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeLeft>:
 rightPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeRight>::value)
 {
 	LOG_IF(FATAL, left == nullptr || right == nullptr) << "Children cannot be null";
+
+	// compute bounding box
 	computeBoundingBox();
+
+	// don't compute normals by default
+	this->computeNormals = false;
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
@@ -151,8 +156,8 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 			}
 		}
 
-		// set normals
-		if (hitsLeft > 0) {
+		// compute normals
+		if (this->computeNormals && hitsLeft > 0) {
 			for (int i = 0; i < (int)isLeft.size(); i++) {
 				isLeft[i].computeNormal();
 			}
@@ -177,8 +182,8 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 			}
 		}
 
-		// set normals
-		if (hitsRight > 0) {
+		// compute normals
+		if (this->computeNormals && hitsRight > 0) {
 			for (int i = 0; i < (int)isRight.size(); i++) {
 				isRight[i].computeNormal();
 			}
@@ -247,8 +252,8 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 			}
 		}
 
-		// set normal
-		if (foundLeft) {
+		// compute normal
+		if (this->computeNormals && foundLeft) {
 			iLeft.computeNormal();
 		}
 
@@ -271,8 +276,8 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 			}
 		}
 
-		// set normal
-		if (foundRight) {
+		// compute normal
+		if (this->computeNormals && foundRight) {
 			iRight.computeNormal();
 		}
 

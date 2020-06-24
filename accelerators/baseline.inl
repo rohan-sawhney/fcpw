@@ -5,7 +5,8 @@ inline Baseline<DIM, PrimitiveType>::Baseline(const std::vector<PrimitiveType *>
 primitives(primitives_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
-
+	// don't compute normals by default
+	this->computeNormals = false;
 }
 
 template<size_t DIM, typename PrimitiveType>
@@ -103,9 +104,11 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 			hits = (int)is.size();
 		}
 
-		// set normals
-		for (int i = 0; i < (int)is.size(); i++) {
-			is[i].computeNormal();
+		// compute normals
+		if (this->computeNormals) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].computeNormal();
+			}
 		}
 
 		return hits;
@@ -148,8 +151,10 @@ inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSpher
 	}
 
 	if (!notFound) {
-		// set normal
-		i.computeNormal();
+		// compute normal
+		if (this->computeNormals) {
+			i.computeNormal();
+		}
 
 		return true;
 	}

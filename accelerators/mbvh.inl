@@ -168,6 +168,9 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
 
+	// don't compute normals by default
+	this->computeNormals = false;
+
 	// count not-full leaves
 	float nLeafsNotFull = 0;
 	for (int i = 0; i < nNodes; i++) {
@@ -527,9 +530,11 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			hits = (int)is.size();
 		}
 
-		// set normals
-		for (int i = 0; i < (int)is.size(); i++) {
-			is[i].computeNormal();
+		// compute normals
+		if (this->computeNormals) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].computeNormal();
+			}
 		}
 
 		return hits;
@@ -766,8 +771,10 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 	}
 
 	if (!notFound) {
-		// set normal
-		i.computeNormal();
+		// compute normal
+		if (this->computeNormals) {
+			i.computeNormal();
+		}
 
 		return true;
 	}

@@ -10,8 +10,9 @@
 namespace fcpw {
 
 template<size_t DIM>
-inline Scene<DIM>::Scene():
-aggregate(nullptr)
+inline Scene<DIM>::Scene(bool computeNormals_):
+aggregate(nullptr),
+computeNormals(computeNormals_)
 {
 
 }
@@ -75,17 +76,19 @@ inline Scene<DIM>::~Scene()
 
 template<size_t DIM, typename PrimitiveType>
 inline void readSoupFromFile(const std::string& filename, const LoadingOption& loadingOption,
-							 PolygonSoup<DIM>& soup, std::vector<PrimitiveType *>& primitives)
+							 bool computeNormals, PolygonSoup<DIM>& soup,
+							 std::vector<PrimitiveType *>& primitives)
 {
 	LOG(FATAL) << "readSoupFromFile<DIM, PrimitiveType>(): Not supported";
 }
 
 template<>
 inline void readSoupFromFile<3, LineSegment>(const std::string& filename, const LoadingOption& loadingOption,
-											 PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments)
+											 bool computeNormals, PolygonSoup<3>& soup,
+											 std::vector<LineSegment *>& lineSegments)
 {
 	if (loadingOption == LoadingOption::ObjLineSegments) {
-		readLineSegmentSoupFromOBJFile(filename, soup, lineSegments);
+		readLineSegmentSoupFromOBJFile(filename, soup, lineSegments, computeNormals);
 
 	} else {
 		LOG(FATAL) << "readSoupFromFile<3, LineSegment>(): Invalid loading option";
@@ -94,10 +97,11 @@ inline void readSoupFromFile<3, LineSegment>(const std::string& filename, const 
 
 template<>
 inline void readSoupFromFile<3, Triangle>(const std::string& filename, const LoadingOption& loadingOption,
-										  PolygonSoup<3>& soup, std::vector<Triangle *>& triangles)
+										  bool computeNormals, PolygonSoup<3>& soup,
+										  std::vector<Triangle *>& triangles)
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
-		readTriangleSoupFromOBJFile(filename, soup, triangles);
+		readTriangleSoupFromOBJFile(filename, soup, triangles, computeNormals);
 
 	} else {
 		LOG(FATAL) << "readSoupFromFile<3, Triangle>(): Invalid loading option";
@@ -115,6 +119,10 @@ inline void Scene<DIM>::loadFiles()
 	soups.resize(nFiles);
 	objectTypes.resize(nFiles);
 	instanceTransforms.resize(nFiles);
+	if (!csgFilename.empty() && !computeNormals) {
+		LOG(INFO) << "Scene::loadFiles(): Turning normal computation now, required for distance queries to csg";
+		computeNormals = true;
+	}
 
 	for (int i = 0; i < nFiles; i++) {
 		if (files[i].second == LoadingOption::ObjLineSegments) {
@@ -136,13 +144,13 @@ inline void Scene<DIM>::loadFiles()
 
 	for (int i = 0; i < nFiles; i++) {
 		if (objectTypes[i] == ObjectType::LineSegments) {
-			readSoupFromFile<3, LineSegment>(files[i].first, files[i].second, soups[i],
-											 lineSegmentObjects[nLineSegmentFiles]);
+			readSoupFromFile<3, LineSegment>(files[i].first, files[i].second, computeNormals,
+											 soups[i], lineSegmentObjects[nLineSegmentFiles]);
 			nLineSegmentFiles++;
 
 		} else if (objectTypes[i] == ObjectType::Triangles) {
-			readSoupFromFile<3, Triangle>(files[i].first, files[i].second, soups[i],
-										  triangleObjects[nTriangleFiles]);
+			readSoupFromFile<3, Triangle>(files[i].first, files[i].second, computeNormals,
+										  soups[i], triangleObjects[nTriangleFiles]);
 			nTriangleFiles++;
 		}
 	}
@@ -254,6 +262,8 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 																		   mixedObjects[nMixedObjects]);
 			nMixedObjects++;
 		}
+
+		objectAggregates[i]->computeNormals = computeNormals;
 	}
 
 	// build object instances

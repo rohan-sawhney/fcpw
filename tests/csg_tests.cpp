@@ -235,7 +235,7 @@ template<size_t DIM>
 void run()
 {
 	// build scene
-	Scene<DIM> scene;
+	Scene<DIM> scene(true);
 	scene.loadFiles();
 	scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter);
 

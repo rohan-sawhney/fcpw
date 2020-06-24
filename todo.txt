@@ -1,5 +1,9 @@
 Priority:
-1. switch logging to spdlog, use unique_ptr for memory management
+1.
+-- use unique_ptr for memory management
+-- double precision
+-- mesh re-ordering & references indirection
+-- switch logging to spdlog
 2. sbvh - move_backward is very inefficient for large meshes
 3. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
@@ -29,7 +33,6 @@ Future Optimizations & Features:
 8. packet (coherent) queries
 ---- keyword: breadth first ray tracing
 9. refit bvh
-10. double precision
 
 Done:
 1. Closest point and ray intersections queries leveraging coherency between queries
