@@ -6,7 +6,10 @@ inline void loadInstanceTransforms(const std::string& filename,
 {
 	// load file
 	std::ifstream in(filename);
-	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
+	if (in.is_open() == false) {
+		std::cerr << "Unable to open file: " << filename << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// parse transforms
 	std::string line;

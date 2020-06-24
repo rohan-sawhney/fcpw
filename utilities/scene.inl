@@ -79,7 +79,8 @@ inline void readSoupFromFile(const std::string& filename, const LoadingOption& l
 							 bool computeNormals, PolygonSoup<DIM>& soup,
 							 std::vector<PrimitiveType *>& primitives)
 {
-	LOG(FATAL) << "readSoupFromFile<DIM, PrimitiveType>(): Not supported";
+	std::cerr << "readSoupFromFile<DIM, PrimitiveType>(): Not supported" << std::endl;
+	exit(EXIT_FAILURE);
 }
 
 template<>
@@ -94,7 +95,8 @@ inline void readSoupFromFile<3, LineSegment>(const std::string& filename, const 
 		if (computeNormals) computeWeightedLineSegmentNormals(lineSegments, soup);
 
 	} else {
-		LOG(FATAL) << "readSoupFromFile<3, LineSegment>(): Invalid loading option";
+		std::cerr << "readSoupFromFile<3, LineSegment>(): Invalid loading option" << std::endl;
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -109,7 +111,8 @@ inline void readSoupFromFile<3, Triangle>(const std::string& filename, const Loa
 		if (computeNormals) computeWeightedTriangleNormals(triangles, soup);
 
 	} else {
-		LOG(FATAL) << "readSoupFromFile<3, Triangle>(): Invalid loading option";
+		std::cerr << "readSoupFromFile<3, Triangle>(): Invalid loading option" << std::endl;
+		exit(EXIT_FAILURE);
 	}
 }
 
@@ -125,7 +128,8 @@ inline void Scene<DIM>::loadFiles()
 	objectTypes.resize(nFiles);
 	instanceTransforms.resize(nFiles);
 	if (!csgFilename.empty() && !computeNormals) {
-		LOG(INFO) << "Scene::loadFiles(): Turning normal computation now, required for distance queries to csg";
+		std::cout << "Scene::loadFiles(): Turning normal computation now, required for distance queries to csg"
+				  << std::endl;
 		computeNormals = true;
 	}
 
@@ -309,7 +313,8 @@ inline bool Scene<DIM>::buildEmbreeAggregate()
 {
 	clearAggregate();
 	if (triangleObjects.size() != 1) {
-		LOG(INFO) << "Scene::buildEmbreeAggregate(): Only a single triangle object is supported at the moment";
+		std::cout << "Scene::buildEmbreeAggregate(): Only a single triangle object is supported at the moment"
+				  << std::endl;
 		return false;
 	}
 
@@ -320,7 +325,7 @@ inline bool Scene<DIM>::buildEmbreeAggregate()
 		}
 	}
 
-	LOG(INFO) << "Scene::buildEmbreeAggregate(): Only triangles supported at the moment";
+	std::cout << "Scene::buildEmbreeAggregate(): Only triangles supported at the moment" << std::endl;
 	return false;
 }
 #endif

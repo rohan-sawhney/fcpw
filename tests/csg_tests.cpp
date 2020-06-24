@@ -43,7 +43,11 @@ bool raymarch(const Aggregate<DIM> *aggregate,
 		Interaction<DIM> c;
 		BoundingSphere<DIM> s(x, maxFloat);
 		bool found = aggregate->findClosestPoint(s, c);
-		LOG_IF(INFO, !found) << "No closest point found while raymarching!";
+		if (!found) {
+			std::cout << "No closest point found while raymarching!" << std::endl;
+			break;
+		}
+
 		r.tMax += c.d;
 		x = r(r.tMax);
 
@@ -256,10 +260,10 @@ void run()
 }
 
 int main(int argc, const char *argv[]) {
-	google::InitGoogleLogging(argv[0]);
 #ifdef PROFILE
 	Profiler::detect(argc, argv);
 #endif
+
 	// configure the argument parser
 	args::ArgumentParser parser("csg tests");
 	args::Group group(parser, "", args::Group::Validators::DontCare);

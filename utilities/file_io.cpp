@@ -3,6 +3,46 @@
 
 namespace fcpw {
 
+// helper class for loading polygons from obj files
+struct Index {
+	Index() {}
+
+	Index(int v, int vt, int vn) : position(v), uv(vt), normal(vn) {}
+
+	bool operator<(const Index& i) const {
+		if (position < i.position) return true;
+		if (position > i.position) return false;
+		if (uv < i.uv) return true;
+		if (uv > i.uv) return false;
+		if (normal < i.normal) return true;
+		if (normal > i.normal) return false;
+
+		return false;
+	}
+
+	int position;
+	int uv;
+	int normal;
+};
+
+// helper function for loading polygons from obj files
+Index parseFaceIndex(const std::string& token) {
+	std::stringstream in(token);
+	std::string indexString;
+	int indices[3] = {1, 1, 1};
+
+	int i = 0;
+	while (std::getline(in, indexString, '/')) {
+		if (indexString != "\\") {
+			std::stringstream ss(indexString);
+			ss >> indices[i++];
+		}
+	}
+
+	// decrement since indices in OBJ files are 1-based
+	return Index(indices[0] - 1, indices[1] - 1, indices[2] - 1);
+}
+
 void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup, bool& isFlat)
 {
 #ifdef PROFILE
@@ -11,7 +51,10 @@ void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>&
 
 	// initialize
 	std::ifstream in(filename);
-	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
+	if (in.is_open() == false) {
+		std::cerr << "Unable to open file: " << filename << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// parse obj format
 	std::string line;
@@ -65,7 +108,10 @@ void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSeg
 {
 	// initialize line segments
 	int N = (int)soup.indices.size();
-	LOG_IF(FATAL, N%2 != 0) << "Soup has curve segments with more than 2 vertices";
+	if (N%2 != 0) {
+		std::cerr << "Soup has curve segments with more than 2 vertices" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	N /= 2;
 	lineSegments.resize(N, nullptr);
@@ -117,7 +163,10 @@ void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& so
 
 	// initialize
 	std::ifstream in(filename);
-	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
+	if (in.is_open() == false) {
+		std::cerr << "Unable to open file: " << filename << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// parse obj format
 	std::string line;
@@ -166,7 +215,10 @@ void buildTriangles(const PolygonSoup<3>& soup, std::vector<Triangle *>& triangl
 {
 	// initialize triangles
 	int N = (int)soup.indices.size();
-	LOG_IF(FATAL, N%3 != 0) << "Soup has non-triangular polygons";
+	if (N%3 != 0) {
+		std::cerr << "Soup has non-triangular polygons" << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	N /= 3;
 	triangles.resize(N, nullptr);
@@ -184,7 +236,10 @@ void loadCsgTree(const std::string& filename,
 {
 	// load scene
 	std::ifstream in(filename);
-	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
+	if (in.is_open() == false) {
+		std::cerr << "Unable to open file: " << filename << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// parse obj format
 	std::string line;

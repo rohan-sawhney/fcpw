@@ -12,8 +12,6 @@
 #include <chrono>
 #include <random>
 #include <type_traits>
-#include <glog/logging.h>
-#include <glog/raw_logging.h>
 #include "vector_operations.h"
 #ifdef PROFILE
 	#include <profiler/Profiler.h>

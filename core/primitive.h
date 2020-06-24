@@ -131,10 +131,17 @@ public:
 		BoundingSphere<DIM> s(x, distanceUpperBound*distanceUpperBound);
 		bool found = this->findClosestPoint(s, i);
 
-		LOG_IF(FATAL, !found) << "Cannot clamp to boundary since no closest point was found inside distance bound: "
-							  << distanceUpperBound;
-		LOG_IF(FATAL, i.distanceInfo == DistanceInfo::Bounded)
-							  << "Cannot clamp to boundary since exact distance isn't available";
+		if (!found) {
+			std::cerr << "Cannot clamp to boundary since no closest point was found inside distance bound: "
+					  << distanceUpperBound << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
+		if (i.distanceInfo == DistanceInfo::Bounded) {
+			std::cerr << "Cannot clamp to boundary since exact distance isn't available" << std::endl;
+			exit(EXIT_FAILURE);
+		}
+
 		x = i.p;
 	}
 

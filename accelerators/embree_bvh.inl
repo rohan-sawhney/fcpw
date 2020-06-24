@@ -17,7 +17,8 @@ void errorFunction(void *userPtr, enum RTCError error, const char *str)
 		default                         : code = "invalid error code"; break;
 	}
 
-	LOG(FATAL) << "Embree error code: " << code << " msg: " << str;
+	std::cerr << "Embree error code: " << code << " msg: " << str << std::endl;
+	exit(EXIT_FAILURE);
 }
 
 struct IntersectContext {
@@ -162,7 +163,10 @@ Baseline<3, Triangle>(triangles_)
 
 	// initialize device
 	device = rtcNewDevice(NULL); // specify flags e.g. threads, isa, verbose, tri_accel=bvh4.triangle4v if required
-	if (!device) LOG(FATAL) << "EmbreeBvh(): Unable to create device: " << rtcGetDeviceError(NULL);
+	if (!device) {
+		std::cerr << "EmbreeBvh(): Unable to create device: " << rtcGetDeviceError(NULL) << std::endl;
+		exit(EXIT_FAILURE);
+	}
 
 	// register error callback
 	rtcSetDeviceErrorFunction(device, errorFunction, NULL);

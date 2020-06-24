@@ -1,20 +1,22 @@
 Priority:
-1. nTop work
--- double precision
--- switch logging to spdlog
-2. sbvh - move_backward is very inefficient for large meshes
-3. give the closest point a rough guess of direction to guide traversal (things can
+1. sbvh - move_backward is very inefficient for large meshes
+2. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
-4. start search from specified node (and walk up/laterally in the tree)
-5. mbvh
+3. start search from specified node (and walk up/laterally in the tree)
+4. mbvh
 ---- enoki settings on ubuntu & windows
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- start search from specified node (and walk up/laterally in the tree)
-6. mesh re-ordering & references indirection
-7. setup CMake properly
-8. benchmark (https://github.com/jdumas/aabb_benchmark)
-9. travis/circle CI
-10. README (tutorial, features, benchmark, compiling, logo)
+5. mesh re-ordering & references indirection
+6. setup CMake properly
+7. benchmark (https://github.com/jdumas/aabb_benchmark)
+8. travis/circle CI
+9. README (tutorial, features, benchmark, compiling, logo)
+10.
+-- remove glog
+-- add more error checks + profile
+-- only time & print info if asked
+11. double precision
 
 Future Optimizations & Features:
 1. vectorize + thread bvh construction

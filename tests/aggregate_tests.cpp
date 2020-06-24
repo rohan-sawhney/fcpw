@@ -172,7 +172,11 @@ void timeClosestPointQueries(const Aggregate<DIM> *aggregate,
 				nodesVisitedByThread += nodesVisited;
 
 				if (found) cPrev = c;
-				else LOG(FATAL) << "Closest points not found!";
+				else {
+					std::cerr << "Closest points not found!" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
 				queryPrev = queryPoints[I];
 			}
 
@@ -230,9 +234,10 @@ void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
 				bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, nodeIndex, nodesVisited);
 
 				if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
-					LOG(INFO) << "d1: " << c1[0].d << " d2: " << c2[0].d;
-					LOG(INFO) << "p1: " << c1[0].p << " p2: " << c2[0].p;
-					LOG(FATAL) << "Intersections do not match!";
+					std::cerr << "d1: " << c1[0].d << " d2: " << c2[0].d
+							  << "\np1: " << c1[0].p << " p2: " << c2[0].p
+							  << "\nIntersections do not match!" << std::endl;
+					exit(EXIT_FAILURE);
 				}
 
 				if (hit2) cPrev = c2[0];
@@ -247,9 +252,11 @@ void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
 				int hit4 = aggregate2->intersectFromNode(r4, c4, 0, nodesVisited, false, true);
 
 				if (hit3 != hit4) {
-					LOG(FATAL) << "Number of intersections do not match!"
-							   << " hits1: " << hit3
-							   << " hits2: " << hit4;
+					std::cerr << "Number of intersections do not match!"
+							  << " hits1: " << hit3
+							  << " hits2: " << hit4
+							  << std::endl;
+					exit(EXIT_FAILURE);
 				}
 			}
 		});
@@ -299,13 +306,18 @@ void testClosestPointQueries(const Aggregate<DIM> *aggregate1,
 													zeroVector<DIM>(), nodesVisited);
 
 				if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
-					LOG(INFO) << "d1: " << c1.d << " d2: " << c2.d;
-					LOG(INFO) << "p1: " << c1.p << " p2: " << c2.p;
-					LOG(FATAL) << "Closest points do not match!";
+					std::cerr << "d1: " << c1.d << " d2: " << c2.d
+							  << "\np1: " << c1.p << " p2: " << c2.p
+							  << "\nClosest points do not match!" << std::endl;
+					exit(EXIT_FAILURE);
 				}
 
 				if (found2) cPrev = c2;
-				else LOG(FATAL) << "Closest points not found!";
+				else {
+					std::cerr << "Closest points not found!" << std::endl;
+					exit(EXIT_FAILURE);
+				}
+
 				queryPrev = queryPoints[I];
 			}
 		});
@@ -538,10 +550,10 @@ void run()
 }
 
 int main(int argc, const char *argv[]) {
-	google::InitGoogleLogging(argv[0]);
 #ifdef PROFILE
 	Profiler::detect(argc, argv);
 #endif
+
 	// configure the argument parser
 	args::ArgumentParser parser("aggregate tests");
 	args::Group group(parser, "", args::Group::Validators::DontCare);

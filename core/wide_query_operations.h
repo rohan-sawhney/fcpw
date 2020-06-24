@@ -45,7 +45,9 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Ray<DIM>& r, const VectorP<WI
 											 const VectorP<WIDTH, DIM>& pb, FloatP<WIDTH>& d,
 											 VectorP<WIDTH, DIM>& pt, FloatP<WIDTH>& t)
 {
-	LOG(FATAL) << "intersectWideLineSegment(): DIM " << DIM << " not supported";
+	std::cerr << "intersectWideLineSegment(): DIM " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
 	return false;
 }
 
@@ -85,7 +87,9 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<DIM>& r, const VectorP<WIDTH
 										  FloatP<WIDTH>& d, VectorP<WIDTH, DIM>& pt,
 										  VectorP<WIDTH, DIM - 1>& t)
 {
-	LOG(FATAL) << "intersectWideTriangle(): DIM " << DIM << " not supported";
+	std::cerr << "intersectWideTriangle(): DIM " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
 	return false;
 }
 
@@ -128,7 +132,9 @@ inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector<DIM>& x, const
 													 const VectorP<WIDTH, DIM>& pb, VectorP<WIDTH, DIM>& pt,
 													 FloatP<WIDTH>& t)
 {
-	LOG(FATAL) << "findClosestPointWideLineSegment(): DIM " << DIM << " not supported";
+	std::cerr << "findClosestPointWideLineSegment(): DIM " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
 	return 0.0f;
 }
 
@@ -162,7 +168,9 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const Ve
 												  const VectorP<WIDTH, DIM>& pb, const VectorP<WIDTH, DIM>& pc,
 												  VectorP<WIDTH, DIM>& pt, VectorP<WIDTH, DIM - 1>& t)
 {
-	LOG(FATAL) << "findClosestPointWideTriangle(): DIM " << DIM << " not supported";
+	std::cerr << "findClosestPointWideTriangle(): DIM " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
 	return 0.0f;
 }
 
