@@ -20,11 +20,6 @@ static int nQueries = 10000;
 static progschj::ThreadPool pool;
 static int nThreads = 8;
 
-// TODO:
-// - too many nodes being visited while backtracking during closest point traversal
-// - write timings to file
-// - plot BVH scaling behavior with increasing mesh sizes
-
 template<size_t DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,
 					   std::vector<BoundingBox<DIM>>& boxes, int depth)

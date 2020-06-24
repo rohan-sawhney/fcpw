@@ -12,10 +12,7 @@ Priority:
 7. benchmark (https://github.com/jdumas/aabb_benchmark)
 8. travis/circle CI
 9. README (tutorial, features, benchmark, compiling, logo)
-10.
--- remove glog
--- add more error checks + profile
--- only time & print info if asked
+10. Only time & print info if asked
 11. double precision
 
 Future Optimizations & Features:

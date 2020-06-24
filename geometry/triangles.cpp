@@ -269,17 +269,6 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 		return norm<3>(x - pt);
 	}
 
-	// check if x in edge region of ab, if so return projection of x onto ab
-	float vc = d1*d4 - d3*d2;
-	if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
-		// barycentric coordinates (1 - v, v, 0)
-		float v = d1/(d1 - d3);
-		t[0] = 1.0f - v;
-		t[1] = v;
-		pt = pa + ab*v;
-		return norm<3>(x - pt);
-	}
-
 	// check if x in vertex region outside pc
 	Vector3 cx = x - pc;
 	float d5 = dot<3>(ab, cx);
@@ -289,6 +278,17 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 		t[0] = 0.0f;
 		t[1] = 0.0f;
 		pt = pc;
+		return norm<3>(x - pt);
+	}
+
+	// check if x in edge region of ab, if so return projection of x onto ab
+	float vc = d1*d4 - d3*d2;
+	if (vc <= 0.0f && d1 >= 0.0f && d3 <= 0.0f) {
+		// barycentric coordinates (1 - v, v, 0)
+		float v = d1/(d1 - d3);
+		t[0] = 1.0f - v;
+		t[1] = v;
+		pt = pa + ab*v;
 		return norm<3>(x - pt);
 	}
 

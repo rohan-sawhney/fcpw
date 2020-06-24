@@ -231,41 +231,6 @@ void buildTriangles(const PolygonSoup<3>& soup, std::vector<Triangle *>& triangl
 	}
 }
 
-void loadCsgTree(const std::string& filename,
-				 std::unordered_map<int, CsgTreeNode>& csgTree)
-{
-	// load scene
-	std::ifstream in(filename);
-	if (in.is_open() == false) {
-		std::cerr << "Unable to open file: " << filename << std::endl;
-		exit(EXIT_FAILURE);
-	}
-
-	// parse obj format
-	std::string line;
-	while (getline(in, line)) {
-		std::stringstream ss(line);
-		int node;
-		ss >> node;
-
-		std::string operationStr, child1Str, child2Str;
-		ss >> operationStr >> child1Str >> child2Str;
-
-		std::size_t found1 = child1Str.find_last_of("_");
-		std::size_t found2 = child2Str.find_last_of("_");
-		csgTree[node].child1 = std::stoi(child1Str.substr(found1 + 1));
-		csgTree[node].child2 = std::stoi(child2Str.substr(found2 + 1));
-		csgTree[node].isLeafChild1 = child1Str.find("node_") == std::string::npos;
-		csgTree[node].isLeafChild2 = child2Str.find("node_") == std::string::npos;
-		csgTree[node].operation = operationStr == "Union" ? BooleanOperation::Union :
-								 (operationStr == "Intersection" ? BooleanOperation::Intersection :
-								 (operationStr == "Difference" ? BooleanOperation::Difference : BooleanOperation::None));
-	}
-
-	// close file
-	in.close();
-}
-
 void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3>& soup)
 {
 	// set edge indices
@@ -302,6 +267,41 @@ void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, Po
 
 	for (int i = 0; i < V; i++) soup.vNormals[i] = unit<3>(soup.vNormals[i]);
 	for (int i = 0; i < E; i++) soup.eNormals[i] = unit<3>(soup.eNormals[i]);
+}
+
+void loadCsgTree(const std::string& filename,
+				 std::unordered_map<int, CsgTreeNode>& csgTree)
+{
+	// load scene
+	std::ifstream in(filename);
+	if (in.is_open() == false) {
+		std::cerr << "Unable to open file: " << filename << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// parse obj format
+	std::string line;
+	while (getline(in, line)) {
+		std::stringstream ss(line);
+		int node;
+		ss >> node;
+
+		std::string operationStr, child1Str, child2Str;
+		ss >> operationStr >> child1Str >> child2Str;
+
+		std::size_t found1 = child1Str.find_last_of("_");
+		std::size_t found2 = child2Str.find_last_of("_");
+		csgTree[node].child1 = std::stoi(child1Str.substr(found1 + 1));
+		csgTree[node].child2 = std::stoi(child2Str.substr(found2 + 1));
+		csgTree[node].isLeafChild1 = child1Str.find("node_") == std::string::npos;
+		csgTree[node].isLeafChild2 = child2Str.find("node_") == std::string::npos;
+		csgTree[node].operation = operationStr == "Union" ? BooleanOperation::Union :
+								 (operationStr == "Intersection" ? BooleanOperation::Intersection :
+								 (operationStr == "Difference" ? BooleanOperation::Difference : BooleanOperation::None));
+	}
+
+	// close file
+	in.close();
 }
 
 } // namespace fcpw
