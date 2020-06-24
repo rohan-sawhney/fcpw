@@ -241,7 +241,7 @@ void run()
 	// build scene
 	Scene<DIM> scene(true);
 	scene.loadFiles();
-	scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter);
+	scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter, true);
 
 	// generate random points and rays used to visualize csg
 	BoundingBox<DIM> boundingBox = scene.aggregate->boundingBox();

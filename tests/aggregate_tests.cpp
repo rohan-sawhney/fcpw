@@ -455,7 +455,7 @@ void run()
 		// build bvh aggregates and benchmark queries
 		for (int bvh = 1; bvh < 8; bvh++) {
 			for (int vec = 0; vec < 2; vec++) {
-				scene.buildAggregate(static_cast<AggregateType>(bvh), vec == 1);
+				scene.buildAggregate(static_cast<AggregateType>(bvh), true, vec == 1);
 				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
 											 shuffledIndices, bvhTypes[bvh - 1]);
 				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
@@ -475,7 +475,7 @@ void run()
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
-		if (scene.buildEmbreeAggregate()) {
+		if (scene.buildEmbreeAggregate(true)) {
 			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
 										 indices, "Embree Bvh");
 			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
@@ -498,7 +498,7 @@ void run()
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
 
 			for (int vec = 0; vec < 2; vec++) {
-				bvhScene.buildAggregate(static_cast<AggregateType>(bvh), vec == 1);
+				bvhScene.buildAggregate(static_cast<AggregateType>(bvh), true, vec == 1);
 				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
 											 queryPoints, randomDirections, shuffledIndices);
 				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
@@ -522,7 +522,7 @@ void run()
 		Scene<DIM> embreeBvhScene(false);
 		embreeBvhScene.loadFiles();
 
-		if (embreeBvhScene.buildEmbreeAggregate()) {
+		if (embreeBvhScene.buildEmbreeAggregate(true)) {
 			testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
 										 queryPoints, randomDirections, indices);
 			testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
@@ -533,7 +533,7 @@ void run()
 
 	if (vizScene) {
 		// build bvh aggregate
-		scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter);
+		scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter, true);
 
 		// isolate interior points among query points
 		std::vector<Vector<DIM>> interiorPoints;

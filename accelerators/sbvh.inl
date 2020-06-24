@@ -3,7 +3,8 @@ namespace fcpw {
 template<size_t DIM, typename PrimitiveType>
 inline Sbvh<DIM, PrimitiveType>::Sbvh(const std::vector<PrimitiveType *>& primitives_,
 									  const CostHeuristic& costHeuristic_, float splitAlpha_,
-									  bool packLeaves_, int leafSize_, int nBuckets_, int nBins_):
+									  bool printStats_, bool packLeaves_, int leafSize_,
+									  int nBuckets_, int nBins_):
 primitives(primitives_),
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),
@@ -32,15 +33,18 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	// don't compute normals by default
 	this->computeNormals = false;
 
-	high_resolution_clock::time_point t2 = high_resolution_clock::now();
-	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << "Built bvh with "
-			  << nNodes << " nodes, "
-			  << nLeafs << " leaves, "
-			  << maxDepth << " max depth, "
-			  << primitives.size() << " primitives, "
-			  << references.size() << " references in "
-			  << timeSpan.count() << " seconds" << std::endl;
+	// print stats
+	if (printStats_) {
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+		std::cout << "Built bvh with "
+				  << nNodes << " nodes, "
+				  << nLeafs << " leaves, "
+				  << maxDepth << " max depth, "
+				  << primitives.size() << " primitives, "
+				  << references.size() << " references in "
+				  << timeSpan.count() << " seconds" << std::endl;
+	}
 }
 
 template<size_t DIM, typename PrimitiveType>

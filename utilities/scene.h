@@ -43,11 +43,12 @@ public:
 	void loadFiles();
 
 	// builds aggregate
-	void buildAggregate(const AggregateType& aggregateType, bool vectorize=false);
+	void buildAggregate(const AggregateType& aggregateType,
+						bool printStats=false, bool vectorize=false);
 
 #ifdef BENCHMARK_EMBREE
 	// builds embree aggregate
-	bool buildEmbreeAggregate();
+	bool buildEmbreeAggregate(bool printStats=false);
 #endif
 
 	// members; NOTE: if initializing scene manually, populate soups, objects,

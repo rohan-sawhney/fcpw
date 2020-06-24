@@ -44,7 +44,8 @@ public:
 	// constructor
 	Sbvh(const std::vector<PrimitiveType *>& primitives_,
 		 const CostHeuristic& costHeuristic_, float splitAlpha_,
-		 bool packLeaves_=false, int leafSize_=4, int nBuckets_=8, int nBins_=8);
+		 bool printStats_=false, bool packLeaves_=false,
+		 int leafSize_=4, int nBuckets_=8, int nBins_=8);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;

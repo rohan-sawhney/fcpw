@@ -155,7 +155,7 @@ bool closestPointTriangleCallback(RTCPointQueryFunctionArguments *args)
 }
 
 inline EmbreeBvh::EmbreeBvh(const std::vector<Triangle *>& triangles_,
-							const PolygonSoup<3> *soup_):
+							const PolygonSoup<3> *soup_, bool printStats_):
 Baseline<3, Triangle>(triangles_)
 {
 	using namespace std::chrono;
@@ -215,12 +215,14 @@ Baseline<3, Triangle>(triangles_)
 	// don't compute normals by default
 	this->computeNormals = false;
 
-	// print bvh stats
-	high_resolution_clock::time_point t2 = high_resolution_clock::now();
-	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << "Built Embree Bvh with "
-			  << this->primitives.size() << " triangles in "
-			  << timeSpan.count() << " seconds" << std::endl;
+	// print stats
+	if (printStats_) {
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+		std::cout << "Built Embree Bvh with "
+				  << this->primitives.size() << " triangles in "
+				  << timeSpan.count() << " seconds" << std::endl;
+	}
 }
 
 inline EmbreeBvh::~EmbreeBvh()

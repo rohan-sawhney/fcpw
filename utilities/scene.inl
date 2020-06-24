@@ -176,8 +176,9 @@ inline void Scene<DIM>::loadFiles()
 }
 
 template<size_t DIM, typename PrimitiveType>
-inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType, bool vectorize,
-									 const std::vector<PrimitiveType *>& primitives)
+inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType,
+									 const std::vector<PrimitiveType *>& primitives,
+									 bool printStats, bool vectorize)
 {
 	Sbvh<DIM, PrimitiveType> *sbvh = nullptr;
 	int leafSize = 4;
@@ -191,25 +192,32 @@ inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType, bool ve
 #endif
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::LongestAxisCenter, 1.0f, false, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::LongestAxisCenter, 1.0f,
+											printStats, false, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea, 1.0f, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea, 1.0f,
+											printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapSurfaceArea, 1.0f, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapSurfaceArea, 1.0f,
+			 								printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume, 1.0f, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume, 1.0f,
+											printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapVolume, 1.0f, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapVolume, 1.0f,
+											printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea, 1e-5, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea, 1e-5,
+											printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Sbvh_Volume) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume, 1e-5, packLeaves, leafSize);
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume, 1e-5,
+											printStats, packLeaves, leafSize);
 
 	} else {
 		return new Baseline<DIM, PrimitiveType>(primitives);
@@ -217,7 +225,7 @@ inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType, bool ve
 
 #ifdef BUILD_ENOKI
 	if (vectorize) {
-		Mbvh<SIMD_WIDTH, DIM, PrimitiveType> *mbvh = new Mbvh<SIMD_WIDTH, DIM, PrimitiveType>(sbvh);
+		Mbvh<SIMD_WIDTH, DIM, PrimitiveType> *mbvh = new Mbvh<SIMD_WIDTH, DIM, PrimitiveType>(sbvh, printStats);
 		delete sbvh;
 
 		return mbvh;
@@ -245,7 +253,7 @@ inline Aggregate<DIM>* buildCsgAggregateRecursive(int nodeIndex, std::unordered_
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool vectorize)
+inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool printStats, bool vectorize)
 {
 	// build object aggregates
 	clearAggregate();
@@ -257,18 +265,18 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 	for (int i = 0; i < nObjects; i++) {
 		if (objectTypes[i] == ObjectType::LineSegments) {
-			objectAggregates[i] = makeAggregate<DIM, LineSegment>(aggregateType, vectorize,
-												   lineSegmentObjects[nLineSegmentObjects]);
+			objectAggregates[i] = makeAggregate<DIM, LineSegment>(aggregateType,
+					lineSegmentObjects[nLineSegmentObjects], printStats, vectorize);
 			nLineSegmentObjects++;
 
 		} else if (objectTypes[i] == ObjectType::Triangles) {
-			objectAggregates[i] = makeAggregate<DIM, Triangle>(aggregateType, vectorize,
-													  triangleObjects[nTriangleObjects]);
+			objectAggregates[i] = makeAggregate<DIM, Triangle>(aggregateType,
+					triangleObjects[nTriangleObjects], printStats, vectorize);
 			nTriangleObjects++;
 
 		} else if (objectTypes[i] == ObjectType::Mixed) {
-			objectAggregates[i] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType, vectorize,
-																		   mixedObjects[nMixedObjects]);
+			objectAggregates[i] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType,
+										mixedObjects[nMixedObjects], printStats, vectorize);
 			nMixedObjects++;
 		}
 
@@ -303,13 +311,13 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 	} else {
 		// make aggregate
-		aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, vectorize, objectInstances);
+		aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, objectInstances, printStats, vectorize);
 	}
 }
 
 #ifdef BENCHMARK_EMBREE
 template<size_t DIM>
-inline bool Scene<DIM>::buildEmbreeAggregate()
+inline bool Scene<DIM>::buildEmbreeAggregate(bool printStats)
 {
 	clearAggregate();
 	if (triangleObjects.size() != 1) {
@@ -320,7 +328,7 @@ inline bool Scene<DIM>::buildEmbreeAggregate()
 
 	for (int i = 0; i < (int)soups.size(); i++) {
 		if (objectTypes[i] == ObjectType::Triangles) {
-			aggregate = new EmbreeBvh(triangleObjects[0], &soups[i]);
+			aggregate = new EmbreeBvh(triangleObjects[0], &soups[i], printStats);
 			return true;
 		}
 	}

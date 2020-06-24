@@ -139,7 +139,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_):
+inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_, bool printStats_):
 primitives(sbvh_->primitives),
 references(std::move(sbvh_->references)),
 nNodes(0),
@@ -174,23 +174,26 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	// don't compute normals by default
 	this->computeNormals = false;
 
-	// count not-full leaves
-	float nLeafsNotFull = 0;
-	for (int i = 0; i < nNodes; i++) {
-		MbvhNode<DIM>& node = flatTree[i];
-		if (isLeafNode(node) && node.child[3]%WIDTH != 0) nLeafsNotFull++;
-	}
+	// print stats
+	if (printStats_) {
+		// count not-full leaves
+		float nLeafsNotFull = 0;
+		for (int i = 0; i < nNodes; i++) {
+			MbvhNode<DIM>& node = flatTree[i];
+			if (isLeafNode(node) && node.child[3]%WIDTH != 0) nLeafsNotFull++;
+		}
 
-	high_resolution_clock::time_point t2 = high_resolution_clock::now();
-	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << "Built " << MBVH_BRANCHING_FACTOR << "-bvh with "
-			  << nNodes << " nodes, "
-			  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
-			  << nLeafs << " leaves, "
-			  << maxDepth << " max depth, "
-			  << primitives.size() << " primitives, "
-			  << references.size() << " references in "
-			  << timeSpan.count() << " seconds" << std::endl;
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+		std::cout << "Built " << MBVH_BRANCHING_FACTOR << "-bvh with "
+				  << nNodes << " nodes, "
+				  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
+				  << nLeafs << " leaves, "
+				  << maxDepth << " max depth, "
+				  << primitives.size() << " primitives, "
+				  << references.size() << " references in "
+				  << timeSpan.count() << " seconds" << std::endl;
+	}
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>

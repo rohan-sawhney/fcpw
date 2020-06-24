@@ -10,7 +10,7 @@ class EmbreeBvh: public Baseline<3, Triangle> {
 public:
 	// constructor
 	EmbreeBvh(const std::vector<Triangle *>& triangles_,
-			  const PolygonSoup<3> *soup_);
+			  const PolygonSoup<3> *soup_, bool printStats_=false);
 
 	// destructor
 	~EmbreeBvh();

@@ -27,7 +27,7 @@ template<size_t WIDTH, size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class Mbvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_);
+	Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_, bool printStats_=false);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
