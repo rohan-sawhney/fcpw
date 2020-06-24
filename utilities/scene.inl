@@ -215,16 +215,16 @@ inline Aggregate<DIM>* buildCsgAggregateRecursive(int nodeIndex, std::unordered_
 												  std::vector<Aggregate<DIM> *>& objectInstances)
 {
 	const CsgTreeNode& node = csgTree[nodeIndex];
-	Aggregate<DIM> *instance1 = nullptr;
-	Aggregate<DIM> *instance2 = nullptr;
+	std::unique_ptr<Aggregate<DIM>> instance1 = nullptr;
+	std::unique_ptr<Aggregate<DIM>> instance2 = nullptr;
 
-	if (node.isLeafChild1) instance1 = objectInstances[node.child1];
-	else instance1 = buildCsgAggregateRecursive(node.child1, csgTree, objectInstances);
+	if (node.isLeafChild1) instance1 = std::unique_ptr<Aggregate<DIM>>(objectInstances[node.child1]);
+	else instance1 = std::unique_ptr<Aggregate<DIM>>(buildCsgAggregateRecursive(node.child1, csgTree, objectInstances));
 
-	if (node.isLeafChild2) instance2 = objectInstances[node.child2];
-	else instance2 = buildCsgAggregateRecursive(node.child2, csgTree, objectInstances);
+	if (node.isLeafChild2) instance2 = std::unique_ptr<Aggregate<DIM>>(objectInstances[node.child2]);
+	else instance2 = std::unique_ptr<Aggregate<DIM>>(buildCsgAggregateRecursive(node.child2, csgTree, objectInstances));
 
-	return new CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>(instance1, instance2, node.operation);
+	return new CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>(std::move(instance1), std::move(instance2), node.operation);
 }
 
 template<size_t DIM>
