@@ -204,7 +204,6 @@ void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& so
 	in.close();
 
 	if (soup.textureCoordinates.size() == 0) {
-		LOG(INFO) << "Model does not contain uvs";
 		soup.tIndices.clear();
 	}
 }

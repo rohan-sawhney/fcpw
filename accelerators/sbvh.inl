@@ -1,8 +1,9 @@
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveType>
-inline Sbvh<DIM, PrimitiveType>::Sbvh(std::vector<PrimitiveType *>& primitives_, const CostHeuristic& costHeuristic_,
-									  float splitAlpha_, bool packLeaves_, int leafSize_, int nBuckets_, int nBins_):
+inline Sbvh<DIM, PrimitiveType>::Sbvh(const std::vector<PrimitiveType *>& primitives_,
+									  const CostHeuristic& costHeuristic_, float splitAlpha_,
+									  bool packLeaves_, int leafSize_, int nBuckets_, int nBins_):
 primitives(primitives_),
 costHeuristic(costHeuristic_),
 splitAlpha(splitAlpha_),

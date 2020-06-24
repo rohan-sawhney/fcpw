@@ -160,7 +160,7 @@ inline void Scene<DIM>::loadFiles()
 
 template<size_t DIM, typename PrimitiveType>
 inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType, bool vectorize,
-									 std::vector<PrimitiveType *>& primitives)
+									 const std::vector<PrimitiveType *>& primitives)
 {
 	Sbvh<DIM, PrimitiveType> *sbvh = nullptr;
 	int leafSize = 4;
@@ -274,7 +274,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	// set aggregate
 	if (objectInstances.size() == 1) {
 		// set to object aggregate if there is only a single object instance in the scene
-		aggregate = objectAggregates[0];
+		aggregate = objectInstances[0];
 		objectInstances.clear();
 
 	} else if (csgTree.size() > 0) {

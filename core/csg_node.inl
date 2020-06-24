@@ -11,10 +11,6 @@ leftPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeLeft>:
 rightPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeRight>::value)
 {
 	LOG_IF(FATAL, left == nullptr || right == nullptr) << "Children cannot be null";
-	LOG(INFO) << "Boolean Operation: " << (operation == BooleanOperation::Union ? "Union" :
-										  (operation == BooleanOperation::Intersection ? "Intersection" :
-										  (operation == BooleanOperation::Difference ? "Difference" :
-										   "None")));
 	computeBoundingBox();
 }
 
