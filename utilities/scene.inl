@@ -88,7 +88,10 @@ inline void readSoupFromFile<3, LineSegment>(const std::string& filename, const 
 											 std::vector<LineSegment *>& lineSegments)
 {
 	if (loadingOption == LoadingOption::ObjLineSegments) {
-		readLineSegmentSoupFromOBJFile(filename, soup, lineSegments, computeNormals);
+		bool isFlat = true;
+		readLineSegmentSoupFromOBJFile(filename, soup, isFlat);
+		buildLineSegments(soup, lineSegments, isFlat);
+		if (computeNormals) computeWeightedLineSegmentNormals(lineSegments, soup);
 
 	} else {
 		LOG(FATAL) << "readSoupFromFile<3, LineSegment>(): Invalid loading option";
@@ -101,7 +104,9 @@ inline void readSoupFromFile<3, Triangle>(const std::string& filename, const Loa
 										  std::vector<Triangle *>& triangles)
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
-		readTriangleSoupFromOBJFile(filename, soup, triangles, computeNormals);
+		readTriangleSoupFromOBJFile(filename, soup);
+		buildTriangles(soup, triangles);
+		if (computeNormals) computeWeightedTriangleNormals(triangles, soup);
 
 	} else {
 		LOG(FATAL) << "readSoupFromFile<3, Triangle>(): Invalid loading option";

@@ -78,14 +78,11 @@ void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>&
 	in.close();
 }
 
-void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup,
-									std::vector<LineSegment *>& lineSegments, bool computeWeightedNormals)
+void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments, bool isFlat)
 {
-	// read soup and initialize line segments
-	bool isFlat = true;
-	readLineSegmentSoupFromOBJFile(filename, soup, isFlat);
+	// initialize line segments
 	int N = (int)soup.indices.size();
-	LOG_IF(FATAL, N%2 != 0) << "Soup has non line segment curves: " << filename;
+	LOG_IF(FATAL, N%2 != 0) << "Soup has curve segments with more than 2 vertices";
 
 	N /= 2;
 	lineSegments.resize(N, nullptr);
@@ -97,8 +94,8 @@ void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>&
 		lineSegments[i]->index = 2*i;
 	}
 
+	// swap indices if segments of closed curve are oriented in clockwise order
 	if (isFlat && N > 0 && soup.indices[0] == soup.indices[2*(N - 1) + 1]) {
-		// swap indices if segments of closed curve are oriented in clockwise order
 		float signedVolume = 0.0f;
 		for (int i = 0; i < N; i++) {
 			signedVolume += lineSegments[i]->signedVolume();
@@ -109,11 +106,6 @@ void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>&
 				std::swap(soup.indices[2*i], soup.indices[2*i + 1]);
 			}
 		}
-	}
-
-	// compute weighted normals
-	if (computeWeightedNormals) {
-		computeWeightedLineSegmentNormals(lineSegments, soup);
 	}
 }
 
@@ -208,13 +200,11 @@ void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& so
 	}
 }
 
-void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup,
-								 std::vector<Triangle *>& triangles, bool computeWeightedNormals)
+void buildTriangles(const PolygonSoup<3>& soup, std::vector<Triangle *>& triangles)
 {
-	// read soup and initialize triangles
-	readTriangleSoupFromOBJFile(filename, soup);
+	// initialize triangles
 	int N = (int)soup.indices.size();
-	LOG_IF(FATAL, N%3 != 0) << "Soup has non-triangular polygons: " << filename;
+	LOG_IF(FATAL, N%3 != 0) << "Soup has non-triangular polygons";
 
 	N /= 3;
 	triangles.resize(N, nullptr);
@@ -224,11 +214,6 @@ void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& so
 		triangles[i] = &contiguousTriangles[i];
 		triangles[i]->soup = &soup;
 		triangles[i]->index = 3*i;
-	}
-
-	// compute weighted normals
-	if (computeWeightedNormals) {
-		computeWeightedTriangleNormals(triangles, soup);
 	}
 }
 

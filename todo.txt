@@ -1,8 +1,6 @@
 Priority:
-1.
--- use unique_ptr for memory management
+1. nTop work
 -- double precision
--- mesh re-ordering & references indirection
 -- switch logging to spdlog
 2. sbvh - move_backward is very inefficient for large meshes
 3. give the closest point a rough guess of direction to guide traversal (things can
@@ -12,9 +10,11 @@ Priority:
 ---- enoki settings on ubuntu & windows
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- start search from specified node (and walk up/laterally in the tree)
-6. benchmark (https://github.com/jdumas/aabb_benchmark)
-7. travis/circle CI
-8. README (tutorial, features, benchmark, compiling, logo)
+6. mesh re-ordering & references indirection
+7. setup CMake properly
+8. benchmark (https://github.com/jdumas/aabb_benchmark)
+9. travis/circle CI
+10. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. vectorize + thread bvh construction

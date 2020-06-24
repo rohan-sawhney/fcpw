@@ -15,10 +15,8 @@ void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSeg
 // reads soup from obj file
 void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup, bool& isFlat);
 
-// reads line segment soup from obj file
-void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup,
-									std::vector<LineSegment *>& lineSegments,
-									bool computeWeightedNormals=true);
+// builds line segment objects; ensures line segments are oriented counter clockwise
+void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments, bool isFlat);
 
 // computes weighted normals at vertices and edges
 void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3>& soup);
@@ -26,9 +24,8 @@ void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, Po
 // reads soup from obj file
 void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup);
 
-// reads triangle soup from obj file
-void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup,
-								 std::vector<Triangle *>& triangles, bool computeWeightedNormals=true);
+// builds triangle objects
+void buildTriangles(const PolygonSoup<3>& soup, std::vector<Triangle *>& triangles);
 
 // loads instance transforms from file
 template<size_t DIM>
