@@ -3,23 +3,6 @@
 
 namespace fcpw {
 
-void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments, PolygonSoup<3>& soup)
-{
-	int N = (int)soup.indices.size()/2;
-	int V = (int)soup.positions.size();
-	soup.vNormals.resize(V, zeroVector<3>());
-
-	for (int i = 0; i < N; i++) {
-		Vector3 n = lineSegments[i]->normal(true);
-		soup.vNormals[soup.indices[lineSegments[i]->index]] += n;
-		soup.vNormals[soup.indices[lineSegments[i]->index + 1]] += n;
-	}
-
-	for (int i = 0; i < V; i++) {
-		soup.vNormals[i] = unit<3>(soup.vNormals[i]);
-	}
-}
-
 void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup, bool& isFlat)
 {
 #ifdef PROFILE
@@ -109,42 +92,21 @@ void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSeg
 	}
 }
 
-void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3>& soup)
+void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments, PolygonSoup<3>& soup)
 {
-	// set edge indices
-	int E = 0;
-	int N = (int)soup.indices.size()/3;
-	std::map<std::pair<int, int>, int> indexMap;
-
-	for (int i = 0; i < N; i++) {
-		for (int j = 0; j < 3; j++) {
-			int k = (j + 1)%3;
-			int I = soup.indices[3*i + j];
-			int J = soup.indices[3*i + k];
-			if (I > J) std::swap(I, J);
-			std::pair<int, int> e(I, J);
-
-			if (indexMap.find(e) == indexMap.end()) indexMap[e] = E++;
-			soup.eIndices.emplace_back(indexMap[e]);
-		}
-	}
-
-	// compute normals
+	int N = (int)soup.indices.size()/2;
 	int V = (int)soup.positions.size();
 	soup.vNormals.resize(V, zeroVector<3>());
-	soup.eNormals.resize(E, zeroVector<3>());
 
 	for (int i = 0; i < N; i++) {
-		Vector3 n = triangles[i]->normal(true);
-
-		for (int j = 0; j < 3; j++) {
-			soup.vNormals[soup.indices[triangles[i]->index + j]] += n;
-			soup.eNormals[soup.eIndices[triangles[i]->index + j]] += n;
-		}
+		Vector3 n = lineSegments[i]->normal(true);
+		soup.vNormals[soup.indices[lineSegments[i]->index]] += n;
+		soup.vNormals[soup.indices[lineSegments[i]->index + 1]] += n;
 	}
 
-	for (int i = 0; i < V; i++) soup.vNormals[i] = unit<3>(soup.vNormals[i]);
-	for (int i = 0; i < E; i++) soup.eNormals[i] = unit<3>(soup.eNormals[i]);
+	for (int i = 0; i < V; i++) {
+		soup.vNormals[i] = unit<3>(soup.vNormals[i]);
+	}
 }
 
 void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup)
@@ -247,6 +209,44 @@ void loadCsgTree(const std::string& filename,
 
 	// close file
 	in.close();
+}
+
+void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3>& soup)
+{
+	// set edge indices
+	int E = 0;
+	int N = (int)soup.indices.size()/3;
+	std::map<std::pair<int, int>, int> indexMap;
+
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < 3; j++) {
+			int k = (j + 1)%3;
+			int I = soup.indices[3*i + j];
+			int J = soup.indices[3*i + k];
+			if (I > J) std::swap(I, J);
+			std::pair<int, int> e(I, J);
+
+			if (indexMap.find(e) == indexMap.end()) indexMap[e] = E++;
+			soup.eIndices.emplace_back(indexMap[e]);
+		}
+	}
+
+	// compute normals
+	int V = (int)soup.positions.size();
+	soup.vNormals.resize(V, zeroVector<3>());
+	soup.eNormals.resize(E, zeroVector<3>());
+
+	for (int i = 0; i < N; i++) {
+		Vector3 n = triangles[i]->normal(true);
+
+		for (int j = 0; j < 3; j++) {
+			soup.vNormals[soup.indices[triangles[i]->index + j]] += n;
+			soup.eNormals[soup.eIndices[triangles[i]->index + j]] += n;
+		}
+	}
+
+	for (int i = 0; i < V; i++) soup.vNormals[i] = unit<3>(soup.vNormals[i]);
+	for (int i = 0; i < E; i++) soup.eNormals[i] = unit<3>(soup.eNormals[i]);
 }
 
 } // namespace fcpw

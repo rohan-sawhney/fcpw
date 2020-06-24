@@ -9,23 +9,23 @@
 
 namespace fcpw {
 
-// computes weighted normals at vertices
-void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments, PolygonSoup<3>& soup);
-
-// reads soup from obj file
+// reads line segment soup from obj file
 void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup, bool& isFlat);
 
 // builds line segment objects; ensures line segments are oriented counter clockwise
 void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments, bool isFlat);
 
-// computes weighted normals at vertices and edges
-void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3>& soup);
+// computes weighted normals at line segment vertices
+void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments, PolygonSoup<3>& soup);
 
-// reads soup from obj file
+// reads triangle soup from obj file
 void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup);
 
 // builds triangle objects
 void buildTriangles(const PolygonSoup<3>& soup, std::vector<Triangle *>& triangles);
+
+// computes weighted normals at triangle vertices and edges
+void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3>& soup);
 
 // loads instance transforms from file
 template<size_t DIM>
