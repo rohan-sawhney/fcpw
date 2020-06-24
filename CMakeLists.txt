@@ -22,22 +22,12 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 	"MinSizeRel" "RelWithDebInfo")
 endif()
 
-if(NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/deps/glog/cmake")
-	message(FATAL_ERROR "The glog submodule directory is missing! "
-	"You probably did not clone the project with --recursive, or you first checked out "
-	"fcpw before it was added. It is possible to recover by running "
-	"\"git submodule update --init --recursive\"")
-endif()
-
 if(CMAKE_BUILD_TYPE MATCHES RELEASE)
 	add_definitions(-DNDEBUG)
 endif()
 
 ################################################################################
 # fcpw dependencies
-set(WITH_GFLAGS OFF CACHE BOOL "Use gflags")
-add_subdirectory(deps/glog)
-
 if(BENCHMARK_EMBREE)
 	add_definitions(-DBENCHMARK_EMBREE)
 	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Enable ispc functionality")
@@ -118,11 +108,8 @@ add_library(fcpw STATIC
 			${FCPW_SOURCE}
 			)
 
-target_include_directories(fcpw PUBLIC deps/glog/src ${CMAKE_BINARY_DIR}/deps/glog)
 target_include_directories(fcpw PUBLIC deps/eigen-git-mirror)
 target_include_directories(fcpw PUBLIC deps/ThreadPool)
-
-list(APPEND ALL_FCPW_LIBS glog)
 
 if(BUILD_ENOKI)
 	target_include_directories(fcpw PUBLIC deps/enoki/include)
