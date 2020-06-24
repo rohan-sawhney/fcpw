@@ -160,12 +160,12 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 
 			if (scene.objectTypes[i] == ObjectType::Triangles) {
 				// register surface mesh
-				int N = (int)scene.soups[i]->indices.size()/3;
+				int N = (int)scene.soups[i].indices.size()/3;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
-				const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
+				const std::vector<Vector<DIM>>& positions = scene.soups[i].positions;
 				for (int j = 0; j < N; j++) {
 					for (int k = 0; k < 3; k++) {
-						indices[j][k] = scene.soups[i]->indices[3*j + k];
+						indices[j][k] = scene.soups[i].indices[3*j + k];
 					}
 				}
 
@@ -188,12 +188,12 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 
 			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
 				// register curve network
-				int N = (int)scene.soups[i]->indices.size()/2;
+				int N = (int)scene.soups[i].indices.size()/2;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
-				const std::vector<Vector<DIM>>& positions = scene.soups[i]->positions;
+				const std::vector<Vector<DIM>>& positions = scene.soups[i].positions;
 				for (int j = 0; j < N; j++) {
 					for (int k = 0; k < 2; k++) {
-						indices[j][k] = scene.soups[i]->indices[2*j + k];
+						indices[j][k] = scene.soups[i].indices[2*j + k];
 					}
 				}
 

@@ -10,29 +10,25 @@
 namespace fcpw {
 
 // computes weighted normals at vertices
-void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments,
-									   const std::unique_ptr<PolygonSoup<3>>& soup);
+void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments, PolygonSoup<3>& soup);
 
 // reads soup from obj file
-std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-															   bool& isFlat);
+void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup, bool& isFlat);
 
 // reads line segment soup from obj file
-std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-															   std::vector<LineSegment *>& lineSegments,
-															   bool computeWeightedNormals=true);
+void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup,
+									std::vector<LineSegment *>& lineSegments,
+									bool computeWeightedNormals=true);
 
 // computes weighted normals at vertices and edges
-void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles,
-									const std::unique_ptr<PolygonSoup<3>>& soup);
+void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3>& soup);
 
 // reads soup from obj file
-std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename);
+void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup);
 
 // reads triangle soup from obj file
-std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename,
-															std::vector<Triangle *>& triangles,
-															bool computeWeightedNormals=true);
+void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup,
+								 std::vector<Triangle *>& triangles, bool computeWeightedNormals=true);
 
 // loads instance transforms from file
 template<size_t DIM>
@@ -46,8 +42,7 @@ struct CsgTreeNode {
 };
 
 // loads csg tree from file
-void loadCsgTree(const std::string& filename,
-				 std::unordered_map<int, CsgTreeNode>& csgTree);
+void loadCsgTree(const std::string& filename, std::unordered_map<int, CsgTreeNode>& csgTree);
 
 } // namespace fcpw
 

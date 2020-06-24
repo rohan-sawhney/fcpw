@@ -3,33 +3,30 @@
 
 namespace fcpw {
 
-void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments,
-									   const std::unique_ptr<PolygonSoup<3>>& soup)
+void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments, PolygonSoup<3>& soup)
 {
-	int N = (int)soup->indices.size()/2;
-	int V = (int)soup->positions.size();
-	soup->vNormals.resize(V, zeroVector<3>());
+	int N = (int)soup.indices.size()/2;
+	int V = (int)soup.positions.size();
+	soup.vNormals.resize(V, zeroVector<3>());
 
 	for (int i = 0; i < N; i++) {
 		Vector3 n = lineSegments[i]->normal(true);
-		soup->vNormals[soup->indices[lineSegments[i]->index]] += n;
-		soup->vNormals[soup->indices[lineSegments[i]->index + 1]] += n;
+		soup.vNormals[soup.indices[lineSegments[i]->index]] += n;
+		soup.vNormals[soup.indices[lineSegments[i]->index + 1]] += n;
 	}
 
 	for (int i = 0; i < V; i++) {
-		soup->vNormals[i] = unit<3>(soup->vNormals[i]);
+		soup.vNormals[i] = unit<3>(soup.vNormals[i]);
 	}
 }
 
-std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-															   bool& isFlat)
+void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup, bool& isFlat)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
 	// initialize
-	std::unique_ptr<PolygonSoup<3>> soup(new PolygonSoup<3>());
 	std::ifstream in(filename);
 	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
 
@@ -46,7 +43,7 @@ std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 			float x, y, z;
 			ss >> x >> y >> z;
 
-			soup->positions.emplace_back(Vector3(x, y, z));
+			soup.positions.emplace_back(Vector3(x, y, z));
 			if (std::fabs(z) > epsilon) isFlat = false;
 
 		} else if (token == "f" || token == "l") {
@@ -63,15 +60,15 @@ std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 				}
 
 				if (tokenIsF) indices.emplace_back(index.position);
-				else soup->indices.emplace_back(index.position);
+				else soup.indices.emplace_back(index.position);
 			}
 
 			if (tokenIsF) {
 				int F = (int)indices.size();
 				for (int i = 0; i < F - 1; i++) {
 					int j = (i + 1)%F;
-					soup->indices.emplace_back(indices[i]);
-					soup->indices.emplace_back(indices[j]);
+					soup.indices.emplace_back(indices[i]);
+					soup.indices.emplace_back(indices[j]);
 				}
 			}
 		}
@@ -79,18 +76,15 @@ std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 
 	// close
 	in.close();
-
-	return soup;
 }
 
-std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
-															   std::vector<LineSegment *>& lineSegments,
-															   bool computeWeightedNormals)
+void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup,
+									std::vector<LineSegment *>& lineSegments, bool computeWeightedNormals)
 {
 	// read soup and initialize line segments
 	bool isFlat = true;
-	std::unique_ptr<PolygonSoup<3>> soup = readLineSegmentSoupFromOBJFile(filename, isFlat);
-	int N = (int)soup->indices.size();
+	readLineSegmentSoupFromOBJFile(filename, soup, isFlat);
+	int N = (int)soup.indices.size();
 	LOG_IF(FATAL, N%2 != 0) << "Soup has non line segment curves: " << filename;
 
 	N /= 2;
@@ -99,11 +93,11 @@ std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 
 	for (int i = 0; i < N; i++) {
 		lineSegments[i] = &contiguousLineSegments[i];
-		lineSegments[i]->soup = soup.get();
+		lineSegments[i]->soup = &soup;
 		lineSegments[i]->index = 2*i;
 	}
 
-	if (isFlat && N > 0 && soup->indices[0] == soup->indices[2*(N - 1) + 1]) {
+	if (isFlat && N > 0 && soup.indices[0] == soup.indices[2*(N - 1) + 1]) {
 		// swap indices if segments of closed curve are oriented in clockwise order
 		float signedVolume = 0.0f;
 		for (int i = 0; i < N; i++) {
@@ -112,7 +106,7 @@ std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 
 		if (signedVolume < 0) {
 			for (int i = 0; i < N; i++) {
-				std::swap(soup->indices[2*i], soup->indices[2*i + 1]);
+				std::swap(soup.indices[2*i], soup.indices[2*i + 1]);
 			}
 		}
 	}
@@ -121,57 +115,53 @@ std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string
 	if (computeWeightedNormals) {
 		computeWeightedLineSegmentNormals(lineSegments, soup);
 	}
-
-	return soup;
 }
 
-void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles,
-									const std::unique_ptr<PolygonSoup<3>>& soup)
+void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, PolygonSoup<3>& soup)
 {
 	// set edge indices
 	int E = 0;
-	int N = (int)soup->indices.size()/3;
+	int N = (int)soup.indices.size()/3;
 	std::map<std::pair<int, int>, int> indexMap;
 
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < 3; j++) {
 			int k = (j + 1)%3;
-			int I = soup->indices[3*i + j];
-			int J = soup->indices[3*i + k];
+			int I = soup.indices[3*i + j];
+			int J = soup.indices[3*i + k];
 			if (I > J) std::swap(I, J);
 			std::pair<int, int> e(I, J);
 
 			if (indexMap.find(e) == indexMap.end()) indexMap[e] = E++;
-			soup->eIndices.emplace_back(indexMap[e]);
+			soup.eIndices.emplace_back(indexMap[e]);
 		}
 	}
 
 	// compute normals
-	int V = (int)soup->positions.size();
-	soup->vNormals.resize(V, zeroVector<3>());
-	soup->eNormals.resize(E, zeroVector<3>());
+	int V = (int)soup.positions.size();
+	soup.vNormals.resize(V, zeroVector<3>());
+	soup.eNormals.resize(E, zeroVector<3>());
 
 	for (int i = 0; i < N; i++) {
 		Vector3 n = triangles[i]->normal(true);
 
 		for (int j = 0; j < 3; j++) {
-			soup->vNormals[soup->indices[triangles[i]->index + j]] += n;
-			soup->eNormals[soup->eIndices[triangles[i]->index + j]] += n;
+			soup.vNormals[soup.indices[triangles[i]->index + j]] += n;
+			soup.eNormals[soup.eIndices[triangles[i]->index + j]] += n;
 		}
 	}
 
-	for (int i = 0; i < V; i++) soup->vNormals[i] = unit<3>(soup->vNormals[i]);
-	for (int i = 0; i < E; i++) soup->eNormals[i] = unit<3>(soup->eNormals[i]);
+	for (int i = 0; i < V; i++) soup.vNormals[i] = unit<3>(soup.vNormals[i]);
+	for (int i = 0; i < E; i++) soup.eNormals[i] = unit<3>(soup.eNormals[i]);
 }
 
-std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename)
+void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
 	// initialize
-	std::unique_ptr<PolygonSoup<3>> soup(new PolygonSoup<3>());
 	std::ifstream in(filename);
 	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
 
@@ -186,13 +176,13 @@ std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 			float x, y, z;
 			ss >> x >> y >> z;
 
-			soup->positions.emplace_back(Vector3(x, y, z));
+			soup.positions.emplace_back(Vector3(x, y, z));
 
 		} else if (token == "vt") {
 			float u, v;
 			ss >> u >> v;
 
-			soup->textureCoordinates.emplace_back(Vector2(u, v));
+			soup.textureCoordinates.emplace_back(Vector2(u, v));
 
 		} else if (token == "f") {
 			while (ss >> token) {
@@ -204,8 +194,8 @@ std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 					index = parseFaceIndex(line.substr(i));
 				}
 
-				soup->indices.emplace_back(index.position);
-				soup->tIndices.emplace_back(index.uv);
+				soup.indices.emplace_back(index.position);
+				soup.tIndices.emplace_back(index.uv);
 			}
 		}
 	}
@@ -213,21 +203,18 @@ std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 	// close
 	in.close();
 
-	if (soup->textureCoordinates.size() == 0) {
+	if (soup.textureCoordinates.size() == 0) {
 		LOG(INFO) << "Model does not contain uvs";
-		soup->tIndices.clear();
+		soup.tIndices.clear();
 	}
-
-	return soup;
 }
 
-std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename,
-															std::vector<Triangle *>& triangles,
-															bool computeWeightedNormals)
+void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup,
+								 std::vector<Triangle *>& triangles, bool computeWeightedNormals)
 {
 	// read soup and initialize triangles
-	std::unique_ptr<PolygonSoup<3>> soup = readTriangleSoupFromOBJFile(filename);
-	int N = (int)soup->indices.size();
+	readTriangleSoupFromOBJFile(filename, soup);
+	int N = (int)soup.indices.size();
 	LOG_IF(FATAL, N%3 != 0) << "Soup has non-triangular polygons: " << filename;
 
 	N /= 3;
@@ -236,7 +223,7 @@ std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 
 	for (int i = 0; i < N; i++) {
 		triangles[i] = &contiguousTriangles[i];
-		triangles[i]->soup = soup.get();
+		triangles[i]->soup = &soup;
 		triangles[i]->index = 3*i;
 	}
 
@@ -244,8 +231,6 @@ std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& f
 	if (computeWeightedNormals) {
 		computeWeightedTriangleNormals(triangles, soup);
 	}
-
-	return soup;
 }
 
 void loadCsgTree(const std::string& filename,

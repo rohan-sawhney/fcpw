@@ -74,38 +74,34 @@ inline Scene<DIM>::~Scene()
 }
 
 template<size_t DIM, typename PrimitiveType>
-inline std::unique_ptr<PolygonSoup<DIM>> readSoupFromFile(const std::string& filename,
-														  const LoadingOption& loadingOption,
-														  std::vector<PrimitiveType *>& primitives)
+inline void readSoupFromFile(const std::string& filename, const LoadingOption& loadingOption,
+							 PolygonSoup<DIM>& soup, std::vector<PrimitiveType *>& primitives)
 {
 	LOG(FATAL) << "readSoupFromFile<DIM, PrimitiveType>(): Not supported";
-	return nullptr;
 }
 
 template<>
-inline std::unique_ptr<PolygonSoup<3>> readSoupFromFile<3, LineSegment>(const std::string& filename,
-																		const LoadingOption& loadingOption,
-																		std::vector<LineSegment *>& lineSegments)
+inline void readSoupFromFile<3, LineSegment>(const std::string& filename, const LoadingOption& loadingOption,
+											 PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments)
 {
 	if (loadingOption == LoadingOption::ObjLineSegments) {
-		return readLineSegmentSoupFromOBJFile(filename, lineSegments);
-	}
+		readLineSegmentSoupFromOBJFile(filename, soup, lineSegments);
 
-	LOG(FATAL) << "readSoupFromFile<3, LineSegment>(): Invalid loading option";
-	return nullptr;
+	} else {
+		LOG(FATAL) << "readSoupFromFile<3, LineSegment>(): Invalid loading option";
+	}
 }
 
 template<>
-inline std::unique_ptr<PolygonSoup<3>> readSoupFromFile<3, Triangle>(const std::string& filename,
-																	 const LoadingOption& loadingOption,
-																	 std::vector<Triangle *>& triangles)
+inline void readSoupFromFile<3, Triangle>(const std::string& filename, const LoadingOption& loadingOption,
+										  PolygonSoup<3>& soup, std::vector<Triangle *>& triangles)
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
-		return readTriangleSoupFromOBJFile(filename, triangles);
-	}
+		readTriangleSoupFromOBJFile(filename, soup, triangles);
 
-	LOG(FATAL) << "readSoupFromFile<3, Triangle>(): Invalid loading option";
-	return nullptr;
+	} else {
+		LOG(FATAL) << "readSoupFromFile<3, Triangle>(): Invalid loading option";
+	}
 }
 
 template<size_t DIM>
@@ -140,13 +136,13 @@ inline void Scene<DIM>::loadFiles()
 
 	for (int i = 0; i < nFiles; i++) {
 		if (objectTypes[i] == ObjectType::LineSegments) {
-			soups[i] = readSoupFromFile<3, LineSegment>(files[i].first, files[i].second,
-														lineSegmentObjects[nLineSegmentFiles]);
+			readSoupFromFile<3, LineSegment>(files[i].first, files[i].second, soups[i],
+											 lineSegmentObjects[nLineSegmentFiles]);
 			nLineSegmentFiles++;
 
 		} else if (objectTypes[i] == ObjectType::Triangles) {
-			soups[i] = readSoupFromFile<3, Triangle>(files[i].first, files[i].second,
-													 triangleObjects[nTriangleFiles]);
+			readSoupFromFile<3, Triangle>(files[i].first, files[i].second, soups[i],
+										  triangleObjects[nTriangleFiles]);
 			nTriangleFiles++;
 		}
 	}
@@ -304,7 +300,7 @@ inline bool Scene<DIM>::buildEmbreeAggregate()
 
 	for (int i = 0; i < (int)soups.size(); i++) {
 		if (objectTypes[i] == ObjectType::Triangles) {
-			aggregate = new EmbreeBvh(triangleObjects[0], soups[i].get());
+			aggregate = new EmbreeBvh(triangleObjects[0], &soups[i]);
 			return true;
 		}
 	}

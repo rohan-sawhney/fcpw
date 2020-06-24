@@ -376,27 +376,27 @@ void visualizeScene(const Scene<DIM>& scene,
 
 			if (scene.objectTypes[i] == ObjectType::Triangles) {
 				// register surface mesh
-				int N = (int)scene.soups[i]->indices.size()/3;
+				int N = (int)scene.soups[i].indices.size()/3;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
 				for (int j = 0; j < N; j++) {
 					for (int k = 0; k < 3; k++) {
-						indices[j][k] = scene.soups[i]->indices[3*j + k];
+						indices[j][k] = scene.soups[i].indices[3*j + k];
 					}
 				}
 
-				polyscope::registerSurfaceMesh(meshName, scene.soups[i]->positions, indices);
+				polyscope::registerSurfaceMesh(meshName, scene.soups[i].positions, indices);
 
 			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
 				// register curve network
-				int N = (int)scene.soups[i]->indices.size()/2;
+				int N = (int)scene.soups[i].indices.size()/2;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
 				for (int j = 0; j < N; j++) {
 					for (int k = 0; k < 2; k++) {
-						indices[j][k] = scene.soups[i]->indices[2*j + k];
+						indices[j][k] = scene.soups[i].indices[2*j + k];
 					}
 				}
 
-				polyscope::registerCurveNetwork(meshName, scene.soups[i]->positions, indices);
+				polyscope::registerCurveNetwork(meshName, scene.soups[i].positions, indices);
 			}
 		}
 

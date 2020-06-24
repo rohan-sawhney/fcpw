@@ -53,7 +53,7 @@ public:
 	// members; NOTE: if initializing scene manually, populate soups, objects,
 	// objectTypes, instanceTransforms & csgTree before calling buildAggregate;
 	// see loadFiles for example
-	std::vector<std::unique_ptr<PolygonSoup<DIM>>> soups;
+	std::vector<PolygonSoup<DIM>> soups;
 	std::vector<std::vector<LineSegment *>> lineSegmentObjects;
 	std::vector<std::vector<Triangle *>> triangleObjects;
 	std::vector<std::vector<GeometricPrimitive<DIM> *>> mixedObjects;
