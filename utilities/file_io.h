@@ -11,27 +11,28 @@ namespace fcpw {
 
 // computes weighted normals at vertices
 void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments,
-									   PolygonSoup<3> *soup);
+									   const std::unique_ptr<PolygonSoup<3>>& soup);
 
 // reads soup from obj file
-PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, bool& isFlat);
+std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
+															   bool& isFlat);
 
 // reads line segment soup from obj file
-PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename,
-											   std::vector<LineSegment *>& lineSegments,
-											   bool computeWeightedNormals=true);
+std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
+															   std::vector<LineSegment *>& lineSegments,
+															   bool computeWeightedNormals=true);
 
 // computes weighted normals at vertices and edges
 void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles,
-									PolygonSoup<3> *soup);
+									const std::unique_ptr<PolygonSoup<3>>& soup);
 
 // reads soup from obj file
-PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename);
+std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename);
 
 // reads triangle soup from obj file
-PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename,
-											std::vector<Triangle *>& triangles,
-											bool computeWeightedNormals=true);
+std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename,
+															std::vector<Triangle *>& triangles,
+															bool computeWeightedNormals=true);
 
 // loads instance transforms from file
 template<size_t DIM>

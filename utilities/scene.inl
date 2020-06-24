@@ -19,11 +19,6 @@ aggregate(nullptr)
 template<size_t DIM>
 inline void Scene<DIM>::clearData()
 {
-	// clear soups
-	for (int i = 0; i < (int)soups.size(); i++) {
-		delete soups[i];
-	}
-
 	// clear line segments
 	for (int i = 0; i < (int)lineSegmentObjects.size(); i++) {
 		if (lineSegmentObjects[i].size() > 0) {
@@ -79,16 +74,18 @@ inline Scene<DIM>::~Scene()
 }
 
 template<size_t DIM, typename PrimitiveType>
-inline PolygonSoup<DIM>* readSoupFromFile(const std::string& filename, const LoadingOption& loadingOption,
-										  std::vector<PrimitiveType *>& primitives)
+inline std::unique_ptr<PolygonSoup<DIM>> readSoupFromFile(const std::string& filename,
+														  const LoadingOption& loadingOption,
+														  std::vector<PrimitiveType *>& primitives)
 {
 	LOG(FATAL) << "readSoupFromFile<DIM, PrimitiveType>(): Not supported";
 	return nullptr;
 }
 
 template<>
-inline PolygonSoup<3>* readSoupFromFile<3, LineSegment>(const std::string& filename,
-		const LoadingOption& loadingOption, std::vector<LineSegment *>& lineSegments)
+inline std::unique_ptr<PolygonSoup<3>> readSoupFromFile<3, LineSegment>(const std::string& filename,
+																		const LoadingOption& loadingOption,
+																		std::vector<LineSegment *>& lineSegments)
 {
 	if (loadingOption == LoadingOption::ObjLineSegments) {
 		return readLineSegmentSoupFromOBJFile(filename, lineSegments);
@@ -99,8 +96,9 @@ inline PolygonSoup<3>* readSoupFromFile<3, LineSegment>(const std::string& filen
 }
 
 template<>
-inline PolygonSoup<3>* readSoupFromFile<3, Triangle>(const std::string& filename,
-			const LoadingOption& loadingOption, std::vector<Triangle *>& triangles)
+inline std::unique_ptr<PolygonSoup<3>> readSoupFromFile<3, Triangle>(const std::string& filename,
+																	 const LoadingOption& loadingOption,
+																	 std::vector<Triangle *>& triangles)
 {
 	if (loadingOption == LoadingOption::ObjTriangles) {
 		return readTriangleSoupFromOBJFile(filename, triangles);
@@ -306,7 +304,7 @@ inline bool Scene<DIM>::buildEmbreeAggregate()
 
 	for (int i = 0; i < (int)soups.size(); i++) {
 		if (objectTypes[i] == ObjectType::Triangles) {
-			aggregate = new EmbreeBvh(triangleObjects[0], soups[i]);
+			aggregate = new EmbreeBvh(triangleObjects[0], soups[i].get());
 			return true;
 		}
 	}

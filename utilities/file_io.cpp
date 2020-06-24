@@ -4,7 +4,7 @@
 namespace fcpw {
 
 void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments,
-									   PolygonSoup<3> *soup)
+									   const std::unique_ptr<PolygonSoup<3>>& soup)
 {
 	int N = (int)soup->indices.size()/2;
 	int V = (int)soup->positions.size();
@@ -21,14 +21,15 @@ void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSeg
 	}
 }
 
-PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, bool& isFlat)
+std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
+															   bool& isFlat)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
 	// initialize
-	PolygonSoup<3> *soup = new PolygonSoup<3>();
+	std::unique_ptr<PolygonSoup<3>> soup(new PolygonSoup<3>());
 	std::ifstream in(filename);
 	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
 
@@ -82,13 +83,13 @@ PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename, bool
 	return soup;
 }
 
-PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename,
-											   std::vector<LineSegment *>& lineSegments,
-											   bool computeWeightedNormals)
+std::unique_ptr<PolygonSoup<3>> readLineSegmentSoupFromOBJFile(const std::string& filename,
+															   std::vector<LineSegment *>& lineSegments,
+															   bool computeWeightedNormals)
 {
 	// read soup and initialize line segments
 	bool isFlat = true;
-	PolygonSoup<3> *soup = readLineSegmentSoupFromOBJFile(filename, isFlat);
+	std::unique_ptr<PolygonSoup<3>> soup = readLineSegmentSoupFromOBJFile(filename, isFlat);
 	int N = (int)soup->indices.size();
 	LOG_IF(FATAL, N%2 != 0) << "Soup has non line segment curves: " << filename;
 
@@ -98,7 +99,7 @@ PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename,
 
 	for (int i = 0; i < N; i++) {
 		lineSegments[i] = &contiguousLineSegments[i];
-		lineSegments[i]->soup = soup;
+		lineSegments[i]->soup = soup.get();
 		lineSegments[i]->index = 2*i;
 	}
 
@@ -125,7 +126,7 @@ PolygonSoup<3>* readLineSegmentSoupFromOBJFile(const std::string& filename,
 }
 
 void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles,
-									PolygonSoup<3> *soup)
+									const std::unique_ptr<PolygonSoup<3>>& soup)
 {
 	// set edge indices
 	int E = 0;
@@ -163,14 +164,14 @@ void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles,
 	for (int i = 0; i < E; i++) soup->eNormals[i] = unit<3>(soup->eNormals[i]);
 }
 
-PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename)
+std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
 	// initialize
-	PolygonSoup<3> *soup = new PolygonSoup<3>();
+	std::unique_ptr<PolygonSoup<3>> soup(new PolygonSoup<3>());
 	std::ifstream in(filename);
 	LOG_IF(FATAL, in.is_open() == false) << "Unable to open file: " << filename;
 
@@ -220,12 +221,12 @@ PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename)
 	return soup;
 }
 
-PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename,
-											std::vector<Triangle *>& triangles,
-											bool computeWeightedNormals)
+std::unique_ptr<PolygonSoup<3>> readTriangleSoupFromOBJFile(const std::string& filename,
+															std::vector<Triangle *>& triangles,
+															bool computeWeightedNormals)
 {
 	// read soup and initialize triangles
-	PolygonSoup<3> *soup = readTriangleSoupFromOBJFile(filename);
+	std::unique_ptr<PolygonSoup<3>> soup = readTriangleSoupFromOBJFile(filename);
 	int N = (int)soup->indices.size();
 	LOG_IF(FATAL, N%3 != 0) << "Soup has non-triangular polygons: " << filename;
 
@@ -235,7 +236,7 @@ PolygonSoup<3>* readTriangleSoupFromOBJFile(const std::string& filename,
 
 	for (int i = 0; i < N; i++) {
 		triangles[i] = &contiguousTriangles[i];
-		triangles[i]->soup = soup;
+		triangles[i]->soup = soup.get();
 		triangles[i]->index = 3*i;
 	}
 
