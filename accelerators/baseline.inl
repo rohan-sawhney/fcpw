@@ -104,9 +104,9 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 		}
 
 		// compute normals
-		if (this->computeNormals) {
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal();
+				is[i].computeNormal(primitives[is[i].primitiveIndex]);
 			}
 		}
 
@@ -150,8 +150,8 @@ inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSpher
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals) {
-			i.computeNormal();
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			i.computeNormal(primitives[i.primitiveIndex]);
 		}
 
 		return true;

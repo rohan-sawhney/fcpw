@@ -277,10 +277,6 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 
 			if (countHits) {
 				if (mask[w]) {
-					int index = references[referenceOffset + p];
-					const PrimitiveType *prim = primitives[index];
-
-					const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(prim);
 					hits++;
 					auto it = is.emplace(is.end(), Interaction<DIM>());
 					it->d = d[w];
@@ -290,15 +286,11 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 					it->uv[0] = t[w];
 					it->uv[1] = -1;
 					it->nodeIndex = nodeIndex;
-					it->primitive = lineSegment;
+					it->primitiveIndex = references[referenceOffset + p];
 				}
 
 			} else {
 				if (mask[w] && d[w] <= r.tMax) {
-					int index = references[referenceOffset + p];
-					const PrimitiveType *prim = primitives[index];
-
-					const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(prim);
 					hits = 1;
 					r.tMax = d[w];
 					is[0].d = d[w];
@@ -308,7 +300,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 					is[0].uv[0] = t[w];
 					is[0].uv[1] = -1;
 					is[0].nodeIndex = nodeIndex;
-					is[0].primitive = lineSegment;
+					is[0].primitiveIndex = references[referenceOffset + p];
 				}
 			}
 		}
@@ -355,10 +347,6 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 
 			if (countHits) {
 				if (mask[w]) {
-					int index = references[referenceOffset + p];
-					const PrimitiveType *prim = primitives[index];
-
-					const Triangle *triangle = reinterpret_cast<const Triangle *>(prim);
 					hits++;
 					auto it = is.emplace(is.end(), Interaction<DIM>());
 					it->d = d[w];
@@ -368,15 +356,11 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 					it->uv[0] = t[0][w];
 					it->uv[1] = t[1][w];
 					it->nodeIndex = nodeIndex;
-					it->primitive = triangle;
+					it->primitiveIndex = references[referenceOffset + p];
 				}
 
 			} else {
 				if (mask[w] && d[w] <= r.tMax) {
-					int index = references[referenceOffset + p];
-					const PrimitiveType *prim = primitives[index];
-
-					const Triangle *triangle = reinterpret_cast<const Triangle *>(prim);
 					hits = 1;
 					r.tMax = d[w];
 					is[0].d = d[w];
@@ -386,7 +370,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 					is[0].uv[0] = t[0][w];
 					is[0].uv[1] = t[1][w];
 					is[0].nodeIndex = nodeIndex;
-					is[0].primitive = triangle;
+					is[0].primitiveIndex = references[referenceOffset + p];
 				}
 			}
 		}
@@ -451,7 +435,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 					bool seenPrim = false;
 					int nInteractions = (int)is.size();
 					for (int sp = 0; sp < nInteractions; sp++) {
-						if (prim == is[sp].primitive) {
+						if (index == is[sp].primitiveIndex) {
 							seenPrim = true;
 							break;
 						}
@@ -536,9 +520,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 		}
 
 		// compute normals
-		if (this->computeNormals) {
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal();
+				is[i].computeNormal(primitives[is[i].primitiveIndex]);
 			}
 		}
 
@@ -582,11 +566,6 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 			int w = p - startReference;
 
 			if (d2[w] <= s.r2) {
-				int index = references[referenceOffset + p];
-				const PrimitiveType *prim = primitives[index];
-
-				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(prim);
-				closestIndex = index;
 				s.r2 = d2[w];
 				i.d = d[w];
 				i.p[0] = pt[0][w];
@@ -595,7 +574,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 				i.uv[0] = t[w];
 				i.uv[1] = -1;
 				i.nodeIndex = nodeIndex;
-				i.primitive = lineSegment;
+				i.primitiveIndex = references[referenceOffset + p];
+				closestIndex = i.primitiveIndex;
 			}
 		}
 
@@ -640,11 +620,6 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 			int w = p - startReference;
 
 			if (d2[w] <= s.r2) {
-				int index = references[referenceOffset + p];
-				const PrimitiveType *prim = primitives[index];
-
-				const Triangle *triangle = reinterpret_cast<const Triangle *>(prim);
-				closestIndex = index;
 				s.r2 = d2[w];
 				i.d = d[w];
 				i.p[0] = pt[0][w];
@@ -653,7 +628,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 				i.uv[0] = t[0][w];
 				i.uv[1] = t[1][w];
 				i.nodeIndex = nodeIndex;
-				i.primitive = triangle;
+				i.primitiveIndex = references[referenceOffset + p];
+				closestIndex = i.primitiveIndex;
 			}
 		}
 
@@ -712,7 +688,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 					int index = references[referenceOffset + p];
 					const PrimitiveType *prim = primitives[index];
 
-					if (prim != i.primitive) {
+					if (index != i.primitiveIndex) {
 						nodesVisited++;
 
 						bool found = false;
@@ -776,8 +752,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals) {
-			i.computeNormal();
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			i.computeNormal(primitives[i.primitiveIndex]);
 		}
 
 		return true;

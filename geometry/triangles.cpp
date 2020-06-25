@@ -231,7 +231,7 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 		it->p = r(t);
 		it->uv[0] = u;
 		it->uv[1] = v;
-		it->primitive = this;
+		it->primitiveIndex = index/3;
 
 		return 1;
 	}
@@ -339,7 +339,7 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 
 	if (d*d <= s.r2) {
 		i.d = d;
-		i.primitive = this;
+		i.primitiveIndex = index/3;
 
 		return true;
 	}

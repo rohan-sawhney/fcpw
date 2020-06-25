@@ -655,7 +655,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 				bool seenPrim = false;
 				int nInteractions = (int)is.size();
 				for (int sp = 0; sp < nInteractions; sp++) {
-					if (prim == is[sp].primitive) {
+					if (index == is[sp].primitiveIndex) {
 						seenPrim = true;
 						break;
 					}
@@ -774,9 +774,9 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 		}
 
 		// compute normals
-		if (this->computeNormals) {
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal();
+				is[i].computeNormal(primitives[is[i].primitiveIndex]);
 			}
 		}
 
@@ -810,7 +810,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 				int index = references[node.referenceOffset + p];
 				const PrimitiveType *prim = primitives[index];
 
-				if (prim != i.primitive) {
+				if (index != i.primitiveIndex) {
 					nodesVisited++;
 
 					bool found = false;
@@ -909,8 +909,8 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals) {
-			i.computeNormal();
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			i.computeNormal(primitives[i.primitiveIndex]);
 		}
 
 		return true;

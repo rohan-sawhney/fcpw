@@ -12,9 +12,9 @@ enum class DistanceInfo {
 template<size_t DIM>
 struct Interaction {
 	// constructor
-	Interaction(): d(maxFloat), sign(0), nodeIndex(-1), p(zeroVector<DIM>()),
-				   n(zeroVector<DIM>()), uv(zeroVector<DIM - 1>()),
-				   distanceInfo(DistanceInfo::Exact), primitive(nullptr) {}
+	Interaction(): d(maxFloat), sign(0), nodeIndex(-1), primitiveIndex(-1),
+				   p(zeroVector<DIM>()), n(zeroVector<DIM>()), uv(zeroVector<DIM - 1>()),
+				   distanceInfo(DistanceInfo::Exact) {}
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
@@ -34,7 +34,7 @@ struct Interaction {
 	}
 
 	// computes normal from geometric primitive if unspecified
-	void computeNormal() {
+	void computeNormal(const Primitive<DIM> *primitive) {
 		n = static_cast<const GeometricPrimitive<DIM> *>(primitive)->normal(uv);
 	}
 
@@ -52,10 +52,10 @@ struct Interaction {
 	float d;
 	int sign; // sign bit used for difference ops
 	int nodeIndex; // index of aggregate node containing intersected or closest point
+	int primitiveIndex;
 	Vector<DIM> p, n;
 	Vector<DIM - 1> uv;
 	DistanceInfo distanceInfo;
-	const Primitive<DIM> *primitive;
 };
 
 template<size_t DIM>

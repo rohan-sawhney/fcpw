@@ -23,12 +23,10 @@ void errorFunction(void *userPtr, enum RTCError error, const char *str)
 
 struct IntersectContext {
 	// constructor
-	IntersectContext(const std::vector<Triangle *>& triangles_,
-					 std::vector<Interaction<3>>& is_): triangles(triangles_), is(is_) {}
+	IntersectContext(std::vector<Interaction<3>>& is_): is(is_) {}
 
 	// members
 	RTCIntersectContext context;
-	const std::vector<Triangle *>& triangles;
 	std::vector<Interaction<3>>& is;
 };
 
@@ -38,13 +36,12 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	RTCRay *ray = (RTCRay *)args->ray;
 	RTCHit *hit = (RTCHit *)args->hit;
 	IntersectContext *context = (IntersectContext *)args->context;
-	const std::vector<Triangle *>& triangles = context->triangles;
 	std::vector<Interaction<3>>& is = context->is;
 	args->valid[0] = 0; // ignore all hits
 
 	// check if interaction has already been added
 	for (int i = 0; i < (int)is.size(); i++) {
-		if (is[i].primitive == triangles[hit->primID]) {
+		if (is[i].primitiveIndex == hit->primID) {
 			return;
 		}
 	}
@@ -56,7 +53,7 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 			Vector3(ray->dir_x, ray->dir_y, ray->dir_z)*it->d;
 	it->uv[0] = hit->u;
 	it->uv[1] = hit->v;
-	it->primitive = triangles[hit->primID];
+	it->primitiveIndex = hit->primID;
 }
 
 embree::Vec3fa closestPointTriangle(embree::Vec3fa const& p, embree::Vec3fa const& a,
@@ -260,7 +257,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 #endif
 
 	// initialize intersect context (RTC_INTERSECT_CONTEXT_FLAG_INCOHERENT is enabled by default)
-	IntersectContext context(this->primitives, is);
+	IntersectContext context(is);
 	rtcInitIntersectContext(&context.context);
 	nodesVisited++;
 
@@ -308,7 +305,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 			it->p = r(it->d);
 			it->uv[0] = rayhit.hit.u;
 			it->uv[1] = rayhit.hit.v;
-			it->primitive = this->primitives[rayhit.hit.primID];
+			it->primitiveIndex = rayhit.hit.primID;
 			r.tMax = it->d;
 			hits++;
 		}
@@ -317,7 +314,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 	// compute normals
 	if (this->computeNormals) {
 		for (int i = 0; i < (int)is.size(); i++) {
-			is[i].computeNormal();
+			is[i].computeNormal(this->primitives[is[i].primitiveIndex]);
 		}
 	}
 
@@ -357,8 +354,8 @@ inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interactio
 		i.d = norm<3>(i.p - s.c);
 		const Triangle *triangle = this->primitives[result.primID];
 		i.uv = triangle->barycentricCoordinates(i.p);
-		if (this->computeNormals) i.n = triangle->normal(i.uv);
-		i.primitive = triangle;
+		if (this->computeNormals) i.computeNormal(triangle);
+		i.primitiveIndex = result.primID;
 		s.r2 = i.d*i.d;
 
 		return true;

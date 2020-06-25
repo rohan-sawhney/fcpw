@@ -150,12 +150,12 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 
 		} else {
 			hitsLeft = left->intersect(rLeft, isLeft, false, true);
-		}
 
-		// compute normals
-		if (this->computeNormals && hitsLeft > 0) {
-			for (int i = 0; i < (int)isLeft.size(); i++) {
-				isLeft[i].computeNormal();
+			// compute normals
+			if (this->computeNormals && hitsLeft > 0) {
+				for (int i = 0; i < (int)isLeft.size(); i++) {
+					isLeft[i].computeNormal(left.get());
+				}
 			}
 		}
 
@@ -174,12 +174,12 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 
 		} else {
 			hitsRight = right->intersect(rRight, isRight, false, true);
-		}
 
-		// compute normals
-		if (this->computeNormals && hitsRight > 0) {
-			for (int i = 0; i < (int)isRight.size(); i++) {
-				isRight[i].computeNormal();
+			// compute normals
+			if (this->computeNormals && hitsRight > 0) {
+				for (int i = 0; i < (int)isRight.size(); i++) {
+					isRight[i].computeNormal(right.get());
+				}
 			}
 		}
 
@@ -242,11 +242,11 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 
 		} else {
 			foundLeft = left->findClosestPoint(sLeft, iLeft);
-		}
 
-		// compute normal
-		if (this->computeNormals && foundLeft) {
-			iLeft.computeNormal();
+			// compute normal
+			if (this->computeNormals && foundLeft) {
+				iLeft.computeNormal(left.get());
+			}
 		}
 
 		// return if no closest point for the left child is found and
@@ -264,11 +264,11 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 
 		} else {
 			foundRight = right->findClosestPoint(sRight, iRight);
-		}
 
-		// compute normal
-		if (this->computeNormals && foundRight) {
-			iRight.computeNormal();
+			// compute normal
+			if (this->computeNormals && foundRight) {
+				iRight.computeNormal(right.get());
+			}
 		}
 
 		// return if no closest point was found to both children
