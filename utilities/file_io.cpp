@@ -43,7 +43,7 @@ Index parseFaceIndex(const std::string& token) {
 	return Index(indices[0] - 1, indices[1] - 1, indices[2] - 1);
 }
 
-void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup, bool& isFlat)
+void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -58,8 +58,6 @@ void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>&
 
 	// parse obj format
 	std::string line;
-	isFlat = true;
-
 	while (getline(in, line)) {
 		std::stringstream ss(line);
 		std::string token;
@@ -70,7 +68,6 @@ void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>&
 			ss >> x >> y >> z;
 
 			soup.positions.emplace_back(Vector3(x, y, z));
-			if (std::fabs(z) > epsilon) isFlat = false;
 
 		} else if (token == "f" || token == "l") {
 			bool tokenIsF = token == "f";
@@ -104,7 +101,7 @@ void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>&
 	in.close();
 }
 
-void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments, bool isFlat)
+void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments)
 {
 	// initialize line segments
 	int N = (int)soup.indices.size();
@@ -121,6 +118,15 @@ void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSeg
 		lineSegments[i] = &contiguousLineSegments[i];
 		lineSegments[i]->soup = &soup;
 		lineSegments[i]->index = 2*i;
+	}
+
+	// determine whether line segment soup is flat
+	bool isFlat = true;
+	for (int i = 0; i < (int)soup.positions.size(); i++) {
+		if (std::fabs(soup.positions[i][2]) > epsilon) {
+			isFlat = false;
+			break;
+		}
 	}
 
 	// swap indices if segments of closed curve are oriented in clockwise order

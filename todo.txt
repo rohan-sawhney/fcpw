@@ -1,19 +1,19 @@
 Priority:
-1. re-order soup
-2. give the closest point a rough guess of direction to guide traversal (things can
+1. update scene interface, move buildLineSegments, buildTriangles, buildNormals
+2. re-order soup
+3. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
-3. start search from specified node (and walk up/laterally in the tree)
-4. mbvh
+4. start search from specified node (and walk up/laterally in the tree)
+5. mbvh
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
-5. benchmark (https://github.com/jdumas/aabb_benchmark)
-6. travis/circle CI
-7. README (tutorial, features, benchmark, compiling, logo)
+6. benchmark (https://github.com/jdumas/aabb_benchmark)
+7. travis/circle CI
+8. README (tutorial, features, benchmark, compiling, logo)
 
 a. reorder primitives during construction (atleast in bvh, if not sbvh)
 b. avoid calling references array all together (maybe for bvh?)
-c. move buildLineSegments, buildTriangles, buildNormals
 
 Future Optimizations & Features:
 1. vectorize + thread bvh construction

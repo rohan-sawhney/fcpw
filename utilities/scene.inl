@@ -89,9 +89,8 @@ inline void readSoupFromFile<3, LineSegment>(const std::string& filename, const 
 											 std::vector<LineSegment *>& lineSegments)
 {
 	if (loadingOption == LoadingOption::ObjLineSegments) {
-		bool isFlat = true;
-		readLineSegmentSoupFromOBJFile(filename, soup, isFlat);
-		buildLineSegments(soup, lineSegments, isFlat);
+		readLineSegmentSoupFromOBJFile(filename, soup);
+		buildLineSegments(soup, lineSegments);
 		if (computeNormals) computeWeightedLineSegmentNormals(lineSegments, soup);
 
 	} else {

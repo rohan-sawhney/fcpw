@@ -10,10 +10,10 @@
 namespace fcpw {
 
 // reads line segment soup from obj file
-void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup, bool& isFlat);
+void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup);
 
 // builds line segment objects; ensures line segments are oriented counter clockwise
-void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments, bool isFlat);
+void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSegments);
 
 // computes weighted normals at line segment vertices
 void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSegments, PolygonSoup<3>& soup);
