@@ -1,7 +1,11 @@
 Priority:
-1. sbvh - move_backward is very inefficient for large meshes
-2. mesh re-ordering & references indirection
-3. setup CMake properly
+1.
+a. only store primitive index in interaction (avoid extra call to primitives array)
+b. reorder primitives during construction (atleast bvh, if not sbvh)
+c. avoid calling references array all together (maybe for bvh?)
+d. re-order soup
+2. setup CMake properly
+3. sbvh - move_backward is very inefficient for large meshes
 4. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
 5. start search from specified node (and walk up/laterally in the tree)
