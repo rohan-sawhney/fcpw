@@ -152,10 +152,8 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	PROFILE_SCOPED();
 #endif
 
-	if (MBVH_BRANCHING_FACTOR < 4) {
-		std::cerr << "Branching factor must be atleast 4" << std::endl;
-		exit(EXIT_FAILURE);
-	}
+	static_assert(MBVH_BRANCHING_FACTOR == 4 || MBVH_BRANCHING_FACTOR == 8,
+				  "Branching factor must be atleast 4"); 
 
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
