@@ -12,7 +12,6 @@ Priority:
 7. benchmark (https://github.com/jdumas/aabb_benchmark)
 8. travis/circle CI
 9. README (tutorial, features, benchmark, compiling, logo)
-10. nTop: double precision + more geometry support
 
 Future Optimizations & Features:
 1. vectorize + thread bvh construction
