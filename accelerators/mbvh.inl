@@ -430,47 +430,35 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				for (int p = 0; p < nReferences; p++) {
 					int index = references[referenceOffset + p];
 					const PrimitiveType *prim = primitives[index];
+					nodesVisited++;
 
-					// check if primitive has already been seen
-					bool seenPrim = false;
+					int hit = 0;
 					int nInteractions = (int)is.size();
-					for (int sp = 0; sp < nInteractions; sp++) {
-						if (index == is[sp].primitiveIndex) {
-							seenPrim = true;
-							break;
-						}
+					std::vector<Interaction<DIM>> cs;
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
+
+					} else {
+						hit = prim->intersect(r, cs, checkOcclusion, countHits);
 					}
 
-					if (!seenPrim) {
-						nodesVisited++;
-
-						int hit = 0;
-						std::vector<Interaction<DIM>> cs;
-						if (primitiveTypeIsAggregate) {
-							const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-							hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
-
-						} else {
-							hit = prim->intersect(r, cs, checkOcclusion, countHits);
-						}
-
-						// keep the closest intersection only
-						if (hit > 0) {
-							hits += hit;
-							if (countHits) {
-								is.insert(is.end(), cs.begin(), cs.end());
-								for (int sp = nInteractions; sp < (int)is.size(); sp++) {
-									is[sp].nodeIndex = nodeIndex;
-								}
-
-							} else {
-								r.tMax = std::min(r.tMax, cs[0].d);
-								is[0] = cs[0];
-								is[0].nodeIndex = nodeIndex;
+					// keep the closest intersection only
+					if (hit > 0) {
+						hits += hit;
+						if (countHits) {
+							is.insert(is.end(), cs.begin(), cs.end());
+							for (int sp = nInteractions; sp < (int)is.size(); sp++) {
+								is[sp].nodeIndex = nodeIndex;
 							}
 
-							if (checkOcclusion) return 1;
+						} else {
+							r.tMax = std::min(r.tMax, cs[0].d);
+							is[0] = cs[0];
+							is[0].nodeIndex = nodeIndex;
 						}
+
+						if (checkOcclusion) return 1;
 					}
 				}
 			}
@@ -687,27 +675,24 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 				for (int p = 0; p < nReferences; p++) {
 					int index = references[referenceOffset + p];
 					const PrimitiveType *prim = primitives[index];
+					nodesVisited++;
 
-					if (index != i.primitiveIndex) {
-						nodesVisited++;
+					bool found = false;
+					Interaction<DIM> c;
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
 
-						bool found = false;
-						Interaction<DIM> c;
-						if (primitiveTypeIsAggregate) {
-							const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-							found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
+					} else {
+						found = prim->findClosestPoint(s, c);
+					}
 
-						} else {
-							found = prim->findClosestPoint(s, c);
-						}
-
-						// keep the closest point only
-						if (found) {
-							notFound = false;
-							s.r2 = std::min(s.r2, c.d*c.d);
-							i = c;
-							i.nodeIndex = nodeIndex;
-						}
+					// keep the closest point only
+					if (found) {
+						notFound = false;
+						s.r2 = std::min(s.r2, c.d*c.d);
+						i = c;
+						i.nodeIndex = nodeIndex;
 					}
 				}
 			}

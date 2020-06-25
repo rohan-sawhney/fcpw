@@ -39,13 +39,6 @@ void triangleIntersectionCallback(const struct RTCFilterFunctionNArguments *args
 	std::vector<Interaction<3>>& is = context->is;
 	args->valid[0] = 0; // ignore all hits
 
-	// check if interaction has already been added
-	for (int i = 0; i < (int)is.size(); i++) {
-		if (is[i].primitiveIndex == hit->primID) {
-			return;
-		}
-	}
-
 	// add interaction
 	auto it = is.emplace(is.end(), Interaction<3>());
 	it->d = ray->tfar;
