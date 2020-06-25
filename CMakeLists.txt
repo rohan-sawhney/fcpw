@@ -109,7 +109,6 @@ add_library(fcpw STATIC
 			)
 
 target_include_directories(fcpw PUBLIC deps/eigen-git-mirror)
-target_include_directories(fcpw PUBLIC deps/ThreadPool)
 
 if(BUILD_ENOKI)
 	target_include_directories(fcpw PUBLIC deps/enoki/include)
@@ -130,6 +129,7 @@ list(APPEND ALL_FCPW_LIBS fcpw)
 
 ################################################################################
 if(BUILD_TESTS)
+	target_include_directories(fcpw PUBLIC deps/ThreadPool)
 	add_subdirectory(deps/polyscope)
 
 	add_executable(aggregate_tests tests/aggregate_tests.cpp)
