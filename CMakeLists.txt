@@ -95,9 +95,24 @@ set(FCPW_CORE_HEADERS
 	)
 
 file(GLOB FCPW_SOURCE
-	 geometry/*
-	 accelerators/*
-	 utilities/*
+	 accelerators/baseline.h
+	 accelerators/baseline.inl
+	 accelerators/sbvh.h
+	 accelerators/sbvh.inl
+	 accelerators/mbvh.h
+	 accelerators/mbvh.inl
+	 accelerators/embree_bvh.h
+	 accelerators/embree_bvh.inl
+	 geometry/polygon_soup.h
+	 geometry/line_segments.h
+	 geometry/line_segments.cpp
+	 geometry/triangles.h
+	 geometry/triangles.cpp
+	 utilities/file_io.h
+	 utilities/file_io.inl
+	 utilities/file_io.cpp
+	 utilities/scene.h
+	 utilities/scene.inl
 	 )
 
 ################################################################################
