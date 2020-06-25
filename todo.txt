@@ -38,6 +38,5 @@ Done:
 1. Closest point and ray intersections queries leveraging coherency between queries
 2. Bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
 									 Surface Area Overlap, Volume Overlap)
-3. Spatial Split Bvh for non-uniform tessellation
-4. Constructive Solid Geometry
-5. Instancing
+3. Constructive Solid Geometry
+4. Instancing

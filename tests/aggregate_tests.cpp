@@ -462,7 +462,7 @@ void run()
 		//							   shuffledIndices, "Baseline");
 
 		// build bvh aggregates and benchmark queries
-		for (int bvh = 1; bvh < 8; bvh++) {
+		for (int bvh = 1; bvh < 6; bvh++) {
 			for (int vec = 0; vec < 2; vec++) {
 				scene.buildAggregate(static_cast<AggregateType>(bvh), true, vec == 1);
 				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
@@ -503,7 +503,7 @@ void run()
 		Scene<DIM> bvhScene(false);
 		bvhScene.loadFiles();
 
-		for (int bvh = 1; bvh < 8; bvh++) {
+		for (int bvh = 1; bvh < 6; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
 
 			for (int vec = 0; vec < 2; vec++) {

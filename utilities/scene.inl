@@ -192,31 +192,23 @@ inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType,
 #endif
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::LongestAxisCenter, 1.0f,
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::LongestAxisCenter,
 											printStats, false, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea, 1.0f,
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea,
 											printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapSurfaceArea, 1.0f,
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapSurfaceArea,
 			 								printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume, 1.0f,
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume,
 											printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapVolume, 1.0f,
-											printStats, packLeaves, leafSize);
-
-	} else if (aggregateType == AggregateType::Sbvh_SurfaceArea) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea, 1e-5,
-											printStats, packLeaves, leafSize);
-
-	} else if (aggregateType == AggregateType::Sbvh_Volume) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume, 1e-5,
+		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapVolume,
 											printStats, packLeaves, leafSize);
 
 	} else {
