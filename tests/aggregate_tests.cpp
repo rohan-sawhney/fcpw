@@ -139,12 +139,13 @@ void timeClosestPointQueries(const Aggregate<DIM> *aggregate,
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::atomic<int> totalNodesVisited(0);
+	std::atomic<bool> stopQueries(false);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate, &queryPoints, &indices, &totalNodesVisited,
-					  queriesCoherent, pCurrent, pEnd]() {
+					  &stopQueries, queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
 			#endif
@@ -154,6 +155,8 @@ void timeClosestPointQueries(const Aggregate<DIM> *aggregate,
 			Vector<DIM> queryPrev = zeroVector<DIM>();
 
 			for (int i = pCurrent; i < pEnd; i++) {
+				if (stopQueries) break;
+
 				int I = indices[i];
 				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
 				float r2 = i == pCurrent ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
@@ -169,7 +172,7 @@ void timeClosestPointQueries(const Aggregate<DIM> *aggregate,
 				if (found) cPrev = c;
 				else {
 					std::cerr << "Closest points not found!" << std::endl;
-					exit(EXIT_FAILURE);
+					stopQueries = true;
 				}
 
 				queryPrev = queryPoints[I];
@@ -204,11 +207,12 @@ void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
+	std::atomic<bool> stopQueries(false);
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate1, &aggregate2, &rayOrigins, &rayDirections,
-					  &indices, queriesCoherent, pCurrent, pEnd]() {
+					  &indices, &stopQueries, queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
 			#endif
@@ -216,6 +220,8 @@ void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
 			Interaction<DIM> cPrev;
 
 			for (int i = pCurrent; i < pEnd; i++) {
+				if (stopQueries) break;
+
 				int I = indices[i];
 				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
@@ -232,7 +238,7 @@ void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
 					std::cerr << "d1: " << c1[0].d << " d2: " << c2[0].d
 							  << "\np1: " << c1[0].p << " p2: " << c2[0].p
 							  << "\nIntersections do not match!" << std::endl;
-					exit(EXIT_FAILURE);
+					stopQueries = true;
 				}
 
 				if (hit2) cPrev = c2[0];
@@ -251,7 +257,7 @@ void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
 							  << " hits1: " << hit3
 							  << " hits2: " << hit4
 							  << std::endl;
-					exit(EXIT_FAILURE);
+					stopQueries = true;
 				}
 			}
 		});
@@ -272,11 +278,12 @@ void testClosestPointQueries(const Aggregate<DIM> *aggregate1,
 {
 	int pCurrent = 0;
 	int pRange = std::max(100, (int)nQueries/nThreads);
+	std::atomic<bool> stopQueries(false);
 
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate1, &aggregate2, &queryPoints, &indices,
-					  queriesCoherent, pCurrent, pEnd]() {
+					  &stopQueries, queriesCoherent, pCurrent, pEnd]() {
 			#ifdef PROFILE
 				PROFILE_THREAD_SCOPED();
 			#endif
@@ -285,6 +292,8 @@ void testClosestPointQueries(const Aggregate<DIM> *aggregate1,
 			Vector<DIM> queryPrev = zeroVector<DIM>();
 
 			for (int i = pCurrent; i < pEnd; i++) {
+				if (stopQueries) break;
+
 				int I = indices[i];
 				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
 				float r2 = i == pCurrent ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
@@ -304,13 +313,13 @@ void testClosestPointQueries(const Aggregate<DIM> *aggregate1,
 					std::cerr << "d1: " << c1.d << " d2: " << c2.d
 							  << "\np1: " << c1.p << " p2: " << c2.p
 							  << "\nClosest points do not match!" << std::endl;
-					exit(EXIT_FAILURE);
+					stopQueries = true;
 				}
 
 				if (found2) cPrev = c2;
 				else {
 					std::cerr << "Closest points not found!" << std::endl;
-					exit(EXIT_FAILURE);
+					stopQueries = true;
 				}
 
 				queryPrev = queryPoints[I];

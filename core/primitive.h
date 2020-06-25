@@ -132,14 +132,14 @@ public:
 		bool found = this->findClosestPoint(s, i);
 
 		if (!found) {
-			std::cerr << "Cannot clamp to boundary since no closest point was found inside distance bound: "
-					  << distanceUpperBound << std::endl;
-			exit(EXIT_FAILURE);
+			std::cerr << "Aggregate::clampToBoundary(): Cannot clamp to boundary since no "
+					  << "closest point was found inside distance bound: " << distanceUpperBound
+					  << std::endl;
 		}
 
 		if (i.distanceInfo == DistanceInfo::Bounded) {
-			std::cerr << "Cannot clamp to boundary since exact distance isn't available" << std::endl;
-			exit(EXIT_FAILURE);
+			std::cerr << "Aggregate::clampToBoundary(): Cannot clamp to boundary since exact "
+					  << "distance isn't available" << std::endl;
 		}
 
 		x = i.p;
