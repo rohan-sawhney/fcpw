@@ -278,9 +278,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 			if (countHits) {
 				if (mask[w]) {
 					int index = references[referenceOffset + p];
-					if (this->ignorePrimitive(primitives[index])) continue;
+					const PrimitiveType *prim = primitives[index];
 
-					const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
+					const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(prim);
 					hits++;
 					auto it = is.emplace(is.end(), Interaction<DIM>());
 					it->d = d[w];
@@ -296,9 +296,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 			} else {
 				if (mask[w] && d[w] <= r.tMax) {
 					int index = references[referenceOffset + p];
-					if (this->ignorePrimitive(primitives[index])) continue;
+					const PrimitiveType *prim = primitives[index];
 
-					const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
+					const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(prim);
 					hits = 1;
 					r.tMax = d[w];
 					is[0].d = d[w];
@@ -356,9 +356,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 			if (countHits) {
 				if (mask[w]) {
 					int index = references[referenceOffset + p];
-					if (this->ignorePrimitive(primitives[index])) continue;
+					const PrimitiveType *prim = primitives[index];
 
-					const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
+					const Triangle *triangle = reinterpret_cast<const Triangle *>(prim);
 					hits++;
 					auto it = is.emplace(is.end(), Interaction<DIM>());
 					it->d = d[w];
@@ -374,9 +374,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 			} else {
 				if (mask[w] && d[w] <= r.tMax) {
 					int index = references[referenceOffset + p];
-					if (this->ignorePrimitive(primitives[index])) continue;
+					const PrimitiveType *prim = primitives[index];
 
-					const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
+					const Triangle *triangle = reinterpret_cast<const Triangle *>(prim);
 					hits = 1;
 					r.tMax = d[w];
 					is[0].d = d[w];
@@ -446,7 +446,6 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				for (int p = 0; p < nReferences; p++) {
 					int index = references[referenceOffset + p];
 					const PrimitiveType *prim = primitives[index];
-					if (this->ignorePrimitive(prim)) continue;
 
 					// check if primitive has already been seen
 					bool seenPrim = false;
@@ -584,9 +583,9 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 
 			if (d2[w] <= s.r2) {
 				int index = references[referenceOffset + p];
-				if (this->ignorePrimitive(primitives[index])) continue;
+				const PrimitiveType *prim = primitives[index];
 
-				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
+				const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(prim);
 				closestIndex = index;
 				s.r2 = d2[w];
 				i.d = d[w];
@@ -642,9 +641,9 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 
 			if (d2[w] <= s.r2) {
 				int index = references[referenceOffset + p];
-				if (this->ignorePrimitive(primitives[index])) continue;
+				const PrimitiveType *prim = primitives[index];
 
-				const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
+				const Triangle *triangle = reinterpret_cast<const Triangle *>(prim);
 				closestIndex = index;
 				s.r2 = d2[w];
 				i.d = d[w];
@@ -712,7 +711,6 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 				for (int p = 0; p < nReferences; p++) {
 					int index = references[referenceOffset + p];
 					const PrimitiveType *prim = primitives[index];
-					if (this->ignorePrimitive(prim)) continue;
 
 					if (prim != i.primitive) {
 						nodesVisited++;
@@ -757,7 +755,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			// enqueue remaining overlapping nodes first
 			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
 				if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
-					if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[w]);
+					s.r2 = std::min(s.r2, d2Max[w]);
 					stackPtr++;
 					subtree[stackPtr].node = node.child[w];
 					subtree[stackPtr].distance = d2Min[w];
@@ -766,7 +764,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 			// enqueue closest intersecting node
 			if (closestIndex != -1) {
-				if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, d2Max[closestIndex]);
+				s.r2 = std::min(s.r2, d2Max[closestIndex]);
 				stackPtr++;
 				subtree[stackPtr].node = node.child[closestIndex];
 				subtree[stackPtr].distance = minDist;

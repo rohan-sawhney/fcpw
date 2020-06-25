@@ -145,17 +145,6 @@ public:
 		x = i.p;
 	}
 
-	// checks if primitive should be ignored
-	bool ignorePrimitive(const Primitive<DIM> *prim) const {
-		for (int i = 0; i < (int)ignoreList.size(); i++) {
-			if (prim == ignoreList[i]) {
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	// intersects with ray, starting the traversal at the specified node;
 	// use this for spatially/temporally coherent queries
 	// NOTE: interactions are invalid when checkOcclusion is enabled
@@ -169,11 +158,8 @@ public:
 										  int nodeStartIndex, const Vector<DIM>& boundaryHint,
 										  int& nodesVisited) const = 0;
 
-	// members
+	// member
 	bool computeNormals;
-	std::vector<const Primitive<DIM> *> ignoreList; // primitives to igonore during ray intersection &
-													// closest point traversal; NOTE: keep
-													// ignoreList.size() << primitives.size()
 };
 
 template<size_t DIM>

@@ -648,8 +648,8 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 		// is leaf -> intersect
 		if (node.nReferences > 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				const PrimitiveType *prim = primitives[references[node.referenceOffset + p]];
-				if (this->ignorePrimitive(prim)) continue;
+				int index = references[node.referenceOffset + p];
+				const PrimitiveType *prim = primitives[index];
 
 				// check if primitive has already been seen
 				bool seenPrim = false;
@@ -807,8 +807,8 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 		// is leaf -> compute squared distance
 		if (node.nReferences > 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				const PrimitiveType *prim = primitives[references[node.referenceOffset + p]];
-				if (this->ignorePrimitive(prim)) continue;
+				int index = references[node.referenceOffset + p];
+				const PrimitiveType *prim = primitives[index];
 
 				if (prim != i.primitive) {
 					nodesVisited++;
@@ -835,10 +835,10 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 
 		} else { // not a leaf
 			bool hit0 = flatTree[nodeIndex + 1].box.overlap(s, boxHits[0], boxHits[1]);
-			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
+			s.r2 = std::min(s.r2, boxHits[1]);
 
 			bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.overlap(s, boxHits[2], boxHits[3]);
-			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[3]);
+			s.r2 = std::min(s.r2, boxHits[3]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {
@@ -900,7 +900,7 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 	float boxHits[4];
 
 	if (flatTree[0].box.overlap(s, boxHits[0], boxHits[1])) {
-		if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
+		s.r2 = std::min(s.r2, boxHits[1]);
 		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
 		processSubtreeForClosestPoint(s, i, nodeStartIndex, boundaryHint, subtree,

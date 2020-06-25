@@ -69,7 +69,6 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 
 	// find closest hit
 	for (int p = 0; p < (int)primitives.size(); p++) {
-		if (this->ignorePrimitive(primitives[p])) continue;
 		nodesVisited++;
 
 		int hit = 0;
@@ -129,7 +128,6 @@ inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSpher
 	// find closest point
 	bool notFound = true;
 	for (int p = 0; p < (int)primitives.size(); p++) {
-		if (this->ignorePrimitive(primitives[p])) continue;
 		nodesVisited++;
 
 		bool found = false;
