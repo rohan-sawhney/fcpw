@@ -40,18 +40,6 @@ inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
 }
 
 // performs wide version of ray line segment intersection test
-template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> intersectWideLineSegment(const Ray<DIM>& r, const VectorP<WIDTH, DIM>& pa,
-											 const VectorP<WIDTH, DIM>& pb, FloatP<WIDTH>& d,
-											 VectorP<WIDTH, DIM>& pt, FloatP<WIDTH>& t)
-{
-	std::cerr << "intersectWideLineSegment(): DIM " << DIM << " not supported" << std::endl;
-	exit(EXIT_FAILURE);
-
-	return false;
-}
-
-// overloaded version specialized to DIM = 3
 template<size_t WIDTH>
 inline MaskP<WIDTH> intersectWideLineSegment(const Ray<3>& r, const Vector3P<WIDTH>& pa,
 											 const Vector3P<WIDTH>& pb, FloatP<WIDTH>& d,
@@ -81,19 +69,6 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Ray<3>& r, const Vector3P<WID
 }
 
 // performs wide version of ray triangle intersection test
-template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> intersectWideTriangle(const Ray<DIM>& r, const VectorP<WIDTH, DIM>& pa,
-										  const VectorP<WIDTH, DIM>& pb, const VectorP<WIDTH, DIM>& pc,
-										  FloatP<WIDTH>& d, VectorP<WIDTH, DIM>& pt,
-										  VectorP<WIDTH, DIM - 1>& t)
-{
-	std::cerr << "intersectWideTriangle(): DIM " << DIM << " not supported" << std::endl;
-	exit(EXIT_FAILURE);
-
-	return false;
-}
-
-// overloaded version specialized to DIM = 3
 template<size_t WIDTH>
 inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>& pa,
 										  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
@@ -127,18 +102,6 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>
 }
 
 // finds closest point on wide line segment to point
-template<size_t WIDTH, size_t DIM>
-inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector<DIM>& x, const VectorP<WIDTH, DIM>& pa,
-													 const VectorP<WIDTH, DIM>& pb, VectorP<WIDTH, DIM>& pt,
-													 FloatP<WIDTH>& t)
-{
-	std::cerr << "findClosestPointWideLineSegment(): DIM " << DIM << " not supported" << std::endl;
-	exit(EXIT_FAILURE);
-
-	return 0.0f;
-}
-
-// overloaded version specialized to DIM = 3
 template<size_t WIDTH>
 inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector3& x, const Vector3P<WIDTH>& pa,
 													 const Vector3P<WIDTH>& pb, Vector3P<WIDTH>& pt,
@@ -163,18 +126,6 @@ inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector3& x, const Vec
 }
 
 // finds closest point on wide triangle to point
-template<size_t WIDTH, size_t DIM>
-inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector<DIM>& x, const VectorP<WIDTH, DIM>& pa,
-												  const VectorP<WIDTH, DIM>& pb, const VectorP<WIDTH, DIM>& pc,
-												  VectorP<WIDTH, DIM>& pt, VectorP<WIDTH, DIM - 1>& t)
-{
-	std::cerr << "findClosestPointWideTriangle(): DIM " << DIM << " not supported" << std::endl;
-	exit(EXIT_FAILURE);
-
-	return 0.0f;
-}
-
-// overloaded version specialized to DIM = 3
 template<size_t WIDTH>
 inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3& x, const Vector3P<WIDTH>& pa,
 												  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,

@@ -88,24 +88,6 @@ protected:
 	// populates leaf nodes
 	void populateLeafNodes();
 
-	// performs vectorized ray intersection query to line segment
-	int intersectLineSegment(const MbvhNode<DIM>& node, int nodeIndex,
-							 Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-							 bool countHits) const;
-
-	// performs vectorized ray intersection query to triangle
-	int intersectTriangle(const MbvhNode<DIM>& node, int nodeIndex,
-						  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-						  bool countHits) const;
-
-	// performs vectorized closest point query to line segment
-	bool findClosestPointLineSegment(const MbvhNode<DIM>& node, int nodeIndex,
-									 BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
-
-	// performs vectorized closest point query to triangle
-	bool findClosestPointTriangle(const MbvhNode<DIM>& node, int nodeIndex,
-								  BoundingSphere<DIM>& s, Interaction<DIM>& i) const;
-
 	// members
 	int nNodes, nLeafs, maxDepth, maxLevel;
 	const std::vector<PrimitiveType *>& primitives;

@@ -240,9 +240,20 @@ inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<DIM>& node, int nodeIndex,
-																 Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-																 bool countHits) const
+inline int intersectPrimitives(const MbvhNode<DIM>& node,
+							   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
+							   int nodeIndex, Ray<DIM>& r, std::vector<Interaction<DIM>>& is, bool countHits)
+{
+	std::cerr << "intersectPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return 0;
+}
+
+template<size_t WIDTH>
+inline int intersectPrimitives(const MbvhNode<3>& node,
+							   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
+							   int nodeIndex, Ray<3>& r, std::vector<Interaction<3>>& is, bool countHits)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -258,13 +269,13 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 	for (int l = 0; l < nLeafs; l++) {
 		// perform vectorized intersection query
 		FloatP<WIDTH> d;
-		VectorP<WIDTH, DIM> pt;
+		Vector3P<WIDTH> pt;
 		FloatP<WIDTH> t;
 		int leafIndex = leafOffset + l;
-		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex].positions[0];
-		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex].positions[1];
+		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		MaskP<WIDTH> mask = intersectWideLineSegment(r, pa, pb, d, pt, t);
+		MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(r, pa, pb, d, pt, t);
 
 		// record interactions
 		int endReference = startReference + WIDTH;
@@ -276,7 +287,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 			if (countHits) {
 				if (mask[w]) {
 					hits++;
-					auto it = is.emplace(is.end(), Interaction<DIM>());
+					auto it = is.emplace(is.end(), Interaction<3>());
 					it->d = d[w];
 					it->p[0] = pt[0][w];
 					it->p[1] = pt[1][w];
@@ -311,10 +322,10 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 	return hits;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM>& node, int nodeIndex,
-															  Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-															  bool countHits) const
+template<size_t WIDTH>
+inline int intersectPrimitives(const MbvhNode<3>& node,
+							   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
+							   int nodeIndex, Ray<3>& r, std::vector<Interaction<3>>& is, bool countHits)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -330,14 +341,14 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 	for (int l = 0; l < nLeafs; l++) {
 		// perform vectorized intersection query
 		FloatP<WIDTH> d;
-		VectorP<WIDTH, DIM> pt;
-		VectorP<WIDTH, DIM - 1> t;
+		Vector3P<WIDTH> pt;
+		Vector2P<WIDTH> t;
 		int leafIndex = leafOffset + l;
-		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex].positions[0];
-		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex].positions[1];
-		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex].positions[2];
+		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+		const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		MaskP<WIDTH> mask = intersectWideTriangle(r, pa, pb, pc, d, pt, t);
+		MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(r, pa, pb, pc, d, pt, t);
 
 		// record interactions
 		int endReference = startReference + WIDTH;
@@ -349,7 +360,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 			if (countHits) {
 				if (mask[w]) {
 					hits++;
-					auto it = is.emplace(is.end(), Interaction<DIM>());
+					auto it = is.emplace(is.end(), Interaction<3>());
 					it->d = d[w];
 					it->p[0] = pt[0][w];
 					it->p[1] = pt[1][w];
@@ -418,9 +429,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			if (vectorizedLeafType == ObjectType::LineSegments ||
 				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized intersection query
-				hits += vectorizedLeafType == ObjectType::LineSegments ?
-						intersectLineSegment(node, nodeIndex, r, is, countHits) :
-						intersectTriangle(node, nodeIndex, r, is, countHits);
+				hits += intersectPrimitives(node, leafNodes, nodeIndex, r, is, countHits);
 				nodesVisited++;
 				if (hits > 0 && checkOcclusion) return 1;
 
@@ -523,9 +532,20 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const MbvhNode<DIM>& node,
-																		 int nodeIndex, BoundingSphere<DIM>& s,
-																		 Interaction<DIM>& i) const
+inline bool findClosestPointPrimitives(const MbvhNode<DIM>& node,
+									   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
+									   int nodeIndex, BoundingSphere<DIM>& s, Interaction<DIM>& i)
+{
+	std::cerr << "findClosestPointPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return false;
+}
+
+template<size_t WIDTH>
+inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
+									   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
+									   int nodeIndex, BoundingSphere<3>& s, Interaction<3>& i)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -540,13 +560,13 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 
 	for (int l = 0; l < nLeafs; l++) {
 		// perform vectorized closest point query
-		VectorP<WIDTH, DIM> pt;
+		Vector3P<WIDTH> pt;
 		FloatP<WIDTH> t;
 		int leafIndex = leafOffset + l;
-		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex].positions[0];
-		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex].positions[1];
+		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		FloatP<WIDTH> d = findClosestPointWideLineSegment(s.c, pa, pb, pt, t);
+		FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH>(s.c, pa, pb, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
 		// determine closest primitive
@@ -577,10 +597,10 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 	return closestIndex != -1;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const MbvhNode<DIM>& node,
-																	  int nodeIndex, BoundingSphere<DIM>& s,
-																	  Interaction<DIM>& i) const
+template<size_t WIDTH>
+inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
+									   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
+									   int nodeIndex, BoundingSphere<3>& s, Interaction<3>& i)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -595,14 +615,14 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 
 	for (int l = 0; l < nLeafs; l++) {
 		// perform vectorized closest point query
-		VectorP<WIDTH, DIM> pt;
-		VectorP<WIDTH, DIM - 1> t;
+		Vector3P<WIDTH> pt;
+		Vector2P<WIDTH> t;
 		int leafIndex = leafOffset + l;
-		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex].positions[0];
-		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex].positions[1];
-		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex].positions[2];
+		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+		const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		FloatP<WIDTH> d = findClosestPointWideTriangle(s.c, pa, pb, pc, pt, t);
+		FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(s.c, pa, pb, pc, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
 		// determine closest primitive
@@ -666,9 +686,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			if (vectorizedLeafType == ObjectType::LineSegments ||
 				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized closest point query to triangle
-				bool found = vectorizedLeafType == ObjectType::LineSegments ?
-							 findClosestPointLineSegment(node, nodeIndex, s, i) :
-							 findClosestPointTriangle(node, nodeIndex, s, i);
+				bool found = findClosestPointPrimitives(node, leafNodes, nodeIndex, s, i);
 				if (found) notFound = false;
 				nodesVisited++;
 
