@@ -83,11 +83,11 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM
 	if (vectorizedLeafType == ObjectType::LineSegments) {
 		// populate leaf node with line segments
 		for (int p = 0; p < nReferences; p++) {
-			int index = references[referenceOffset + p];
+			int referenceIndex = references[referenceOffset + p];
 			int leafIndex = 2*(leafOffset + p/WIDTH);
 			int w = p%WIDTH;
 
-			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[index]);
+			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[referenceIndex]);
 			int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
 			int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
 			const Vector3& pa = lineSegment->soup->positions[paIndex];
@@ -102,11 +102,11 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM
 	} else if (vectorizedLeafType == ObjectType::Triangles) {
 		// populate leaf node with triangles
 		for (int p = 0; p < nReferences; p++) {
-			int index = references[referenceOffset + p];
+			int referenceIndex = references[referenceOffset + p];
 			int leafIndex = 3*(leafOffset + p/WIDTH);
 			int w = p%WIDTH;
 
-			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[index]);
+			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[referenceIndex]);
 			int paIndex = triangle->soup->indices[triangle->index + 0];
 			int pbIndex = triangle->soup->indices[triangle->index + 1];
 			int pcIndex = triangle->soup->indices[triangle->index + 2];
@@ -153,7 +153,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 #endif
 
 	static_assert(MBVH_BRANCHING_FACTOR == 4 || MBVH_BRANCHING_FACTOR == 8,
-				  "Branching factor must be atleast 4"); 
+				  "Branching factor must be atleast 4");
 
 	using namespace std::chrono;
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
@@ -426,8 +426,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				int nReferences = node.child[3];
 
 				for (int p = 0; p < nReferences; p++) {
-					int index = references[referenceOffset + p];
-					const PrimitiveType *prim = primitives[index];
+					int referenceIndex = references[referenceOffset + p];
+					const PrimitiveType *prim = primitives[referenceIndex];
 					nodesVisited++;
 
 					int hit = 0;
@@ -669,8 +669,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 				int nReferences = node.child[3];
 
 				for (int p = 0; p < nReferences; p++) {
-					int index = references[referenceOffset + p];
-					const PrimitiveType *prim = primitives[index];
+					int referenceIndex = references[referenceOffset + p];
+					const PrimitiveType *prim = primitives[referenceIndex];
 					nodesVisited++;
 
 					bool found = false;

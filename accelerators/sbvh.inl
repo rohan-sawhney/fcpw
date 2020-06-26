@@ -353,8 +353,8 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 		// is leaf -> intersect
 		if (node.nReferences > 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				int index = references[node.referenceOffset + p];
-				const PrimitiveType *prim = primitives[index];
+				int referenceIndex = references[node.referenceOffset + p];
+				const PrimitiveType *prim = primitives[referenceIndex];
 				nodesVisited++;
 
 				int hit = 0;
@@ -498,8 +498,8 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 		// is leaf -> compute squared distance
 		if (node.nReferences > 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				int index = references[node.referenceOffset + p];
-				const PrimitiveType *prim = primitives[index];
+				int referenceIndex = references[node.referenceOffset + p];
+				const PrimitiveType *prim = primitives[referenceIndex];
 				nodesVisited++;
 
 				bool found = false;
