@@ -1,10 +1,11 @@
 Priority:
-1. update scene interface, move buildLineSegments, buildTriangles, buildNormals
+1. update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene, embree in tests
 2. re-order soup
 3. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
 4. start search from specified node (and walk up/laterally in the tree)
 5. mbvh
+---- optimization pass
 ---- sort nodes efficiently during traversal for closest points (by distance & direction)
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
@@ -13,26 +14,25 @@ Priority:
 8. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
-1. vectorize + thread bvh construction
-2. support oriented bounding boxes + RSS
-3. rebalance trees
-4. traversal optimization for closest point queries:
+1. add support for more geometries:
+---- thickened lines & tris, beziers, libfive (+ exact distance to implicit), subdivision surfaces, nurbs
+2. tree construction:
+---- vectorize + thread
+---- support oriented bounding boxes + RSS
+---- rebalance tree
+---- spatial split bvh
+3. packet (coherent) queries
+---- keyword: breadth first ray tracing
+4. traversal optimization for closest point queries & intersections:
 ---- implement "stackless" closest point traversal
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
 	  structure while querying that stores pointers to nodes in the tree based on
 	  positions and directions to boundary
-5. traversal optimization for intersections:
----- same as cpqs
-6. add support for more geometries:
----- beziers, libfive (+ exact distance to implicit), subdivision surfaces, nurbs
-7. more file formats (ply)
-8. packet (coherent) queries
----- keyword: breadth first ray tracing
-9. refit bvh
+5. refit bvh
 
 Done:
-1. Closest point and ray intersections queries leveraging coherency between queries
-2. Bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
+1. closest point and ray intersections queries leveraging coherency between queries
+2. bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
 									 Surface Area Overlap, Volume Overlap)
-3. Constructive Solid Geometry
-4. Instancing
+3. constructive solid geometry
+4. instancing
