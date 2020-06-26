@@ -23,6 +23,27 @@ struct MbvhNode {
 	IntP<MBVH_BRANCHING_FACTOR> child; // use sign to differentiate between inner and leaf nodes
 };
 
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+struct MbvhLeafNode {
+	// members
+	VectorP<WIDTH, DIM> positions[0];
+	IntP<WIDTH> primitiveIndex;
+};
+
+template<size_t WIDTH, size_t DIM>
+struct MbvhLeafNode<WIDTH, DIM, LineSegment> {
+	// members
+	VectorP<WIDTH, DIM> positions[2];
+	IntP<WIDTH> primitiveIndex;
+};
+
+template<size_t WIDTH, size_t DIM>
+struct MbvhLeafNode<WIDTH, DIM, Triangle> {
+	// members
+	VectorP<WIDTH, DIM> positions[3];
+	IntP<WIDTH> primitiveIndex;
+};
+
 template<size_t WIDTH, size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class Mbvh: public Aggregate<DIM> {
 public:
@@ -89,7 +110,7 @@ protected:
 	int nNodes, nLeafs, maxDepth, maxLevel;
 	const std::vector<PrimitiveType *>& primitives;
 	std::vector<MbvhNode<DIM>> flatTree;
-	std::vector<VectorP<WIDTH, DIM>> leafNodes;
+	std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>> leafNodes;
 	std::vector<int> references;
 	ObjectType vectorizedLeafType;
 	bool primitiveTypeIsAggregate;

@@ -84,7 +84,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM
 		// populate leaf node with line segments
 		for (int p = 0; p < nReferences; p++) {
 			int referenceIndex = references[referenceOffset + p];
-			int leafIndex = 2*(leafOffset + p/WIDTH);
+			int leafIndex = leafOffset + p/WIDTH;
 			int w = p%WIDTH;
 
 			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[referenceIndex]);
@@ -93,9 +93,10 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM
 			const Vector3& pa = lineSegment->soup->positions[paIndex];
 			const Vector3& pb = lineSegment->soup->positions[pbIndex];
 
+			leafNodes[leafIndex].primitiveIndex[w] = lineSegment->index;
 			for (int i = 0; i < DIM; i++) {
-				leafNodes[leafIndex + 0][i][w] = pa[i];
-				leafNodes[leafIndex + 1][i][w] = pb[i];
+				leafNodes[leafIndex].positions[0][i][w] = pa[i];
+				leafNodes[leafIndex].positions[1][i][w] = pb[i];
 			}
 		}
 
@@ -103,7 +104,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM
 		// populate leaf node with triangles
 		for (int p = 0; p < nReferences; p++) {
 			int referenceIndex = references[referenceOffset + p];
-			int leafIndex = 3*(leafOffset + p/WIDTH);
+			int leafIndex = leafOffset + p/WIDTH;
 			int w = p%WIDTH;
 
 			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[referenceIndex]);
@@ -114,10 +115,11 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM
 			const Vector3& pb = triangle->soup->positions[pbIndex];
 			const Vector3& pc = triangle->soup->positions[pcIndex];
 
+			leafNodes[leafIndex].primitiveIndex[w] = triangle->index;
 			for (int i = 0; i < DIM; i++) {
-				leafNodes[leafIndex + 0][i][w] = pa[i];
-				leafNodes[leafIndex + 1][i][w] = pb[i];
-				leafNodes[leafIndex + 2][i][w] = pc[i];
+				leafNodes[leafIndex].positions[0][i][w] = pa[i];
+				leafNodes[leafIndex].positions[1][i][w] = pb[i];
+				leafNodes[leafIndex].positions[2][i][w] = pc[i];
 			}
 		}
 	}
@@ -128,8 +130,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 {
 	if (vectorizedLeafType == ObjectType::LineSegments ||
 		vectorizedLeafType == ObjectType::Triangles) {
-		int shift = vectorizedLeafType == ObjectType::LineSegments ? 2 : 3;
-		leafNodes.resize(nLeafs*shift);
+		leafNodes.resize(nLeafs);
 
 		for (int i = 0; i < nNodes; i++) {
 			MbvhNode<DIM>& node = flatTree[i];
@@ -162,8 +163,8 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
 
 	// determine object type
-	vectorizedLeafType = std::is_same<PrimitiveType, Triangle>::value ? ObjectType::Triangles :
-						 std::is_same<PrimitiveType, LineSegment>::value ? ObjectType::LineSegments :
+	vectorizedLeafType = std::is_same<PrimitiveType, LineSegment>::value ? ObjectType::LineSegments :
+						 std::is_same<PrimitiveType, Triangle>::value ? ObjectType::Triangles :
 						 ObjectType::Mixed;
 
 	// populate leaf nodes if primitive type is supported
@@ -261,9 +262,10 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 		FloatP<WIDTH> d;
 		VectorP<WIDTH, DIM> pt;
 		FloatP<WIDTH> t;
-		int leafIndex = 2*(leafOffset + l);
-		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
-		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
+		int leafIndex = leafOffset + l;
+		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex].positions[0];
+		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex].positions[1];
+		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
 		MaskP<WIDTH> mask = intersectWideLineSegment(r, pa, pb, d, pt, t);
 
 		// record interactions
@@ -330,10 +332,11 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 		FloatP<WIDTH> d;
 		VectorP<WIDTH, DIM> pt;
 		VectorP<WIDTH, DIM - 1> t;
-		int leafIndex = 3*(leafOffset + l);
-		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
-		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
-		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex + 2];
+		int leafIndex = leafOffset + l;
+		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex].positions[0];
+		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex].positions[1];
+		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex].positions[2];
+		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
 		MaskP<WIDTH> mask = intersectWideTriangle(r, pa, pb, pc, d, pt, t);
 
 		// record interactions
@@ -536,9 +539,10 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 		// perform vectorized closest point query
 		VectorP<WIDTH, DIM> pt;
 		FloatP<WIDTH> t;
-		int leafIndex = 2*(leafOffset + l);
-		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
-		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
+		int leafIndex = leafOffset + l;
+		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex].positions[0];
+		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex].positions[1];
+		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
 		FloatP<WIDTH> d = findClosestPointWideLineSegment(s.c, pa, pb, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
@@ -589,10 +593,11 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 		// perform vectorized closest point query
 		VectorP<WIDTH, DIM> pt;
 		VectorP<WIDTH, DIM - 1> t;
-		int leafIndex = 3*(leafOffset + l);
-		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex + 0];
-		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex + 1];
-		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex + 2];
+		int leafIndex = leafOffset + l;
+		const VectorP<WIDTH, DIM>& pa = leafNodes[leafIndex].positions[0];
+		const VectorP<WIDTH, DIM>& pb = leafNodes[leafIndex].positions[1];
+		const VectorP<WIDTH, DIM>& pc = leafNodes[leafIndex].positions[2];
+		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
 		FloatP<WIDTH> d = findClosestPointWideTriangle(s.c, pa, pb, pc, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
