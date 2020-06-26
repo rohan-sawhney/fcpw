@@ -82,9 +82,6 @@ protected:
 	// determines whether mbvh node is a leaf node
 	bool isLeafNode(const MbvhNode<DIM>& node) const;
 
-	// populates leaf node
-	void populateLeafNode(const MbvhNode<DIM>& node);
-
 	// populates leaf nodes
 	void populateLeafNodes();
 

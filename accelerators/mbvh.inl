@@ -74,53 +74,68 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::isLeafNode(const MbvhNode<DIM>& nod
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM>& node)
+inline void populateLeafNode(const MbvhNode<DIM>& node, const std::vector<PrimitiveType *>& primitives,
+							 std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes)
+{
+	std::cerr << "populateLeafNode(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+}
+
+template<size_t WIDTH>
+inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<LineSegment *>& primitives,
+							 std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes)
 {
 	int leafOffset = -node.child[0] - 1;
 	int referenceOffset = node.child[2];
 	int nReferences = node.child[3];
 
-	if (vectorizedLeafType == ObjectType::LineSegments) {
-		// populate leaf node with line segments
-		for (int p = 0; p < nReferences; p++) {
-			int referenceIndex = referenceOffset + p;
-			int leafIndex = leafOffset + p/WIDTH;
-			int w = p%WIDTH;
+	// populate leaf node with line segments
+	for (int p = 0; p < nReferences; p++) {
+		int referenceIndex = referenceOffset + p;
+		int leafIndex = leafOffset + p/WIDTH;
+		int w = p%WIDTH;
 
-			const LineSegment *lineSegment = reinterpret_cast<const LineSegment *>(primitives[referenceIndex]);
-			int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
-			int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
-			const Vector3& pa = lineSegment->soup->positions[paIndex];
-			const Vector3& pb = lineSegment->soup->positions[pbIndex];
+		const LineSegment *lineSegment = primitives[referenceIndex];
+		int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
+		int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
+		const Vector3& pa = lineSegment->soup->positions[paIndex];
+		const Vector3& pb = lineSegment->soup->positions[pbIndex];
 
-			leafNodes[leafIndex].primitiveIndex[w] = lineSegment->index;
-			for (int i = 0; i < DIM; i++) {
-				leafNodes[leafIndex].positions[0][i][w] = pa[i];
-				leafNodes[leafIndex].positions[1][i][w] = pb[i];
-			}
+		leafNodes[leafIndex].primitiveIndex[w] = lineSegment->index;
+		for (int i = 0; i < 3; i++) {
+			leafNodes[leafIndex].positions[0][i][w] = pa[i];
+			leafNodes[leafIndex].positions[1][i][w] = pb[i];
 		}
+	}
+}
 
-	} else if (vectorizedLeafType == ObjectType::Triangles) {
-		// populate leaf node with triangles
-		for (int p = 0; p < nReferences; p++) {
-			int referenceIndex = referenceOffset + p;
-			int leafIndex = leafOffset + p/WIDTH;
-			int w = p%WIDTH;
+template<size_t WIDTH>
+inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<Triangle *>& primitives,
+							 std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes)
+{
+	int leafOffset = -node.child[0] - 1;
+	int referenceOffset = node.child[2];
+	int nReferences = node.child[3];
 
-			const Triangle *triangle = reinterpret_cast<const Triangle *>(primitives[referenceIndex]);
-			int paIndex = triangle->soup->indices[triangle->index + 0];
-			int pbIndex = triangle->soup->indices[triangle->index + 1];
-			int pcIndex = triangle->soup->indices[triangle->index + 2];
-			const Vector3& pa = triangle->soup->positions[paIndex];
-			const Vector3& pb = triangle->soup->positions[pbIndex];
-			const Vector3& pc = triangle->soup->positions[pcIndex];
+	// populate leaf node with triangles
+	for (int p = 0; p < nReferences; p++) {
+		int referenceIndex = referenceOffset + p;
+		int leafIndex = leafOffset + p/WIDTH;
+		int w = p%WIDTH;
 
-			leafNodes[leafIndex].primitiveIndex[w] = triangle->index;
-			for (int i = 0; i < DIM; i++) {
-				leafNodes[leafIndex].positions[0][i][w] = pa[i];
-				leafNodes[leafIndex].positions[1][i][w] = pb[i];
-				leafNodes[leafIndex].positions[2][i][w] = pc[i];
-			}
+		const Triangle *triangle = primitives[referenceIndex];
+		int paIndex = triangle->soup->indices[triangle->index + 0];
+		int pbIndex = triangle->soup->indices[triangle->index + 1];
+		int pcIndex = triangle->soup->indices[triangle->index + 2];
+		const Vector3& pa = triangle->soup->positions[paIndex];
+		const Vector3& pb = triangle->soup->positions[pbIndex];
+		const Vector3& pc = triangle->soup->positions[pcIndex];
+
+		leafNodes[leafIndex].primitiveIndex[w] = triangle->index;
+		for (int i = 0; i < 3; i++) {
+			leafNodes[leafIndex].positions[0][i][w] = pa[i];
+			leafNodes[leafIndex].positions[1][i][w] = pb[i];
+			leafNodes[leafIndex].positions[2][i][w] = pc[i];
 		}
 	}
 }
@@ -134,7 +149,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 
 		for (int i = 0; i < nNodes; i++) {
 			MbvhNode<DIM>& node = flatTree[i];
-			if (isLeafNode(node)) populateLeafNode(node);
+			if (isLeafNode(node)) populateLeafNode(node, primitives, leafNodes);
 		}
 	}
 }
