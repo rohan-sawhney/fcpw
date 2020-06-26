@@ -101,7 +101,7 @@ inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<LineSegm
 		const Vector3& pa = lineSegment->soup->positions[paIndex];
 		const Vector3& pb = lineSegment->soup->positions[pbIndex];
 
-		leafNodes[leafIndex].primitiveIndex[w] = lineSegment->pIndex;
+		leafNodes[leafIndex].primitiveIndex[w] = lineSegment->pIndex/2;
 		for (int i = 0; i < 3; i++) {
 			leafNodes[leafIndex].positions[0][i][w] = pa[i];
 			leafNodes[leafIndex].positions[1][i][w] = pb[i];
@@ -131,7 +131,7 @@ inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<Triangle
 		const Vector3& pb = triangle->soup->positions[pbIndex];
 		const Vector3& pc = triangle->soup->positions[pcIndex];
 
-		leafNodes[leafIndex].primitiveIndex[w] = triangle->pIndex;
+		leafNodes[leafIndex].primitiveIndex[w] = triangle->pIndex/3;
 		for (int i = 0; i < 3; i++) {
 			leafNodes[leafIndex].positions[0][i][w] = pa[i];
 			leafNodes[leafIndex].positions[1][i][w] = pb[i];
