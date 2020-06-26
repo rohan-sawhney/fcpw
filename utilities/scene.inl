@@ -23,7 +23,7 @@ inline void Scene<DIM>::clearData()
 	// clear line segments
 	for (int i = 0; i < (int)lineSegmentObjects.size(); i++) {
 		for (int j = 0; j < (int)lineSegmentObjects[i].size(); j++) {
-			if (lineSegmentObjects[i][j]->index == 0) {
+			if (lineSegmentObjects[i][j]->pIndex == 0) {
 				delete[] lineSegmentObjects[i][j];
 				break;
 			}
@@ -33,7 +33,7 @@ inline void Scene<DIM>::clearData()
 	// clear triangles
 	for (int i = 0; i < (int)triangleObjects.size(); i++) {
 		for (int j = 0; j < (int)triangleObjects[i].size(); j++) {
-			if (triangleObjects[i][j]->index == 0) {
+			if (triangleObjects[i][j]->pIndex == 0) {
 				delete[] triangleObjects[i][j];
 				break;
 			}

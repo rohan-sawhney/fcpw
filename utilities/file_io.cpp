@@ -117,7 +117,7 @@ void buildLineSegments(PolygonSoup<3>& soup, std::vector<LineSegment *>& lineSeg
 	for (int i = 0; i < N; i++) {
 		lineSegments[i] = &contiguousLineSegments[i];
 		lineSegments[i]->soup = &soup;
-		lineSegments[i]->index = 2*i;
+		lineSegments[i]->pIndex = 2*i;
 	}
 
 	// determine whether line segment soup is flat
@@ -152,8 +152,8 @@ void computeWeightedLineSegmentNormals(const std::vector<LineSegment *>& lineSeg
 
 	for (int i = 0; i < N; i++) {
 		Vector3 n = lineSegments[i]->normal(true);
-		soup.vNormals[soup.indices[lineSegments[i]->index]] += n;
-		soup.vNormals[soup.indices[lineSegments[i]->index + 1]] += n;
+		soup.vNormals[soup.indices[lineSegments[i]->pIndex]] += n;
+		soup.vNormals[soup.indices[lineSegments[i]->pIndex + 1]] += n;
 	}
 
 	for (int i = 0; i < V; i++) {
@@ -233,7 +233,7 @@ void buildTriangles(const PolygonSoup<3>& soup, std::vector<Triangle *>& triangl
 	for (int i = 0; i < N; i++) {
 		triangles[i] = &contiguousTriangles[i];
 		triangles[i]->soup = &soup;
-		triangles[i]->index = 3*i;
+		triangles[i]->pIndex = 3*i;
 	}
 }
 
@@ -266,8 +266,8 @@ void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, Po
 		Vector3 n = triangles[i]->normal(true);
 
 		for (int j = 0; j < 3; j++) {
-			soup.vNormals[soup.indices[triangles[i]->index + j]] += n;
-			soup.eNormals[soup.eIndices[triangles[i]->index + j]] += n;
+			soup.vNormals[soup.indices[triangles[i]->pIndex + j]] += n;
+			soup.eNormals[soup.eIndices[triangles[i]->pIndex + j]] += n;
 		}
 	}
 

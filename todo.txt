@@ -1,6 +1,6 @@
 Priority:
-1. update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene, embree in tests
-2. re-order soup
+1. remove soup->indices, remove indirection in embree as well, re-order soup positions
+2. move embree to tests, update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene
 3. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
 4. start search from specified node (and walk up/laterally in the tree)

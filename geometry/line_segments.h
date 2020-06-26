@@ -8,7 +8,7 @@ class LineSegment: public GeometricPrimitive<3> {
 public:
 	// constructors
 	LineSegment();
-	LineSegment(const PolygonSoup<3> *soup_, int index_);
+	LineSegment(const PolygonSoup<3> *soup_, int pIndex_);
 
 	// returns bounding box
 	BoundingBox<3> boundingBox() const;
@@ -44,7 +44,7 @@ public:
 
 	// members
 	const PolygonSoup<3> *soup;
-	int index;
+	int pIndex; // index of primitive in polygon soup
 
 private:
 	// returns normalized vertex normal if available;

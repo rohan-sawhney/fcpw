@@ -4,22 +4,22 @@ namespace fcpw {
 
 LineSegment::LineSegment():
 soup(nullptr),
-index(-1)
+pIndex(-1)
 {
 
 }
 
-LineSegment::LineSegment(const PolygonSoup<3> *soup_, int index_):
+LineSegment::LineSegment(const PolygonSoup<3> *soup_, int pIndex_):
 soup(soup_),
-index(index_)
+pIndex(pIndex_)
 {
 
 }
 
 BoundingBox<3> LineSegment::boundingBox() const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	BoundingBox<3> box(pa);
 	box.expandToInclude(pb);
@@ -29,32 +29,32 @@ BoundingBox<3> LineSegment::boundingBox() const
 
 Vector3 LineSegment::centroid() const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	return (pa + pb)*0.5f;
 }
 
 float LineSegment::surfaceArea() const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	return norm<3>(pb - pa);
 }
 
 float LineSegment::signedVolume() const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	return 0.5f*cross(pa, pb)[2];
 }
 
 Vector3 LineSegment::normal(bool normalize) const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	Vector3 s = pb - pa;
 	Vector3 n(s[1], -s[0], 0);
@@ -65,7 +65,7 @@ Vector3 LineSegment::normal(bool normalize) const
 Vector3 LineSegment::normal(int vIndex) const
 {
 	if (soup->vNormals.size() > 0 && vIndex >= 0) {
-		return soup->vNormals[soup->indices[index + vIndex]];
+		return soup->vNormals[soup->indices[pIndex + vIndex]];
 	}
 
 	return normal(true);
@@ -82,8 +82,8 @@ Vector3 LineSegment::normal(const Vector2& uv) const
 
 Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	return Vector2(norm<3>(p - pa)/norm<3>(pb - pa), 0.0f);
 }
@@ -91,8 +91,8 @@ Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 						BoundingBox<3>& boxRight) const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	if (pa[dim] <= splitCoord) {
 		if (pb[dim] <= splitCoord) {
@@ -136,8 +136,8 @@ int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 #endif
 
 	is.clear();
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	Vector3 u = pa - r.o;
 	Vector3 v = pb - pa;
@@ -162,7 +162,7 @@ int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 			it->p = r(t);
 			it->uv[0] = s;
 			it->uv[1] = -1;
-			it->primitiveIndex = index/2;
+			it->primitiveIndex = pIndex/2;
 
 			return 1;
 		}
@@ -205,14 +205,14 @@ bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) cons
 	PROFILE_SCOPED();
 #endif
 
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
 
 	float d = findClosestPointLineSegment(pa, pb, s.c, i.p, i.uv[0]);
 
 	if (d*d <= s.r2) {
 		i.d = d;
-		i.primitiveIndex = index/2;
+		i.primitiveIndex = pIndex/2;
 		i.uv[1] = -1;
 
 		return true;

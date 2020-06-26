@@ -96,12 +96,12 @@ inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<LineSegm
 		int w = p%WIDTH;
 
 		const LineSegment *lineSegment = primitives[referenceIndex];
-		int paIndex = lineSegment->soup->indices[lineSegment->index + 0];
-		int pbIndex = lineSegment->soup->indices[lineSegment->index + 1];
+		int paIndex = lineSegment->soup->indices[lineSegment->pIndex + 0];
+		int pbIndex = lineSegment->soup->indices[lineSegment->pIndex + 1];
 		const Vector3& pa = lineSegment->soup->positions[paIndex];
 		const Vector3& pb = lineSegment->soup->positions[pbIndex];
 
-		leafNodes[leafIndex].primitiveIndex[w] = lineSegment->index;
+		leafNodes[leafIndex].primitiveIndex[w] = lineSegment->pIndex;
 		for (int i = 0; i < 3; i++) {
 			leafNodes[leafIndex].positions[0][i][w] = pa[i];
 			leafNodes[leafIndex].positions[1][i][w] = pb[i];
@@ -124,14 +124,14 @@ inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<Triangle
 		int w = p%WIDTH;
 
 		const Triangle *triangle = primitives[referenceIndex];
-		int paIndex = triangle->soup->indices[triangle->index + 0];
-		int pbIndex = triangle->soup->indices[triangle->index + 1];
-		int pcIndex = triangle->soup->indices[triangle->index + 2];
+		int paIndex = triangle->soup->indices[triangle->pIndex + 0];
+		int pbIndex = triangle->soup->indices[triangle->pIndex + 1];
+		int pcIndex = triangle->soup->indices[triangle->pIndex + 2];
 		const Vector3& pa = triangle->soup->positions[paIndex];
 		const Vector3& pb = triangle->soup->positions[pbIndex];
 		const Vector3& pc = triangle->soup->positions[pcIndex];
 
-		leafNodes[leafIndex].primitiveIndex[w] = triangle->index;
+		leafNodes[leafIndex].primitiveIndex[w] = triangle->pIndex;
 		for (int i = 0; i < 3; i++) {
 			leafNodes[leafIndex].positions[0][i][w] = pa[i];
 			leafNodes[leafIndex].positions[1][i][w] = pb[i];

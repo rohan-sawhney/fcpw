@@ -4,23 +4,23 @@ namespace fcpw {
 
 Triangle::Triangle():
 soup(nullptr),
-index(-1)
+pIndex(-1)
 {
 
 }
 
-Triangle::Triangle(const PolygonSoup<3> *soup_, int index_):
+Triangle::Triangle(const PolygonSoup<3> *soup_, int pIndex_):
 soup(soup_),
-index(index_)
+pIndex(pIndex_)
 {
 
 }
 
 BoundingBox<3> Triangle::boundingBox() const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
-	const Vector3& pc = soup->positions[soup->indices[index + 2]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
+	const Vector3& pc = soup->positions[soup->indices[pIndex + 2]];
 
 	BoundingBox<3> box(pa);
 	box.expandToInclude(pb);
@@ -31,9 +31,9 @@ BoundingBox<3> Triangle::boundingBox() const
 
 Vector3 Triangle::centroid() const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
-	const Vector3& pc = soup->positions[soup->indices[index + 2]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
+	const Vector3& pc = soup->positions[soup->indices[pIndex + 2]];
 
 	return (pa + pb + pc)/3.0f;
 }
@@ -45,18 +45,18 @@ float Triangle::surfaceArea() const
 
 float Triangle::signedVolume() const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
-	const Vector3& pc = soup->positions[soup->indices[index + 2]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
+	const Vector3& pc = soup->positions[soup->indices[pIndex + 2]];
 
 	return dot<3>(cross(pa, pb), pc)/6.0f;
 }
 
 Vector3 Triangle::normal(bool normalize) const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
-	const Vector3& pc = soup->positions[soup->indices[index + 2]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
+	const Vector3& pc = soup->positions[soup->indices[pIndex + 2]];
 
 	Vector3 v1 = pb - pa;
 	Vector3 v2 = pc - pa;
@@ -68,11 +68,11 @@ Vector3 Triangle::normal(bool normalize) const
 Vector3 Triangle::normal(int vIndex, int eIndex) const
 {
 	if (soup->vNormals.size() > 0 && vIndex >= 0) {
-		return soup->vNormals[soup->indices[index + vIndex]];
+		return soup->vNormals[soup->indices[pIndex + vIndex]];
 	}
 
 	if (soup->eNormals.size() > 0 && eIndex >= 0) {
-		return soup->eNormals[soup->eIndices[index + eIndex]];
+		return soup->eNormals[soup->eIndices[pIndex + eIndex]];
 	}
 
 	return normal(true);
@@ -97,9 +97,9 @@ Vector3 Triangle::normal(const Vector2& uv) const
 
 Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 {
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
-	const Vector3& pc = soup->positions[soup->indices[index + 2]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
+	const Vector3& pc = soup->positions[soup->indices[pIndex + 2]];
 
 	Vector3 v1 = pb - pa;
 	Vector3 v2 = pc - pa;
@@ -120,9 +120,9 @@ Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 Vector2 Triangle::textureCoordinates(const Vector2& uv) const
 {
 	if (soup->tIndices.size() > 0) {
-		const Vector2& pa = soup->textureCoordinates[soup->tIndices[index]];
-		const Vector2& pb = soup->textureCoordinates[soup->tIndices[index + 1]];
-		const Vector2& pc = soup->textureCoordinates[soup->tIndices[index + 2]];
+		const Vector2& pa = soup->textureCoordinates[soup->tIndices[pIndex]];
+		const Vector2& pb = soup->textureCoordinates[soup->tIndices[pIndex + 1]];
+		const Vector2& pc = soup->textureCoordinates[soup->tIndices[pIndex + 2]];
 
 		float u = uv[0];
 		float v = uv[1];
@@ -138,11 +138,11 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 					 BoundingBox<3>& boxRight) const
 {
 	for (int i = 0; i < 3; i++) {
-		const Vector3& pa = soup->positions[soup->indices[index + i]];
-		const Vector3& pb = soup->positions[soup->indices[index + (i + 1)%3]];
+		const Vector3& pa = soup->positions[soup->indices[pIndex + i]];
+		const Vector3& pb = soup->positions[soup->indices[pIndex + (i + 1)%3]];
 
 		if (pa[dim] <= splitCoord && pb[dim] <= splitCoord) {
-			const Vector3& pc = soup->positions[soup->indices[index + (i + 2)%3]];
+			const Vector3& pc = soup->positions[soup->indices[pIndex + (i + 2)%3]];
 
 			if (pc[dim] <= splitCoord) {
 				boxLeft = BoundingBox<3>(pa);
@@ -167,7 +167,7 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 			break;
 
 		} else if (pa[dim] >= splitCoord && pb[dim] >= splitCoord) {
-			const Vector3& pc = soup->positions[soup->indices[index + (i + 2)%3]];
+			const Vector3& pc = soup->positions[soup->indices[pIndex + (i + 2)%3]];
 
 			if (pc[dim] >= splitCoord) {
 				boxRight = BoundingBox<3>(pa);
@@ -202,9 +202,9 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 #endif
 
 	// Möller–Trumbore intersection algorithm
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
-	const Vector3& pc = soup->positions[soup->indices[index + 2]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
+	const Vector3& pc = soup->positions[soup->indices[pIndex + 2]];
 	is.clear();
 
 	Vector3 v1 = pb - pa;
@@ -231,7 +231,7 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 		it->p = r(t);
 		it->uv[0] = u;
 		it->uv[1] = v;
-		it->primitiveIndex = index/3;
+		it->primitiveIndex = pIndex/3;
 
 		return 1;
 	}
@@ -331,15 +331,15 @@ bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 	PROFILE_SCOPED();
 #endif
 
-	const Vector3& pa = soup->positions[soup->indices[index]];
-	const Vector3& pb = soup->positions[soup->indices[index + 1]];
-	const Vector3& pc = soup->positions[soup->indices[index + 2]];
+	const Vector3& pa = soup->positions[soup->indices[pIndex]];
+	const Vector3& pb = soup->positions[soup->indices[pIndex + 1]];
+	const Vector3& pc = soup->positions[soup->indices[pIndex + 2]];
 
 	float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv);
 
 	if (d*d <= s.r2) {
 		i.d = d;
-		i.primitiveIndex = index/3;
+		i.primitiveIndex = pIndex/3;
 
 		return true;
 	}

@@ -8,7 +8,7 @@ class Triangle: public GeometricPrimitive<3> {
 public:
 	// constructors
 	Triangle();
-	Triangle(const PolygonSoup<3> *soup_, int index_);
+	Triangle(const PolygonSoup<3> *soup_, int pIndex_);
 
 	// returns bounding box
 	BoundingBox<3> boundingBox() const;
@@ -47,7 +47,7 @@ public:
 
 	// members
 	const PolygonSoup<3> *soup;
-	int index;
+	int pIndex; // index of primitive in polygon soup
 
 private:
 	// returns normalized vertex or edge normal if available;
