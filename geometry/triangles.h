@@ -8,7 +8,6 @@ class Triangle: public GeometricPrimitive<3> {
 public:
 	// constructors
 	Triangle();
-	Triangle(const PolygonSoup<3> *soup_, int pIndex_);
 
 	// returns bounding box
 	BoundingBox<3> boundingBox() const;

@@ -9,13 +9,6 @@ pIndex(-1)
 
 }
 
-Triangle::Triangle(const PolygonSoup<3> *soup_, int pIndex_):
-soup(soup_),
-pIndex(pIndex_)
-{
-
-}
-
 BoundingBox<3> Triangle::boundingBox() const
 {
 	const Vector3& pa = soup->positions[soup->indices[pIndex]];
