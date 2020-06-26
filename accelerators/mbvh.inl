@@ -83,7 +83,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM
 	if (vectorizedLeafType == ObjectType::LineSegments) {
 		// populate leaf node with line segments
 		for (int p = 0; p < nReferences; p++) {
-			int referenceIndex = references[referenceOffset + p];
+			int referenceIndex = referenceOffset + p;
 			int leafIndex = leafOffset + p/WIDTH;
 			int w = p%WIDTH;
 
@@ -103,7 +103,7 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNode(const MbvhNode<DIM
 	} else if (vectorizedLeafType == ObjectType::Triangles) {
 		// populate leaf node with triangles
 		for (int p = 0; p < nReferences; p++) {
-			int referenceIndex = references[referenceOffset + p];
+			int referenceIndex = referenceOffset + p;
 			int leafIndex = leafOffset + p/WIDTH;
 			int w = p%WIDTH;
 
@@ -142,7 +142,6 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_, bool printStats_):
 primitives(sbvh_->primitives),
-references(std::move(sbvh_->references)),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
@@ -189,8 +188,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 				  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
 				  << nLeafs << " leaves, "
 				  << maxDepth << " max depth, "
-				  << primitives.size() << " primitives, "
-				  << references.size() << " references in "
+				  << primitives.size() << " primitives in "
 				  << timeSpan.count() << " seconds" << std::endl;
 	}
 }
@@ -285,8 +283,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 					it->p[2] = pt[2][w];
 					it->uv[0] = t[w];
 					it->uv[1] = -1;
+					it->primitiveIndex = primitiveIndex[w];
 					it->nodeIndex = nodeIndex;
-					it->primitiveIndex = references[referenceOffset + p];
+					it->referenceIndex = referenceOffset + p;
 				}
 
 			} else {
@@ -299,8 +298,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectLineSegment(const MbvhNode<
 					is[0].p[2] = pt[2][w];
 					is[0].uv[0] = t[w];
 					is[0].uv[1] = -1;
+					is[0].primitiveIndex = primitiveIndex[w];
 					is[0].nodeIndex = nodeIndex;
-					is[0].primitiveIndex = references[referenceOffset + p];
+					is[0].referenceIndex = referenceOffset + p;
 				}
 			}
 		}
@@ -356,8 +356,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 					it->p[2] = pt[2][w];
 					it->uv[0] = t[0][w];
 					it->uv[1] = t[1][w];
+					it->primitiveIndex = primitiveIndex[w];
 					it->nodeIndex = nodeIndex;
-					it->primitiveIndex = references[referenceOffset + p];
+					it->referenceIndex = referenceOffset + p;
 				}
 
 			} else {
@@ -370,8 +371,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectTriangle(const MbvhNode<DIM
 					is[0].p[2] = pt[2][w];
 					is[0].uv[0] = t[0][w];
 					is[0].uv[1] = t[1][w];
+					is[0].primitiveIndex = primitiveIndex[w];
 					is[0].nodeIndex = nodeIndex;
-					is[0].primitiveIndex = references[referenceOffset + p];
+					is[0].referenceIndex = referenceOffset + p;
 				}
 			}
 		}
@@ -429,7 +431,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				int nReferences = node.child[3];
 
 				for (int p = 0; p < nReferences; p++) {
-					int referenceIndex = references[referenceOffset + p];
+					int referenceIndex = referenceOffset + p;
 					const PrimitiveType *prim = primitives[referenceIndex];
 					nodesVisited++;
 
@@ -441,8 +443,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 					} else {
 						hit = prim->intersect(r, cs, checkOcclusion, countHits);
-						for (int sp = 0; sp < (int)cs.size(); sp++) {
-							cs[sp].nodeIndex = nodeIndex;
+						for (int i = 0; i < (int)cs.size(); i++) {
+							cs[i].nodeIndex = nodeIndex;
+							cs[i].referenceIndex = referenceIndex;
 						}
 					}
 
@@ -509,7 +512,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 		// compute normals
 		if (this->computeNormals && !primitiveTypeIsAggregate) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal(primitives[is[i].primitiveIndex]);
+				is[i].computeNormal(primitives[is[i].referenceIndex]);
 			}
 		}
 
@@ -561,9 +564,10 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointLineSegment(const M
 				i.p[2] = pt[2][w];
 				i.uv[0] = t[w];
 				i.uv[1] = -1;
+				i.primitiveIndex = primitiveIndex[w];
 				i.nodeIndex = nodeIndex;
-				i.primitiveIndex = references[referenceOffset + p];
-				closestIndex = i.primitiveIndex;
+				i.referenceIndex = referenceOffset + p;
+				closestIndex = i.referenceIndex;
 			}
 		}
 
@@ -616,9 +620,10 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointTriangle(const Mbvh
 				i.p[2] = pt[2][w];
 				i.uv[0] = t[0][w];
 				i.uv[1] = t[1][w];
+				i.primitiveIndex = primitiveIndex[w];
 				i.nodeIndex = nodeIndex;
-				i.primitiveIndex = references[referenceOffset + p];
-				closestIndex = i.primitiveIndex;
+				i.referenceIndex = referenceOffset + p;
+				closestIndex = i.referenceIndex;
 			}
 		}
 
@@ -674,7 +679,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 				int nReferences = node.child[3];
 
 				for (int p = 0; p < nReferences; p++) {
-					int referenceIndex = references[referenceOffset + p];
+					int referenceIndex = referenceOffset + p;
 					const PrimitiveType *prim = primitives[referenceIndex];
 					nodesVisited++;
 
@@ -687,6 +692,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 					} else {
 						found = prim->findClosestPoint(s, c);
 						c.nodeIndex = nodeIndex;
+						c.referenceIndex = referenceIndex;
 					}
 
 					// keep the closest point only
@@ -739,7 +745,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 	if (!notFound) {
 		// compute normal
 		if (this->computeNormals && !primitiveTypeIsAggregate) {
-			i.computeNormal(primitives[i.primitiveIndex]);
+			i.computeNormal(primitives[i.referenceIndex]);
 		}
 
 		return true;

@@ -12,9 +12,6 @@ Priority:
 7. travis/circle CI
 8. README (tutorial, features, benchmark, compiling, logo)
 
-a. reorder primitives during construction (atleast in bvh, if not sbvh)
-b. avoid calling references array all together (maybe for bvh?)
-
 Future Optimizations & Features:
 1. vectorize + thread bvh construction
 2. support oriented bounding boxes + RSS

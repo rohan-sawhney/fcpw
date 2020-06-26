@@ -111,7 +111,6 @@ protected:
 	const std::vector<PrimitiveType *>& primitives;
 	std::vector<MbvhNode<DIM>> flatTree;
 	std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>> leafNodes;
-	std::vector<int> references;
 	ObjectType vectorizedLeafType;
 	bool primitiveTypeIsAggregate;
 };

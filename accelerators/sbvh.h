@@ -42,9 +42,10 @@ template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class Sbvh: public Aggregate<DIM> {
 public:
 	// constructor
-	Sbvh(const std::vector<PrimitiveType *>& primitives_,
-		 const CostHeuristic& costHeuristic_, bool printStats_=false,
-		 bool packLeaves_=false, int leafSize_=4, int nBuckets_=8);
+	Sbvh(const CostHeuristic& costHeuristic_,
+		 std::vector<PrimitiveType *>& primitives_,
+		 bool printStats_=false, bool packLeaves_=false,
+		 int leafSize_=4, int nBuckets_=8);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
@@ -117,9 +118,8 @@ protected:
 	CostHeuristic costHeuristic;
 	int nNodes, nLeafs, leafSize, nBuckets, maxDepth, depthGuess;
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes;
-	const std::vector<PrimitiveType *>& primitives;
+	std::vector<PrimitiveType *>& primitives;
 	std::vector<SbvhNode<DIM>> flatTree;
-	std::vector<int> references;
 	bool packLeaves, primitiveTypeIsAggregate;
 
 	template<size_t U, size_t V, typename W>

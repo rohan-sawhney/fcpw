@@ -1,10 +1,10 @@
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveType>
-inline Sbvh<DIM, PrimitiveType>::Sbvh(const std::vector<PrimitiveType *>& primitives_,
-									  const CostHeuristic& costHeuristic_, bool printStats_,
-									  bool packLeaves_, int leafSize_, int nBuckets_):
-primitives(primitives_),
+inline Sbvh<DIM, PrimitiveType>::Sbvh(const CostHeuristic& costHeuristic_,
+									  std::vector<PrimitiveType *>& primitives_,
+									  bool printStats_, bool packLeaves_,
+									  int leafSize_, int nBuckets_):
 costHeuristic(costHeuristic_),
 nNodes(0),
 nLeafs(0),
@@ -14,6 +14,7 @@ maxDepth(0),
 depthGuess(std::log2(primitives_.size())),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+primitives(primitives_),
 packLeaves(packLeaves_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
@@ -34,8 +35,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 				  << nNodes << " nodes, "
 				  << nLeafs << " leaves, "
 				  << maxDepth << " max depth, "
-				  << primitives.size() << " primitives, "
-				  << references.size() << " references in "
+				  << primitives.size() << " primitives in "
 				  << timeSpan.count() << " seconds" << std::endl;
 	}
 }
@@ -171,7 +171,7 @@ inline int Sbvh<DIM, PrimitiveType>::performObjectSplit(int nodeStart, int nodeE
 	int mid = nodeStart;
 	for (int i = nodeStart; i < nodeEnd; i++) {
 		if (referenceCentroids[i][splitDim] < splitCoord) {
-			std::swap(references[i], references[mid]);
+			std::swap(primitives[i], primitives[mid]);
 			std::swap(referenceBoxes[i], referenceBoxes[mid]);
 			std::swap(referenceCentroids[i], referenceCentroids[mid]);
 			mid++;
@@ -269,15 +269,12 @@ inline void Sbvh<DIM, PrimitiveType>::build()
 	std::vector<BoundingBox<DIM>> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
 
-	int memoryBudget = nReferences*2;
-	references.resize(memoryBudget, -1);
-	referenceBoxes.resize(memoryBudget);
-	referenceCentroids.resize(memoryBudget);
+	referenceBoxes.resize(nReferences);
+	referenceCentroids.resize(nReferences);
 	flatTree.reserve(nReferences*2);
 	BoundingBox<DIM> boxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
-		references[i] = i;
 		referenceBoxes[i] = primitives[i]->boundingBox();
 		referenceCentroids[i] = primitives[i]->centroid();
 		boxRoot.expandToInclude(referenceBoxes[i]);
@@ -286,8 +283,7 @@ inline void Sbvh<DIM, PrimitiveType>::build()
 	// build tree recursively
 	buildRecursive(referenceBoxes, referenceCentroids, flatTree, 0xfffffffc, 0, nReferences, 0);
 
-	// resize references vector and clear working set
-	references.resize(nReferences);
+	// clear working set
 	buckets.clear();
 	rightBucketBoxes.clear();
 }
@@ -353,7 +349,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 		// is leaf -> intersect
 		if (node.nReferences > 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				int referenceIndex = references[node.referenceOffset + p];
+				int referenceIndex = node.referenceOffset + p;
 				const PrimitiveType *prim = primitives[referenceIndex];
 				nodesVisited++;
 
@@ -365,8 +361,9 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 
 				} else {
 					hit = prim->intersect(r, cs, checkOcclusion, countHits);
-					for (int sp = 0; sp < (int)cs.size(); sp++) {
-						cs[sp].nodeIndex = nodeIndex;
+					for (int i = 0; i < (int)cs.size(); i++) {
+						cs[i].nodeIndex = nodeIndex;
+						cs[i].referenceIndex = referenceIndex;
 					}
 				}
 
@@ -467,7 +464,7 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 		// compute normals
 		if (this->computeNormals && !primitiveTypeIsAggregate) {
 			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal(primitives[is[i].primitiveIndex]);
+				is[i].computeNormal(primitives[is[i].referenceIndex]);
 			}
 		}
 
@@ -498,7 +495,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 		// is leaf -> compute squared distance
 		if (node.nReferences > 0) {
 			for (int p = 0; p < node.nReferences; p++) {
-				int referenceIndex = references[node.referenceOffset + p];
+				int referenceIndex = node.referenceOffset + p;
 				const PrimitiveType *prim = primitives[referenceIndex];
 				nodesVisited++;
 
@@ -511,6 +508,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 				} else {
 					found = prim->findClosestPoint(s, c);
 					c.nodeIndex = nodeIndex;
+					c.referenceIndex = referenceIndex;
 				}
 
 				// keep the closest point only
@@ -598,7 +596,7 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 	if (!notFound) {
 		// compute normal
 		if (this->computeNormals && !primitiveTypeIsAggregate) {
-			i.computeNormal(primitives[i.primitiveIndex]);
+			i.computeNormal(primitives[i.referenceIndex]);
 		}
 
 		return true;

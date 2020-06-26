@@ -22,15 +22,21 @@ inline void Scene<DIM>::clearData()
 {
 	// clear line segments
 	for (int i = 0; i < (int)lineSegmentObjects.size(); i++) {
-		if (lineSegmentObjects[i].size() > 0) {
-			delete[] *lineSegmentObjects[i].data();
+		for (int j = 0; j < (int)lineSegmentObjects[i].size(); j++) {
+			if (lineSegmentObjects[i][j]->index == 0) {
+				delete[] lineSegmentObjects[i][j];
+				break;
+			}
 		}
 	}
 
 	// clear triangles
 	for (int i = 0; i < (int)triangleObjects.size(); i++) {
-		if (triangleObjects[i].size() > 0) {
-			delete[] *triangleObjects[i].data();
+		for (int j = 0; j < (int)triangleObjects[i].size(); j++) {
+			if (triangleObjects[i][j]->index == 0) {
+				delete[] triangleObjects[i][j];
+				break;
+			}
 		}
 	}
 
@@ -176,7 +182,7 @@ inline void Scene<DIM>::loadFiles()
 
 template<size_t DIM, typename PrimitiveType>
 inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType,
-									 const std::vector<PrimitiveType *>& primitives,
+									 std::vector<PrimitiveType *>& primitives,
 									 bool printStats, bool vectorize)
 {
 	Sbvh<DIM, PrimitiveType> *sbvh = nullptr;
@@ -191,23 +197,23 @@ inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType,
 #endif
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::LongestAxisCenter,
+		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::LongestAxisCenter, primitives,
 											printStats, false, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::SurfaceArea,
+		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::SurfaceArea, primitives,
 											printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapSurfaceArea,
+		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::OverlapSurfaceArea, primitives,
 			 								printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::Volume,
+		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::Volume, primitives,
 											printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		sbvh = new Sbvh<DIM, PrimitiveType>(primitives, CostHeuristic::OverlapVolume,
+		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::OverlapVolume, primitives,
 											printStats, packLeaves, leafSize);
 
 	} else {
