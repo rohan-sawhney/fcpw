@@ -6,7 +6,7 @@ namespace fcpw {
 
 class Triangle: public GeometricPrimitive<3> {
 public:
-	// constructors
+	// constructor
 	Triangle();
 
 	// returns bounding box

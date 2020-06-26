@@ -6,7 +6,7 @@ namespace fcpw {
 
 class LineSegment: public GeometricPrimitive<3> {
 public:
-	// constructors
+	// constructor
 	LineSegment();
 
 	// returns bounding box
