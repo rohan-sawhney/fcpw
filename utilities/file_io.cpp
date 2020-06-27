@@ -273,7 +273,7 @@ void computeWeightedTriangleNormals(const std::vector<Triangle *>& triangles, Po
 
 		for (int j = 0; j < 3; j++) {
 			soup.vNormals[triangles[i]->indices[j]] += n;
-			soup.eNormals[soup.eIndices[triangles[i]->pIndex + j]] += n;
+			soup.eNormals[soup.eIndices[3*triangles[i]->pIndex + j]] += n;
 		}
 	}
 
