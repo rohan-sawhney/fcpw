@@ -43,6 +43,7 @@ public:
 
 	// members
 	const PolygonSoup<3> *soup;
+	int indices[2];
 	int pIndex; // index of primitive in polygon soup
 
 private:
