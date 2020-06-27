@@ -5,8 +5,10 @@ Priority:
    possibly go very wrong if guess is totally off for certain geometric distributions)
 4. start search from specified node (and walk up/laterally in the tree)
 5. mbvh
----- optimization pass
----- sort nodes efficiently during traversal for closest points (by distance & direction)
+---- optimization pass: construct higher quality tree with cache friendly node layout
+---- don't broadcast ray & sphere data?
+---- unused vector units during overlap/intersection with AVX
+---- sort nodes efficiently based on distance & direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
 6. benchmark (https://github.com/jdumas/aabb_benchmark)
@@ -24,7 +26,7 @@ Future Optimizations & Features:
 3. packet (coherent) queries
 ---- keyword: breadth first ray tracing
 4. traversal optimization for closest point queries & intersections:
----- implement "stackless" closest point traversal
+---- implement "stackless" traversal
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
 	  structure while querying that stores pointers to nodes in the tree based on
 	  positions and directions to boundary
