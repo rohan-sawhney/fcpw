@@ -181,9 +181,94 @@ inline void Scene<DIM>::loadFiles()
 }
 
 template<size_t DIM, typename PrimitiveType>
+inline void sortSoupPositions(const std::vector<SbvhNode<DIM>>& flatTree,
+							  std::vector<PrimitiveType *>& primitives,
+							  PolygonSoup<DIM>& soup)
+{
+	// do nothing
+}
+
+template<>
+inline void sortSoupPositions<3, LineSegment>(const std::vector<SbvhNode<3>>& flatTree,
+											  std::vector<LineSegment *>& lineSegments,
+											  PolygonSoup<3>& soup)
+{
+	int V = (int)soup.positions.size();
+	std::vector<Vector<3>> sortedPositions(V), sortedVertexNormals(V);
+	std::vector<int> indexMap(V, -1);
+	int v = 0;
+
+	// collect sorted positions, updating line segment and soup indices
+	for (int i = 0; i < (int)flatTree.size(); i++) {
+		const SbvhNode<3>& node(flatTree[i]);
+
+		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
+			int referenceIndex = node.referenceOffset + j;
+			LineSegment *lineSegment = lineSegments[referenceIndex];
+
+			for (int k = 0; k < 2; k++) {
+				int vIndex = lineSegment->indices[k];
+
+				if (indexMap[vIndex] == -1) {
+					sortedPositions[v] = soup.positions[vIndex];
+					if (soup.vNormals.size() > 0) sortedVertexNormals[v] = soup.vNormals[vIndex];
+					indexMap[vIndex] = v++;
+				}
+
+				soup.indices[2*lineSegment->pIndex + k] = indexMap[vIndex];
+				lineSegment->indices[k] = indexMap[vIndex];
+			}
+		}
+	}
+
+	// update to sorted positions
+	soup.positions = std::move(sortedPositions);
+	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
+}
+
+template<>
+inline void sortSoupPositions<3, Triangle>(const std::vector<SbvhNode<3>>& flatTree,
+										   std::vector<Triangle *>& triangles,
+										   PolygonSoup<3>& soup)
+{
+	int V = (int)soup.positions.size();
+	std::vector<Vector<3>> sortedPositions(V), sortedVertexNormals(V);
+	std::vector<int> indexMap(V, -1);
+	int v = 0;
+
+	// collect sorted positions, updating triangle and soup indices
+	for (int i = 0; i < (int)flatTree.size(); i++) {
+		const SbvhNode<3>& node(flatTree[i]);
+
+		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
+			int referenceIndex = node.referenceOffset + j;
+			Triangle *triangle = triangles[referenceIndex];
+
+			for (int k = 0; k < 3; k++) {
+				int vIndex = triangle->indices[k];
+
+				if (indexMap[vIndex] == -1) {
+					sortedPositions[v] = soup.positions[vIndex];
+					if (soup.vNormals.size() > 0) sortedVertexNormals[v] = soup.vNormals[vIndex];
+					indexMap[vIndex] = v++;
+				}
+
+				soup.indices[3*triangle->pIndex + k] = indexMap[vIndex];
+				triangle->indices[k] = indexMap[vIndex];
+			}
+		}
+	}
+
+	// update to sorted positions
+	soup.positions = std::move(sortedPositions);
+	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
+}
+
+template<size_t DIM, typename PrimitiveType>
 inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType,
 									 std::vector<PrimitiveType *>& primitives,
-									 bool printStats, bool vectorize)
+									 bool printStats, bool vectorize,
+									 SortPositionsFunc<DIM, PrimitiveType> sortPositions={})
 {
 	Sbvh<DIM, PrimitiveType> *sbvh = nullptr;
 	int leafSize = 4;
@@ -198,23 +283,23 @@ inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType,
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
 		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::LongestAxisCenter, primitives,
-											printStats, false, leafSize);
+											sortPositions, printStats, false, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
 		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::SurfaceArea, primitives,
-											printStats, packLeaves, leafSize);
+											sortPositions, printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
 		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::OverlapSurfaceArea, primitives,
-			 								printStats, packLeaves, leafSize);
+			 								sortPositions, printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
 		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::Volume, primitives,
-											printStats, packLeaves, leafSize);
+											sortPositions, printStats, packLeaves, leafSize);
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
 		sbvh = new Sbvh<DIM, PrimitiveType>(CostHeuristic::OverlapVolume, primitives,
-											printStats, packLeaves, leafSize);
+											sortPositions, printStats, packLeaves, leafSize);
 
 	} else {
 		return new Baseline<DIM, PrimitiveType>(primitives);
@@ -249,6 +334,9 @@ inline Aggregate<DIM>* buildCsgAggregateRecursive(int nodeIndex, std::unordered_
 	return new CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>(std::move(instance1), std::move(instance2), node.operation);
 }
 
+using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
+using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
+
 template<size_t DIM>
 inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool printStats, bool vectorize)
 {
@@ -262,18 +350,26 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 	for (int i = 0; i < nObjects; i++) {
 		if (objectTypes[i] == ObjectType::LineSegments) {
-			objectAggregates[i] = makeAggregate<DIM, LineSegment>(aggregateType,
-					lineSegmentObjects[nLineSegmentObjects], printStats, vectorize);
+			SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
+																			  std::placeholders::_1,
+																			  std::placeholders::_2,
+																			  std::ref(soups[i]));
+			objectAggregates[i] = makeAggregate<DIM, LineSegment>(aggregateType, lineSegmentObjects[nLineSegmentObjects],
+																  printStats, vectorize, sortLineSegmentPositions);
 			nLineSegmentObjects++;
 
 		} else if (objectTypes[i] == ObjectType::Triangles) {
-			objectAggregates[i] = makeAggregate<DIM, Triangle>(aggregateType,
-					triangleObjects[nTriangleObjects], printStats, vectorize);
+			SortTrianglePositionsFunc sortTrianglePositionsFunc = std::bind(&sortSoupPositions<3, Triangle>,
+																			std::placeholders::_1,
+																			std::placeholders::_2,
+																			std::ref(soups[i]));
+			objectAggregates[i] = makeAggregate<DIM, Triangle>(aggregateType, triangleObjects[nTriangleObjects],
+															   printStats, vectorize, sortTrianglePositionsFunc);
 			nTriangleObjects++;
 
 		} else if (objectTypes[i] == ObjectType::Mixed) {
-			objectAggregates[i] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType,
-										mixedObjects[nMixedObjects], printStats, vectorize);
+			objectAggregates[i] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType, mixedObjects[nMixedObjects],
+																			  printStats, vectorize);
 			nMixedObjects++;
 		}
 

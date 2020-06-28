@@ -38,14 +38,17 @@ struct BvhTraversal {
 	float distance; // minimum distance (parametric, squared, ...) to this node
 };
 
+template<size_t DIM, typename PrimitiveType>
+using SortPositionsFunc = std::function<void(const std::vector<SbvhNode<DIM>>&, std::vector<PrimitiveType *>&)>;
+
 template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
 class Sbvh: public Aggregate<DIM> {
 public:
 	// constructor
 	Sbvh(const CostHeuristic& costHeuristic_,
 		 std::vector<PrimitiveType *>& primitives_,
-		 bool printStats_=false, bool packLeaves_=false,
-		 int leafSize_=4, int nBuckets_=8);
+		 SortPositionsFunc<DIM, PrimitiveType> sortPositions_={},
+		 bool printStats_=false, bool packLeaves_=false, int leafSize_=4, int nBuckets_=8);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;

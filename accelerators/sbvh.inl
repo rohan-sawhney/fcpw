@@ -3,8 +3,8 @@ namespace fcpw {
 template<size_t DIM, typename PrimitiveType>
 inline Sbvh<DIM, PrimitiveType>::Sbvh(const CostHeuristic& costHeuristic_,
 									  std::vector<PrimitiveType *>& primitives_,
-									  bool printStats_, bool packLeaves_,
-									  int leafSize_, int nBuckets_):
+									  SortPositionsFunc<DIM, PrimitiveType> sortPositions_,
+									  bool printStats_, bool packLeaves_, int leafSize_, int nBuckets_):
 costHeuristic(costHeuristic_),
 nNodes(0),
 nLeafs(0),
@@ -23,6 +23,11 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 
 	// build sbvh
 	build();
+
+	// sort positions
+	if (sortPositions_) {
+		sortPositions_(flatTree, primitives);
+	}
 
 	// don't compute normals by default
 	this->computeNormals = false;

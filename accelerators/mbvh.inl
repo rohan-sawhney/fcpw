@@ -43,11 +43,11 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 			if (level < maxLevel && sbvhNode.nReferences == 0) {
 				// enqueue sbvh children nodes till max level or leaf node is reached
 				stackPtr++;
-				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + 1;
+				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + sbvhNode.secondChildOffset;
 				stackSbvhNodes[stackPtr][1] = level + 1;
 
 				stackPtr++;
-				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + sbvhNode.secondChildOffset;
+				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + 1;
 				stackSbvhNodes[stackPtr][1] = level + 1;
 
 			} else {

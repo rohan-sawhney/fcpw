@@ -1,8 +1,8 @@
 Priority:
-1. re-order soup positions
-2. move embree to tests, update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene
-3. give the closest point a rough guess of direction to guide traversal (things can
+1. move embree to tests, update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene
+2. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
+3. bug: start from node doesn't make sense without pointer to aggregate the node belongs to
 4. start search from specified node (and walk up/laterally in the tree)
 5. mbvh
 ---- optimization pass: construct higher quality tree with cache friendly node layout
@@ -11,9 +11,10 @@ Priority:
 ---- sort nodes efficiently based on distance & direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
-6. benchmark (https://github.com/jdumas/aabb_benchmark)
-7. travis/circle CI
-8. README (tutorial, features, benchmark, compiling, logo)
+6. spatial split bvh
+7. benchmark (https://github.com/jdumas/aabb_benchmark)
+8. travis/circle CI
+9. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. add support for more geometries:
@@ -22,7 +23,6 @@ Future Optimizations & Features:
 ---- vectorize + thread
 ---- support oriented bounding boxes + RSS
 ---- rebalance tree
----- spatial split bvh
 3. packet (coherent) queries
 ---- keyword: breadth first ray tracing
 4. traversal optimization for closest point queries & intersections:
