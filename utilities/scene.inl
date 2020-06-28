@@ -319,17 +319,29 @@ inline Aggregate<DIM>* makeAggregate(const AggregateType& aggregateType,
 
 template<size_t DIM>
 inline Aggregate<DIM>* buildCsgAggregateRecursive(int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
-												  std::vector<Aggregate<DIM> *>& objectInstances)
+												  std::vector<Aggregate<DIM> *>& objectInstances, int& nAggregates)
 {
 	const CsgTreeNode& node = csgTree[nodeIndex];
 	std::unique_ptr<Aggregate<DIM>> instance1 = nullptr;
 	std::unique_ptr<Aggregate<DIM>> instance2 = nullptr;
 
-	if (node.isLeafChild1) instance1 = std::unique_ptr<Aggregate<DIM>>(objectInstances[node.child1]);
-	else instance1 = std::unique_ptr<Aggregate<DIM>>(buildCsgAggregateRecursive(node.child1, csgTree, objectInstances));
+	if (node.isLeafChild1) {
+		instance1 = std::unique_ptr<Aggregate<DIM>>(objectInstances[node.child1]);
 
-	if (node.isLeafChild2) instance2 = std::unique_ptr<Aggregate<DIM>>(objectInstances[node.child2]);
-	else instance2 = std::unique_ptr<Aggregate<DIM>>(buildCsgAggregateRecursive(node.child2, csgTree, objectInstances));
+	} else {
+		instance1 = std::unique_ptr<Aggregate<DIM>>(buildCsgAggregateRecursive(node.child1, csgTree,
+																			   objectInstances, nAggregates));
+		instance1->index = nAggregates++;
+	}
+
+	if (node.isLeafChild2) {
+		instance2 = std::unique_ptr<Aggregate<DIM>>(objectInstances[node.child2]);
+
+	} else {
+		instance2 = std::unique_ptr<Aggregate<DIM>>(buildCsgAggregateRecursive(node.child2, csgTree,
+																			   objectInstances, nAggregates));
+		instance2->index = nAggregates++;
+	}
 
 	return new CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>(std::move(instance1), std::move(instance2), node.operation);
 }
@@ -347,6 +359,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	int nLineSegmentObjects = 0;
 	int nTriangleObjects = 0;
 	int nMixedObjects = 0;
+	int nAggregates = 0;
 	SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
 	SortTrianglePositionsFunc sortTrianglePositionsFunc = {};
 
@@ -379,6 +392,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 			nMixedObjects++;
 		}
 
+		objectAggregates[i]->index = nAggregates++;
 		objectAggregates[i]->computeNormals = computeNormals;
 	}
 
@@ -393,6 +407,7 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 			std::shared_ptr<Aggregate<DIM>> aggregate(objectAggregates[i]);
 			for (int j = 0; j < nObjectInstances; j++) {
 				objectInstances.emplace_back(new TransformedAggregate<DIM>(aggregate, instanceTransforms[i][j]));
+				objectInstances[j]->index = nAggregates++;
 			}
 		}
 	}
@@ -405,13 +420,15 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 	} else if (csgTree.size() > 0) {
 		// build csg aggregate if csg tree is specified
-		aggregate = buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances);
+		aggregate = buildCsgAggregateRecursive<DIM>(0, csgTree, objectInstances, nAggregates);
 		objectInstances.clear();
 
 	} else {
 		// make aggregate
 		aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, objectInstances, printStats, vectorize);
 	}
+
+	aggregate->index = nAggregates++;
 }
 
 #ifdef BENCHMARK_EMBREE
@@ -428,6 +445,7 @@ inline bool Scene<DIM>::buildEmbreeAggregate(bool printStats)
 	for (int i = 0; i < (int)soups.size(); i++) {
 		if (objectTypes[i] == ObjectType::Triangles) {
 			aggregate = new EmbreeBvh(triangleObjects[0], &soups[i], printStats);
+			aggregate->index = 0;
 			return true;
 		}
 	}

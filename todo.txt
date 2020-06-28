@@ -1,8 +1,8 @@
 Priority:
-1. move embree to tests, update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene
-2. give the closest point a rough guess of direction to guide traversal (things can
+1. BUG: must specify atleast aggregate index in interaction, in addition to prim, ref & node index
+2. move embree to tests, update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene
+3. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
-3. bug: start from node doesn't make sense without pointer to aggregate the node belongs to
 4. start search from specified node (and walk up/laterally in the tree)
 5. mbvh
 ---- optimization pass: construct higher quality tree with cache friendly node layout
@@ -20,9 +20,9 @@ Future Optimizations & Features:
 ---- thickened lines & tris, beziers, libfive (+ exact distance to implicit), subdivision surfaces, nurbs
 2. tree construction:
 ---- spatial split bvh
----- vectorize + thread
----- support oriented bounding boxes + RSS
+---- support oriented bounding boxes + RSS (specify bounding volume via templates)
 ---- rebalance tree
+---- vectorize + thread
 3. packet (coherent) queries
 ---- keyword: breadth first ray tracing
 4. traversal optimization for closest point queries & intersections:

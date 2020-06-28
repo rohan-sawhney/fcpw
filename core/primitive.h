@@ -158,7 +158,8 @@ public:
 										  int nodeStartIndex, const Vector<DIM>& boundaryHint,
 										  int& nodesVisited) const = 0;
 
-	// member
+	// members
+	int index;
 	bool computeNormals;
 };
 
@@ -169,7 +170,9 @@ public:
 	TransformedAggregate(const std::shared_ptr<Aggregate<DIM>>& aggregate_,
 						 const Transform<DIM>& transform_):
 						 aggregate(aggregate_), t(transform_), tInv(t.inverse()),
-						 det(t.matrix().determinant()), sqrtDet(std::sqrt(det)) {}
+						 det(t.matrix().determinant()), sqrtDet(std::sqrt(det)) {
+		this->computeNormals = false;
+	}
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const {
