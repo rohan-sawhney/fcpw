@@ -184,17 +184,31 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 
 	// print stats
 	if (printStats_) {
-		// count not-full leaves
-		float nLeafsNotFull = 0;
+		// count not-full nodes
+		float nLeafsNotFull = 0.0f;
+		float nNodesNotFull = 0.0f;
+
 		for (int i = 0; i < nNodes; i++) {
 			MbvhNode<DIM>& node = flatTree[i];
-			if (isLeafNode(node) && node.child[3]%WIDTH != 0) nLeafsNotFull++;
+
+			if (isLeafNode(node) && node.child[3]%WIDTH != 0) {
+				nLeafsNotFull += 1.0f;
+
+			} else {
+				for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
+					if (node.child[w] == maxInt) {
+						nNodesNotFull += 1.0f;
+						break;
+					}
+				}
+			}
 		}
 
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
 		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 		std::cout << "Built " << MBVH_BRANCHING_FACTOR << "-bvh with "
 				  << nNodes << " nodes, "
+				  << (nNodesNotFull*100/(nNodes - nLeafs)) << "% nodes & "
 				  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
 				  << nLeafs << " leaves, "
 				  << maxDepth << " max depth, "
