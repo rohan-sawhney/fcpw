@@ -208,9 +208,9 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
 		std::cout << "Built " << MBVH_BRANCHING_FACTOR << "-bvh with "
 				  << nNodes << " nodes, "
+				  << nLeafs << " leaves, "
 				  << (nNodesNotFull*100/(nNodes - nLeafs)) << "% nodes & "
 				  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
-				  << nLeafs << " leaves, "
 				  << maxDepth << " max depth, "
 				  << primitives.size() << " primitives in "
 				  << timeSpan.count() << " seconds" << std::endl;
