@@ -447,10 +447,8 @@ void run()
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
 	std::shuffle(shuffledIndices.begin(), shuffledIndices.end(), std::default_random_engine(seed));
 
-	std::vector<std::string> bvhTypes({"Bvh_LongestAxisCenter", "Bvh_SurfaceArea",
-									   "Bvh_OverlapSurfaceArea", "Bvh_Volume",
-									   "Bvh_OverlapVolume", "Sbvh_SurfaceArea",
-									   "Sbvh_Volume"});
+	std::vector<std::string> bvhTypes({"Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea",
+									   "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"});
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;

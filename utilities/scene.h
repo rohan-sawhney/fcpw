@@ -18,10 +18,10 @@ enum class ObjectType {
 enum class AggregateType {
 	Baseline = 0,
 	Bvh_LongestAxisCenter = 1,
-	Bvh_SurfaceArea = 2,
-	Bvh_OverlapSurfaceArea = 3,
-	Bvh_Volume = 4,
-	Bvh_OverlapVolume = 5
+	Bvh_OverlapSurfaceArea = 2,
+	Bvh_SurfaceArea = 3,
+	Bvh_OverlapVolume = 4,
+	Bvh_Volume = 5
 };
 
 std::vector<std::pair<std::string, LoadingOption>> files;
