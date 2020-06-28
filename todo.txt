@@ -11,15 +11,15 @@ Priority:
 ---- sort nodes efficiently based on distance & direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
-6. spatial split bvh
-7. benchmark (https://github.com/jdumas/aabb_benchmark)
-8. travis/circle CI
-9. README (tutorial, features, benchmark, compiling, logo)
+6. benchmark (https://github.com/jdumas/aabb_benchmark)
+7. travis/circle CI
+8. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. add support for more geometries:
 ---- thickened lines & tris, beziers, libfive (+ exact distance to implicit), subdivision surfaces, nurbs
 2. tree construction:
+---- spatial split bvh
 ---- vectorize + thread
 ---- support oriented bounding boxes + RSS
 ---- rebalance tree
@@ -36,5 +36,6 @@ Done:
 1. closest point and ray intersections queries leveraging coherency between queries
 2. bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
 									 Surface Area Overlap, Volume Overlap)
-3. constructive solid geometry
-4. instancing
+3. improved cache locality with optional spatial sorting of soup positions & indices
+4. constructive solid geometry
+5. instancing
