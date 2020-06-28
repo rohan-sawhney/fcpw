@@ -347,22 +347,28 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 	int nLineSegmentObjects = 0;
 	int nTriangleObjects = 0;
 	int nMixedObjects = 0;
+	SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
+	SortTrianglePositionsFunc sortTrianglePositionsFunc = {};
 
 	for (int i = 0; i < nObjects; i++) {
 		if (objectTypes[i] == ObjectType::LineSegments) {
-			SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
-																			  std::placeholders::_1,
-																			  std::placeholders::_2,
-																			  std::ref(soups[i]));
+			if (!vectorize) {
+				sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
+													 std::placeholders::_1, std::placeholders::_2,
+													 std::ref(soups[i]));
+			}
+
 			objectAggregates[i] = makeAggregate<DIM, LineSegment>(aggregateType, lineSegmentObjects[nLineSegmentObjects],
 																  printStats, vectorize, sortLineSegmentPositions);
 			nLineSegmentObjects++;
 
 		} else if (objectTypes[i] == ObjectType::Triangles) {
-			SortTrianglePositionsFunc sortTrianglePositionsFunc = std::bind(&sortSoupPositions<3, Triangle>,
-																			std::placeholders::_1,
-																			std::placeholders::_2,
-																			std::ref(soups[i]));
+			if (!vectorize) {
+				sortTrianglePositionsFunc = std::bind(&sortSoupPositions<3, Triangle>,
+													  std::placeholders::_1, std::placeholders::_2,
+													  std::ref(soups[i]));
+			}
+
 			objectAggregates[i] = makeAggregate<DIM, Triangle>(aggregateType, triangleObjects[nTriangleObjects],
 															   printStats, vectorize, sortTrianglePositionsFunc);
 			nTriangleObjects++;
