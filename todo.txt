@@ -1,5 +1,5 @@
 Priority:
-1. BUG: must specify atleast aggregate index in interaction, in addition to prim, ref & node index
+1. BUG: specify aggregate index in fromNode functions
 2. move embree to tests, update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene
 3. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)

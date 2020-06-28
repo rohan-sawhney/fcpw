@@ -266,7 +266,8 @@ inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int intersectPrimitives(const MbvhNode<DIM>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
-							   int nodeIndex, Ray<DIM>& r, std::vector<Interaction<DIM>>& is, bool countHits)
+							   int nodeIndex, int aggregateIndex, Ray<DIM>& r,
+							   std::vector<Interaction<DIM>>& is, bool countHits)
 {
 	std::cerr << "intersectPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -277,7 +278,8 @@ inline int intersectPrimitives(const MbvhNode<DIM>& node,
 template<size_t WIDTH>
 inline int intersectPrimitives(const MbvhNode<3>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
-							   int nodeIndex, Ray<3>& r, std::vector<Interaction<3>>& is, bool countHits)
+							   int nodeIndex, int aggregateIndex, Ray<3>& r,
+							   std::vector<Interaction<3>>& is, bool countHits)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -321,6 +323,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					it->primitiveIndex = primitiveIndex[w];
 					it->nodeIndex = nodeIndex;
 					it->referenceIndex = referenceOffset + p;
+					it->aggregateIndex = aggregateIndex;
 				}
 
 			} else {
@@ -336,6 +339,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					is[0].primitiveIndex = primitiveIndex[w];
 					is[0].nodeIndex = nodeIndex;
 					is[0].referenceIndex = referenceOffset + p;
+					is[0].aggregateIndex = aggregateIndex;
 				}
 			}
 		}
@@ -349,7 +353,8 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 template<size_t WIDTH>
 inline int intersectPrimitives(const MbvhNode<3>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
-							   int nodeIndex, Ray<3>& r, std::vector<Interaction<3>>& is, bool countHits)
+							   int nodeIndex, int aggregateIndex, Ray<3>& r,
+							   std::vector<Interaction<3>>& is, bool countHits)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -394,6 +399,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					it->primitiveIndex = primitiveIndex[w];
 					it->nodeIndex = nodeIndex;
 					it->referenceIndex = referenceOffset + p;
+					it->aggregateIndex = aggregateIndex;
 				}
 
 			} else {
@@ -409,6 +415,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					is[0].primitiveIndex = primitiveIndex[w];
 					is[0].nodeIndex = nodeIndex;
 					is[0].referenceIndex = referenceOffset + p;
+					is[0].aggregateIndex = aggregateIndex;
 				}
 			}
 		}
@@ -453,7 +460,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			if (vectorizedLeafType == ObjectType::LineSegments ||
 				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized intersection query
-				hits += intersectPrimitives(node, leafNodes, nodeIndex, r, is, countHits);
+				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, r, is, countHits);
 				nodesVisited++;
 				if (hits > 0 && checkOcclusion) return 1;
 
@@ -479,6 +486,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 						for (int i = 0; i < (int)cs.size(); i++) {
 							cs[i].nodeIndex = nodeIndex;
 							cs[i].referenceIndex = referenceIndex;
+							cs[i].aggregateIndex = this->index;
 						}
 					}
 
@@ -558,7 +566,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline bool findClosestPointPrimitives(const MbvhNode<DIM>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
-									   int nodeIndex, BoundingSphere<DIM>& s, Interaction<DIM>& i)
+									   int nodeIndex, int aggregateIndex, BoundingSphere<DIM>& s, Interaction<DIM>& i)
 {
 	std::cerr << "findClosestPointPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -569,7 +577,7 @@ inline bool findClosestPointPrimitives(const MbvhNode<DIM>& node,
 template<size_t WIDTH>
 inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
-									   int nodeIndex, BoundingSphere<3>& s, Interaction<3>& i)
+									   int nodeIndex, int aggregateIndex, BoundingSphere<3>& s, Interaction<3>& i)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -611,6 +619,7 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 				i.primitiveIndex = primitiveIndex[w];
 				i.nodeIndex = nodeIndex;
 				i.referenceIndex = referenceOffset + p;
+				i.aggregateIndex = aggregateIndex;
 				closestIndex = i.referenceIndex;
 			}
 		}
@@ -624,7 +633,7 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 template<size_t WIDTH>
 inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
-									   int nodeIndex, BoundingSphere<3>& s, Interaction<3>& i)
+									   int nodeIndex, int aggregateIndex, BoundingSphere<3>& s, Interaction<3>& i)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -667,6 +676,7 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 				i.primitiveIndex = primitiveIndex[w];
 				i.nodeIndex = nodeIndex;
 				i.referenceIndex = referenceOffset + p;
+				i.aggregateIndex = aggregateIndex;
 				closestIndex = i.referenceIndex;
 			}
 		}
@@ -710,7 +720,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			if (vectorizedLeafType == ObjectType::LineSegments ||
 				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized closest point query to triangle
-				bool found = findClosestPointPrimitives(node, leafNodes, nodeIndex, s, i);
+				bool found = findClosestPointPrimitives(node, leafNodes, nodeIndex, this->index, s, i);
 				if (found) notFound = false;
 				nodesVisited++;
 
@@ -735,6 +745,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 						found = prim->findClosestPoint(s, c);
 						c.nodeIndex = nodeIndex;
 						c.referenceIndex = referenceIndex;
+						c.aggregateIndex = this->index;
 					}
 
 					// keep the closest point only

@@ -13,8 +13,8 @@ template<size_t DIM>
 struct Interaction {
 	// constructor
 	Interaction(): d(maxFloat), sign(0), primitiveIndex(-1), nodeIndex(-1), referenceIndex(-1),
-				   p(zeroVector<DIM>()), n(zeroVector<DIM>()), uv(zeroVector<DIM - 1>()),
-				   distanceInfo(DistanceInfo::Exact) {}
+				   aggregateIndex(-1), p(zeroVector<DIM>()), n(zeroVector<DIM>()),
+				   uv(zeroVector<DIM - 1>()), distanceInfo(DistanceInfo::Exact) {}
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
@@ -54,6 +54,7 @@ struct Interaction {
 	int primitiveIndex; // index of primitive in polygon soup
 	int nodeIndex; // index of aggregate node containing intersected or closest point
 	int referenceIndex; // reference index of primitive for internal library use
+	int aggregateIndex; // index of aggregate containing the primitive
 	Vector<DIM> p, n;
 	Vector<DIM - 1> uv;
 	DistanceInfo distanceInfo;
