@@ -263,6 +263,71 @@ inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 	return volume;
 }
 
+inline void sortOrder4(const FloatP<4>& t, int& a, int& b, int& c, int& d)
+{
+	// source: https://stackoverflow.com/questions/25070577/sort-4-numbers-without-array
+	int tmp;
+	if (t[a] < t[b]) { tmp = a; a = b; b = tmp; }
+	if (t[c] < t[d]) { tmp = c; c = d; d = tmp; }
+	if (t[a] < t[c]) { tmp = a; a = c; c = tmp; }
+	if (t[b] < t[d]) { tmp = b; b = d; d = tmp; }
+	if (t[b] < t[c]) { tmp = b; b = c; c = tmp; }
+}
+
+template<size_t WIDTH, size_t DIM>
+inline void enqueueNodesForIntersection(const MaskP<WIDTH>& mask, const MbvhNode<DIM>& node,
+										const FloatP<WIDTH>& tMin, float tMax,
+										int& stackPtr, BvhTraversal *subtree)
+{
+	// find closest intersecting node
+	int closestIndex = -1;
+	float minHit = tMax;
+
+	for (int w = 0; w < WIDTH; w++) {
+		if (mask[w] && tMin[w] < minHit && node.child[w] != maxInt) {
+			closestIndex = w;
+			minHit = tMin[w];
+		}
+	}
+
+	// enqueue remaining intersecting nodes first
+	for (int w = 0; w < WIDTH; w++) {
+		if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
+			stackPtr++;
+			subtree[stackPtr].node = node.child[w];
+			subtree[stackPtr].distance = tMin[w];
+		}
+	}
+
+	// enqueue closest intersecting node
+	if (closestIndex != -1) {
+		stackPtr++;
+		subtree[stackPtr].node = node.child[closestIndex];
+		subtree[stackPtr].distance = minHit;
+	}
+}
+
+template<size_t DIM>
+inline void enqueueNodesForIntersection(const MaskP<4>& mask, const MbvhNode<DIM>& node,
+										const FloatP<4>& tMin, float tMax,
+										int& stackPtr, BvhTraversal *subtree)
+{
+	// sort nodes
+	int order[4] = {0, 1, 2, 3};
+	sortOrder4(tMin, order[0], order[1], order[2], order[3]);
+
+	// enqueue intersecting nodes in sorted order
+	for (int w = 0; w < 4; w++) {
+		int W = order[w];
+
+		if (mask[W] && node.child[W] != maxInt) {
+			stackPtr++;
+			subtree[stackPtr].node = node.child[W];
+			subtree[stackPtr].distance = tMin[W];
+		}
+	}
+}
+
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int intersectPrimitives(const MbvhNode<DIM>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
@@ -512,33 +577,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			MaskP<MBVH_BRANCHING_FACTOR> mask = intersectWideBox<MBVH_BRANCHING_FACTOR, DIM>(r,
 														  node.boxMin, node.boxMax, tMin, tMax);
 
-			// find closest intersecting node
-			int closestIndex = -1;
-			float minHit = r.tMax;
-
-			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
-				if (mask[w] && tMin[w] < minHit && node.child[w] != maxInt) {
-					closestIndex = w;
-					minHit = tMin[w];
-				}
-			}
-
-			// enqueue remaining intersecting nodes first
-			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
-				if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
-					stackPtr++;
-					subtree[stackPtr].node = node.child[w];
-					subtree[stackPtr].distance = tMin[w];
-				}
-			}
-
-			// enqueue closest intersecting node
-			if (closestIndex != -1) {
-				stackPtr++;
-				subtree[stackPtr].node = node.child[closestIndex];
-				subtree[stackPtr].distance = minHit;
-			}
-
+			// enqueue intersecting boxes in sorted order
+			enqueueNodesForIntersection(mask, node, tMin, r.tMax, stackPtr, subtree);
 			nodesVisited++;
 		}
 	}
@@ -562,6 +602,63 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	}
 
 	return 0;
+}
+
+template<size_t WIDTH, size_t DIM>
+inline void enqueueNodesForClosestPoint(const MaskP<WIDTH>& mask, const MbvhNode<DIM>& node,
+										const FloatP<WIDTH>& d2Min, const FloatP<WIDTH>& d2Max,
+										int& stackPtr, BvhTraversal *subtree, float& r2)
+{
+	// find closest overlapping node
+	int closestIndex = -1;
+	float minDist = r2;
+
+	for (int w = 0; w < WIDTH; w++) {
+		if (mask[w] && d2Min[w] < minDist && node.child[w] != maxInt) {
+			closestIndex = w;
+			minDist = d2Min[w];
+		}
+	}
+
+	// enqueue remaining overlapping nodes first
+	for (int w = 0; w < WIDTH; w++) {
+		if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
+			r2 = std::min(r2, d2Max[w]);
+			stackPtr++;
+			subtree[stackPtr].node = node.child[w];
+			subtree[stackPtr].distance = d2Min[w];
+		}
+	}
+
+	// enqueue closest overlapping node
+	if (closestIndex != -1) {
+		r2 = std::min(r2, d2Max[closestIndex]);
+		stackPtr++;
+		subtree[stackPtr].node = node.child[closestIndex];
+		subtree[stackPtr].distance = minDist;
+	}
+}
+
+template<size_t DIM>
+inline void enqueueNodesForClosestPoint(const MaskP<4>& mask, const MbvhNode<DIM>& node,
+										const FloatP<4>& d2Min, const FloatP<4>& d2Max,
+										int& stackPtr, BvhTraversal *subtree, float& r2)
+{
+	// sort nodes
+	int order[4] = {0, 1, 2, 3};
+	sortOrder4(d2Min, order[0], order[1], order[2], order[3]);
+
+	// enqueue overlapping nodes in sorted order
+	for (int w = 0; w < 4; w++) {
+		int W = order[w];
+
+		if (mask[W] && node.child[W] != maxInt) {
+			r2 = std::min(r2, d2Max[W]);
+			stackPtr++;
+			subtree[stackPtr].node = node.child[W];
+			subtree[stackPtr].distance = d2Min[W];
+		}
+	}
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -764,35 +861,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			MaskP<MBVH_BRANCHING_FACTOR> mask = overlapWideBox<MBVH_BRANCHING_FACTOR, DIM>(s,
 													  node.boxMin, node.boxMax, d2Min, d2Max);
 
-			// find closest overlapping node
-			int closestIndex = -1;
-			float minDist = s.r2;
-
-			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
-				if (mask[w] && d2Min[w] < minDist && node.child[w] != maxInt) {
-					closestIndex = w;
-					minDist = d2Min[w];
-				}
-			}
-
-			// enqueue remaining overlapping nodes first
-			for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
-				if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
-					s.r2 = std::min(s.r2, d2Max[w]);
-					stackPtr++;
-					subtree[stackPtr].node = node.child[w];
-					subtree[stackPtr].distance = d2Min[w];
-				}
-			}
-
-			// enqueue closest intersecting node
-			if (closestIndex != -1) {
-				s.r2 = std::min(s.r2, d2Max[closestIndex]);
-				stackPtr++;
-				subtree[stackPtr].node = node.child[closestIndex];
-				subtree[stackPtr].distance = minDist;
-			}
-
+			// enqueue overlapping boxes in sorted order
+			enqueueNodesForClosestPoint(mask, node, d2Min, d2Max, stackPtr, subtree, s.r2);
 			nodesVisited++;
 		}
 	}

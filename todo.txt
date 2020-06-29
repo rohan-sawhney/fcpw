@@ -7,7 +7,7 @@ Priority:
 ---- optimization pass: construct higher quality tree with cache friendly node layout
 ---- don't broadcast ray & sphere data?
 ---- unused vector units during overlap/intersection with AVX
----- sort nodes efficiently based on distance & direction
+---- sort nodes efficiently by direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
 5. benchmark (https://github.com/jdumas/aabb_benchmark)
