@@ -242,7 +242,7 @@ inline float EmbreeBvh::signedVolume() const
 }
 
 inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
-										int nodeStartIndex, int& nodesVisited,
+										int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 										bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
@@ -313,8 +313,8 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 }
 
 inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
-												int nodeStartIndex, const Vector3& boundaryHint,
-												int& nodesVisited) const
+												int nodeStartIndex, int aggregateIndex,
+												const Vector3& boundaryHint, int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();

@@ -336,7 +336,7 @@ inline float Sbvh<DIM, PrimitiveType>::signedVolume() const
 
 template<size_t DIM, typename PrimitiveType>
 inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-																	int nodeStartIndex, bool checkOcclusion,
+																	int nodeStartIndex, int aggregateIndex, bool checkOcclusion,
 																	bool countHits, BvhTraversal *subtree,
 																	float *boxHits, int& hits, int& nodesVisited) const
 {
@@ -362,7 +362,8 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 				std::vector<Interaction<DIM>> cs;
 				if (primitiveTypeIsAggregate) {
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-					hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
+					hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
+													   nodesVisited, checkOcclusion, countHits);
 
 				} else {
 					hit = prim->intersect(r, cs, checkOcclusion, countHits);
@@ -437,7 +438,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 
 template<size_t DIM, typename PrimitiveType>
 inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-													   int nodeStartIndex, int& nodesVisited,
+													   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 													   bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
@@ -453,9 +454,8 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 	if (flatTree[0].box.intersect(r, boxHits[0], boxHits[1])) {
 		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
-		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, checkOcclusion,
-													  countHits, subtree, boxHits, hits,
-													  nodesVisited);
+		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, aggregateIndex, checkOcclusion,
+													  countHits, subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
 	}
 
@@ -482,7 +482,8 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 
 template<size_t DIM, typename PrimitiveType>
 inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-																	int nodeStartIndex, const Vector<DIM>& boundaryHint,
+																	int nodeStartIndex, int aggregateIndex,
+																	const Vector<DIM>& boundaryHint,
 																	BvhTraversal *subtree, float *boxHits,
 																	bool& notFound, int& nodesVisited) const
 {
@@ -509,7 +510,8 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 				Interaction<DIM> c;
 				if (primitiveTypeIsAggregate) {
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-					found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
+					found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
+																boundaryHint, nodesVisited);
 
 				} else {
 					found = prim->findClosestPoint(s, c);
@@ -580,8 +582,8 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 
 template<size_t DIM, typename PrimitiveType>
 inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-															   int nodeStartIndex, const Vector<DIM>& boundaryHint,
-															   int& nodesVisited) const
+															   int nodeStartIndex, int aggregateIndex,
+															   const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -596,8 +598,8 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 		s.r2 = std::min(s.r2, boxHits[1]);
 		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
-		processSubtreeForClosestPoint(s, i, nodeStartIndex, boundaryHint, subtree,
-									  boxHits, notFound, nodesVisited);
+		processSubtreeForClosestPoint(s, i, nodeStartIndex, aggregateIndex, boundaryHint,
+									  subtree, boxHits, notFound, nodesVisited);
 	}
 
 	if (!notFound) {

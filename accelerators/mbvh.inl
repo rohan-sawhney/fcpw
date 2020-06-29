@@ -428,7 +428,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-															  int nodeStartIndex, int& nodesVisited,
+															  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 															  bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
@@ -479,7 +479,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 					std::vector<Interaction<DIM>> cs;
 					if (primitiveTypeIsAggregate) {
 						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
+						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
+														   nodesVisited, checkOcclusion, countHits);
 
 					} else {
 						hit = prim->intersect(r, cs, checkOcclusion, countHits);
@@ -689,8 +690,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-																	  int nodeStartIndex, const Vector<DIM>& boundaryHint,
-																	  int& nodesVisited) const
+																	  int nodeStartIndex, int aggregateIndex,
+																	  const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -739,7 +740,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 					Interaction<DIM> c;
 					if (primitiveTypeIsAggregate) {
 						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
+						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
+																	boundaryHint, nodesVisited);
 
 					} else {
 						found = prim->findClosestPoint(s, c);

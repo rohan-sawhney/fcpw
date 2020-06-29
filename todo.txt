@@ -1,19 +1,18 @@
 Priority:
-1. BUG: specify aggregate index in fromNode functions
-2. move embree to tests, update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene
-3. give the closest point a rough guess of direction to guide traversal (things can
+1. move embree to tests, update scene interface & expose bvh options, move buildLineSegments&Triangles, buildNormals, file io calls scene
+2. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
-4. start search from specified node (and walk up/laterally in the tree)
-5. mbvh
+3. start search from specified node (and walk up/laterally in the tree)
+4. mbvh
 ---- optimization pass: construct higher quality tree with cache friendly node layout
 ---- don't broadcast ray & sphere data?
 ---- unused vector units during overlap/intersection with AVX
 ---- sort nodes efficiently based on distance & direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
-6. benchmark (https://github.com/jdumas/aabb_benchmark)
-7. travis/circle CI
-8. README (tutorial, features, benchmark, compiling, logo)
+5. benchmark (https://github.com/jdumas/aabb_benchmark)
+6. travis/circle CI
+7. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. add support for more geometries:

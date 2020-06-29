@@ -31,18 +31,18 @@ public:
 	// returns signed volume
 	float signedVolume() const;
 
-	// intersects with ray, starting the traversal at the specified node;
+	// intersects with ray, starting the traversal at the specified node in an aggregate;
 	// use this for spatially/temporally coherent queries
 	// NOTE: interactions are invalid when checkOcclusion is enabled
 	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-						  int nodeStartIndex, int& nodesVisited,
+						  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 						  bool checkOcclusion=false, bool countHits=false) const;
 
-	// finds closest point to sphere center, starting the traversal at the specified node;
+	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate;
 	// use this for spatially/temporally coherent queries
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-								  int nodeStartIndex, const Vector<DIM>& boundaryHint,
-								  int& nodesVisited) const;
+								  int nodeStartIndex, int aggregateIndex,
+								  const Vector<DIM>& boundaryHint, int& nodesVisited) const;
 
 private:
 	// computes bounding box in world sparce

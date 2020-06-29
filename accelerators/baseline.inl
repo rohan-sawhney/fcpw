@@ -57,7 +57,7 @@ inline float Baseline<DIM, PrimitiveType>::signedVolume() const
 
 template<size_t DIM, typename PrimitiveType>
 inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-														   int nodeStartIndex, int& nodesVisited,
+														   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 														   bool checkOcclusion, bool countHits) const
 {
 #ifdef PROFILE
@@ -75,7 +75,8 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 		std::vector<Interaction<DIM>> cs;
 		if (primitiveTypeIsAggregate) {
 			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
-			hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, nodesVisited, checkOcclusion, countHits);
+			hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
+											   nodesVisited, checkOcclusion, countHits);
 
 		} else {
 			hit = primitives[p]->intersect(r, cs, checkOcclusion, countHits);
@@ -122,8 +123,8 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 
 template<size_t DIM, typename PrimitiveType>
 inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-																   int nodeStartIndex, const Vector<DIM>& boundaryHint,
-																   int& nodesVisited) const
+																   int nodeStartIndex, int aggregateIndex,
+																   const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -138,7 +139,8 @@ inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSpher
 		Interaction<DIM> c;
 		if (primitiveTypeIsAggregate) {
 			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
-			found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, boundaryHint, nodesVisited);
+			found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
+														boundaryHint, nodesVisited);
 
 		} else {
 			found = primitives[p]->findClosestPoint(s, c);
