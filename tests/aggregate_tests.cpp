@@ -104,7 +104,7 @@ void timeIntersectionQueries(const Aggregate<DIM> *aggregate,
 				int nodesVisited = 0;
 				std::vector<Interaction<DIM>> cs;
 				Ray<DIM> r(rayOrigins[I], rayDirections[I]);
-				bool hit = (bool)aggregate->intersectFromNode(r, cs, nodeIndex, aggregate->index, nodesVisited);
+				bool hit = (bool)aggregate->intersectFromNode(r, cs, nodeIndex, cPrev.aggregateIndex, nodesVisited);
 				nodesVisitedByThread += nodesVisited;
 
 				if (hit) cPrev = cs[0];
@@ -165,7 +165,7 @@ void timeClosestPointQueries(const Aggregate<DIM> *aggregate,
 				int nodesVisited = 0;
 				Interaction<DIM> c;
 				BoundingSphere<DIM> s(queryPoints[I], r2);
-				bool found = aggregate->findClosestPointFromNode(s, c, nodeIndex, aggregate->index,
+				bool found = aggregate->findClosestPointFromNode(s, c, nodeIndex, cPrev.aggregateIndex,
 																 zeroVector<DIM>(), nodesVisited);
 				nodesVisitedByThread += nodesVisited;
 
@@ -232,7 +232,7 @@ void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
 				int nodesVisited = 0;
 				std::vector<Interaction<DIM>> c2;
 				Ray<DIM> r2(rayOrigins[I], rayDirections[I]);
-				bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, nodeIndex, aggregate2->index, nodesVisited);
+				bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, nodeIndex, cPrev.aggregateIndex, nodesVisited);
 
 				if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
 					std::cerr << "d1: " << c1[0].d << " d2: " << c2[0].d
@@ -306,7 +306,7 @@ void testClosestPointQueries(const Aggregate<DIM> *aggregate1,
 				int nodesVisited = 0;
 				Interaction<DIM> c2;
 				BoundingSphere<DIM> s2(queryPoints[I], r2);
-				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex, aggregate2->index,
+				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex, cPrev.aggregateIndex,
 																   zeroVector<DIM>(), nodesVisited);
 
 				if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
