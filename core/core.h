@@ -49,10 +49,6 @@ inline T clamp(T val, U low, V high) {
 	return val;
 }
 
-inline float gamma(int n) {
-	return (n*epsilon)/(1.0f - n*epsilon);
-}
-
 inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)
 {
 	thread_local std::mt19937 generator(std::random_device{}());

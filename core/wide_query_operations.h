@@ -17,7 +17,6 @@ inline MaskP<WIDTH> intersectWideBox(const Ray<DIM>& r,
 	VectorP<WIDTH, DIM> tNear = enoki::min(t0, t1);
 	VectorP<WIDTH, DIM> tFar = enoki::max(t0, t1);
 
-	tFar *= 1.0f + 2.0f*gamma(3);
 	tMin = enoki::max(0.0f, enoki::hmax(tNear));
 	tMax = enoki::min(r.tMax, enoki::hmin(tFar));
 

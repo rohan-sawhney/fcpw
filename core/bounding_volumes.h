@@ -87,7 +87,6 @@ struct BoundingBox {
 		Vector<DIM> tNear = cwiseMin<DIM>(t0, t1);
 		Vector<DIM> tFar = cwiseMax<DIM>(t0, t1);
 
-		tFar *= 1.0f + 2.0f*gamma(3);
 		float tNearMax = std::max(0.0f, maxCoeff<DIM>(tNear));
 		float tFarMin = std::min(r.tMax, minCoeff<DIM>(tFar));
 		if (tNearMax > tFarMin) return false;
