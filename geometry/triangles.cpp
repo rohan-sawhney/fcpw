@@ -190,7 +190,7 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 }
 
 int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-						bool checkOcclusion, bool countHits) const
+						bool checkForOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();

@@ -58,7 +58,7 @@ inline float Baseline<DIM, PrimitiveType>::signedVolume() const
 template<size_t DIM, typename PrimitiveType>
 inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 														   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-														   bool checkOcclusion, bool countHits) const
+														   bool checkForOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -76,10 +76,10 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 		if (primitiveTypeIsAggregate) {
 			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
 			hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-											   nodesVisited, checkOcclusion, countHits);
+											   nodesVisited, checkForOcclusion, countHits);
 
 		} else {
-			hit = primitives[p]->intersect(r, cs, checkOcclusion, countHits);
+			hit = primitives[p]->intersect(r, cs, checkForOcclusion, countHits);
 			for (int i = 0; i < (int)cs.size(); i++) {
 				cs[i].referenceIndex = p;
 				cs[i].objectIndex = this->index;
@@ -96,7 +96,7 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 				is[0] = cs[0];
 			}
 
-			if (checkOcclusion) return 1;
+			if (checkForOcclusion) return 1;
 		}
 	}
 

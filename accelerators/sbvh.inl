@@ -336,7 +336,7 @@ inline float Sbvh<DIM, PrimitiveType>::signedVolume() const
 
 template<size_t DIM, typename PrimitiveType>
 inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-																	int nodeStartIndex, int aggregateIndex, bool checkOcclusion,
+																	int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
 																	bool countHits, BvhTraversal *subtree,
 																	float *boxHits, int& hits, int& nodesVisited) const
 {
@@ -363,10 +363,10 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 				if (primitiveTypeIsAggregate) {
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 					hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-													   nodesVisited, checkOcclusion, countHits);
+													   nodesVisited, checkForOcclusion, countHits);
 
 				} else {
-					hit = prim->intersect(r, cs, checkOcclusion, countHits);
+					hit = prim->intersect(r, cs, checkForOcclusion, countHits);
 					for (int i = 0; i < (int)cs.size(); i++) {
 						cs[i].nodeIndex = nodeIndex;
 						cs[i].referenceIndex = referenceIndex;
@@ -385,7 +385,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 						is[0] = cs[0];
 					}
 
-					if (checkOcclusion) return true;
+					if (checkForOcclusion) return true;
 				}
 			}
 
@@ -439,7 +439,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 template<size_t DIM, typename PrimitiveType>
 inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-													   bool checkOcclusion, bool countHits) const
+													   bool checkForOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -454,7 +454,7 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 	if (flatTree[0].box.intersect(r, boxHits[0], boxHits[1])) {
 		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
-		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, aggregateIndex, checkOcclusion,
+		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, aggregateIndex, checkForOcclusion,
 													  countHits, subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
 	}

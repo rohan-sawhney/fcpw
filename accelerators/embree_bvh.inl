@@ -243,7 +243,7 @@ inline float EmbreeBvh::signedVolume() const
 
 inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
 										int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-										bool checkOcclusion, bool countHits) const
+										bool checkForOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -270,7 +270,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 	rayhit.hit.instID[0] = RTC_INVALID_GEOMETRY_ID;
 	is.clear();
 
-	if (checkOcclusion) {
+	if (checkForOcclusion) {
 		// test for occlusion
 		rtcOccluded1(scene, &context.context, &rayhit.ray);
 		return rayhit.ray.tfar >= 0.0f ? 0 : 1;

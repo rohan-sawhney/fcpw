@@ -33,7 +33,7 @@ public:
 
 	// intersects with ray
 	virtual int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-						  bool checkOcclusion=false, bool countHits=false) const = 0;
+						  bool checkForOcclusion=false, bool countHits=false) const = 0;
 
 	// finds closest point to sphere center
 	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const = 0;
@@ -73,9 +73,9 @@ public:
 
 	// intersects with ray
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-				  bool checkOcclusion=false, bool countHits=false) const {
+				  bool checkForOcclusion=false, bool countHits=false) const {
 		int nodesVisited = 0;
-		return this->intersectFromNode(r, is, 0, this->index, nodesVisited, checkOcclusion, countHits);
+		return this->intersectFromNode(r, is, 0, this->index, nodesVisited, checkForOcclusion, countHits);
 	}
 
 	// finds closest point to sphere center
@@ -147,10 +147,10 @@ public:
 
 	// intersects with ray, starting the traversal at the specified node in an aggregate;
 	// use this for spatially/temporally coherent queries
-	// NOTE: interactions are invalid when checkOcclusion is enabled
+	// NOTE: interactions are invalid when checkForOcclusion is enabled
 	virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 								  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-								  bool checkOcclusion=false, bool countHits=false) const = 0;
+								  bool checkForOcclusion=false, bool countHits=false) const = 0;
 
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate;
 	// use this for spatially/temporally coherent queries
@@ -200,13 +200,13 @@ public:
 	// use this for spatially/temporally coherent queries
 	int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 						  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-						  bool checkOcclusion=false, bool countHits=false) const {
+						  bool checkForOcclusion=false, bool countHits=false) const {
 		// apply inverse transform to ray
 		Ray<DIM> rInv = r.transform(tInv);
 
 		// intersect
 		int hits = aggregate->intersectFromNode(rInv, is, nodeStartIndex, aggregateIndex,
-												nodesVisited, checkOcclusion, countHits);
+												nodesVisited, checkForOcclusion, countHits);
 
 		// apply transform to ray and interactions
 		r.tMax = rInv.transform(t).tMax;

@@ -494,7 +494,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 															  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-															  bool checkOcclusion, bool countHits) const
+															  bool checkForOcclusion, bool countHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -527,7 +527,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				// perform vectorized intersection query
 				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, r, is, countHits);
 				nodesVisited++;
-				if (hits > 0 && checkOcclusion) return 1;
+				if (hits > 0 && checkForOcclusion) return 1;
 
 			} else {
 				// primitive type does not support vectorized intersection query,
@@ -545,10 +545,10 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 					if (primitiveTypeIsAggregate) {
 						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-														   nodesVisited, checkOcclusion, countHits);
+														   nodesVisited, checkForOcclusion, countHits);
 
 					} else {
-						hit = prim->intersect(r, cs, checkOcclusion, countHits);
+						hit = prim->intersect(r, cs, checkForOcclusion, countHits);
 						for (int i = 0; i < (int)cs.size(); i++) {
 							cs[i].nodeIndex = nodeIndex;
 							cs[i].referenceIndex = referenceIndex;
@@ -567,7 +567,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 							is[0] = cs[0];
 						}
 
-						if (checkOcclusion) return 1;
+						if (checkForOcclusion) return 1;
 					}
 				}
 			}
