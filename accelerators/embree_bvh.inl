@@ -306,7 +306,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 	// compute normals and set aggregate index
 	for (int i = 0; i < (int)is.size(); i++) {
 		if (this->computeNormals) is[i].computeNormal(this->primitives[is[i].primitiveIndex]);
-		is[i].aggregateIndex = this->index;
+		is[i].objectIndex = this->index;
 	}
 
 	return hits;
@@ -347,7 +347,7 @@ inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interactio
 		i.uv = triangle->barycentricCoordinates(i.p);
 		if (this->computeNormals) i.computeNormal(triangle);
 		i.primitiveIndex = result.primID;
-		i.aggregateIndex = this->index;
+		i.objectIndex = this->index;
 		s.r2 = i.d*i.d;
 
 		return true;

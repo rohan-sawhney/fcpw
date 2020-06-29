@@ -388,7 +388,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					it->primitiveIndex = primitiveIndex[w];
 					it->nodeIndex = nodeIndex;
 					it->referenceIndex = referenceOffset + p;
-					it->aggregateIndex = aggregateIndex;
+					it->objectIndex = aggregateIndex;
 				}
 
 			} else {
@@ -404,7 +404,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					is[0].primitiveIndex = primitiveIndex[w];
 					is[0].nodeIndex = nodeIndex;
 					is[0].referenceIndex = referenceOffset + p;
-					is[0].aggregateIndex = aggregateIndex;
+					is[0].objectIndex = aggregateIndex;
 				}
 			}
 		}
@@ -464,7 +464,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					it->primitiveIndex = primitiveIndex[w];
 					it->nodeIndex = nodeIndex;
 					it->referenceIndex = referenceOffset + p;
-					it->aggregateIndex = aggregateIndex;
+					it->objectIndex = aggregateIndex;
 				}
 
 			} else {
@@ -480,7 +480,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					is[0].primitiveIndex = primitiveIndex[w];
 					is[0].nodeIndex = nodeIndex;
 					is[0].referenceIndex = referenceOffset + p;
-					is[0].aggregateIndex = aggregateIndex;
+					is[0].objectIndex = aggregateIndex;
 				}
 			}
 		}
@@ -552,7 +552,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 						for (int i = 0; i < (int)cs.size(); i++) {
 							cs[i].nodeIndex = nodeIndex;
 							cs[i].referenceIndex = referenceIndex;
-							cs[i].aggregateIndex = this->index;
+							cs[i].objectIndex = this->index;
 						}
 					}
 
@@ -717,7 +717,7 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 				i.primitiveIndex = primitiveIndex[w];
 				i.nodeIndex = nodeIndex;
 				i.referenceIndex = referenceOffset + p;
-				i.aggregateIndex = aggregateIndex;
+				i.objectIndex = aggregateIndex;
 				closestIndex = i.referenceIndex;
 			}
 		}
@@ -774,7 +774,7 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 				i.primitiveIndex = primitiveIndex[w];
 				i.nodeIndex = nodeIndex;
 				i.referenceIndex = referenceOffset + p;
-				i.aggregateIndex = aggregateIndex;
+				i.objectIndex = aggregateIndex;
 				closestIndex = i.referenceIndex;
 			}
 		}
@@ -844,7 +844,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 						found = prim->findClosestPoint(s, c);
 						c.nodeIndex = nodeIndex;
 						c.referenceIndex = referenceIndex;
-						c.aggregateIndex = this->index;
+						c.objectIndex = this->index;
 					}
 
 					// keep the closest point only

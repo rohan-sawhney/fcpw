@@ -370,7 +370,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 					for (int i = 0; i < (int)cs.size(); i++) {
 						cs[i].nodeIndex = nodeIndex;
 						cs[i].referenceIndex = referenceIndex;
-						cs[i].aggregateIndex = this->index;
+						cs[i].objectIndex = this->index;
 					}
 				}
 
@@ -517,7 +517,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 					found = prim->findClosestPoint(s, c);
 					c.nodeIndex = nodeIndex;
 					c.referenceIndex = referenceIndex;
-					c.aggregateIndex = this->index;
+					c.objectIndex = this->index;
 				}
 
 				// keep the closest point only
