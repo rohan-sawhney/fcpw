@@ -26,7 +26,7 @@ struct MbvhNode {
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 struct MbvhLeafNode {
 	// members
-	VectorP<WIDTH, DIM> positions[0];
+	VectorP<WIDTH, DIM> positions[1];
 	IntP<WIDTH> primitiveIndex;
 };
 
