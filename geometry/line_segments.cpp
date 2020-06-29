@@ -123,7 +123,7 @@ void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 }
 
 int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-						   bool checkForOcclusion, bool countHits) const
+						   bool checkForOcclusion, bool recordAllHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();

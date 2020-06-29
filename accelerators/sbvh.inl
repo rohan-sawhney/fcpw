@@ -337,7 +337,7 @@ inline float Sbvh<DIM, PrimitiveType>::signedVolume() const
 template<size_t DIM, typename PrimitiveType>
 inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 																	int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
-																	bool countHits, BvhTraversal *subtree,
+																	bool recordAllHits, BvhTraversal *subtree,
 																	float *boxHits, int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
@@ -348,7 +348,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 		stackPtr--;
 
 		// if this node is further than the closest found intersection, continue
-		if (!countHits && near > r.tMax) continue;
+		if (!recordAllHits && near > r.tMax) continue;
 		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		// is leaf -> intersect
@@ -363,10 +363,10 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 				if (primitiveTypeIsAggregate) {
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 					hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-													   nodesVisited, checkForOcclusion, countHits);
+													   nodesVisited, checkForOcclusion, recordAllHits);
 
 				} else {
-					hit = prim->intersect(r, cs, checkForOcclusion, countHits);
+					hit = prim->intersect(r, cs, checkForOcclusion, recordAllHits);
 					for (int i = 0; i < (int)cs.size(); i++) {
 						cs[i].nodeIndex = nodeIndex;
 						cs[i].referenceIndex = referenceIndex;
@@ -377,7 +377,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 				// keep the closest intersection only
 				if (hit > 0) {
 					hits += hit;
-					if (countHits) {
+					if (recordAllHits) {
 						is.insert(is.end(), cs.begin(), cs.end());
 
 					} else {
@@ -439,7 +439,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 template<size_t DIM, typename PrimitiveType>
 inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-													   bool checkForOcclusion, bool countHits) const
+													   bool checkForOcclusion, bool recordAllHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -447,7 +447,7 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 
 	// TODO: start from nodeStartIndex
 	int hits = 0;
-	if (!countHits) is.resize(1);
+	if (!recordAllHits) is.resize(1);
 	BvhTraversal subtree[SBVH_MAX_DEPTH];
 	float boxHits[4];
 
@@ -455,13 +455,13 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 		subtree[0].node = 0;
 		subtree[0].distance = boxHits[0];
 		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, aggregateIndex, checkForOcclusion,
-													  countHits, subtree, boxHits, hits, nodesVisited);
+													  recordAllHits, subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
 	}
 
 	if (hits > 0) {
 		// sort by distance and remove duplicates
-		if (countHits) {
+		if (recordAllHits) {
 			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 			is = removeDuplicates<DIM>(is);
 			hits = (int)is.size();

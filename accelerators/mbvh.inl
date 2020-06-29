@@ -332,7 +332,7 @@ template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int intersectPrimitives(const MbvhNode<DIM>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
 							   int nodeIndex, int aggregateIndex, Ray<DIM>& r,
-							   std::vector<Interaction<DIM>>& is, bool countHits)
+							   std::vector<Interaction<DIM>>& is, bool recordAllHits)
 {
 	std::cerr << "intersectPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -344,7 +344,7 @@ template<size_t WIDTH>
 inline int intersectPrimitives(const MbvhNode<3>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
 							   int nodeIndex, int aggregateIndex, Ray<3>& r,
-							   std::vector<Interaction<3>>& is, bool countHits)
+							   std::vector<Interaction<3>>& is, bool recordAllHits)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -375,7 +375,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 		for (int p = startReference; p < endReference; p++) {
 			int w = p - startReference;
 
-			if (countHits) {
+			if (recordAllHits) {
 				if (mask[w]) {
 					hits++;
 					auto it = is.emplace(is.end(), Interaction<3>());
@@ -419,7 +419,7 @@ template<size_t WIDTH>
 inline int intersectPrimitives(const MbvhNode<3>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
 							   int nodeIndex, int aggregateIndex, Ray<3>& r,
-							   std::vector<Interaction<3>>& is, bool countHits)
+							   std::vector<Interaction<3>>& is, bool recordAllHits)
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -451,7 +451,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 		for (int p = startReference; p < endReference; p++) {
 			int w = p - startReference;
 
-			if (countHits) {
+			if (recordAllHits) {
 				if (mask[w]) {
 					hits++;
 					auto it = is.emplace(is.end(), Interaction<3>());
@@ -494,7 +494,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 															  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-															  bool checkForOcclusion, bool countHits) const
+															  bool checkForOcclusion, bool recordAllHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -502,7 +502,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 	// TODO: start from nodeStartIndex
 	int hits = 0;
-	if (!countHits) is.resize(1);
+	if (!recordAllHits) is.resize(1);
 	BvhTraversal subtree[MBVH_MAX_DEPTH];
 	FloatP<MBVH_BRANCHING_FACTOR> tMin, tMax;
 
@@ -518,14 +518,14 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 		stackPtr--;
 
 		// if this node is further than the closest found intersection, continue
-		if (!countHits && near > r.tMax) continue;
+		if (!recordAllHits && near > r.tMax) continue;
 		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
 			if (vectorizedLeafType == ObjectType::LineSegments ||
 				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized intersection query
-				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, r, is, countHits);
+				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, r, is, recordAllHits);
 				nodesVisited++;
 				if (hits > 0 && checkForOcclusion) return 1;
 
@@ -545,10 +545,10 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 					if (primitiveTypeIsAggregate) {
 						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-														   nodesVisited, checkForOcclusion, countHits);
+														   nodesVisited, checkForOcclusion, recordAllHits);
 
 					} else {
-						hit = prim->intersect(r, cs, checkForOcclusion, countHits);
+						hit = prim->intersect(r, cs, checkForOcclusion, recordAllHits);
 						for (int i = 0; i < (int)cs.size(); i++) {
 							cs[i].nodeIndex = nodeIndex;
 							cs[i].referenceIndex = referenceIndex;
@@ -559,7 +559,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 					// keep the closest intersection only
 					if (hit > 0) {
 						hits += hit;
-						if (countHits) {
+						if (recordAllHits) {
 							is.insert(is.end(), cs.begin(), cs.end());
 
 						} else {
@@ -585,7 +585,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 	if (hits > 0) {
 		// sort by distance and remove duplicates
-		if (countHits) {
+		if (recordAllHits) {
 			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 			is = removeDuplicates<DIM>(is);
 			hits = (int)is.size();

@@ -36,7 +36,7 @@ public:
 
 	// intersects with ray; NOTE: specialized to flat line segment (z = 0)
 	int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-				  bool checkForOcclusion=false, bool countHits=false) const;
+				  bool checkForOcclusion=false, bool recordAllHits=false) const;
 
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;

@@ -131,7 +131,7 @@ inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeInteract
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 																				  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-																				  bool checkForOcclusion, bool countHits) const
+																				  bool checkForOcclusion, bool recordAllHits) const
 {
 	// TODO: optimize for checkForOcclusion == true
 	int hits = 0;
@@ -218,7 +218,7 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 
 		// shrink ray's tMax if possible
 		hits = (int)is.size();
-		if (!countHits) r.tMax = is[0].d; // list is already sorted
+		if (!recordAllHits) r.tMax = is[0].d; // list is already sorted
 	}
 
 	return hits;

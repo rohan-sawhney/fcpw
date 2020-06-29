@@ -58,14 +58,14 @@ inline float Baseline<DIM, PrimitiveType>::signedVolume() const
 template<size_t DIM, typename PrimitiveType>
 inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 														   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-														   bool checkForOcclusion, bool countHits) const
+														   bool checkForOcclusion, bool recordAllHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
 #endif
 
 	int hits = 0;
-	if (!countHits) is.resize(1);
+	if (!recordAllHits) is.resize(1);
 
 	// find closest hit
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -76,10 +76,10 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 		if (primitiveTypeIsAggregate) {
 			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
 			hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-											   nodesVisited, checkForOcclusion, countHits);
+											   nodesVisited, checkForOcclusion, recordAllHits);
 
 		} else {
-			hit = primitives[p]->intersect(r, cs, checkForOcclusion, countHits);
+			hit = primitives[p]->intersect(r, cs, checkForOcclusion, recordAllHits);
 			for (int i = 0; i < (int)cs.size(); i++) {
 				cs[i].referenceIndex = p;
 				cs[i].objectIndex = this->index;
@@ -88,7 +88,7 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 
 		if (hit > 0) {
 			hits += hit;
-			if (countHits) {
+			if (recordAllHits) {
 				is.insert(is.end(), cs.begin(), cs.end());
 
 			} else {
@@ -102,7 +102,7 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 
 	if (hits > 0) {
 		// sort by distance and remove duplicates
-		if (countHits) {
+		if (recordAllHits) {
 			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 			is = removeDuplicates<DIM>(is);
 			hits = (int)is.size();

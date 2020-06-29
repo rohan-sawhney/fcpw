@@ -243,7 +243,7 @@ inline float EmbreeBvh::signedVolume() const
 
 inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
 										int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-										bool checkForOcclusion, bool countHits) const
+										bool checkForOcclusion, bool recordAllHits) const
 {
 #ifdef PROFILE
 	PROFILE_SCOPED();
@@ -277,7 +277,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 	}
 
 	// set filter function to collect all hits if requested
-	if (countHits) context.context.filter = triangleIntersectionCallback;
+	if (recordAllHits) context.context.filter = triangleIntersectionCallback;
 
 	// intersect single ray with the scene
 	rtcIntersect1(scene, &context.context, &rayhit);

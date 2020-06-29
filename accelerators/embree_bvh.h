@@ -32,7 +32,7 @@ public:
 	// NOTE: interactions are invalid when checkForOcclusion is enabled
 	int intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& is,
 						  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-						  bool checkForOcclusion=false, bool countHits=false) const;
+						  bool checkForOcclusion=false, bool recordAllHits=false) const;
 
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate;
 	// use this for spatially/temporally coherent queries
