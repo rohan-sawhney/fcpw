@@ -468,6 +468,9 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 			is = removeDuplicates<DIM>(is);
 			hits = (int)is.size();
+
+		} else {
+			hits = 1;
 		}
 
 		// compute normals

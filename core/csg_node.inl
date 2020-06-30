@@ -217,8 +217,14 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 		}
 
 		// shrink ray's tMax if possible
-		hits = (int)is.size();
-		if (!recordAllHits) r.tMax = is[0].d; // list is already sorted
+		if (!recordAllHits) {
+			r.tMax = is[0].d; // list is already sorted
+			is.resize(1);
+			hits = 1;
+
+		} else {
+			hits = (int)is.size();
+		}
 	}
 
 	return hits;

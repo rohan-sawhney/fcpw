@@ -299,7 +299,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 			it->uv[1] = rayhit.hit.v;
 			it->primitiveIndex = rayhit.hit.primID;
 			r.tMax = it->d;
-			hits++;
+			hits = 1;
 		}
 	}
 

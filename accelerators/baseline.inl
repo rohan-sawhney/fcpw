@@ -109,6 +109,9 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
 			is = removeDuplicates<DIM>(is);
 			hits = (int)is.size();
+
+		} else {
+			hits = 1;
 		}
 
 		// compute normals
