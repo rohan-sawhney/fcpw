@@ -527,7 +527,11 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				// perform vectorized intersection query
 				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, r, is, recordAllHits);
 				nodesVisited++;
-				if (hits > 0 && checkForOcclusion) return 1;
+
+				if (hits > 0 && checkForOcclusion) {
+					is.clear();
+					return 1;
+				}
 
 			} else {
 				// primitive type does not support vectorized intersection query,
@@ -558,6 +562,11 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 					// keep the closest intersection only
 					if (hit > 0) {
+						if (checkForOcclusion) {
+							is.clear();
+							return 1;
+						}
+
 						hits += hit;
 						if (recordAllHits) {
 							is.insert(is.end(), cs.begin(), cs.end());
@@ -566,8 +575,6 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 							r.tMax = std::min(r.tMax, cs[0].d);
 							is[0] = cs[0];
 						}
-
-						if (checkForOcclusion) return 1;
 					}
 				}
 			}

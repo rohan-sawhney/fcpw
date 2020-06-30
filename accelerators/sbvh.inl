@@ -376,6 +376,11 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 
 				// keep the closest intersection only
 				if (hit > 0) {
+					if (checkForOcclusion) {
+						is.clear();
+						return true;
+					}
+
 					hits += hit;
 					if (recordAllHits) {
 						is.insert(is.end(), cs.begin(), cs.end());
@@ -384,8 +389,6 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 						r.tMax = std::min(r.tMax, cs[0].d);
 						is[0] = cs[0];
 					}
-
-					if (checkForOcclusion) return true;
 				}
 			}
 

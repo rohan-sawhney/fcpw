@@ -87,6 +87,11 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 		}
 
 		if (hit > 0) {
+			if (checkForOcclusion) {
+				is.clear();
+				return 1;
+			}
+
 			hits += hit;
 			if (recordAllHits) {
 				is.insert(is.end(), cs.begin(), cs.end());
@@ -95,8 +100,6 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 				r.tMax = std::min(r.tMax, cs[0].d);
 				is[0] = cs[0];
 			}
-
-			if (checkForOcclusion) return 1;
 		}
 	}
 
