@@ -578,7 +578,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 	} else {
 		// make aggregate
 		sceneData->aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
-																  vectorize, printStats);
+																  false, printStats);
 	}
 
 	sceneData->aggregate->index = nAggregates++;
