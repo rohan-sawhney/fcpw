@@ -6,6 +6,9 @@
 #include "polyscope/surface_mesh.h"
 #include "polyscope/point_cloud.h"
 #include "polyscope/curve_network.h"
+#ifdef BENCHMARK_EMBREE
+	#include "embree_bvh.h"
+#endif
 
 #include "args/args.hxx"
 
@@ -72,6 +75,30 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 	scatteredPoints.resize(nQueries);
 	randomDirections.resize(nQueries);
 }
+
+#ifdef BENCHMARK_EMBREE
+template<size_t DIM>
+inline bool buildEmbreeAggregate(Scene<DIM>& scene, bool printStats=false)
+{
+	scene.clearAggregate();
+	if (scene.triangleObjects.size() != 1) {
+		std::cout << "buildEmbreeAggregate<DIM>(): Only a single triangle object is supported at the moment"
+				  << std::endl;
+		return false;
+	}
+
+	for (int i = 0; i < (int)scene.soups.size(); i++) {
+		if (scene.objectTypes[i] == ObjectType::Triangles) {
+			scene.aggregate = new EmbreeBvh(scene.triangleObjects[0], &scene.soups[i], printStats);
+			scene.aggregate->index = 0;
+			return true;
+		}
+	}
+
+	std::cout << "buildEmbreeAggregate<DIM>(): Only triangles supported at the moment" << std::endl;
+	return false;
+}
+#endif
 
 template<size_t DIM>
 void timeIntersectionQueries(const Aggregate<DIM> *aggregate,
@@ -482,7 +509,7 @@ void run()
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
-		if (scene.buildEmbreeAggregate(true)) {
+		if (buildEmbreeAggregate<DIM>(scene, true)) {
 			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
 										 indices, "Embree Bvh");
 			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
@@ -529,7 +556,7 @@ void run()
 		Scene<DIM> embreeBvhScene(false);
 		embreeBvhScene.loadFiles();
 
-		if (embreeBvhScene.buildEmbreeAggregate(true)) {
+		if (buildEmbreeAggregate<DIM>(embreeBvhScene, true)) {
 			testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
 										 queryPoints, randomDirections, indices);
 			testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,

@@ -40,14 +40,12 @@ public:
 	// loads files
 	void loadFiles();
 
+	// clears aggregate
+	void clearAggregate();
+
 	// builds aggregate
 	void buildAggregate(const AggregateType& aggregateType,
 						bool printStats=false, bool vectorize=false);
-
-#ifdef BENCHMARK_EMBREE
-	// builds embree aggregate
-	bool buildEmbreeAggregate(bool printStats=false);
-#endif
 
 	// members; NOTE: if initializing scene manually, populate soups, objects,
 	// objectTypes, instanceTransforms & csgTree before calling buildAggregate;
@@ -64,9 +62,6 @@ public:
 private:
 	// clears data
 	void clearData();
-
-	// clears aggregate
-	void clearAggregate();
 
 	// members
 	std::vector<Aggregate<DIM> *> objectInstances;

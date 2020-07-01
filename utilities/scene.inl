@@ -3,9 +3,6 @@
 #ifdef BUILD_ENOKI
 	#include "accelerators/mbvh.h"
 #endif
-#ifdef BENCHMARK_EMBREE
-	#include "accelerators/embree_bvh.h"
-#endif
 
 namespace fcpw {
 
@@ -430,29 +427,5 @@ inline void Scene<DIM>::buildAggregate(const AggregateType& aggregateType, bool 
 
 	aggregate->index = nAggregates++;
 }
-
-#ifdef BENCHMARK_EMBREE
-template<size_t DIM>
-inline bool Scene<DIM>::buildEmbreeAggregate(bool printStats)
-{
-	clearAggregate();
-	if (triangleObjects.size() != 1) {
-		std::cout << "Scene::buildEmbreeAggregate(): Only a single triangle object is supported at the moment"
-				  << std::endl;
-		return false;
-	}
-
-	for (int i = 0; i < (int)soups.size(); i++) {
-		if (objectTypes[i] == ObjectType::Triangles) {
-			aggregate = new EmbreeBvh(triangleObjects[0], &soups[i], printStats);
-			aggregate->index = 0;
-			return true;
-		}
-	}
-
-	std::cout << "Scene::buildEmbreeAggregate(): Only triangles supported at the moment" << std::endl;
-	return false;
-}
-#endif
 
 } // namespace fcpw

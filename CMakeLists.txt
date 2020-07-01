@@ -27,7 +27,7 @@ if(CMAKE_BUILD_TYPE MATCHES RELEASE)
 endif()
 
 ################################################################################
-# fcpw dependencies
+# dependencies
 if(BENCHMARK_EMBREE)
 	add_definitions(-DBENCHMARK_EMBREE)
 	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Enable ispc functionality")
@@ -101,8 +101,6 @@ file(GLOB FCPW_SOURCE
 	 accelerators/sbvh.inl
 	 accelerators/mbvh.h
 	 accelerators/mbvh.inl
-	 accelerators/embree_bvh.h
-	 accelerators/embree_bvh.inl
 	 geometry/polygon_soup.h
 	 geometry/line_segments.h
 	 geometry/line_segments.cpp
@@ -130,11 +128,6 @@ if(BUILD_ENOKI)
 	list(APPEND ALL_FCPW_LIBS enoki-autodiff)
 endif()
 
-if(BENCHMARK_EMBREE)
-	target_include_directories(fcpw PUBLIC deps/embree)
-	list(APPEND ALL_FCPW_LIBS embree)
-endif()
-
 if(PROFILE)
 	target_include_directories(fcpw PUBLIC deps/high-performance-cplusplus-profiler)
 	list(APPEND ALL_FCPW_LIBS profiler)
@@ -144,12 +137,18 @@ list(APPEND ALL_FCPW_LIBS fcpw)
 
 ################################################################################
 if(BUILD_TESTS)
+	add_executable(aggregate_tests tests/aggregate_tests.cpp)
+	add_executable(csg_tests tests/csg_tests.cpp)
+
 	target_include_directories(fcpw PUBLIC deps/ThreadPool)
 	add_subdirectory(deps/polyscope)
 
-	add_executable(aggregate_tests tests/aggregate_tests.cpp)
-	target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope)
+	if(BENCHMARK_EMBREE)
+		target_include_directories(fcpw PUBLIC deps/embree)
+		target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope embree)
+	else()
+		target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope)
+	endif()
 
-	add_executable(csg_tests tests/csg_tests.cpp)
 	target_link_libraries(csg_tests ${ALL_FCPW_LIBS} polyscope)
 endif()
