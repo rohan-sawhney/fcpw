@@ -1,0 +1,493 @@
+#include "accelerators/baseline.h"
+#include "accelerators/sbvh.h"
+#ifdef BUILD_ENOKI
+	#include "accelerators/mbvh.h"
+#endif
+#include <map>
+
+namespace fcpw {
+
+template<size_t DIM>
+inline Scene<DIM>::Scene():
+sceneData(new SceneData<DIM>())
+{
+
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectTypes(const std::vector<std::vector<PrimitiveType>>& objectTypes)
+{
+	// clear old data
+	sceneData->clearAggregateData();
+	sceneData->clearObjectData();
+
+	// initialize soup and object vectors
+	int nObjects = (int)objectTypes.size();
+	int nLineSegmentObjects = 0;
+	int nTriangleObjects = 0;
+	sceneData->soups.resize(nObjects);
+	sceneData->instanceTransforms.resize(nObjects);
+
+	for (int i = 0; i < nObjects; i++) {
+		for (int j = 0; j < (int)objectTypes[i].size(); j++) {
+			if (objectTypes[i][j] == PrimitiveType::LineSegment) {
+				sceneData->lineSegmentObjects.emplace_back(nullptr);
+				sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::LineSegments,
+																		   nLineSegmentObjects));
+				nLineSegmentObjects++;
+
+			} else if (objectTypes[i][j] == PrimitiveType::Triangle) {
+				sceneData->triangleObjects.emplace_back(nullptr);
+				sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::Triangles,
+																		   nTriangleObjects));
+				nTriangleObjects++;
+			}
+		}
+	}
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectVertexCount(int nVertices, int objectIndex)
+{
+	sceneData->soups[objectIndex].positions.resize(nVertices);
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectLineSegmentCount(int nLineSegments, int objectIndex)
+{
+	// resize soup indices
+	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+	int nIndices = (int)soup.indices.size();
+	soup.indices.resize(nIndices + 2*nLineSegments);
+
+	// allocate line segments
+	const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[objectIndex];
+	for (int i = 0; i < (int)objectMap.size(); i++) {
+		if (objectMap[i].first == ObjectType::LineSegments) {
+			int lineSegmentObjectIndex = objectMap[i].second;
+			sceneData->lineSegmentObjects[lineSegmentObjectIndex] =
+					std::unique_ptr<std::vector<LineSegment>>(new std::vector<LineSegment>(nLineSegments));
+			break;
+		}
+	}
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectTriangleCount(int nTriangles, int objectIndex)
+{
+	// resize soup indices
+	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+	int nIndices = (int)soup.indices.size();
+	soup.indices.resize(nIndices + 3*nTriangles);
+
+	// allocate triangles
+	const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[objectIndex];
+	for (int i = 0; i < (int)objectMap.size(); i++) {
+		if (objectMap[i].first == ObjectType::Triangles) {
+			int triangleObjectIndex = objectMap[i].second;
+			sceneData->triangleObjects[triangleObjectIndex] =
+					std::unique_ptr<std::vector<Triangle>>(new std::vector<Triangle>(nTriangles));
+			break;
+		}
+	}
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex)
+{
+	sceneData->soups[objectIndex].positions[vertexIndex] = position;
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectLineSegment(const std::vector<int>& indices, int lineSegmentIndex, int objectIndex)
+{
+	// update soup indices
+	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+	soup.indices[2*lineSegmentIndex + 0] = indices[0];
+	soup.indices[2*lineSegmentIndex + 1] = indices[1];
+
+	// update line segment indices
+	int lineSegmentObjectIndex = sceneData->soupToObjectsMap[objectIndex][0];
+	LineSegment& lineSegment = (*sceneData->lineSegmentObjects[lineSegmentObjectIndex])[lineSegmentIndex];
+	lineSegment.soup = &soup;
+	lineSegment.indices[0] = indices[0];
+	lineSegment.indices[1] = indices[1];
+	lineSegment.pIndex = lineSegmentIndex;
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectTriangle(const std::vector<int>& indices, int triangleIndex, int objectIndex)
+{
+	// update soup indices
+	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+	soup.indices[3*triangleIndex + 0] = indices[0];
+	soup.indices[3*triangleIndex + 1] = indices[1];
+	soup.indices[3*triangleIndex + 2] = indices[2];
+
+	// update triangle indices
+	int triangleObjectIndex = sceneData->soupToObjectsMap[objectIndex][0];
+	Triangle& triangle = (*sceneData->triangleObjects[triangleObjectIndex])[triangleIndex];
+	triangle.soup = &soup;
+	triangle.indices[0] = indices[0];
+	triangle.indices[1] = indices[1];
+	triangle.indices[2] = indices[2];
+	triangle.pIndex = triangleIndex;
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectPrimitive(const std::vector<int>& indices, const PrimitiveType& primitiveType,
+										   int primitiveIndex, int objectIndex)
+{
+	// count line segments and triangles
+	const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[objectIndex];
+	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+	int lineSegmentObjectIndex = -1;
+	int nLineSegments = 0;
+	int triangleObjectIndex = -1;
+	int nTriangles = 0;
+
+	for (int i = 0; i < (int)objectMap.size(); i++) {
+		if (objectMap[i].first == ObjectType::LineSegments) {
+			lineSegmentObjectIndex = objectMap[i].second;
+			nLineSegments += (int)sceneData->lineSegmentObjects[lineSegmentObjectIndex]->size();
+
+		} else if (objectMap[i].first == ObjectType::Triangles) {
+			triangleObjectIndex = objectMap[i].second;
+			nTriangles += (int)sceneData->triangleObjects[triangleObjectIndex]->size();
+		}
+	}
+
+	// update indices
+	if (primitiveType == PrimitiveType::LineSegment) {
+		soup.indices[2*primitiveIndex + 0] = indices[0];
+		soup.indices[2*primitiveIndex + 1] = indices[1];
+
+		LineSegment& lineSegment = (*sceneData->lineSegmentObjects[lineSegmentObjectIndex])[primitiveIndex];
+		lineSegment.soup = &soup;
+		lineSegment.indices[0] = indices[0];
+		lineSegment.indices[1] = indices[1];
+		lineSegment.pIndex = primitiveIndex;
+
+	} else if (primitiveType == PrimitiveType::Triangle) {
+		int offset = 2*nLineSegments;
+		soup.indices[offset + 3*primitiveIndex + 0] = indices[0];
+		soup.indices[offset + 3*primitiveIndex + 1] = indices[1];
+		soup.indices[offset + 3*primitiveIndex + 2] = indices[2];
+
+		Triangle& triangle = (*sceneData->triangleObjects[triangleObjectIndex])[primitiveIndex];
+		triangle.soup = &soup;
+		triangle.indices[0] = indices[0];
+		triangle.indices[1] = indices[1];
+		triangle.indices[2] = indices[2];
+		triangle.pIndex = nLineSegments + primitiveIndex;
+	}
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectInstanceTransforms(const std::vector<Transform<DIM>>& transforms, int objectIndex)
+{
+	std::vector<Transform<DIM>>& objectTransforms = sceneData->instanceTransforms[objectIndex];
+	objectTransforms.insert(objectTransforms.end(), transforms.begin(), transforms.end());
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectCsgTreeNode(const CsgTreeNode& csgTreeNode, int objectIndex)
+{
+	sceneData->csgTree[objectIndex] = csgTreeNode;
+}
+
+template<size_t DIM, typename PrimitiveType>
+inline void computeWeightedNormals(const std::vector<PrimitiveType>& primitives, PolygonSoup<DIM>& soup)
+{
+	// do nothing
+}
+
+template<>
+inline void computeWeightedNormals<3, LineSegment>(const std::vector<LineSegment>& lineSegments,
+												   PolygonSoup<3>& soup)
+{
+	int N = (int)lineSegments.size();
+	int V = (int)soup.positions.size();
+	soup.vNormals.resize(V, zeroVector<3>());
+
+	for (int i = 0; i < N; i++) {
+		Vector3 n = lineSegments[i].normal(true);
+		soup.vNormals[lineSegments[i].indices[0]] += n;
+		soup.vNormals[lineSegments[i].indices[1]] += n;
+	}
+
+	for (int i = 0; i < V; i++) {
+		soup.vNormals[i] = unit<3>(soup.vNormals[i]);
+	}
+}
+
+template<>
+inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& triangles,
+												PolygonSoup<3>& soup)
+{
+	// set edge indices
+	int E = 0;
+	int N = (int)triangles.size();
+	std::map<std::pair<int, int>, int> indexMap;
+
+	for (int i = 0; i < N; i++) {
+		for (int j = 0; j < 3; j++) {
+			int k = (j + 1)%3;
+			int I = triangles[i].indices[j];
+			int J = triangles[i].indices[k];
+			if (I > J) std::swap(I, J);
+			std::pair<int, int> e(I, J);
+
+			if (indexMap.find(e) == indexMap.end()) indexMap[e] = E++;
+			soup.eIndices.emplace_back(indexMap[e]);
+		}
+	}
+
+	// compute normals
+	int V = (int)soup.positions.size();
+	soup.vNormals.resize(V, zeroVector<3>());
+	soup.eNormals.resize(E, zeroVector<3>());
+
+	for (int i = 0; i < N; i++) {
+		Vector3 n = triangles[i].normal(true);
+
+		for (int j = 0; j < 3; j++) {
+			soup.vNormals[triangles[i].indices[j]] += n;
+			soup.eNormals[soup.eIndices[3*triangles[i].pIndex + j]] += n;
+		}
+	}
+
+	for (int i = 0; i < V; i++) soup.vNormals[i] = unit<3>(soup.vNormals[i]);
+	for (int i = 0; i < E; i++) soup.eNormals[i] = unit<3>(soup.eNormals[i]);
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::computeObjectNormals(int objectIndex)
+{
+	const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[objectIndex];
+	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+
+	if (objectMap[0].first == ObjectType::LineSegments) {
+		int lineSegmentObjectIndex = objectMap[0].second;
+		computeWeightedNormals<DIM, LineSegment>(*sceneData->lineSegmentObjects[lineSegmentObjectIndex], soup);
+
+	} else if (objectMap[0].first == ObjectType::Triangles) {
+		int triangleObjectIndex = objectMap[0].second;
+		computeWeightedNormals<DIM, Triangle>(*sceneData->triangleObjects[triangleObjectIndex], soup);
+	}
+}
+
+template<size_t DIM, typename PrimitiveType>
+inline void sortSoupPositions(const std::vector<SbvhNode<DIM>>& flatTree,
+							  std::vector<PrimitiveType *>& primitives,
+							  PolygonSoup<DIM>& soup)
+{
+	// do nothing
+}
+
+template<>
+inline void sortSoupPositions<3, LineSegment>(const std::vector<SbvhNode<3>>& flatTree,
+											  std::vector<LineSegment *>& lineSegments,
+											  PolygonSoup<3>& soup)
+{
+	int V = (int)soup.positions.size();
+	std::vector<Vector<3>> sortedPositions(V), sortedVertexNormals(V);
+	std::vector<int> indexMap(V, -1);
+	int v = 0;
+
+	// collect sorted positions, updating line segment and soup indices
+	for (int i = 0; i < (int)flatTree.size(); i++) {
+		const SbvhNode<3>& node(flatTree[i]);
+
+		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
+			int referenceIndex = node.referenceOffset + j;
+			LineSegment *lineSegment = lineSegments[referenceIndex];
+
+			for (int k = 0; k < 2; k++) {
+				int vIndex = lineSegment->indices[k];
+
+				if (indexMap[vIndex] == -1) {
+					sortedPositions[v] = soup.positions[vIndex];
+					if (soup.vNormals.size() > 0) sortedVertexNormals[v] = soup.vNormals[vIndex];
+					indexMap[vIndex] = v++;
+				}
+
+				soup.indices[2*lineSegment->pIndex + k] = indexMap[vIndex];
+				lineSegment->indices[k] = indexMap[vIndex];
+			}
+		}
+	}
+
+	// update to sorted positions
+	soup.positions = std::move(sortedPositions);
+	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
+}
+
+template<>
+inline void sortSoupPositions<3, Triangle>(const std::vector<SbvhNode<3>>& flatTree,
+										   std::vector<Triangle *>& triangles,
+										   PolygonSoup<3>& soup)
+{
+	int V = (int)soup.positions.size();
+	std::vector<Vector<3>> sortedPositions(V), sortedVertexNormals(V);
+	std::vector<int> indexMap(V, -1);
+	int v = 0;
+
+	// collect sorted positions, updating triangle and soup indices
+	for (int i = 0; i < (int)flatTree.size(); i++) {
+		const SbvhNode<3>& node(flatTree[i]);
+
+		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
+			int referenceIndex = node.referenceOffset + j;
+			Triangle *triangle = triangles[referenceIndex];
+
+			for (int k = 0; k < 3; k++) {
+				int vIndex = triangle->indices[k];
+
+				if (indexMap[vIndex] == -1) {
+					sortedPositions[v] = soup.positions[vIndex];
+					if (soup.vNormals.size() > 0) sortedVertexNormals[v] = soup.vNormals[vIndex];
+					indexMap[vIndex] = v++;
+				}
+
+				soup.indices[3*triangle->pIndex + k] = indexMap[vIndex];
+				triangle->indices[k] = indexMap[vIndex];
+			}
+		}
+	}
+
+	// update to sorted positions
+	soup.positions = std::move(sortedPositions);
+	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize, bool printStats)
+{
+	// clear old aggregate data
+	sceneData->clearAggregateData();
+
+	// populate line segment, triangle & mixed object ptrs, and make their aggregates
+	int nObjects = (int)sceneData->soups.size();
+	int nAggregates = 0;
+	int nLineSegmentObjects = 0;
+	int nTriangleObjects = 0;
+	int nMixedObjects = 0;
+	std::vector<std::unique_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
+	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
+	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
+	SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
+	SortTrianglePositionsFunc sortTrianglePositionsFunc = {};
+
+	for (int i = 0; i < nObjects; i++) {
+		const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[i];
+
+		if (objectMap.size() > 1) {
+			// soup contains mixed primitives, set mixed object ptrs
+			sceneData->mixedObjectPtrs.emplace_back(std::vector<GeometricPrimitive<DIM> *>());
+
+			for (int j = 0; j < (int)objectMap.size(); j++) {
+				if (objectMap[j].first == ObjectType::LineSegments) {
+					int lineSegmentObjectIndex = objectMap[j].second;
+					std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
+
+					for (int k = 0; k < (int)lineSegmentObject.size(); k++) {
+						sceneData->mixedObjectPtrs[nMixedObjects].emplace_back(&lineSegmentObject[k]);
+					}
+
+				} else if (objectMap[j].first == ObjectType::Triangles) {
+					int triangleObjectIndex = objectMap[j].second;
+					std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
+
+					for (int k = 0; k < (int)triangleObject.size(); k++) {
+						sceneData->mixedObjectPtrs[nMixedObjects].emplace_back(&triangleObject[k]);
+					}
+				}
+			}
+
+			// TODO: set objectAggregates[i]
+			nMixedObjects++;
+
+		} else if (objectMap[0].first == ObjectType::LineSegments) {
+			// soup contains line segments, set line segment object ptrs
+			sceneData->lineSegmentObjectPts.emplace_back(std::vector<LineSegment *>());
+			int lineSegmentObjectIndex = objectMap[0].second;
+			std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
+
+			for (int j = 0; j < (int)lineSegmentObject.size(); j++) {
+				sceneData->lineSegmentObjectPts[nLineSegmentObjects].emplace_back(&lineSegmentObject[j]);
+			}
+
+			// make aggregate
+			if (!vectorize) {
+				sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
+													 std::placeholders::_1, std::placeholders::_2,
+													 std::ref(sceneData->soups[i]));
+			}
+
+			// TODO: set objectAggregates[i]
+			nLineSegmentObjects++;
+
+		} else if (objectMap[0].first == ObjectType::Triangles) {
+			// soup contains triangles, set triangle object ptrs
+			sceneData->triangleObjectPtrs.emplace_back(std::vector<Triangle *>());
+			int triangleObjectIndex = objectMap[0].second;
+			std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
+
+			for (int j = 0; j < (int)triangleObject.size(); j++) {
+				sceneData->triangleObjectPtrs[nTriangleObjects].emplace_back(&triangleObject[j]);
+			}
+
+			// make aggregate
+			if (!vectorize) {
+				sortTrianglePositionsFunc = std::bind(&sortSoupPositions<3, Triangle>,
+													  std::placeholders::_1, std::placeholders::_2,
+													  std::ref(sceneData->soups[i]));
+			}
+
+			// TODO: set objectAggregates[i]
+			nTriangleObjects++;
+		}
+
+		objectAggregates[i]->index = nAggregates++;
+		objectAggregates[i]->computeNormals = sceneData->soups[i].vNormals.size() > 0;
+	}
+
+	// TODO: fill out aggregate index & computeNormals
+	// TODO: build aggregate instances & set their index (aggregateInstances, aggregateInstancePtrs)
+	// TODO: set aggregate & set its index (aggregate)
+}
+
+template<size_t DIM>
+inline int Scene<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, bool checkForOcclusion,
+								 bool recordAllHits) const
+{
+	return sceneData->aggregate->intersect(r, is, checkForOcclusion, recordAllHits);
+}
+
+template<size_t DIM>
+inline bool Scene<DIM>::contains(const Vector<DIM>& x) const
+{
+	return sceneData->aggregate->contains(x);
+}
+
+template<size_t DIM>
+inline bool Scene<DIM>::hasLineOfSight(const Vector<DIM>& xi, const Vector<DIM>& xj) const
+{
+	return sceneData->aggregate->hasLineOfSight(xi, xj);
+}
+
+template<size_t DIM>
+inline bool Scene<DIM>::findClosestPoint(const Vector<DIM>& x, Interaction<DIM>& i, float squaredRadius) const
+{
+	BoundingSphere<DIM> s(x, squaredRadius);
+	return sceneData->aggregate->findClosestPoint(s, i);
+}
+
+template<size_t DIM>
+inline const SceneData<DIM>* Scene<DIM>::getSceneData() const
+{
+	return sceneData.get();
+}
+
+} // namespace fcpw
