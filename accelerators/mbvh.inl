@@ -191,8 +191,10 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 		for (int i = 0; i < nNodes; i++) {
 			MbvhNode<DIM>& node = flatTree[i];
 
-			if (isLeafNode(node) && node.child[3]%WIDTH != 0) {
-				nLeafsNotFull += 1.0f;
+			if (isLeafNode(node)) {
+				if (node.child[3]%WIDTH != 0) {
+					nLeafsNotFull += 1.0f;
+				}
 
 			} else {
 				for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
