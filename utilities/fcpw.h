@@ -54,10 +54,8 @@ public:
 	// sets the instance transforms for an object
 	void setObjectInstanceTransforms(const std::vector<Transform<DIM>>& transforms, int objectIndex);
 
-	// sets the csg node data for an object in the csg tree; NOTE: the objectIndex for
-	// each node in the tree must be unique (and hence also different from the object indices
-	// [0, objectTypes.size()) already reserved for the objects specifying the scene geometry)
-	void setObjectCsgTreeNode(const CsgTreeNode& csgTreeNode, int objectIndex);
+	// sets the data for a node in the csg tree
+	void setCsgTreeNode(const CsgTreeNode& csgTreeNode, int nodeIndex);
 
 	// enables normal computation for an object with a single primitive type; if normals are
 	// required for an object with mixed primitive types, they can be computed after performing

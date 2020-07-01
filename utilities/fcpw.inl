@@ -191,9 +191,9 @@ inline void Scene<DIM>::setObjectInstanceTransforms(const std::vector<Transform<
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::setObjectCsgTreeNode(const CsgTreeNode& csgTreeNode, int objectIndex)
+inline void Scene<DIM>::setCsgTreeNode(const CsgTreeNode& csgTreeNode, int nodeIndex)
 {
-	sceneData->csgTree[objectIndex] = csgTreeNode;
+	sceneData->csgTree[nodeIndex] = csgTreeNode;
 }
 
 template<size_t DIM, typename PrimitiveType>
@@ -361,6 +361,87 @@ inline void sortSoupPositions<3, Triangle>(const std::vector<SbvhNode<3>>& flatT
 	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
 }
 
+template<size_t DIM, typename PrimitiveType>
+inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType,
+													 std::vector<PrimitiveType *>& primitives,
+													 bool vectorize, bool printStats,
+													 SortPositionsFunc<DIM, PrimitiveType> sortPositions={})
+{
+	std::unique_ptr<Sbvh<DIM, PrimitiveType>> sbvh = nullptr;
+	bool packLeaves = false;
+	int leafSize = 4;
+
+#ifdef BUILD_ENOKI
+	if (vectorize) {
+		packLeaves = true;
+		leafSize = SIMD_WIDTH;
+	}
+#endif
+
+	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
+		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
+				CostHeuristic::LongestAxisCenter, primitives, sortPositions, printStats, false, leafSize));
+
+	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
+		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
+				CostHeuristic::SurfaceArea, primitives, sortPositions, printStats, packLeaves, leafSize));
+
+	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
+		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
+				CostHeuristic::OverlapSurfaceArea, primitives, sortPositions, printStats, packLeaves, leafSize));
+
+	} else if (aggregateType == AggregateType::Bvh_Volume) {
+		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
+				CostHeuristic::Volume, primitives, sortPositions, printStats, packLeaves, leafSize));
+
+	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
+		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
+				CostHeuristic::OverlapVolume, primitives, sortPositions, printStats, packLeaves, leafSize));
+
+	} else {
+		return std::unique_ptr<Baseline<DIM, PrimitiveType>>(new Baseline<DIM, PrimitiveType>(primitives));
+	}
+
+#ifdef BUILD_ENOKI
+	if (vectorize) {
+		return std::unique_ptr<Mbvh<SIMD_WIDTH, DIM, PrimitiveType>>(
+				new Mbvh<SIMD_WIDTH, DIM, PrimitiveType>(sbvh.get(), printStats));
+	}
+#endif
+
+	return sbvh;
+}
+
+template<size_t DIM>
+inline std::unique_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
+										int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
+										std::vector<std::unique_ptr<Aggregate<DIM>>>& aggregateInstances,
+										int& nAggregates)
+{
+	const CsgTreeNode& node = csgTree[nodeIndex];
+	std::unique_ptr<Aggregate<DIM>> instance1 = nullptr;
+	std::unique_ptr<Aggregate<DIM>> instance2 = nullptr;
+
+	if (node.isLeafChild1) {
+		instance1 = std::move(aggregateInstances[node.child1]);
+
+	} else {
+		instance1 = buildCsgAggregateRecursive<DIM>(node.child1, csgTree, aggregateInstances, nAggregates);
+		instance1->index = nAggregates++;
+	}
+
+	if (node.isLeafChild2) {
+		instance2 = std::move(aggregateInstances[node.child2]);
+
+	} else {
+		instance2 = buildCsgAggregateRecursive<DIM>(node.child2, csgTree, aggregateInstances, nAggregates);
+		instance2->index = nAggregates++;
+	}
+
+	return std::unique_ptr<CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>>(
+		new CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>(std::move(instance1), std::move(instance2), node.operation));
+}
+
 template<size_t DIM>
 inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize, bool printStats)
 {
@@ -377,7 +458,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
 	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
 	SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
-	SortTrianglePositionsFunc sortTrianglePositionsFunc = {};
+	SortTrianglePositionsFunc sortTrianglePositions = {};
 
 	for (int i = 0; i < nObjects; i++) {
 		const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[i];
@@ -385,6 +466,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		if (objectMap.size() > 1) {
 			// soup contains mixed primitives, set mixed object ptrs
 			sceneData->mixedObjectPtrs.emplace_back(std::vector<GeometricPrimitive<DIM> *>());
+			std::vector<GeometricPrimitive<DIM> *>& mixedObjectPtr = sceneData->mixedObjectPtrs[nMixedObjects];
 
 			for (int j = 0; j < (int)objectMap.size(); j++) {
 				if (objectMap[j].first == ObjectType::LineSegments) {
@@ -392,7 +474,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 					std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
 
 					for (int k = 0; k < (int)lineSegmentObject.size(); k++) {
-						sceneData->mixedObjectPtrs[nMixedObjects].emplace_back(&lineSegmentObject[k]);
+						mixedObjectPtr.emplace_back(&lineSegmentObject[k]);
 					}
 
 				} else if (objectMap[j].first == ObjectType::Triangles) {
@@ -400,12 +482,13 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 					std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
 
 					for (int k = 0; k < (int)triangleObject.size(); k++) {
-						sceneData->mixedObjectPtrs[nMixedObjects].emplace_back(&triangleObject[k]);
+						mixedObjectPtr.emplace_back(&triangleObject[k]);
 					}
 				}
 			}
 
-			// TODO: set objectAggregates[i]
+			objectAggregates[i] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType, mixedObjectPtr,
+																			  vectorize, printStats);
 			nMixedObjects++;
 
 		} else if (objectMap[0].first == ObjectType::LineSegments) {
@@ -413,9 +496,10 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 			sceneData->lineSegmentObjectPts.emplace_back(std::vector<LineSegment *>());
 			int lineSegmentObjectIndex = objectMap[0].second;
 			std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
+			std::vector<LineSegment *>& lineSegmentObjectPtr = sceneData->lineSegmentObjectPts[nLineSegmentObjects];
 
 			for (int j = 0; j < (int)lineSegmentObject.size(); j++) {
-				sceneData->lineSegmentObjectPts[nLineSegmentObjects].emplace_back(&lineSegmentObject[j]);
+				lineSegmentObjectPtr.emplace_back(&lineSegmentObject[j]);
 			}
 
 			// make aggregate
@@ -425,7 +509,8 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 													 std::ref(sceneData->soups[i]));
 			}
 
-			// TODO: set objectAggregates[i]
+			objectAggregates[i] = makeAggregate<DIM, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize,
+																  printStats, sortLineSegmentPositions);
 			nLineSegmentObjects++;
 
 		} else if (objectMap[0].first == ObjectType::Triangles) {
@@ -433,19 +518,21 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 			sceneData->triangleObjectPtrs.emplace_back(std::vector<Triangle *>());
 			int triangleObjectIndex = objectMap[0].second;
 			std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
+			std::vector<Triangle *>& triangleObjectPtr = sceneData->triangleObjectPtrs[nTriangleObjects];
 
 			for (int j = 0; j < (int)triangleObject.size(); j++) {
-				sceneData->triangleObjectPtrs[nTriangleObjects].emplace_back(&triangleObject[j]);
+				triangleObjectPtr.emplace_back(&triangleObject[j]);
 			}
 
 			// make aggregate
 			if (!vectorize) {
-				sortTrianglePositionsFunc = std::bind(&sortSoupPositions<3, Triangle>,
-													  std::placeholders::_1, std::placeholders::_2,
-													  std::ref(sceneData->soups[i]));
+				sortTrianglePositions = std::bind(&sortSoupPositions<3, Triangle>,
+												  std::placeholders::_1, std::placeholders::_2,
+												  std::ref(sceneData->soups[i]));
 			}
 
-			// TODO: set objectAggregates[i]
+			objectAggregates[i] = makeAggregate<DIM, Triangle>(aggregateType, triangleObjectPtr, vectorize,
+															   printStats, sortTrianglePositions);
 			nTriangleObjects++;
 		}
 
@@ -453,9 +540,48 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		objectAggregates[i]->computeNormals = sceneData->soups[i].vNormals.size() > 0;
 	}
 
-	// TODO: fill out aggregate index & computeNormals
-	// TODO: build aggregate instances & set their index (aggregateInstances, aggregateInstancePtrs)
-	// TODO: set aggregate & set its index (aggregate)
+	// set aggregate instances and instance ptrs
+	for (int i = 0; i < nObjects; i++) {
+		int nObjectInstances = (int)this->instanceTransforms[i].size();
+
+		if (nObjectInstances == 0) {
+			sceneData->aggregateInstancePtrs.emplace_back(objectAggregates[i].get());
+			sceneData->aggregateInstances.emplace_back(std::move(objectAggregates[i]));
+
+		} else {
+			std::shared_ptr<Aggregate<DIM>> aggregate = std::move(objectAggregates[i]);
+			for (int j = 0; j < nObjectInstances; j++) {
+				std::unique_ptr<TransformedAggregate<DIM>> transformedAggregate(
+					new TransformedAggregate<DIM>(aggregate, sceneData->instanceTransforms[i][j]));
+				transformedAggregate->index = nAggregates++;
+
+				sceneData->aggregateInstancePtrs.emplace_back(transformedAggregate.get());
+				sceneData->aggregateInstances.emplace_back(std::move(transformedAggregate));
+			}
+		}
+	}
+
+	// set aggregate
+	if (sceneData->aggregateInstances.size() == 1) {
+		// clear the vectors of aggregate instances if there is only a single aggregate
+		sceneData->aggregate = std::move(sceneData->aggregateInstances[0]);
+		sceneData->aggregateInstancePtrs.clear();
+		sceneData->aggregateInstances.clear();
+
+	} else if (sceneData->csgTree.size() > 0) {
+		// build csg tree
+		sceneData->aggregate = buildCsgAggregateRecursive<DIM>(0, sceneData->csgTree,
+															   sceneData->objectInstances, nAggregates);
+		sceneData->aggregateInstancePtrs.clear();
+		sceneData->aggregateInstances.clear();
+
+	} else {
+		// make aggregate
+		sceneData->aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
+																  vectorize, printStats);
+	}
+
+	sceneData->aggregate->index = nAggregates++;
 }
 
 template<size_t DIM>
