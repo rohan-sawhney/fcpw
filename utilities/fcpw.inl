@@ -571,7 +571,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 	} else if (sceneData->csgTree.size() > 0) {
 		// build csg tree
 		sceneData->aggregate = buildCsgAggregateRecursive<DIM>(0, sceneData->csgTree,
-															   sceneData->objectInstances, nAggregates);
+															   sceneData->aggregateInstances, nAggregates);
 		sceneData->aggregateInstancePtrs.clear();
 		sceneData->aggregateInstances.clear();
 
