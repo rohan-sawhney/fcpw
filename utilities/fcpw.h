@@ -37,24 +37,23 @@ public:
 	// sets the position of a vertex in an object
 	void setObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex);
 
-	// sets the vertex indices as well as a local index of a line segment in an object
+	// sets the vertex indices of a line segment in an object
 	void setObjectLineSegment(const std::vector<int>& indices, int lineSegmentIndex, int objectIndex);
 
-	// sets the vertex indices as well as a local index of a triangle in an object
+	// sets the vertex indices of a triangle in an object
 	void setObjectTriangle(const std::vector<int>& indices, int triangleIndex, int objectIndex);
 
-	// sets the vertex indices as well as a local index of a primitive in an object;
-	// primitiveIndex must lie in the range [0, nLineSegments) or [0, nTriangles) based on
-	// the primitive type; internally, the line segments are stored before the triangles;
-	// NOTE: use this function if an object contains mixed primitive types, otherwise use one
-	// of the two functions above
+	// sets the vertex indices of a primitive in an object; primitiveIndex must lie in the range
+	// [0, nLineSegments) or [0, nTriangles) based on the primitive type; internally, the line
+	// segments are stored before the triangles; NOTE: use this function only if an object contains
+	// mixed primitive types, otherwise use one of the two functions above
 	void setObjectPrimitive(const std::vector<int>& indices, const PrimitiveType& primitiveType,
 							int primitiveIndex, int objectIndex);
 
 	// sets the instance transforms for an object
 	void setObjectInstanceTransforms(const std::vector<Transform<DIM>>& transforms, int objectIndex);
 
-	// sets the data for a node in the csg tree
+	// sets the data for a node in the csg tree; NOTE: the root node of the csg tree must have index 0
 	void setCsgTreeNode(const CsgTreeNode& csgTreeNode, int nodeIndex);
 
 	// enables normal computation for an object with a single primitive type; if normals are
@@ -71,7 +70,7 @@ public:
 	void build(const AggregateType& aggregateType, bool vectorize, bool printStats);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
-	// API to find closest points and intersect rays with scene, as well as other convenience functions
+	// API to find closest points and intersect rays with the scene, among others
 
 	// intersects the scene with the given ray and returns the number of hits;
 	// by default, returns the closest interaction if it exists;

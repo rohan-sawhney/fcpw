@@ -107,7 +107,7 @@ inline void Scene<DIM>::setObjectLineSegment(const std::vector<int>& indices, in
 	soup.indices[2*lineSegmentIndex + 1] = indices[1];
 
 	// update line segment indices
-	int lineSegmentObjectIndex = sceneData->soupToObjectsMap[objectIndex][0];
+	int lineSegmentObjectIndex = sceneData->soupToObjectsMap[objectIndex][0].second;
 	LineSegment& lineSegment = (*sceneData->lineSegmentObjects[lineSegmentObjectIndex])[lineSegmentIndex];
 	lineSegment.soup = &soup;
 	lineSegment.indices[0] = indices[0];
@@ -125,7 +125,7 @@ inline void Scene<DIM>::setObjectTriangle(const std::vector<int>& indices, int t
 	soup.indices[3*triangleIndex + 2] = indices[2];
 
 	// update triangle indices
-	int triangleObjectIndex = sceneData->soupToObjectsMap[objectIndex][0];
+	int triangleObjectIndex = sceneData->soupToObjectsMap[objectIndex][0].second;
 	Triangle& triangle = (*sceneData->triangleObjects[triangleObjectIndex])[triangleIndex];
 	triangle.soup = &soup;
 	triangle.indices[0] = indices[0];
