@@ -1,6 +1,6 @@
 Priority:
 1. API:
----- complete fcpw.h & fcpw.inl, and add error checks
+---- test fcpw.h & fcpw.inl, and add error checks
 ---- implement file io
 ---- move embree to tests
 2. give the closest point a rough guess of direction to guide traversal (things can

@@ -493,10 +493,10 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 
 		} else if (objectsMap[0].first == ObjectType::LineSegments) {
 			// soup contains line segments, set line segment object ptrs
-			sceneData->lineSegmentObjectPts.emplace_back(std::vector<LineSegment *>());
+			sceneData->lineSegmentObjectPtrs.emplace_back(std::vector<LineSegment *>());
 			int lineSegmentObjectIndex = objectsMap[0].second;
 			std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
-			std::vector<LineSegment *>& lineSegmentObjectPtr = sceneData->lineSegmentObjectPts[nLineSegmentObjects];
+			std::vector<LineSegment *>& lineSegmentObjectPtr = sceneData->lineSegmentObjectPtrs[nLineSegmentObjects];
 
 			for (int j = 0; j < (int)lineSegmentObject.size(); j++) {
 				lineSegmentObjectPtr.emplace_back(&lineSegmentObject[j]);

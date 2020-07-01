@@ -53,7 +53,7 @@ public:
 
 private:
 	// members
-	std::vector<std::vector<LineSegment *>> lineSegmentObjectPts;
+	std::vector<std::vector<LineSegment *>> lineSegmentObjectPtrs;
 	std::vector<std::vector<Triangle *>> triangleObjectPtrs;
 	std::vector<std::vector<GeometricPrimitive<DIM> *>> mixedObjectPtrs;
 
