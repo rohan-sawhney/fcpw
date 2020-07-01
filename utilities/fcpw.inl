@@ -611,7 +611,7 @@ inline bool Scene<DIM>::findClosestPoint(const Vector<DIM>& x, Interaction<DIM>&
 }
 
 template<size_t DIM>
-inline const SceneData<DIM>* Scene<DIM>::getSceneData() const
+inline SceneData<DIM>* Scene<DIM>::getSceneData()
 {
 	return sceneData.get();
 }

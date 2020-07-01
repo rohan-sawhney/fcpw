@@ -91,8 +91,8 @@ public:
 	bool findClosestPoint(const Vector<DIM>& x, Interaction<DIM>& i,
 						  float squaredRadius=maxFloat) const;
 
-	// returns a const pointer to the underlying scene data
-	const SceneData<DIM>* getSceneData() const;
+	// returns a pointer to the underlying scene data; use at your own risk...
+	SceneData<DIM>* getSceneData();
 
 private:
 	// member
