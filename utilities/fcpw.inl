@@ -61,10 +61,10 @@ inline void Scene<DIM>::setObjectLineSegmentCount(int nLineSegments, int objectI
 	soup.indices.resize(nIndices + 2*nLineSegments);
 
 	// allocate line segments
-	const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[objectIndex];
-	for (int i = 0; i < (int)objectMap.size(); i++) {
-		if (objectMap[i].first == ObjectType::LineSegments) {
-			int lineSegmentObjectIndex = objectMap[i].second;
+	const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+	for (int i = 0; i < (int)objectsMap.size(); i++) {
+		if (objectsMap[i].first == ObjectType::LineSegments) {
+			int lineSegmentObjectIndex = objectsMap[i].second;
 			sceneData->lineSegmentObjects[lineSegmentObjectIndex] =
 					std::unique_ptr<std::vector<LineSegment>>(new std::vector<LineSegment>(nLineSegments));
 			break;
@@ -81,10 +81,10 @@ inline void Scene<DIM>::setObjectTriangleCount(int nTriangles, int objectIndex)
 	soup.indices.resize(nIndices + 3*nTriangles);
 
 	// allocate triangles
-	const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[objectIndex];
-	for (int i = 0; i < (int)objectMap.size(); i++) {
-		if (objectMap[i].first == ObjectType::Triangles) {
-			int triangleObjectIndex = objectMap[i].second;
+	const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+	for (int i = 0; i < (int)objectsMap.size(); i++) {
+		if (objectsMap[i].first == ObjectType::Triangles) {
+			int triangleObjectIndex = objectsMap[i].second;
 			sceneData->triangleObjects[triangleObjectIndex] =
 					std::unique_ptr<std::vector<Triangle>>(new std::vector<Triangle>(nTriangles));
 			break;
@@ -139,20 +139,20 @@ inline void Scene<DIM>::setObjectPrimitive(const std::vector<int>& indices, cons
 										   int primitiveIndex, int objectIndex)
 {
 	// count line segments and triangles
-	const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[objectIndex];
+	const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
 	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
 	int lineSegmentObjectIndex = -1;
 	int nLineSegments = 0;
 	int triangleObjectIndex = -1;
 	int nTriangles = 0;
 
-	for (int i = 0; i < (int)objectMap.size(); i++) {
-		if (objectMap[i].first == ObjectType::LineSegments) {
-			lineSegmentObjectIndex = objectMap[i].second;
+	for (int i = 0; i < (int)objectsMap.size(); i++) {
+		if (objectsMap[i].first == ObjectType::LineSegments) {
+			lineSegmentObjectIndex = objectsMap[i].second;
 			nLineSegments += (int)sceneData->lineSegmentObjects[lineSegmentObjectIndex]->size();
 
-		} else if (objectMap[i].first == ObjectType::Triangles) {
-			triangleObjectIndex = objectMap[i].second;
+		} else if (objectsMap[i].first == ObjectType::Triangles) {
+			triangleObjectIndex = objectsMap[i].second;
 			nTriangles += (int)sceneData->triangleObjects[triangleObjectIndex]->size();
 		}
 	}
@@ -264,15 +264,15 @@ inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& tri
 template<size_t DIM>
 inline void Scene<DIM>::computeObjectNormals(int objectIndex)
 {
-	const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[objectIndex];
+	const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
 	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
 
-	if (objectMap[0].first == ObjectType::LineSegments) {
-		int lineSegmentObjectIndex = objectMap[0].second;
+	if (objectsMap[0].first == ObjectType::LineSegments) {
+		int lineSegmentObjectIndex = objectsMap[0].second;
 		computeWeightedNormals<DIM, LineSegment>(*sceneData->lineSegmentObjects[lineSegmentObjectIndex], soup);
 
-	} else if (objectMap[0].first == ObjectType::Triangles) {
-		int triangleObjectIndex = objectMap[0].second;
+	} else if (objectsMap[0].first == ObjectType::Triangles) {
+		int triangleObjectIndex = objectsMap[0].second;
 		computeWeightedNormals<DIM, Triangle>(*sceneData->triangleObjects[triangleObjectIndex], soup);
 	}
 }
@@ -461,24 +461,24 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 	SortTrianglePositionsFunc sortTrianglePositions = {};
 
 	for (int i = 0; i < nObjects; i++) {
-		const std::vector<std::pair<ObjectType, int>>& objectMap = sceneData->soupToObjectsMap[i];
+		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
 
-		if (objectMap.size() > 1) {
+		if (objectsMap.size() > 1) {
 			// soup contains mixed primitives, set mixed object ptrs
 			sceneData->mixedObjectPtrs.emplace_back(std::vector<GeometricPrimitive<DIM> *>());
 			std::vector<GeometricPrimitive<DIM> *>& mixedObjectPtr = sceneData->mixedObjectPtrs[nMixedObjects];
 
-			for (int j = 0; j < (int)objectMap.size(); j++) {
-				if (objectMap[j].first == ObjectType::LineSegments) {
-					int lineSegmentObjectIndex = objectMap[j].second;
+			for (int j = 0; j < (int)objectsMap.size(); j++) {
+				if (objectsMap[j].first == ObjectType::LineSegments) {
+					int lineSegmentObjectIndex = objectsMap[j].second;
 					std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
 
 					for (int k = 0; k < (int)lineSegmentObject.size(); k++) {
 						mixedObjectPtr.emplace_back(&lineSegmentObject[k]);
 					}
 
-				} else if (objectMap[j].first == ObjectType::Triangles) {
-					int triangleObjectIndex = objectMap[j].second;
+				} else if (objectsMap[j].first == ObjectType::Triangles) {
+					int triangleObjectIndex = objectsMap[j].second;
 					std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
 
 					for (int k = 0; k < (int)triangleObject.size(); k++) {
@@ -491,10 +491,10 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 																			  vectorize, printStats);
 			nMixedObjects++;
 
-		} else if (objectMap[0].first == ObjectType::LineSegments) {
+		} else if (objectsMap[0].first == ObjectType::LineSegments) {
 			// soup contains line segments, set line segment object ptrs
 			sceneData->lineSegmentObjectPts.emplace_back(std::vector<LineSegment *>());
-			int lineSegmentObjectIndex = objectMap[0].second;
+			int lineSegmentObjectIndex = objectsMap[0].second;
 			std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
 			std::vector<LineSegment *>& lineSegmentObjectPtr = sceneData->lineSegmentObjectPts[nLineSegmentObjects];
 
@@ -513,10 +513,10 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 																  printStats, sortLineSegmentPositions);
 			nLineSegmentObjects++;
 
-		} else if (objectMap[0].first == ObjectType::Triangles) {
+		} else if (objectsMap[0].first == ObjectType::Triangles) {
 			// soup contains triangles, set triangle object ptrs
 			sceneData->triangleObjectPtrs.emplace_back(std::vector<Triangle *>());
-			int triangleObjectIndex = objectMap[0].second;
+			int triangleObjectIndex = objectsMap[0].second;
 			std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
 			std::vector<Triangle *>& triangleObjectPtr = sceneData->triangleObjectPtrs[nTriangleObjects];
 
