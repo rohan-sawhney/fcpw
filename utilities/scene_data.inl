@@ -21,7 +21,7 @@ inline void SceneData<DIM>::clearObjectData()
 template<size_t DIM>
 inline void SceneData<DIM>::clearAggregateData()
 {
-	lineSegmentObjectPts.clear();
+	lineSegmentObjectPtrs.clear();
 	triangleObjectPtrs.clear();
 	mixedObjectPtrs.clear();
 	aggregateInstancePtrs.clear();
