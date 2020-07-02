@@ -545,7 +545,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 
 	// set aggregate instances and instance ptrs
 	for (int i = 0; i < nObjects; i++) {
-		int nObjectInstances = (int)this->instanceTransforms[i].size();
+		int nObjectInstances = (int)sceneData->instanceTransforms[i].size();
 
 		if (nObjectInstances == 0) {
 			sceneData->aggregateInstancePtrs.emplace_back(objectAggregates[i].get());

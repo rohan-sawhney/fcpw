@@ -267,7 +267,7 @@ inline void loadGeometry<3, LineSegment>(const std::string& filename, const Load
 
 		if (signedVolume < 0) {
 			for (int i = 0; i < nLineSegments; i++) {
-				const LineSegment& lineSegment = (*lineSegmentObject)[i];
+				LineSegment& lineSegment = (*lineSegmentObject)[i];
 				std::swap(soup.indices[2*i], soup.indices[2*i + 1]);
 				std::swap(lineSegment.indices[0], lineSegment.indices[1]);
 			}
@@ -311,10 +311,10 @@ inline void SceneLoader<DIM>::loadFiles(Scene<DIM>& scene, bool computeNormals)
 
 	for (int i = 0; i < nFiles; i++) {
 		if (files[i].second == LoadingOption::ObjLineSegments) {
-			objectTypes.emplace_back(PrimitiveType::LineSegment);
+			objectTypes[i].emplace_back(PrimitiveType::LineSegment);
 
 		} else if (files[i].second == LoadingOption::ObjTriangles) {
-			objectTypes.emplace_back(PrimitiveType::Triangle);
+			objectTypes[i].emplace_back(PrimitiveType::Triangle);
 		}
 	}
 
@@ -358,7 +358,7 @@ inline void SceneLoader<DIM>::loadFiles(Scene<DIM>& scene, bool computeNormals)
 	// compute normals
 	if (computeNormals) {
 		for (int i = 0; i < nFiles; i++) {
-			scene.computeNormals(i);
+			scene.computeObjectNormals(i);
 		}
 	}
 }
