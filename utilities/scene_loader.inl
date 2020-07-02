@@ -3,14 +3,6 @@
 
 namespace fcpw {
 
-template<size_t DIM>
-inline SceneLoader<DIM>::SceneLoader():
-instanceFilename(""),
-csgFilename("")
-{
-
-}
-
 // helper class for loading polygons from obj files
 struct Index {
 	Index() {}
