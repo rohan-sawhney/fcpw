@@ -51,12 +51,8 @@ inline Index parseFaceIndex(const std::string& token) {
 	return Index(indices[0] - 1, indices[1] - 1, indices[2] - 1);
 }
 
-inline void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup)
+inline void loadLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// initialize
 	std::ifstream in(filename);
 	if (in.is_open() == false) {
@@ -109,12 +105,8 @@ inline void readLineSegmentSoupFromOBJFile(const std::string& filename, PolygonS
 	in.close();
 }
 
-inline void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup)
+inline void loadTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// initialize
 	std::ifstream in(filename);
 	if (in.is_open() == false) {
@@ -157,12 +149,12 @@ inline void readTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup
 		}
 	}
 
-	// close
-	in.close();
-
 	if (soup.textureCoordinates.size() == 0) {
 		soup.tIndices.clear();
 	}
+
+	// close
+	in.close();
 }
 
 template<size_t DIM>
@@ -231,10 +223,97 @@ inline void loadCsgTree(const std::string& filename, std::unordered_map<int, Csg
 	in.close();
 }
 
+template<size_t DIM, typename PrimitiveType>
+inline void loadGeometry(const std::string& filename, const LoadingOption& loadingOption,
+						 PolygonSoup<DIM>& soup, std::unique_ptr<std::vector<PrimitiveType>>& primitiveObject)
+{
+	std::cerr << "loadGeometry<DIM, PrimitiveType>(): Not supported" << std::endl;
+	exit(EXIT_FAILURE);
+}
+
+template<>
+inline void loadGeometry<3, LineSegment>(const std::string& filename, const LoadingOption& loadingOption,
+										 PolygonSoup<3>& soup, std::unique_ptr<std::vector<LineSegment>>& lineSegmentObject)
+{
+	// load soup
+	if (loadingOption == LoadingOption::ObjLineSegments) {
+		loadLineSegmentSoupFromOBJFile(filename, soup);
+
+	} else {
+		std::cerr << "loadGeometry<3, LineSegment>(): Invalid loading option" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// populate line segments
+	int nLineSegments = (int)soup.indices.size()/2;
+	lineSegmentObject = std::unique_ptr<std::vector<LineSegment>>(new std::vector<LineSegment>(nLineSegments));
+
+	for (int i = 0; i < nLineSegments; i++) {
+		LineSegment& lineSegment = (*lineSegmentObject)[i];
+		lineSegment.soup = &soup;
+		lineSegment.indices[0] = soup.indices[2*i];
+		lineSegment.indices[1] = soup.indices[2*i + 1];
+		lineSegment.pIndex = i;
+	}
+
+	// determine whether line segment soup is flat
+	bool isFlat = true;
+	for (int i = 0; i < (int)soup.positions.size(); i++) {
+		if (std::fabs(soup.positions[i][2]) > epsilon) {
+			isFlat = false;
+			break;
+		}
+	}
+
+	// swap indices if the segments of flat closed curve are oriented in clockwise order
+	if (isFlat && nLineSegments > 0 && soup.indices[0] == soup.indices[2*(nLineSegments - 1) + 1]) {
+		float signedVolume = 0.0f;
+		for (int i = 0; i < nLineSegments; i++) {
+			const LineSegment& lineSegment = (*lineSegmentObject)[i];
+			signedVolume += lineSegment.signedVolume();
+		}
+
+		if (signedVolume < 0) {
+			for (int i = 0; i < nLineSegments; i++) {
+				const LineSegment& lineSegment = (*lineSegmentObject)[i];
+				std::swap(soup.indices[2*i], soup.indices[2*i + 1]);
+				std::swap(lineSegment.indices[0], lineSegment.indices[1]);
+			}
+		}
+	}
+}
+
+template<>
+inline void loadGeometry<3, Triangle>(const std::string& filename, const LoadingOption& loadingOption,
+									  PolygonSoup<3>& soup, std::unique_ptr<std::vector<Triangle>>& triangleObject)
+{
+	// load soup
+	if (loadingOption == LoadingOption::ObjTriangles) {
+		loadTriangleSoupFromOBJFile(filename, soup);
+
+	} else {
+		std::cerr << "loadGeometry<3, Triangle>(): Invalid loading option" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+
+	// populate triangles
+	int nTriangles = (int)soup.indices.size()/3;
+	triangleObject = std::unique_ptr<std::vector<Triangle>>(new std::vector<Triangle>(nTriangles));
+
+	for (int i = 0; i < nTriangles; i++) {
+		Triangle& triangle = (*triangleObject)[i];
+		triangle.soup = &soup;
+		triangle.indices[0] = soup.indices[3*i];
+		triangle.indices[1] = soup.indices[3*i + 1];
+		triangle.indices[2] = soup.indices[3*i + 2];
+		triangle.pIndex = i;
+	}
+}
+
 template<size_t DIM>
 inline void SceneLoader<DIM>::loadFiles(Scene<DIM>& scene, bool computeNormals)
 {
-	// inform the scene about the various object types about to be loaded
+	// collect the various object types about to be loaded
 	int nFiles = (int)files.size();
 	std::vector<std::vector<PrimitiveType>> objectTypes(nFiles);
 
@@ -247,11 +326,26 @@ inline void SceneLoader<DIM>::loadFiles(Scene<DIM>& scene, bool computeNormals)
 		}
 	}
 
+	// allocate space for the objects
 	scene.setObjectTypes(objectTypes);
 
-	// fill out scene data (soups, lineSegmentObjects and triangleObjects) directly
+	// fill out scene data (soups & objects) directly
 	SceneData<DIM> *sceneData = scene.getSceneData();
-	// TODO: fill sceneData
+
+	for (int i = 0; i < nFiles; i++) {
+		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
+
+		if (objectsMap[0].first == ObjectType::LineSegments) {
+			int lineSegmentObjectIndex = objectsMap[0].second;
+			loadGeometry<DIM, LineSegment>(files[i].first, files[i].second, sceneData->soups[i],
+										   sceneData->lineSegmentObjects[lineSegmentObjectIndex]);
+
+		} else if (objectsMap[0].first == ObjectType::Triangles) {
+			int triangleObjectIndex = objectsMap[0].second;
+			loadGeometry<DIM, Triangle>(files[i].first, files[i].second, sceneData->soups[i],
+										sceneData->triangleObjects[triangleObjectIndex]);
+		}
+	}
 
 	// load instance transforms
 	if (!instanceFilename.empty()) {

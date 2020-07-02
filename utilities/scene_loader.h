@@ -15,7 +15,8 @@ public:
 	// constructor
 	SceneLoader();
 
-	// loads files
+	// loads files; NOTE: this method does not build the scene aggregate/accelerator,
+	// it just populates its geometry
 	void loadFiles(Scene<DIM>& scene, bool computeNormals);
 
 	// members
