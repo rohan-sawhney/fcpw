@@ -361,6 +361,9 @@ inline void sortSoupPositions<3, Triangle>(const std::vector<SbvhNode<3>>& flatT
 	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
 }
 
+using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
+using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
+
 template<size_t DIM, typename PrimitiveType>
 inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType,
 													 std::vector<PrimitiveType *>& primitives,
@@ -455,8 +458,6 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 	int nTriangleObjects = 0;
 	int nMixedObjects = 0;
 	std::vector<std::unique_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
-	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
-	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
 	SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
 	SortTrianglePositionsFunc sortTrianglePositions = {};
 
@@ -504,7 +505,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 
 			// make aggregate
 			if (!vectorize) {
-				sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
+				sortLineSegmentPositions = std::bind(&sortSoupPositions<DIM, LineSegment>,
 													 std::placeholders::_1, std::placeholders::_2,
 													 std::ref(sceneData->soups[i]));
 			}
@@ -526,7 +527,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 
 			// make aggregate
 			if (!vectorize) {
-				sortTrianglePositions = std::bind(&sortSoupPositions<3, Triangle>,
+				sortTrianglePositions = std::bind(&sortSoupPositions<DIM, Triangle>,
 												  std::placeholders::_1, std::placeholders::_2,
 												  std::ref(sceneData->soups[i]));
 			}
