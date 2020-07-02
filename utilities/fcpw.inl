@@ -575,6 +575,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		// build csg tree
 		sceneData->aggregate = buildCsgAggregateRecursive<DIM>(0, sceneData->csgTree,
 															   sceneData->aggregateInstances, nAggregates);
+		sceneData->aggregate->index = nAggregates++;
 		sceneData->aggregateInstancePtrs.clear();
 		sceneData->aggregateInstances.clear();
 
@@ -582,9 +583,8 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		// make aggregate
 		sceneData->aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
 																  false, printStats);
+		sceneData->aggregate->index = nAggregates++;
 	}
-
-	sceneData->aggregate->index = nAggregates++;
 }
 
 template<size_t DIM>
