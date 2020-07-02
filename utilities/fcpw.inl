@@ -364,6 +364,7 @@ inline void sortSoupPositions<3, Triangle>(const std::vector<SbvhNode<3>>& flatT
 using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
 using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
 
+// TODO: going to get errors if DIM & PrimitiveType are incompatible
 template<size_t DIM, typename PrimitiveType>
 inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType,
 													 std::vector<PrimitiveType *>& primitives,
@@ -465,6 +466,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
 
 		if (objectsMap.size() > 1) {
+			// TODO: might be problematic for DIM != 3, compile time errors maybe?
 			// soup contains mixed primitives, set mixed object ptrs
 			sceneData->mixedObjectPtrs.emplace_back(std::vector<GeometricPrimitive<DIM> *>());
 			std::vector<GeometricPrimitive<DIM> *>& mixedObjectPtr = sceneData->mixedObjectPtrs[nMixedObjects];
