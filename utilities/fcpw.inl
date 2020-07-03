@@ -476,8 +476,6 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 	std::vector<std::unique_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
 	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<DIM>>&, std::vector<LineSegment *>&)>;
 	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<DIM>>&, std::vector<Triangle *>&)>;
-	SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
-	SortTrianglePositionsFunc sortTrianglePositions = {};
 
 	for (int i = 0; i < nObjects; i++) {
 		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
@@ -521,6 +519,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 			}
 
 			// make aggregate
+			SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
 			if (!vectorize) {
 				sortLineSegmentPositions = std::bind(&sortSoupPositions<DIM, LineSegment>,
 													 std::placeholders::_1, std::placeholders::_2,
@@ -542,6 +541,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 			}
 
 			// make aggregate
+			SortTrianglePositionsFunc sortTrianglePositions = {};
 			if (!vectorize) {
 				sortTrianglePositions = std::bind(&sortSoupPositions<DIM, Triangle>,
 												  std::placeholders::_1, std::placeholders::_2,
