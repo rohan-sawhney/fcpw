@@ -1,21 +1,17 @@
 Priority:
-1. API:
----- test scene loading API (load scene from file, then reload into another scene)
----- test mixed primitives in aggregate
----- add error checks?
-2. give the closest point a rough guess of direction to guide traversal (things can
+1. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
-3. start search from specified node (and walk up/laterally in the tree)
-4. mbvh
+2. start search from specified node (and walk up/laterally in the tree)
+3. mbvh
 ---- better construction, sorting, memory layout: http://www.cs.ubbcluj.ro/~afra/publications/afra2013tr_mbvh8.pdf
 ---- don't broadcast ray & sphere data?
 ---- use unused vector units during overlap/intersection with AVX & 4 wide branching?
 ---- sort nodes efficiently by direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
-5. benchmark (https://github.com/jdumas/aabb_benchmark)
-6. travis/circle CI
-7. README (tutorial, features, benchmark, compiling, logo)
+4. benchmark (https://github.com/jdumas/aabb_benchmark)
+5. travis/circle CI
+6. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. add support for more geometries:
