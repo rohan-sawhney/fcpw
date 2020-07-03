@@ -1,7 +1,7 @@
-#include "accelerators/baseline.h"
-#include "accelerators/sbvh.h"
+#include "aggregates/baseline.h"
+#include "aggregates/sbvh.h"
 #ifdef BUILD_ENOKI
-	#include "accelerators/mbvh.h"
+	#include "aggregates/mbvh.h"
 #endif
 #include <map>
 

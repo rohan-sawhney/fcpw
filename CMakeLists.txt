@@ -90,22 +90,23 @@ set(FCPW_CORE_HEADERS
 	core/bounding_volumes.h
 	core/interaction.h
 	core/primitive.h
-	core/csg_node.h
 	core/wide_query_operations.h
 	)
 
 file(GLOB FCPW_SOURCE
-	 accelerators/baseline.h
-	 accelerators/baseline.inl
-	 accelerators/sbvh.h
-	 accelerators/sbvh.inl
-	 accelerators/mbvh.h
-	 accelerators/mbvh.inl
 	 geometry/polygon_soup.h
 	 geometry/line_segments.h
 	 geometry/line_segments.cpp
 	 geometry/triangles.h
 	 geometry/triangles.cpp
+	 aggregates/baseline.h
+	 aggregates/baseline.inl
+	 aggregates/sbvh.h
+	 aggregates/sbvh.inl
+	 aggregates/mbvh.h
+	 aggregates/mbvh.inl
+	 aggregates/csg_node.h
+	 aggregates/csg_node.inl
 	 utilities/scene_data.h
 	 utilities/scene_data.inl
 	 utilities/fcpw.h
