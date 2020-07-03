@@ -4,7 +4,7 @@ project(fcpw)
 option(BUILD_ENOKI "Build enoki" ON)
 option(USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
 option(BUILD_TESTS "Build tests" ON)
-option(BENCHMARK_EMBREE "Benchmark embree" ON)
+option(BENCHMARK_EMBREE "Benchmark embree" OFF)
 option(PROFILE "Profile" OFF)
 
 ################################################################################
@@ -28,7 +28,7 @@ endif()
 
 ################################################################################
 # dependencies
-if(BENCHMARK_EMBREE)
+if(BUILD_TESTS AND BENCHMARK_EMBREE)
 	add_definitions(-DBENCHMARK_EMBREE)
 	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Enable ispc functionality")
 	set(EMBREE_TUTORIALS OFF CACHE BOOL "Enable embree tutorials")
