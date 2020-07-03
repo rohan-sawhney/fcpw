@@ -55,7 +55,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 
 	// generate queries in each box
 	int nBoxes = (int)boxes.size();
-	int nQueriesPerBox = std::ceil(nQueries/nBoxes);
+	int nQueriesPerBox = std::ceil((float)nQueries/nBoxes);
 
 	for (int i = 0; i < nBoxes; i++) {
 		Vector<DIM> e = boxes[i].extent();
