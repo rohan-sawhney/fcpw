@@ -4,7 +4,7 @@ project(fcpw)
 option(BUILD_ENOKI "Build enoki" ON)
 option(USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
 option(BUILD_TESTS "Build tests" ON)
-option(BENCHMARK_EMBREE "Benchmark embree" OFF)
+option(BENCHMARK_EMBREE "Benchmark embree" ON)
 option(PROFILE "Profile" OFF)
 
 ################################################################################
@@ -106,11 +106,12 @@ file(GLOB FCPW_SOURCE
 	 geometry/line_segments.cpp
 	 geometry/triangles.h
 	 geometry/triangles.cpp
-	 utilities/file_io.h
-	 utilities/file_io.inl
-	 utilities/file_io.cpp
-	 utilities/scene.h
-	 utilities/scene.inl
+	 utilities/scene_data.h
+	 utilities/scene_data.inl
+	 utilities/fcpw.h
+	 utilities/fcpw.inl
+	 utilities/scene_loader.h
+	 utilities/scene_loader.inl
 	 )
 
 ################################################################################
@@ -137,18 +138,18 @@ list(APPEND ALL_FCPW_LIBS fcpw)
 
 ################################################################################
 if(BUILD_TESTS)
-	add_executable(aggregate_tests tests/aggregate_tests.cpp)
-	add_executable(csg_tests tests/csg_tests.cpp)
-
-	target_include_directories(fcpw PUBLIC deps/ThreadPool)
 	add_subdirectory(deps/polyscope)
 
+	add_executable(aggregate_tests tests/aggregate_tests.cpp)
+	target_include_directories(aggregate_tests PUBLIC deps/ThreadPool)
 	if(BENCHMARK_EMBREE)
-		target_include_directories(fcpw PUBLIC deps/embree)
+		target_include_directories(aggregate_tests PUBLIC deps/embree)
 		target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope embree)
 	else()
 		target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope)
 	endif()
 
+	add_executable(csg_tests tests/csg_tests.cpp)
+	target_include_directories(csg_tests PUBLIC deps/ThreadPool)
 	target_link_libraries(csg_tests ${ALL_FCPW_LIBS} polyscope)
 endif()

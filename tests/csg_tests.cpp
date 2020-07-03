@@ -1,4 +1,4 @@
-#include "utilities/scene.h"
+#include "utilities/scene_loader.h"
 #include <ThreadPool.h>
 
 #include "polyscope/polyscope.h"
@@ -32,7 +32,7 @@ void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatt
 }
 
 template<size_t DIM>
-bool raymarch(const Aggregate<DIM> *aggregate,
+bool raymarch(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 			  const BoundingBox<DIM>& boundingBox,
 			  Ray<DIM> r, Interaction<DIM>& i)
 {
@@ -64,7 +64,7 @@ template<size_t DIM>
 void clampToCsg(const std::string& method,
 				const std::vector<Vector<DIM>>& scatteredPoints,
 				const std::vector<Vector<DIM>>& randomDirections,
-				const Aggregate<DIM> *aggregate,
+				const std::unique_ptr<Aggregate<DIM>>& aggregate,
 				const BoundingBox<DIM>& boundingBox,
 				std::vector<Vector<DIM>>& clampedPoints)
 {
@@ -116,7 +116,8 @@ void clampToCsg(const std::string& method,
 }
 
 template<size_t DIM>
-void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
+void guiCallback(const std::unique_ptr<Aggregate<DIM>>& aggregate,
+				 const BoundingBox<DIM>& boundingBox,
 				 std::vector<Vector<DIM>>& intersectedPoints,
 				 std::vector<Vector<DIM>>& raymarchedPoints)
 {
@@ -130,9 +131,9 @@ void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
 
 		// intersect and raymarch points
 		clampToCsg<DIM>("intersect", scatteredPoints, randomDirections,
-						scene.aggregate, boundingBox, intersectedPoints);
+						aggregate, boundingBox, intersectedPoints);
 		clampToCsg<DIM>("raymarch", scatteredPoints, randomDirections,
-						scene.aggregate, boundingBox, raymarchedPoints);
+						aggregate, boundingBox, raymarchedPoints);
 
 		if (DIM == 3) {
 			// register point clouds
@@ -145,7 +146,7 @@ void guiCallback(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
 }
 
 template<size_t DIM>
-void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox,
+void visualizeScene(SceneData<DIM> *sceneData, const BoundingBox<DIM>& boundingBox,
 					std::vector<Vector<DIM>>& intersectedPoints,
 					std::vector<Vector<DIM>>& raymarchedPoints)
 {
@@ -159,28 +160,28 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 	polyscope::init();
 
 	if (DIM == 3) {
-		for (int i = 0; i < (int)scene.soups.size(); i++) {
+		for (int i = 0; i < (int)sceneData->soups.size(); i++) {
 			std::string meshName = "Polygon_Soup_" + std::to_string(i);
 
-			if (scene.objectTypes[i] == ObjectType::Triangles) {
+			if (sceneData->soupToObjectsMap[i][0].first == ObjectType::Triangles) {
 				// register surface mesh
-				int N = (int)scene.soups[i].indices.size()/3;
+				int N = (int)sceneData->soups[i].indices.size()/3;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
-				const std::vector<Vector<DIM>>& positions = scene.soups[i].positions;
+				const std::vector<Vector<DIM>>& positions = sceneData->soups[i].positions;
 				for (int j = 0; j < N; j++) {
 					for (int k = 0; k < 3; k++) {
-						indices[j][k] = scene.soups[i].indices[3*j + k];
+						indices[j][k] = sceneData->soups[i].indices[3*j + k];
 					}
 				}
 
-				if (scene.instanceTransforms[i].size() > 0) {
-					for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
+				if (sceneData->instanceTransforms[i].size() > 0) {
+					for (int j = 0; j < (int)sceneData->instanceTransforms[i].size(); j++) {
 						std::string transformedMeshName = meshName + "_" + std::to_string(j);
 						std::vector<Vector<DIM>> transformedPositions;
 
 						for (int k = 0; k < (int)positions.size(); k++) {
 							transformedPositions.emplace_back(transformVector<DIM>(
-															scene.instanceTransforms[i][j], positions[k]));
+												sceneData->instanceTransforms[i][j], positions[k]));
 						}
 
 						polyscope::registerSurfaceMesh(transformedMeshName, transformedPositions, indices);
@@ -190,25 +191,25 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 					polyscope::registerSurfaceMesh(meshName, positions, indices);
 				}
 
-			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
+			} else if (sceneData->soupToObjectsMap[i][0].first == ObjectType::LineSegments) {
 				// register curve network
-				int N = (int)scene.soups[i].indices.size()/2;
+				int N = (int)sceneData->soups[i].indices.size()/2;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
-				const std::vector<Vector<DIM>>& positions = scene.soups[i].positions;
+				const std::vector<Vector<DIM>>& positions = sceneData->soups[i].positions;
 				for (int j = 0; j < N; j++) {
 					for (int k = 0; k < 2; k++) {
-						indices[j][k] = scene.soups[i].indices[2*j + k];
+						indices[j][k] = sceneData->soups[i].indices[2*j + k];
 					}
 				}
 
-				if (scene.instanceTransforms[i].size() > 0) {
-					for (int j = 0; j < (int)scene.instanceTransforms[i].size(); j++) {
+				if (sceneData->instanceTransforms[i].size() > 0) {
+					for (int j = 0; j < (int)sceneData->instanceTransforms[i].size(); j++) {
 						std::string transformedMeshName = meshName + "_" + std::to_string(j);
 						std::vector<Vector<DIM>> transformedPositions;
 
 						for (int k = 0; k < (int)positions.size(); k++) {
 							transformedPositions.emplace_back(transformVector<DIM>(
-															scene.instanceTransforms[i][j], positions[k]));
+												sceneData->instanceTransforms[i][j], positions[k]));
 						}
 
 						polyscope::registerCurveNetwork(transformedMeshName, transformedPositions, indices);
@@ -226,7 +227,7 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 	polyscope::registerPointCloud("Raymarched_Points", raymarchedPoints);
 
 	// register callback
-	polyscope::state::userCallback = std::bind(&guiCallback<DIM>, std::cref(scene),
+	polyscope::state::userCallback = std::bind(&guiCallback<DIM>, std::cref(sceneData->aggregate),
 											   std::cref(boundingBox),
 											   std::ref(intersectedPoints),
 											   std::ref(raymarchedPoints));
@@ -238,25 +239,27 @@ void visualizeScene(const Scene<DIM>& scene, const BoundingBox<DIM>& boundingBox
 template<size_t DIM>
 void run()
 {
-	// build scene
-	Scene<DIM> scene(true);
-	scene.loadFiles();
-	scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter, true);
+	// build scene and csg
+	Scene<DIM> scene;
+	SceneLoader<DIM> sceneLoader;
+	sceneLoader.loadFiles(scene, true);
+	scene.build(AggregateType::Bvh_LongestAxisCenter, false, true);
+	SceneData<DIM> *sceneData = scene.getSceneData();
 
 	// generate random points and rays used to visualize csg
-	BoundingBox<DIM> boundingBox = scene.aggregate->boundingBox();
+	BoundingBox<DIM> boundingBox = sceneData->aggregate->boundingBox();
 	std::vector<Vector<DIM>> scatteredPoints, randomDirections;
 	generateScatteredPointsAndRays<DIM>(1000, scatteredPoints, randomDirections, boundingBox);
 
 	// intersect and raymarch points
 	std::vector<Vector<DIM>> intersectedPoints, raymarchedPoints;
 	clampToCsg<DIM>("intersect", scatteredPoints, randomDirections,
-					scene.aggregate, boundingBox, intersectedPoints);
+					sceneData->aggregate, boundingBox, intersectedPoints);
 	clampToCsg<DIM>("raymarch", scatteredPoints, randomDirections,
-					scene.aggregate, boundingBox, raymarchedPoints);
+					sceneData->aggregate, boundingBox, raymarchedPoints);
 
 	// visualize scene
-	visualizeScene<DIM>(scene, boundingBox, intersectedPoints, raymarchedPoints);
+	visualizeScene<DIM>(sceneData, boundingBox, intersectedPoints, raymarchedPoints);
 }
 
 int main(int argc, const char *argv[]) {

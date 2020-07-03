@@ -1,6 +1,6 @@
 Priority:
 1. API:
----- test fcpw.h & fcpw.inl, and add error checks
+---- test fcpw.h & fcpw.inl (load scene from file, then reload into another scene), and add error checks
 2. give the closest point a rough guess of direction to guide traversal (things can
    possibly go very wrong if guess is totally off for certain geometric distributions)
 3. start search from specified node (and walk up/laterally in the tree)

@@ -49,16 +49,13 @@ public:
 	std::vector<std::vector<Transform<DIM>>> instanceTransforms;
 	std::unordered_map<int, CsgTreeNode> csgTree;
 
-	std::unique_ptr<Aggregate<DIM>> aggregate;
-
-private:
-	// members
 	std::vector<std::vector<LineSegment *>> lineSegmentObjectPtrs;
 	std::vector<std::vector<Triangle *>> triangleObjectPtrs;
 	std::vector<std::vector<GeometricPrimitive<DIM> *>> mixedObjectPtrs;
 
 	std::vector<std::unique_ptr<Aggregate<DIM>>> aggregateInstances;
 	std::vector<Aggregate<DIM> *> aggregateInstancePtrs;
+	std::unique_ptr<Aggregate<DIM>> aggregate;
 
 	template<size_t U>
 	friend class Scene;

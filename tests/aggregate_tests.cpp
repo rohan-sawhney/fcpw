@@ -1,4 +1,4 @@
-#include "utilities/scene.h"
+#include "utilities/scene_loader.h"
 #include <ThreadPool.h>
 #include <atomic>
 
@@ -78,19 +78,35 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 
 #ifdef BENCHMARK_EMBREE
 template<size_t DIM>
-inline bool buildEmbreeAggregate(Scene<DIM>& scene, bool printStats=false)
+inline bool buildEmbreeAggregate(SceneData<DIM> *sceneData, bool printStats=false)
 {
-	scene.clearAggregate();
-	if (scene.triangleObjects.size() != 1) {
+	sceneData->clearAggregateData();
+	if (sceneData->triangleObjects.size() != 1) {
 		std::cout << "buildEmbreeAggregate<DIM>(): Only a single triangle object is supported at the moment"
 				  << std::endl;
 		return false;
 	}
 
-	for (int i = 0; i < (int)scene.soups.size(); i++) {
-		if (scene.objectTypes[i] == ObjectType::Triangles) {
-			scene.aggregate = new EmbreeBvh(scene.triangleObjects[0], &scene.soups[i], printStats);
-			scene.aggregate->index = 0;
+	for (int i = 0; i < (int)sceneData->soups.size(); i++) {
+		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
+
+		if (objectsMap[0].first == ObjectType::Triangles) {
+			// fill triangle pts
+			sceneData->triangleObjectPtrs.resize(1);
+			int triangleObjectIndex = objectsMap[0].second;
+			std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
+			std::vector<Triangle *>& triangleObjectPtr = sceneData->triangleObjectPtrs[0];
+
+			for (int j = 0; j < (int)triangleObject.size(); j++) {
+				triangleObjectPtr.emplace_back(&triangleObject[j]);
+			}
+
+			// make aggregate
+			sceneData->aggregate = std::unique_ptr<EmbreeBvh>(new EmbreeBvh(triangleObjectPtr,
+																			&sceneData->soups[i],
+																			printStats));
+			sceneData->aggregate->index = 0;
+
 			return true;
 		}
 	}
@@ -101,7 +117,7 @@ inline bool buildEmbreeAggregate(Scene<DIM>& scene, bool printStats=false)
 #endif
 
 template<size_t DIM>
-void timeIntersectionQueries(const Aggregate<DIM> *aggregate,
+void timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 							 const std::vector<Vector<DIM>>& rayOrigins,
 							 const std::vector<Vector<DIM>>& rayDirections,
 							 const std::vector<int>& indices,
@@ -157,7 +173,7 @@ void timeIntersectionQueries(const Aggregate<DIM> *aggregate,
 }
 
 template<size_t DIM>
-void timeClosestPointQueries(const Aggregate<DIM> *aggregate,
+void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 							 const std::vector<Vector<DIM>>& queryPoints,
 							 const std::vector<int>& indices,
 							 const std::string& aggregateType,
@@ -225,8 +241,8 @@ void timeClosestPointQueries(const Aggregate<DIM> *aggregate,
 }
 
 template<size_t DIM>
-void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
-							 const Aggregate<DIM> *aggregate2,
+void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+							 const std::unique_ptr<Aggregate<DIM>>& aggregate2,
 							 const std::vector<Vector<DIM>>& rayOrigins,
 							 const std::vector<Vector<DIM>>& rayDirections,
 							 const std::vector<int>& indices,
@@ -297,8 +313,8 @@ void testIntersectionQueries(const Aggregate<DIM> *aggregate1,
 }
 
 template<size_t DIM>
-void testClosestPointQueries(const Aggregate<DIM> *aggregate1,
-							 const Aggregate<DIM> *aggregate2,
+void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+							 const std::unique_ptr<Aggregate<DIM>>& aggregate2,
 							 const std::vector<Vector<DIM>>& queryPoints,
 							 const std::vector<int>& indices,
 							 bool queriesCoherent=false)
@@ -361,7 +377,7 @@ void testClosestPointQueries(const Aggregate<DIM> *aggregate1,
 }
 
 template<size_t DIM>
-void isolateInteriorPoints(const Aggregate<DIM> *aggregate,
+void isolateInteriorPoints(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 						   const std::vector<Vector<DIM>>& queryPoints,
 						   std::vector<Vector<DIM>>& interiorPoints)
 {
@@ -395,7 +411,7 @@ void isolateInteriorPoints(const Aggregate<DIM> *aggregate,
 }
 
 template<size_t DIM>
-void visualizeScene(const Scene<DIM>& scene,
+void visualizeScene(SceneData<DIM> *sceneData,
 					const std::vector<Vector<DIM>>& queryPoints,
 					const std::vector<Vector<DIM>>& randomDirections,
 					const std::vector<Vector<DIM>>& interiorPoints)
@@ -414,32 +430,32 @@ void visualizeScene(const Scene<DIM>& scene,
 	if (plotInteriorPoints) polyscope::registerPointCloud("Interior_Points", interiorPoints);
 
 	if (DIM == 3) {
-		for (int i = 0; i < (int)scene.soups.size(); i++) {
+		for (int i = 0; i < (int)sceneData->soups.size(); i++) {
 			std::string meshName = "Polygon_Soup_" + std::to_string(i);
 
-			if (scene.objectTypes[i] == ObjectType::Triangles) {
+			if (sceneData->soupToObjectsMap[i][0].first == ObjectType::Triangles) {
 				// register surface mesh
-				int N = (int)scene.soups[i].indices.size()/3;
+				int N = (int)sceneData->soups[i].indices.size()/3;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(3));
 				for (int j = 0; j < N; j++) {
 					for (int k = 0; k < 3; k++) {
-						indices[j][k] = scene.soups[i].indices[3*j + k];
+						indices[j][k] = sceneData->soups[i].indices[3*j + k];
 					}
 				}
 
-				polyscope::registerSurfaceMesh(meshName, scene.soups[i].positions, indices);
+				polyscope::registerSurfaceMesh(meshName, sceneData->soups[i].positions, indices);
 
-			} else if (scene.objectTypes[i] == ObjectType::LineSegments) {
+			} else if (sceneData->soupToObjectsMap[i][0].first == ObjectType::LineSegments) {
 				// register curve network
-				int N = (int)scene.soups[i].indices.size()/2;
+				int N = (int)sceneData->soups[i].indices.size()/2;
 				std::vector<std::vector<int>> indices(N, std::vector<int>(2));
 				for (int j = 0; j < N; j++) {
 					for (int k = 0; k < 2; k++) {
-						indices[j][k] = scene.soups[i].indices[2*j + k];
+						indices[j][k] = sceneData->soups[i].indices[2*j + k];
 					}
 				}
 
-				polyscope::registerCurveNetwork(meshName, scene.soups[i].positions, indices);
+				polyscope::registerCurveNetwork(meshName, sceneData->soups[i].positions, indices);
 			}
 		}
 
@@ -455,12 +471,14 @@ template<size_t DIM>
 void run()
 {
 	// build baseline scene
-	Scene<DIM> scene(false);
-	scene.loadFiles();
-	scene.buildAggregate(AggregateType::Baseline);
+	Scene<DIM> scene;
+	SceneLoader<DIM> sceneLoader;
+	sceneLoader.loadFiles(scene, false);
+	scene.build(AggregateType::Baseline, false, true);
+	SceneData<DIM> *sceneData = scene.getSceneData();
 
 	// generate random points and rays used to visualize csg
-	BoundingBox<DIM> boundingBox = scene.aggregate->boundingBox();
+	BoundingBox<DIM> boundingBox = sceneData->aggregate->boundingBox();
 	std::vector<Vector<DIM>> queryPoints, randomDirections;
 	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
 
@@ -481,22 +499,24 @@ void run()
 		std::cout << "Running performance tests..." << std::endl;
 
 		// benchmark baseline queries
-		//timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+		//timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
 		//							   shuffledIndices, "Baseline");
-		//timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+		//timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 		//							   shuffledIndices, "Baseline");
 
 		// build bvh aggregates and benchmark queries
 		for (int bvh = 1; bvh < 6; bvh++) {
 			for (int vec = 0; vec < 2; vec++) {
-				scene.buildAggregate(static_cast<AggregateType>(bvh), true, vec == 1);
-				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+				scene.build(static_cast<AggregateType>(bvh), vec == 1, true);
+				sceneData = scene.getSceneData();
+
+				timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
 											 shuffledIndices, bvhTypes[bvh - 1]);
-				timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+				timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
 											 indices, bvhTypes[bvh - 1], true);
-				timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 											 shuffledIndices, bvhTypes[bvh - 1]);
-				timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 											 indices, bvhTypes[bvh - 1], true);
 
 #ifndef BUILD_ENOKI
@@ -509,10 +529,10 @@ void run()
 
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
-		if (buildEmbreeAggregate<DIM>(scene, true)) {
-			timeIntersectionQueries<DIM>(scene.aggregate, queryPoints, randomDirections,
+		if (buildEmbreeAggregate<DIM>(sceneData, true)) {
+			timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
 										 indices, "Embree Bvh");
-			timeClosestPointQueries<DIM>(scene.aggregate, queryPoints,
+			timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 										 indices, "Embree Bvh");
 		}
 #endif
@@ -522,24 +542,27 @@ void run()
 		std::cout << "Running correctness tests..." << std::endl;
 
 		// build baseline aggregate
-		scene.buildAggregate(AggregateType::Baseline);
+		scene.build(AggregateType::Baseline, false, true);
+		sceneData = scene.getSceneData();
 
 		// build bvh aggregates and compare results with baseline
-		Scene<DIM> bvhScene(false);
-		bvhScene.loadFiles();
+		Scene<DIM> bvhScene;
+		sceneLoader.loadFiles(bvhScene, false);
 
 		for (int bvh = 1; bvh < 6; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
 
 			for (int vec = 0; vec < 2; vec++) {
-				bvhScene.buildAggregate(static_cast<AggregateType>(bvh), true, vec == 1);
-				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+				bvhScene.build(static_cast<AggregateType>(bvh), vec == 1, true);
+				SceneData<DIM> *bvhSceneData = bvhScene.getSceneData();
+
+				testIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, randomDirections, shuffledIndices);
-				testIntersectionQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+				testIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, randomDirections, indices, true);
-				testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, shuffledIndices);
-				testClosestPointQueries<DIM>(scene.aggregate, bvhScene.aggregate,
+				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, indices, true);
 
 #ifndef BUILD_ENOKI
@@ -553,13 +576,14 @@ void run()
 #ifdef BENCHMARK_EMBREE
 		// build embree bvh aggregate and compare results with baseline
 		std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
-		Scene<DIM> embreeBvhScene(false);
-		embreeBvhScene.loadFiles();
+		Scene<DIM> embreeBvhScene;
+		sceneLoader.loadFiles(embreeBvhScene, false);
+		SceneData<DIM> *embreeBvhSceneData = embreeBvhScene.getSceneData();
 
-		if (buildEmbreeAggregate<DIM>(embreeBvhScene, true)) {
-			testIntersectionQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
+		if (buildEmbreeAggregate<DIM>(embreeBvhSceneData, true)) {
+			testIntersectionQueries<DIM>(sceneData->aggregate, embreeBvhSceneData->aggregate,
 										 queryPoints, randomDirections, indices);
-			testClosestPointQueries<DIM>(scene.aggregate, embreeBvhScene.aggregate,
+			testClosestPointQueries<DIM>(sceneData->aggregate, embreeBvhSceneData->aggregate,
 										 queryPoints, indices);
 		}
 #endif
@@ -567,14 +591,15 @@ void run()
 
 	if (vizScene) {
 		// build bvh aggregate
-		scene.buildAggregate(AggregateType::Bvh_LongestAxisCenter, true);
+		scene.build(AggregateType::Bvh_LongestAxisCenter, false, true);
+		sceneData = scene.getSceneData();
 
 		// isolate interior points among query points
 		std::vector<Vector<DIM>> interiorPoints;
-		if (plotInteriorPoints) isolateInteriorPoints<DIM>(scene.aggregate, queryPoints, interiorPoints);
+		if (plotInteriorPoints) isolateInteriorPoints<DIM>(sceneData->aggregate, queryPoints, interiorPoints);
 
 		// visualize scene
-		visualizeScene<DIM>(scene, queryPoints, randomDirections, interiorPoints);
+		visualizeScene<DIM>(sceneData, queryPoints, randomDirections, interiorPoints);
 	}
 }
 
