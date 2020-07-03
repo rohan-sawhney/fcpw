@@ -31,19 +31,20 @@ inline void Scene<DIM>::setObjectTypes(const std::vector<std::vector<PrimitiveTy
 	for (int i = 0; i < nObjects; i++) {
 		for (int j = 0; j < (int)objectTypes[i].size(); j++) {
 			if (objectTypes[i][j] == PrimitiveType::LineSegment) {
-				sceneData->lineSegmentObjects.emplace_back(nullptr);
 				sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::LineSegments,
 																		   nLineSegmentObjects));
 				nLineSegmentObjects++;
 
 			} else if (objectTypes[i][j] == PrimitiveType::Triangle) {
-				sceneData->triangleObjects.emplace_back(nullptr);
 				sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::Triangles,
 																		   nTriangleObjects));
 				nTriangleObjects++;
 			}
 		}
 	}
+
+	sceneData->lineSegmentObjects.resize(nLineSegmentObjects);
+	sceneData->triangleObjects.resize(nTriangleObjects);
 }
 
 template<size_t DIM>
