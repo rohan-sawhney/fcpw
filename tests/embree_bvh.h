@@ -1,6 +1,6 @@
 #pragma once
 
-#include "accelerators/baseline.h"
+#include "aggregates/baseline.h"
 #include "geometry/polygon_soup.h"
 #include <include/embree3/rtcore.h>
 
