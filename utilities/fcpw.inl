@@ -429,16 +429,28 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 {
 	// allocate space for line segment, triangle & mixed object ptrs
 	int nObjects = (int)sceneData->soups.size();
-	objectAggregates.resize(nObjects);
-	sceneData->lineSegmentObjectPtrs.resize(nObjects);
-	sceneData->triangleObjectPtrs.resize(nObjects);
-	sceneData->mixedObjectPtrs.resize(nObjects);
-
-	// populate the object ptrs and make their aggregates
 	int nLineSegmentObjectPtrs = 0;
 	int nTriangleObjectPtrs = 0;
 	int nMixedObjectPtrs = 0;
+
+	for (int i = 0; i < nObjects; i++) {
+		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
+
+		if (objectsMap.size() > 1) nMixedObjectPtrs++;
+		else if (objectsMap[0].first == ObjectType::LineSegments) nLineSegmentObjectPtrs++;
+		else if (objectsMap[0].first == ObjectType::Triangles) nTriangleObjectPtrs++;
+	}
+
+	objectAggregates.resize(nObjects);
+	sceneData->lineSegmentObjectPtrs.resize(nLineSegmentObjectPtrs);
+	sceneData->triangleObjectPtrs.resize(nTriangleObjectPtrs);
+	sceneData->mixedObjectPtrs.resize(nMixedObjectPtrs);
+
+	// populate the object ptrs and make their aggregates
 	int nAggregates = 0;
+	nLineSegmentObjectPtrs = 0;
+	nTriangleObjectPtrs = 0;
+	nMixedObjectPtrs = 0;
 	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
 	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
 
@@ -520,10 +532,6 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 		objectAggregates[i]->index = nAggregates++;
 		objectAggregates[i]->computeNormals = sceneData->soups[i].vNormals.size() > 0;
 	}
-
-	sceneData->lineSegmentObjectPtrs.resize(nLineSegmentObjectPtrs);
-	sceneData->triangleObjectPtrs.resize(nTriangleObjectPtrs);
-	sceneData->mixedObjectPtrs.resize(nMixedObjectPtrs);
 }
 
 template<size_t DIM>
