@@ -1,4 +1,5 @@
 #include "core/wide_query_operations.h"
+#include <list>
 
 namespace fcpw {
 
@@ -28,39 +29,58 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 
 	} else {
 		// sbvh node is an inner node, flatten it
-		int stackPtr = 0;
-		int nNodesCollapsed = 0;
-		int stackSbvhNodes[MBVH_BRANCHING_FACTOR][2];
-		stackSbvhNodes[stackPtr][0] = sbvhNodeIndex;
-		stackSbvhNodes[stackPtr][1] = 0;
+		std::list<int> nodesToCollapse;
+		nodesToCollapse.emplace_back(sbvhNodeIndex + sbvhNode.secondChildOffset);
+		nodesToCollapse.emplace_back(sbvhNodeIndex + 1);
+		bool noMoreNodesToCollapse = false;
 
-		while (stackPtr >= 0) {
-			int sbvhNodeIndex = stackSbvhNodes[stackPtr][0];
-			int level = stackSbvhNodes[stackPtr][1];
-			stackPtr--;
+		while (nodesToCollapse.size() < MBVH_BRANCHING_FACTOR && !noMoreNodesToCollapse) {
+			// find the (non-leaf) node entry with the largest surface area
+			float maxSurfaceArea = minFloat;
+			std::list<int>::iterator maxIt = nodesToCollapse.end();
 
-			const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
-			if (level < maxLevel && sbvhNode.nReferences == 0) {
-				// enqueue sbvh children nodes till max level or leaf node is reached
-				stackPtr++;
-				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + sbvhNode.secondChildOffset;
-				stackSbvhNodes[stackPtr][1] = level + 1;
+			for (std::list<int>::iterator it = nodesToCollapse.begin(); it != nodesToCollapse.end(); it++) {
+				int sbvhNodeIndex = *it;
+				const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 
-				stackPtr++;
-				stackSbvhNodes[stackPtr][0] = sbvhNodeIndex + 1;
-				stackSbvhNodes[stackPtr][1] = level + 1;
+				if (sbvhNode.nReferences == 0) {
+					float surfaceArea = sbvhNode.box.surfaceArea();
+
+					if (maxSurfaceArea < surfaceArea) {
+						maxSurfaceArea = surfaceArea;
+						maxIt = it;
+					}
+				}
+			}
+
+			if (maxIt == nodesToCollapse.end()) {
+				// no more nodes to collapse
+				noMoreNodesToCollapse = true;
 
 			} else {
-				// assign mbvh node this sbvh node's bounding box and index
-				for (int i = 0; i < DIM; i++) {
-					flatTree[mbvhNodeIndex].boxMin[i][nNodesCollapsed] = sbvhNode.box.pMin[i];
-					flatTree[mbvhNodeIndex].boxMax[i][nNodesCollapsed] = sbvhNode.box.pMax[i];
-				}
+				// remove the selected node from the list, and add its two children
+				int sbvhNodeIndex = *maxIt;
+				const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 
-				flatTree[mbvhNodeIndex].child[nNodesCollapsed] = collapseSbvh(sbvh,
-											sbvhNodeIndex, mbvhNodeIndex, depth + 1);
-				nNodesCollapsed++;
+				nodesToCollapse.erase(maxIt);
+				nodesToCollapse.emplace_back(sbvhNodeIndex + sbvhNode.secondChildOffset);
+				nodesToCollapse.emplace_back(sbvhNodeIndex + 1);
 			}
+		}
+
+		// collapse the nodes
+		int i = 0;
+		for (std::list<int>::iterator it = nodesToCollapse.begin(); it != nodesToCollapse.end(); it++) {
+			int sbvhNodeIndex = *it;
+			const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+
+			// assign mbvh node this sbvh node's bounding box and index
+			for (int j = 0; j < DIM; j++) {
+				flatTree[mbvhNodeIndex].boxMin[j][i] = sbvhNode.box.pMin[j];
+				flatTree[mbvhNodeIndex].boxMax[j][i] = sbvhNode.box.pMax[j];
+			}
+
+			flatTree[mbvhNodeIndex].child[i++] = collapseSbvh(sbvh, sbvhNodeIndex, mbvhNodeIndex, depth + 1);
 		}
 	}
 
