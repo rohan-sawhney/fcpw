@@ -80,13 +80,20 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 template<size_t DIM>
 inline bool buildEmbreeAggregate(SceneData<DIM> *sceneData, bool printStats=false)
 {
-	sceneData->clearAggregateData();
+	std::cout << "buildEmbreeAggregate<DIM>(): Only triangles supported at the moment" << std::endl;
+	return false;
+}
+
+template<>
+inline bool buildEmbreeAggregate<3>(SceneData<3> *sceneData, bool printStats)
+{
 	if (sceneData->triangleObjects.size() != 1) {
-		std::cout << "buildEmbreeAggregate<DIM>(): Only a single triangle object is supported at the moment"
+		std::cout << "buildEmbreeAggregate<3>(): Only a single triangle object is supported at the moment"
 				  << std::endl;
 		return false;
 	}
 
+	sceneData->clearAggregateData();
 	for (int i = 0; i < (int)sceneData->soups.size(); i++) {
 		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
 
@@ -111,7 +118,7 @@ inline bool buildEmbreeAggregate(SceneData<DIM> *sceneData, bool printStats=fals
 		}
 	}
 
-	std::cout << "buildEmbreeAggregate<DIM>(): Only triangles supported at the moment" << std::endl;
+	std::cout << "buildEmbreeAggregate<3>(): Only triangles supported at the moment" << std::endl;
 	return false;
 }
 #endif
