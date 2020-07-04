@@ -362,7 +362,6 @@ inline void sortSoupPositions<3, Triangle>(const std::vector<SbvhNode<3>>& flatT
 	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
 }
 
-// TODO: going to get errors if DIM & PrimitiveType are incompatible
 template<size_t DIM, typename PrimitiveType>
 inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType,
 													 std::vector<PrimitiveType *>& primitives,
@@ -415,6 +414,119 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 }
 
 template<size_t DIM>
+inline void buildGeometricAggregates(const AggregateType& aggregateType, bool vectorize,
+									 bool printStats, std::unique_ptr<SceneData<DIM>>& sceneData,
+									 std::vector<std::unique_ptr<Aggregate<DIM>>>& objectAggregates)
+{
+	std::cerr << "buildGeometricAggregates(): DIM: " << DIM << std::endl;
+	exit(EXIT_FAILURE);
+}
+
+template<>
+inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool vectorize,
+										bool printStats, std::unique_ptr<SceneData<3>>& sceneData,
+										std::vector<std::unique_ptr<Aggregate<3>>>& objectAggregates)
+{
+	// allocate space for line segment, triangle & mixed object ptrs
+	int nObjects = (int)sceneData->soups.size();
+	objectAggregates.resize(nObjects);
+	sceneData->lineSegmentObjectPtrs.resize(nObjects);
+	sceneData->triangleObjectPtrs.resize(nObjects);
+	sceneData->mixedObjectPtrs.resize(nObjects);
+
+	// populate the object ptrs and make their aggregates
+	int nLineSegmentObjectPtrs = 0;
+	int nTriangleObjectPtrs = 0;
+	int nMixedObjectPtrs = 0;
+	int nAggregates = 0;
+	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
+	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
+
+	for (int i = 0; i < nObjects; i++) {
+		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
+
+		if (objectsMap.size() > 1) {
+			// soup contains mixed primitives, set mixed object ptrs
+			std::vector<GeometricPrimitive<3> *>& mixedObjectPtr = sceneData->mixedObjectPtrs[nMixedObjectPtrs];
+
+			for (int j = 0; j < (int)objectsMap.size(); j++) {
+				if (objectsMap[j].first == ObjectType::LineSegments) {
+					int lineSegmentObjectIndex = objectsMap[j].second;
+					std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
+
+					for (int k = 0; k < (int)lineSegmentObject.size(); k++) {
+						mixedObjectPtr.emplace_back(&lineSegmentObject[k]);
+					}
+
+				} else if (objectsMap[j].first == ObjectType::Triangles) {
+					int triangleObjectIndex = objectsMap[j].second;
+					std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
+
+					for (int k = 0; k < (int)triangleObject.size(); k++) {
+						mixedObjectPtr.emplace_back(&triangleObject[k]);
+					}
+				}
+			}
+
+			objectAggregates[i] = makeAggregate<3, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr,
+																		  vectorize, printStats);
+			nMixedObjectPtrs++;
+
+		} else if (objectsMap[0].first == ObjectType::LineSegments) {
+			// soup contains line segments, set line segment object ptrs
+			int lineSegmentObjectIndex = objectsMap[0].second;
+			std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
+			std::vector<LineSegment *>& lineSegmentObjectPtr = sceneData->lineSegmentObjectPtrs[nLineSegmentObjectPtrs];
+
+			for (int j = 0; j < (int)lineSegmentObject.size(); j++) {
+				lineSegmentObjectPtr.emplace_back(&lineSegmentObject[j]);
+			}
+
+			// make aggregate
+			SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
+			if (!vectorize) {
+				sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
+													 std::placeholders::_1, std::placeholders::_2,
+													 std::ref(sceneData->soups[i]));
+			}
+
+			objectAggregates[i] = makeAggregate<3, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize,
+																printStats, sortLineSegmentPositions);
+			nLineSegmentObjectPtrs++;
+
+		} else if (objectsMap[0].first == ObjectType::Triangles) {
+			// soup contains triangles, set triangle object ptrs
+			int triangleObjectIndex = objectsMap[0].second;
+			std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
+			std::vector<Triangle *>& triangleObjectPtr = sceneData->triangleObjectPtrs[nTriangleObjectPtrs];
+
+			for (int j = 0; j < (int)triangleObject.size(); j++) {
+				triangleObjectPtr.emplace_back(&triangleObject[j]);
+			}
+
+			// make aggregate
+			SortTrianglePositionsFunc sortTrianglePositions = {};
+			if (!vectorize) {
+				sortTrianglePositions = std::bind(&sortSoupPositions<3, Triangle>,
+												  std::placeholders::_1, std::placeholders::_2,
+												  std::ref(sceneData->soups[i]));
+			}
+
+			objectAggregates[i] = makeAggregate<3, Triangle>(aggregateType, triangleObjectPtr, vectorize,
+															 printStats, sortTrianglePositions);
+			nTriangleObjectPtrs++;
+		}
+
+		objectAggregates[i]->index = nAggregates++;
+		objectAggregates[i]->computeNormals = sceneData->soups[i].vNormals.size() > 0;
+	}
+
+	sceneData->lineSegmentObjectPtrs.resize(nLineSegmentObjectPtrs);
+	sceneData->triangleObjectPtrs.resize(nTriangleObjectPtrs);
+	sceneData->mixedObjectPtrs.resize(nMixedObjectPtrs);
+}
+
+template<size_t DIM>
 inline std::unique_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 										int nodeIndex, std::unordered_map<int, CsgTreeNode>& csgTree,
 										std::vector<std::unique_ptr<Aggregate<DIM>>>& aggregateInstances,
@@ -450,115 +562,13 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 	// clear old aggregate data
 	sceneData->clearAggregateData();
 
-	// allocate space for line segment, triangle & mixed object ptrs
-	int nObjects = (int)sceneData->soups.size();
-	int nLineSegmentObjectPtrs = 0;
-	int nTriangleObjectPtrs = 0;
-	int nMixedObjectPtrs = 0;
+	// build geometric aggregates
+	std::vector<std::unique_ptr<Aggregate<DIM>>> objectAggregates;
+	buildGeometricAggregates<DIM>(aggregateType, vectorize, printStats, sceneData, objectAggregates);
+	int nAggregates = (int)objectAggregates.size();
 
-	for (int i = 0; i < nObjects; i++) {
-		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
-
-		if (objectsMap.size() > 1) nMixedObjectPtrs++;
-		else if (objectsMap[0].first == ObjectType::LineSegments) nLineSegmentObjectPtrs++;
-		else if (objectsMap[0].first == ObjectType::Triangles) nTriangleObjectPtrs++;
-	}
-
-	sceneData->lineSegmentObjectPtrs.resize(nLineSegmentObjectPtrs);
-	sceneData->triangleObjectPtrs.resize(nTriangleObjectPtrs);
-	sceneData->mixedObjectPtrs.resize(nMixedObjectPtrs);
-
-	// populate line segment, triangle & mixed object ptrs, and make their aggregates
-	nLineSegmentObjectPtrs = 0;
-	nTriangleObjectPtrs = 0;
-	nMixedObjectPtrs = 0;
-	int nAggregates = 0;
-	std::vector<std::unique_ptr<Aggregate<DIM>>> objectAggregates(nObjects);
-	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<DIM>>&, std::vector<LineSegment *>&)>;
-	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<DIM>>&, std::vector<Triangle *>&)>;
-
-	for (int i = 0; i < nObjects; i++) {
-		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
-
-		if (objectsMap.size() > 1) {
-			// TODO: might be problematic for DIM != 3, compile time errors maybe?
-			// soup contains mixed primitives, set mixed object ptrs
-			std::vector<GeometricPrimitive<DIM> *>& mixedObjectPtr = sceneData->mixedObjectPtrs[nMixedObjectPtrs];
-
-			for (int j = 0; j < (int)objectsMap.size(); j++) {
-				if (objectsMap[j].first == ObjectType::LineSegments) {
-					int lineSegmentObjectIndex = objectsMap[j].second;
-					std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
-
-					for (int k = 0; k < (int)lineSegmentObject.size(); k++) {
-						mixedObjectPtr.emplace_back(&lineSegmentObject[k]);
-					}
-
-				} else if (objectsMap[j].first == ObjectType::Triangles) {
-					int triangleObjectIndex = objectsMap[j].second;
-					std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
-
-					for (int k = 0; k < (int)triangleObject.size(); k++) {
-						mixedObjectPtr.emplace_back(&triangleObject[k]);
-					}
-				}
-			}
-
-			objectAggregates[i] = makeAggregate<DIM, GeometricPrimitive<DIM>>(aggregateType, mixedObjectPtr,
-																			  vectorize, printStats);
-			nMixedObjectPtrs++;
-
-		} else if (objectsMap[0].first == ObjectType::LineSegments) {
-			// soup contains line segments, set line segment object ptrs
-			int lineSegmentObjectIndex = objectsMap[0].second;
-			std::vector<LineSegment>& lineSegmentObject = *sceneData->lineSegmentObjects[lineSegmentObjectIndex];
-			std::vector<LineSegment *>& lineSegmentObjectPtr = sceneData->lineSegmentObjectPtrs[nLineSegmentObjectPtrs];
-
-			for (int j = 0; j < (int)lineSegmentObject.size(); j++) {
-				lineSegmentObjectPtr.emplace_back(&lineSegmentObject[j]);
-			}
-
-			// make aggregate
-			SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
-			if (!vectorize) {
-				sortLineSegmentPositions = std::bind(&sortSoupPositions<DIM, LineSegment>,
-													 std::placeholders::_1, std::placeholders::_2,
-													 std::ref(sceneData->soups[i]));
-			}
-
-			objectAggregates[i] = makeAggregate<DIM, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize,
-																  printStats, sortLineSegmentPositions);
-			nLineSegmentObjectPtrs++;
-
-		} else if (objectsMap[0].first == ObjectType::Triangles) {
-			// soup contains triangles, set triangle object ptrs
-			int triangleObjectIndex = objectsMap[0].second;
-			std::vector<Triangle>& triangleObject = *sceneData->triangleObjects[triangleObjectIndex];
-			std::vector<Triangle *>& triangleObjectPtr = sceneData->triangleObjectPtrs[nTriangleObjectPtrs];
-
-			for (int j = 0; j < (int)triangleObject.size(); j++) {
-				triangleObjectPtr.emplace_back(&triangleObject[j]);
-			}
-
-			// make aggregate
-			SortTrianglePositionsFunc sortTrianglePositions = {};
-			if (!vectorize) {
-				sortTrianglePositions = std::bind(&sortSoupPositions<DIM, Triangle>,
-												  std::placeholders::_1, std::placeholders::_2,
-												  std::ref(sceneData->soups[i]));
-			}
-
-			objectAggregates[i] = makeAggregate<DIM, Triangle>(aggregateType, triangleObjectPtr, vectorize,
-															   printStats, sortTrianglePositions);
-			nTriangleObjectPtrs++;
-		}
-
-		objectAggregates[i]->index = nAggregates++;
-		objectAggregates[i]->computeNormals = sceneData->soups[i].vNormals.size() > 0;
-	}
-
-	// set aggregate instances and instance ptrs
-	for (int i = 0; i < nObjects; i++) {
+	// build aggregate instances and instance ptrs
+	for (int i = 0; i < (int)sceneData->soups.size(); i++) {
 		int nObjectInstances = (int)sceneData->instanceTransforms[i].size();
 
 		if (nObjectInstances == 0) {
@@ -578,7 +588,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		}
 	}
 
-	// set aggregate
+	// build root aggregate
 	if (sceneData->aggregateInstances.size() == 1) {
 		// clear the vectors of aggregate instances if there is only a single aggregate
 		sceneData->aggregate = std::move(sceneData->aggregateInstances[0]);
@@ -594,7 +604,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		sceneData->aggregateInstances.clear();
 
 	} else {
-		// make aggregate
+		// make aggregate of aggregates
 		sceneData->aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
 																  false, printStats);
 		sceneData->aggregate->index = nAggregates++;
