@@ -610,7 +610,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 														  node.boxMin, node.boxMax, tMin, tMax);
 
 			// enqueue intersecting boxes in sorted order
-			enqueueNodesForIntersection(node, tMin, r.tMax, mask, stackPtr, subtree);
+			if (enoki::any(mask)) enqueueNodesForIntersection(node, tMin, r.tMax, mask, stackPtr, subtree);
 			nodesVisited++;
 		}
 	}
@@ -899,7 +899,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 													  node.boxMin, node.boxMax, d2Min, d2Max);
 
 			// enqueue overlapping boxes in sorted order
-			enqueueNodesForClosestPoint(node, d2Min, d2Max, mask, stackPtr, subtree, s.r2);
+			if (enoki::any(mask)) enqueueNodesForClosestPoint(node, d2Min, d2Max, mask, stackPtr, subtree, s.r2);
 			nodesVisited++;
 		}
 	}
