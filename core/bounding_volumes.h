@@ -69,6 +69,10 @@ struct BoundingBox {
 
 	// checks for overlap with sphere
 	bool overlap(const BoundingSphere<DIM>& s, float& d2Min, float& d2Max) const {
+		#ifdef PROFILE
+			PROFILE_SCOPED();
+		#endif
+
 		computeSquaredDistance(s.c, d2Min, d2Max);
 		return d2Min <= s.r2;
 	}
@@ -80,6 +84,10 @@ struct BoundingBox {
 
 	// checks for ray intersection
 	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
+		#ifdef PROFILE
+			PROFILE_SCOPED();
+		#endif
+
 		// slab test for ray box intersection
 		// source: http://www.jcgt.org/published/0007/03/04/paper-lowres.pdf
 		Vector<DIM> t0 = cwiseProduct<DIM>(pMin - r.o, r.invD);

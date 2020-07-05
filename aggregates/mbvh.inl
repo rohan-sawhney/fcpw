@@ -302,6 +302,10 @@ inline void enqueueNodesForIntersection(const MbvhNode<DIM>& node, const FloatP<
 										float tMax, MaskP<WIDTH>& mask, int& stackPtr,
 										BvhTraversal *subtree)
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	// find closest intersecting node
 	mask &= enoki::neq(node.child, maxInt);
 	int closestIndex = -1;
@@ -336,6 +340,10 @@ inline void enqueueNodesForIntersection(const MbvhNode<DIM>& node, const FloatP<
 										float tMax, MaskP<4>& mask, int& stackPtr,
 										BvhTraversal *subtree)
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	// sort nodes
 	mask &= enoki::neq(node.child, maxInt);
 	int order[4] = {0, 1, 2, 3};
@@ -644,6 +652,10 @@ inline void enqueueNodesForClosestPoint(const MbvhNode<DIM>& node, const FloatP<
 										const FloatP<WIDTH>& d2Max, MaskP<WIDTH>& mask,
 										int& stackPtr, BvhTraversal *subtree, float& r2)
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	// find closest overlapping node
 	mask &= enoki::neq(node.child, maxInt);
 	int closestIndex = -1;
@@ -680,6 +692,10 @@ inline void enqueueNodesForClosestPoint(const MbvhNode<DIM>& node, const FloatP<
 										const FloatP<4>& d2Max, MaskP<4>& mask,
 										int& stackPtr, BvhTraversal *subtree, float& r2)
 {
+#ifdef PROFILE
+	PROFILE_SCOPED();
+#endif
+
 	// sort nodes
 	mask &= enoki::neq(node.child, maxInt);
 	int order[4] = {0, 1, 2, 3};
