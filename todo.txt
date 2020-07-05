@@ -6,7 +6,6 @@ Priority:
 ---- don't broadcast sphere & ray: NOT MUCH EFFECT
 ---- layout flatTree BFS: NOT MUCH EFFECT
 ---- don't pack leaves in sbvh, pack in mbvh instead
----- is assignment of data being done properly (in an aligned manner) with enoki in mbvh?
 ---- better construction, sorting, memory layout: http://www.cs.ubbcluj.ro/~afra/publications/afra2013tr_mbvh8.pdf
 ---- use unused vector units during overlap/intersection with AVX & 4 wide branching?
 ---- sort nodes efficiently by direction
