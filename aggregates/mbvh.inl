@@ -298,16 +298,17 @@ inline void sortOrder4(const FloatP<4>& t, int& a, int& b, int& c, int& d)
 }
 
 template<size_t WIDTH, size_t DIM>
-inline void enqueueNodesForIntersection(const MaskP<WIDTH>& mask, const MbvhNode<DIM>& node,
-										const FloatP<WIDTH>& tMin, float tMax,
-										int& stackPtr, BvhTraversal *subtree)
+inline void enqueueNodesForIntersection(const MbvhNode<DIM>& node, const FloatP<WIDTH>& tMin,
+										float tMax, MaskP<WIDTH>& mask, int& stackPtr,
+										BvhTraversal *subtree)
 {
 	// find closest intersecting node
+	mask &= enoki::neq(node.child, maxInt);
 	int closestIndex = -1;
 	float minHit = tMax;
 
 	for (int w = 0; w < WIDTH; w++) {
-		if (mask[w] && tMin[w] < minHit && node.child[w] != maxInt) {
+		if (mask[w] && tMin[w] < minHit) {
 			closestIndex = w;
 			minHit = tMin[w];
 		}
@@ -315,7 +316,7 @@ inline void enqueueNodesForIntersection(const MaskP<WIDTH>& mask, const MbvhNode
 
 	// enqueue remaining intersecting nodes first
 	for (int w = 0; w < WIDTH; w++) {
-		if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
+		if (mask[w] && w != closestIndex) {
 			stackPtr++;
 			subtree[stackPtr].node = node.child[w];
 			subtree[stackPtr].distance = tMin[w];
@@ -331,11 +332,12 @@ inline void enqueueNodesForIntersection(const MaskP<WIDTH>& mask, const MbvhNode
 }
 
 template<size_t DIM>
-inline void enqueueNodesForIntersection(const MaskP<4>& mask, const MbvhNode<DIM>& node,
-										const FloatP<4>& tMin, float tMax,
-										int& stackPtr, BvhTraversal *subtree)
+inline void enqueueNodesForIntersection(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
+										float tMax, MaskP<4>& mask, int& stackPtr,
+										BvhTraversal *subtree)
 {
 	// sort nodes
+	mask &= enoki::neq(node.child, maxInt);
 	int order[4] = {0, 1, 2, 3};
 	sortOrder4(tMin, order[0], order[1], order[2], order[3]);
 
@@ -343,7 +345,7 @@ inline void enqueueNodesForIntersection(const MaskP<4>& mask, const MbvhNode<DIM
 	for (int w = 0; w < 4; w++) {
 		int W = order[w];
 
-		if (mask[W] && node.child[W] != maxInt) {
+		if (mask[W]) {
 			stackPtr++;
 			subtree[stackPtr].node = node.child[W];
 			subtree[stackPtr].distance = tMin[W];
@@ -608,7 +610,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 														  node.boxMin, node.boxMax, tMin, tMax);
 
 			// enqueue intersecting boxes in sorted order
-			enqueueNodesForIntersection(mask, node, tMin, r.tMax, stackPtr, subtree);
+			enqueueNodesForIntersection(node, tMin, r.tMax, mask, stackPtr, subtree);
 			nodesVisited++;
 		}
 	}
@@ -638,16 +640,17 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 }
 
 template<size_t WIDTH, size_t DIM>
-inline void enqueueNodesForClosestPoint(const MaskP<WIDTH>& mask, const MbvhNode<DIM>& node,
-										const FloatP<WIDTH>& d2Min, const FloatP<WIDTH>& d2Max,
+inline void enqueueNodesForClosestPoint(const MbvhNode<DIM>& node, const FloatP<WIDTH>& d2Min,
+										const FloatP<WIDTH>& d2Max, MaskP<WIDTH>& mask,
 										int& stackPtr, BvhTraversal *subtree, float& r2)
 {
 	// find closest overlapping node
+	mask &= enoki::neq(node.child, maxInt);
 	int closestIndex = -1;
 	float minDist = r2;
 
 	for (int w = 0; w < WIDTH; w++) {
-		if (mask[w] && d2Min[w] < minDist && node.child[w] != maxInt) {
+		if (mask[w] && d2Min[w] < minDist) {
 			closestIndex = w;
 			minDist = d2Min[w];
 		}
@@ -655,7 +658,7 @@ inline void enqueueNodesForClosestPoint(const MaskP<WIDTH>& mask, const MbvhNode
 
 	// enqueue remaining overlapping nodes first
 	for (int w = 0; w < WIDTH; w++) {
-		if (mask[w] && w != closestIndex && node.child[w] != maxInt) {
+		if (mask[w] && w != closestIndex) {
 			r2 = std::min(r2, d2Max[w]);
 			stackPtr++;
 			subtree[stackPtr].node = node.child[w];
@@ -673,11 +676,12 @@ inline void enqueueNodesForClosestPoint(const MaskP<WIDTH>& mask, const MbvhNode
 }
 
 template<size_t DIM>
-inline void enqueueNodesForClosestPoint(const MaskP<4>& mask, const MbvhNode<DIM>& node,
-										const FloatP<4>& d2Min, const FloatP<4>& d2Max,
+inline void enqueueNodesForClosestPoint(const MbvhNode<DIM>& node, const FloatP<4>& d2Min,
+										const FloatP<4>& d2Max, MaskP<4>& mask,
 										int& stackPtr, BvhTraversal *subtree, float& r2)
 {
 	// sort nodes
+	mask &= enoki::neq(node.child, maxInt);
 	int order[4] = {0, 1, 2, 3};
 	sortOrder4(d2Min, order[0], order[1], order[2], order[3]);
 
@@ -685,7 +689,7 @@ inline void enqueueNodesForClosestPoint(const MaskP<4>& mask, const MbvhNode<DIM
 	for (int w = 0; w < 4; w++) {
 		int W = order[w];
 
-		if (mask[W] && node.child[W] != maxInt) {
+		if (mask[W]) {
 			r2 = std::min(r2, d2Max[W]);
 			stackPtr++;
 			subtree[stackPtr].node = node.child[W];
@@ -895,7 +899,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 													  node.boxMin, node.boxMax, d2Min, d2Max);
 
 			// enqueue overlapping boxes in sorted order
-			enqueueNodesForClosestPoint(mask, node, d2Min, d2Max, stackPtr, subtree, s.r2);
+			enqueueNodesForClosestPoint(node, d2Min, d2Max, mask, stackPtr, subtree, s.r2);
 			nodesVisited++;
 		}
 	}
