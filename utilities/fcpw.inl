@@ -495,13 +495,9 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 			}
 
 			// make aggregate
-			SortLineSegmentPositionsFunc sortLineSegmentPositions = {};
-			if (!vectorize) {
-				sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
-													 std::placeholders::_1, std::placeholders::_2,
-													 std::ref(sceneData->soups[i]));
-			}
-
+			SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
+																	std::placeholders::_1, std::placeholders::_2,
+																	std::ref(sceneData->soups[i]));
 			objectAggregates[i] = makeAggregate<3, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize,
 																printStats, sortLineSegmentPositions);
 			nLineSegmentObjectPtrs++;
@@ -517,13 +513,9 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 			}
 
 			// make aggregate
-			SortTrianglePositionsFunc sortTrianglePositions = {};
-			if (!vectorize) {
-				sortTrianglePositions = std::bind(&sortSoupPositions<3, Triangle>,
-												  std::placeholders::_1, std::placeholders::_2,
-												  std::ref(sceneData->soups[i]));
-			}
-
+			SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, Triangle>,
+															  std::placeholders::_1, std::placeholders::_2,
+															  std::ref(sceneData->soups[i]));
 			objectAggregates[i] = makeAggregate<3, Triangle>(aggregateType, triangleObjectPtr, vectorize,
 															 printStats, sortTrianglePositions);
 			nTriangleObjectPtrs++;

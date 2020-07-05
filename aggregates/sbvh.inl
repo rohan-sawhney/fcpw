@@ -55,7 +55,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeSplitCost(const BoundingBox<DIM>& 
 	float cost = maxFloat;
 
 #ifdef BUILD_ENOKI
-	if (packLeaves && depth > 0 && (depthGuess/depth) < 2 &&
+	if (packLeaves && depth > 0 && ((float)depthGuess/depth) < 1.5f &&
 		nReferencesLeft%leafSize != 0 && nReferencesRight%leafSize != 0) {
 		return cost;
 	}

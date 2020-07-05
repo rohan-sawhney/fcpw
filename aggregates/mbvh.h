@@ -86,7 +86,7 @@ protected:
 	void populateLeafNodes();
 
 	// members
-	int nNodes, nLeafs, maxDepth, maxLevel;
+	int nNodes, nLeafs, maxDepth;
 	const std::vector<PrimitiveType *>& primitives;
 	std::vector<MbvhNode<DIM>> flatTree;
 	std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>> leafNodes;

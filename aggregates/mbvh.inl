@@ -69,6 +69,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 		}
 
 		// collapse the nodes
+		std::sort(nodesToCollapse, nodesToCollapse + nNodesToCollapse);
 		for (int i = 0; i < nNodesToCollapse; i++) {
 			int sbvhNodeIndex = nodesToCollapse[i];
 			const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
@@ -174,7 +175,6 @@ primitives(sbvh_->primitives),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
-maxLevel(std::log2(MBVH_BRANCHING_FACTOR)),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
 #ifdef PROFILE
