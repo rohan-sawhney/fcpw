@@ -1,8 +1,6 @@
-#include "triangles.h"
-
 namespace fcpw {
 
-Triangle::Triangle():
+inline Triangle::Triangle():
 soup(nullptr),
 pIndex(-1)
 {
@@ -11,7 +9,7 @@ pIndex(-1)
 	indices[2] = -1;
 }
 
-BoundingBox<3> Triangle::boundingBox() const
+inline BoundingBox<3> Triangle::boundingBox() const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -24,7 +22,7 @@ BoundingBox<3> Triangle::boundingBox() const
 	return box;
 }
 
-Vector3 Triangle::centroid() const
+inline Vector3 Triangle::centroid() const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -33,12 +31,12 @@ Vector3 Triangle::centroid() const
 	return (pa + pb + pc)/3.0f;
 }
 
-float Triangle::surfaceArea() const
+inline float Triangle::surfaceArea() const
 {
 	return 0.5f*norm<3>(normal());
 }
 
-float Triangle::signedVolume() const
+inline float Triangle::signedVolume() const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -47,7 +45,7 @@ float Triangle::signedVolume() const
 	return dot<3>(cross(pa, pb), pc)/6.0f;
 }
 
-Vector3 Triangle::normal(bool normalize) const
+inline Vector3 Triangle::normal(bool normalize) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -60,7 +58,7 @@ Vector3 Triangle::normal(bool normalize) const
 	return normalize ? unit<3>(n) : n;
 }
 
-Vector3 Triangle::normal(int vIndex, int eIndex) const
+inline Vector3 Triangle::normal(int vIndex, int eIndex) const
 {
 	if (soup->vNormals.size() > 0 && vIndex >= 0) {
 		return soup->vNormals[indices[vIndex]];
@@ -73,7 +71,7 @@ Vector3 Triangle::normal(int vIndex, int eIndex) const
 	return normal(true);
 }
 
-Vector3 Triangle::normal(const Vector2& uv) const
+inline Vector3 Triangle::normal(const Vector2& uv) const
 {
 	int vIndex = -1;
 	if (uv[0] > oneMinusEpsilon && uv[1] < epsilon) vIndex = 0; // (1, 0, 0)
@@ -90,7 +88,7 @@ Vector3 Triangle::normal(const Vector2& uv) const
 	return normal(vIndex, eIndex);
 }
 
-Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
+inline Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -112,7 +110,7 @@ Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 	return Vector2(1.0f - v - w, v);
 }
 
-Vector2 Triangle::textureCoordinates(const Vector2& uv) const
+inline Vector2 Triangle::textureCoordinates(const Vector2& uv) const
 {
 	if (soup->tIndices.size() > 0) {
 		const Vector2& pa = soup->textureCoordinates[soup->tIndices[3*pIndex]];
@@ -129,8 +127,8 @@ Vector2 Triangle::textureCoordinates(const Vector2& uv) const
 	return Vector2(-1, -1);
 }
 
-void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
-					 BoundingBox<3>& boxRight) const
+inline void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
+							BoundingBox<3>& boxRight) const
 {
 	for (int i = 0; i < 3; i++) {
 		const Vector3& pa = soup->positions[indices[i]];
@@ -189,8 +187,8 @@ void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 	}
 }
 
-int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-						bool checkForOcclusion, bool recordAllHits) const
+inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
+							   bool checkForOcclusion, bool recordAllHits) const
 {
 	// Möller–Trumbore intersection algorithm
 	const Vector3& pa = soup->positions[indices[0]];
@@ -230,8 +228,8 @@ int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	return 0;
 }
 
-float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vector3& pc,
-							   const Vector3& x, Vector3& pt, Vector2& t)
+inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vector3& pc,
+									  const Vector3& x, Vector3& pt, Vector2& t)
 {
 	// source: real time collision detection
 	// check if x in vertex region outside pa
@@ -316,7 +314,7 @@ float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, const Vecto
 	return norm<3>(x - pt);
 }
 
-bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
+inline bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];

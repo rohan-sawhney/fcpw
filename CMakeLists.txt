@@ -5,7 +5,6 @@ option(BUILD_ENOKI "Build enoki" ON)
 option(USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
 option(BUILD_TESTS "Build tests" ON)
 option(BENCHMARK_EMBREE "Benchmark embree" OFF)
-option(PROFILE "Profile" OFF)
 
 ################################################################################
 # c++ version
@@ -40,12 +39,6 @@ if(BUILD_TESTS AND BENCHMARK_EMBREE)
 	message(STATUS "Embree AXV2: " ${EMBREE_ISA_AVX2})
 	message(STATUS "Embree KNL: " ${EMBREE_ISA_AVX512KNL})
 	message(STATUS "Embree SKX: " ${EMBREE_ISA_AVX512SKX})
-endif()
-
-if(PROFILE)
-	add_definitions(-DPROFILE)
-	file(GLOB PROFILER_SOURCE deps/high-performance-cplusplus-profiler/profiler/*)
-	add_library(profiler STATIC ${PROFILER_SOURCE})
 endif()
 
 if(BUILD_ENOKI)
@@ -128,12 +121,7 @@ if(BUILD_ENOKI)
 	target_include_directories(fcpw PUBLIC deps/enoki/include)
 endif()
 
-if(PROFILE)
-	target_include_directories(fcpw PUBLIC deps/high-performance-cplusplus-profiler)
-	list(APPEND ALL_FCPW_LIBS profiler)
-endif()
-
-list(APPEND ALL_FCPW_LIBS fcpw)
+set(FCPW_LIB fcpw)
 
 ################################################################################
 if(BUILD_TESTS)
@@ -143,12 +131,12 @@ if(BUILD_TESTS)
 	target_include_directories(aggregate_tests PUBLIC deps/ThreadPool)
 	if(BENCHMARK_EMBREE)
 		target_include_directories(aggregate_tests PUBLIC deps/embree)
-		target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope embree)
+		target_link_libraries(aggregate_tests fcpw polyscope embree)
 	else()
-		target_link_libraries(aggregate_tests ${ALL_FCPW_LIBS} polyscope)
+		target_link_libraries(aggregate_tests fcpw polyscope)
 	endif()
 
 	add_executable(csg_tests tests/csg_tests.cpp)
 	target_include_directories(csg_tests PUBLIC deps/ThreadPool)
-	target_link_libraries(csg_tests ${ALL_FCPW_LIBS} polyscope)
+	target_link_libraries(csg_tests fcpw polyscope)
 endif()

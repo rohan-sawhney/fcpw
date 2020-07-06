@@ -140,10 +140,6 @@ void timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate, &rayOrigins, &rayDirections, &indices,
 					  &totalNodesVisited, queriesCoherent, pCurrent, pEnd]() {
-			#ifdef PROFILE
-				PROFILE_THREAD_SCOPED();
-			#endif
-
 			int nodesVisitedByThread = 0;
 			Interaction<DIM> cPrev;
 
@@ -196,10 +192,6 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate, &queryPoints, &indices, &totalNodesVisited,
 					  &stopQueries, queriesCoherent, pCurrent, pEnd]() {
-			#ifdef PROFILE
-				PROFILE_THREAD_SCOPED();
-			#endif
-
 			int nodesVisitedByThread = 0;
 			Interaction<DIM> cPrev;
 			Vector<DIM> queryPrev = zeroVector<DIM>();
@@ -263,10 +255,6 @@ void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate1, &aggregate2, &rayOrigins, &rayDirections,
 					  &indices, &stopQueries, queriesCoherent, pCurrent, pEnd]() {
-			#ifdef PROFILE
-				PROFILE_THREAD_SCOPED();
-			#endif
-
 			Interaction<DIM> cPrev;
 
 			for (int i = pCurrent; i < pEnd; i++) {
@@ -334,10 +322,6 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate1, &aggregate2, &queryPoints, &indices,
 					  &stopQueries, queriesCoherent, pCurrent, pEnd]() {
-			#ifdef PROFILE
-				PROFILE_THREAD_SCOPED();
-			#endif
-
 			Interaction<DIM> cPrev;
 			Vector<DIM> queryPrev = zeroVector<DIM>();
 
@@ -395,10 +379,6 @@ void isolateInteriorPoints(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 	while (pCurrent < nQueries) {
 		int pEnd = std::min(nQueries, pCurrent + pRange);
 		pool.enqueue([&aggregate, &queryPoints, &isInterior, pCurrent, pEnd]() {
-			#ifdef PROFILE
-				PROFILE_THREAD_SCOPED();
-			#endif
-
 			for (int i = pCurrent; i < pEnd; i++) {
 				if (aggregate->contains(queryPoints[i])) {
 					isInterior[i] = true;
@@ -611,10 +591,6 @@ void run()
 }
 
 int main(int argc, const char *argv[]) {
-#ifdef PROFILE
-	Profiler::detect(argc, argv);
-#endif
-
 	// configure the argument parser
 	args::ArgumentParser parser("aggregate tests");
 	args::Group group(parser, "", args::Group::Validators::DontCare);
@@ -679,9 +655,5 @@ int main(int argc, const char *argv[]) {
 
 	// run app
 	if (DIM == 3) run<3>();
-
-#ifdef PROFILE
-	Profiler::dumphtml();
-#endif
 	return 0;
 }

@@ -265,10 +265,6 @@ inline void Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM
 template<size_t DIM, typename PrimitiveType>
 inline void Sbvh<DIM, PrimitiveType>::build()
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// precompute bounding boxes and centroids
 	int nReferences = (int)primitives.size();
 	std::vector<BoundingBox<DIM>> referenceBoxes;
@@ -444,10 +440,6 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 													   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 													   bool checkForOcclusion, bool recordAllHits) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
@@ -591,10 +583,6 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 															   int nodeStartIndex, int aggregateIndex,
 															   const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
 	BvhTraversal subtree[SBVH_MAX_DEPTH];

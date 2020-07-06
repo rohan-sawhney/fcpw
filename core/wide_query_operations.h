@@ -11,10 +11,6 @@ inline MaskP<WIDTH> intersectWideBox(const Ray<DIM>& r,
 									 const VectorP<WIDTH, DIM>& bMax,
 									 FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// vectorized slab test
 	VectorP<WIDTH, DIM> t0 = (bMin - r.o)*r.invD;
 	VectorP<WIDTH, DIM> t1 = (bMax - r.o)*r.invD;
@@ -34,10 +30,6 @@ inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
 								   const VectorP<WIDTH, DIM>& bMax,
 								   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	VectorP<WIDTH, DIM> u = bMin - s.c;
 	VectorP<WIDTH, DIM> v = s.c - bMax;
 	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
@@ -52,10 +44,6 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Ray<3>& r, const Vector3P<WID
 											 const Vector3P<WIDTH>& pb, FloatP<WIDTH>& d,
 											 Vector3P<WIDTH>& pt, FloatP<WIDTH>& t)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	Vector3P<WIDTH> u = pa - r.o;
 	Vector3P<WIDTH> v = pb - pa;
 
@@ -86,10 +74,6 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>
 										  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt,
 										  Vector2P<WIDTH>& t)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// vectorized Möller–Trumbore intersection algorithm
 	Vector3P<WIDTH> v1 = pb - pa;
 	Vector3P<WIDTH> v2 = pc - pa;
@@ -122,10 +106,6 @@ inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector3& x, const Vec
 													 const Vector3P<WIDTH>& pb, Vector3P<WIDTH>& pt,
 													 FloatP<WIDTH>& t)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	Vector3P<WIDTH> u = pb - pa;
 	Vector3P<WIDTH> v = x - pa;
 
@@ -150,10 +130,6 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3& x, const Vector
 												  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
 												  Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// check if x in vertex region outside pa
 	Vector3P<WIDTH> ab = pb - pa;
 	Vector3P<WIDTH> ac = pc - pa;

@@ -13,9 +13,6 @@
 #include <random>
 #include <type_traits>
 #include "vector_operations.h"
-#ifdef PROFILE
-	#include <profiler/Profiler.h>
-#endif
 
 namespace fcpw {
 

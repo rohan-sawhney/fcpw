@@ -1,8 +1,6 @@
-#include "line_segments.h"
-
 namespace fcpw {
 
-LineSegment::LineSegment():
+inline LineSegment::LineSegment():
 soup(nullptr),
 pIndex(-1)
 {
@@ -10,7 +8,7 @@ pIndex(-1)
 	indices[1] = -1;
 }
 
-BoundingBox<3> LineSegment::boundingBox() const
+inline BoundingBox<3> LineSegment::boundingBox() const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -21,7 +19,7 @@ BoundingBox<3> LineSegment::boundingBox() const
 	return box;
 }
 
-Vector3 LineSegment::centroid() const
+inline Vector3 LineSegment::centroid() const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -29,7 +27,7 @@ Vector3 LineSegment::centroid() const
 	return (pa + pb)*0.5f;
 }
 
-float LineSegment::surfaceArea() const
+inline float LineSegment::surfaceArea() const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -37,7 +35,7 @@ float LineSegment::surfaceArea() const
 	return norm<3>(pb - pa);
 }
 
-float LineSegment::signedVolume() const
+inline float LineSegment::signedVolume() const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -45,7 +43,7 @@ float LineSegment::signedVolume() const
 	return 0.5f*cross(pa, pb)[2];
 }
 
-Vector3 LineSegment::normal(bool normalize) const
+inline Vector3 LineSegment::normal(bool normalize) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -56,7 +54,7 @@ Vector3 LineSegment::normal(bool normalize) const
 	return normalize ? unit<3>(n) : n;
 }
 
-Vector3 LineSegment::normal(int vIndex) const
+inline Vector3 LineSegment::normal(int vIndex) const
 {
 	if (soup->vNormals.size() > 0 && vIndex >= 0) {
 		return soup->vNormals[indices[vIndex]];
@@ -65,7 +63,7 @@ Vector3 LineSegment::normal(int vIndex) const
 	return normal(true);
 }
 
-Vector3 LineSegment::normal(const Vector2& uv) const
+inline Vector3 LineSegment::normal(const Vector2& uv) const
 {
 	int vIndex = -1;
 	if (uv[0] < epsilon) vIndex = 0;
@@ -74,7 +72,7 @@ Vector3 LineSegment::normal(const Vector2& uv) const
 	return normal(vIndex);
 }
 
-Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
+inline Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -82,8 +80,8 @@ Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 	return Vector2(norm<3>(p - pa)/norm<3>(pb - pa), 0.0f);
 }
 
-void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
-						BoundingBox<3>& boxRight) const
+inline void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
+							   BoundingBox<3>& boxRight) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -122,8 +120,8 @@ void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 	}
 }
 
-int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-						   bool checkForOcclusion, bool recordAllHits) const
+inline int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
+								  bool checkForOcclusion, bool recordAllHits) const
 {
 	is.clear();
 	const Vector3& pa = soup->positions[indices[0]];
@@ -161,8 +159,8 @@ int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	return 0;
 }
 
-float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
-								  const Vector3& x, Vector3& pt, float& t)
+inline float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
+										 const Vector3& x, Vector3& pt, float& t)
 {
 	Vector3 u = pb - pa;
 	Vector3 v = x - pa;
@@ -189,7 +187,7 @@ float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
 	return norm<3>(x - pt);
 }
 
-bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
+inline bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];

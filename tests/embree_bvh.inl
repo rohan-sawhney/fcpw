@@ -245,10 +245,6 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 										int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 										bool checkForOcclusion, bool recordAllHits) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// initialize intersect context (RTC_INTERSECT_CONTEXT_FLAG_INCOHERENT is enabled by default)
 	IntersectContext context(is);
 	rtcInitIntersectContext(&context.context);
@@ -316,10 +312,6 @@ inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interactio
 												int nodeStartIndex, int aggregateIndex,
 												const Vector3& boundaryHint, int& nodesVisited) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// initialize closest point context
 	RTCPointQueryContext context;
 	rtcInitPointQueryContext(&context);

@@ -78,10 +78,6 @@ void clampToCsg(const std::string& method,
 		int pEnd = std::min(N, pCurrent + pRange);
 		pool.enqueue([&scatteredPoints, &randomDirections, &hitPoints, &didHit,
 					  &method, &aggregate, &boundingBox, pCurrent, pEnd]() {
-			#ifdef PROFILE
-				PROFILE_THREAD_SCOPED();
-			#endif
-
 			for (int i = pCurrent; i < pEnd; i++) {
 				Ray<DIM> r(scatteredPoints[i], randomDirections[i]);
 
@@ -263,10 +259,6 @@ void run()
 }
 
 int main(int argc, const char *argv[]) {
-#ifdef PROFILE
-	Profiler::detect(argc, argv);
-#endif
-
 	// configure the argument parser
 	args::ArgumentParser parser("csg tests");
 	args::Group group(parser, "", args::Group::Validators::DontCare);
@@ -330,9 +322,5 @@ int main(int argc, const char *argv[]) {
 
 	// run app
 	if (DIM == 3) run<3>();
-
-#ifdef PROFILE
-	Profiler::dumphtml();
-#endif
 	return 0;
 }

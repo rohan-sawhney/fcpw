@@ -177,10 +177,6 @@ nLeafs(0),
 maxDepth(0),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	static_assert(MBVH_BRANCHING_FACTOR == 4 || MBVH_BRANCHING_FACTOR == 8,
 				  "Branching factor must be atleast 4");
 
@@ -302,10 +298,6 @@ inline void enqueueNodesForIntersection(const MbvhNode<DIM>& node, const FloatP<
 										float tMax, MaskP<WIDTH>& mask, int& stackPtr,
 										BvhTraversal *subtree)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// find closest intersecting node
 	mask &= enoki::neq(node.child, maxInt);
 	int closestIndex = -1;
@@ -340,10 +332,6 @@ inline void enqueueNodesForIntersection(const MbvhNode<DIM>& node, const FloatP<
 										float tMax, MaskP<4>& mask, int& stackPtr,
 										BvhTraversal *subtree)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// sort nodes
 	mask &= enoki::neq(node.child, maxInt);
 	int order[4] = {0, 1, 2, 3};
@@ -379,10 +367,6 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 							   int nodeIndex, int aggregateIndex, Ray<3>& r,
 							   std::vector<Interaction<3>>& is, bool recordAllHits)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
 	int referenceOffset = node.child[2];
@@ -465,10 +449,6 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 							   int nodeIndex, int aggregateIndex, Ray<3>& r,
 							   std::vector<Interaction<3>>& is, bool recordAllHits)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
 	int referenceOffset = node.child[2];
@@ -551,10 +531,6 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 															  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 															  bool checkForOcclusion, bool recordAllHits) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
@@ -674,10 +650,6 @@ inline void enqueueNodesForClosestPoint(const MbvhNode<DIM>& node, const FloatP<
 										const FloatP<WIDTH>& d2Max, MaskP<WIDTH>& mask,
 										int& stackPtr, BvhTraversal *subtree, float& r2)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// find closest overlapping node
 	mask &= enoki::neq(node.child, maxInt);
 	int closestIndex = -1;
@@ -714,10 +686,6 @@ inline void enqueueNodesForClosestPoint(const MbvhNode<DIM>& node, const FloatP<
 										const FloatP<4>& d2Max, MaskP<4>& mask,
 										int& stackPtr, BvhTraversal *subtree, float& r2)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// sort nodes
 	mask &= enoki::neq(node.child, maxInt);
 	int order[4] = {0, 1, 2, 3};
@@ -752,10 +720,6 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
 									   int nodeIndex, int aggregateIndex, BoundingSphere<3>& s, Interaction<3>& i)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
 	int referenceOffset = node.child[2];
@@ -811,10 +775,6 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
 									   int nodeIndex, int aggregateIndex, BoundingSphere<3>& s, Interaction<3>& i)
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
 	int referenceOffset = node.child[2];
@@ -871,10 +831,6 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 																	  int nodeStartIndex, int aggregateIndex,
 																	  const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
 	BvhTraversal subtree[MBVH_MAX_DEPTH];

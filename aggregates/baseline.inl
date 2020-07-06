@@ -60,10 +60,6 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 														   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 														   bool checkForOcclusion, bool recordAllHits) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
 
@@ -132,10 +128,6 @@ inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSpher
 																   int nodeStartIndex, int aggregateIndex,
 																   const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
-#ifdef PROFILE
-	PROFILE_SCOPED();
-#endif
-
 	// find closest point
 	bool notFound = true;
 	for (int p = 0; p < (int)primitives.size(); p++) {

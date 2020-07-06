@@ -11,7 +11,7 @@ Priority:
 ---- sort nodes efficiently by direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
-4. correctly setup cmake
+4. correctly setup cmake (make header only) + reduce memory footprint (especially for mbvh)
 5. benchmark (https://github.com/jdumas/aabb_benchmark)
 6. travis/circle CI
 7. README (tutorial, features, benchmark, compiling, logo)
