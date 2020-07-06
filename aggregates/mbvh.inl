@@ -401,14 +401,14 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
 		MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(r, pa, pb, d, pt, t);
 
-		// record interactions
-		int endReference = startReference + WIDTH;
-		if (endReference > nReferences) endReference = nReferences;
+		if (recordAllHits) {
+			// record interactions
+			int endReference = startReference + WIDTH;
+			if (endReference > nReferences) endReference = nReferences;
 
-		for (int p = startReference; p < endReference; p++) {
-			int w = p - startReference;
+			for (int p = startReference; p < endReference; p++) {
+				int w = p - startReference;
 
-			if (recordAllHits) {
 				if (mask[w]) {
 					hits++;
 					auto it = is.emplace(is.end(), Interaction<3>());
@@ -423,22 +423,33 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					it->referenceIndex = referenceOffset + p;
 					it->objectIndex = aggregateIndex;
 				}
+			}
 
-			} else {
+		} else {
+			// determine closest index
+			int closestIndex = -1;
+			int W = std::min((int)WIDTH, nReferences - startReference);
+
+			for (int w = 0; w < W; w++) {
 				if (mask[w] && d[w] <= r.tMax) {
-					hits = 1;
+					closestIndex = w;
 					r.tMax = d[w];
-					is[0].d = d[w];
-					is[0].p[0] = pt[0][w];
-					is[0].p[1] = pt[1][w];
-					is[0].p[2] = pt[2][w];
-					is[0].uv[0] = t[w];
-					is[0].uv[1] = -1;
-					is[0].primitiveIndex = primitiveIndex[w];
-					is[0].nodeIndex = nodeIndex;
-					is[0].referenceIndex = referenceOffset + p;
-					is[0].objectIndex = aggregateIndex;
 				}
+			}
+
+			// update interaction
+			if (closestIndex != -1) {
+				hits = 1;
+				is[0].d = d[closestIndex];
+				is[0].p[0] = pt[0][closestIndex];
+				is[0].p[1] = pt[1][closestIndex];
+				is[0].p[2] = pt[2][closestIndex];
+				is[0].uv[0] = t[closestIndex];
+				is[0].uv[1] = -1;
+				is[0].primitiveIndex = primitiveIndex[closestIndex];
+				is[0].nodeIndex = nodeIndex;
+				is[0].referenceIndex = referenceOffset + startReference + closestIndex;
+				is[0].objectIndex = aggregateIndex;
 			}
 		}
 
@@ -477,14 +488,14 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
 		MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(r, pa, pb, pc, d, pt, t);
 
-		// record interactions
-		int endReference = startReference + WIDTH;
-		if (endReference > nReferences) endReference = nReferences;
+		if (recordAllHits) {
+			// record interactions
+			int endReference = startReference + WIDTH;
+			if (endReference > nReferences) endReference = nReferences;
 
-		for (int p = startReference; p < endReference; p++) {
-			int w = p - startReference;
+			for (int p = startReference; p < endReference; p++) {
+				int w = p - startReference;
 
-			if (recordAllHits) {
 				if (mask[w]) {
 					hits++;
 					auto it = is.emplace(is.end(), Interaction<3>());
@@ -499,22 +510,33 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 					it->referenceIndex = referenceOffset + p;
 					it->objectIndex = aggregateIndex;
 				}
+			}
 
-			} else {
+		} else {
+			// determine closest index
+			int closestIndex = -1;
+			int W = std::min((int)WIDTH, nReferences - startReference);
+
+			for (int w = 0; w < W; w++) {
 				if (mask[w] && d[w] <= r.tMax) {
-					hits = 1;
+					closestIndex = w;
 					r.tMax = d[w];
-					is[0].d = d[w];
-					is[0].p[0] = pt[0][w];
-					is[0].p[1] = pt[1][w];
-					is[0].p[2] = pt[2][w];
-					is[0].uv[0] = t[0][w];
-					is[0].uv[1] = t[1][w];
-					is[0].primitiveIndex = primitiveIndex[w];
-					is[0].nodeIndex = nodeIndex;
-					is[0].referenceIndex = referenceOffset + p;
-					is[0].objectIndex = aggregateIndex;
 				}
+			}
+
+			// update interaction
+			if (closestIndex != -1) {
+				hits = 1;
+				is[0].d = d[closestIndex];
+				is[0].p[0] = pt[0][closestIndex];
+				is[0].p[1] = pt[1][closestIndex];
+				is[0].p[2] = pt[2][closestIndex];
+				is[0].uv[0] = t[0][closestIndex];
+				is[0].uv[1] = t[1][closestIndex];
+				is[0].primitiveIndex = primitiveIndex[closestIndex];
+				is[0].nodeIndex = nodeIndex;
+				is[0].referenceIndex = referenceOffset + startReference + closestIndex;
+				is[0].objectIndex = aggregateIndex;
 			}
 		}
 
@@ -738,8 +760,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 	int nLeafs = node.child[1];
 	int referenceOffset = node.child[2];
 	int nReferences = node.child[3];
-	int closestIndex = -1;
 	int startReference = 0;
+	bool found = false;
 
 	for (int l = 0; l < nLeafs; l++) {
 		// perform vectorized closest point query
@@ -752,33 +774,36 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 		FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH>(s.c, pa, pb, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
-		// determine closest primitive
-		int endReference = startReference + WIDTH;
-		if (endReference > nReferences) endReference = nReferences;
+		// determine closest index
+		int closestIndex = -1;
+		int W = std::min((int)WIDTH, nReferences - startReference);
 
-		for (int p = startReference; p < endReference; p++) {
-			int w = p - startReference;
-
+		for (int w = 0; w < W; w++) {
 			if (d2[w] <= s.r2) {
+				closestIndex = w;
 				s.r2 = d2[w];
-				i.d = d[w];
-				i.p[0] = pt[0][w];
-				i.p[1] = pt[1][w];
-				i.p[2] = pt[2][w];
-				i.uv[0] = t[w];
-				i.uv[1] = -1;
-				i.primitiveIndex = primitiveIndex[w];
-				i.nodeIndex = nodeIndex;
-				i.referenceIndex = referenceOffset + p;
-				i.objectIndex = aggregateIndex;
-				closestIndex = i.referenceIndex;
 			}
+		}
+
+		// update interaction
+		if (closestIndex != -1) {
+			i.d = d[closestIndex];
+			i.p[0] = pt[0][closestIndex];
+			i.p[1] = pt[1][closestIndex];
+			i.p[2] = pt[2][closestIndex];
+			i.uv[0] = t[closestIndex];
+			i.uv[1] = -1;
+			i.primitiveIndex = primitiveIndex[closestIndex];
+			i.nodeIndex = nodeIndex;
+			i.referenceIndex = referenceOffset + startReference + closestIndex;
+			i.objectIndex = aggregateIndex;
+			found = true;
 		}
 
 		startReference += WIDTH;
 	}
 
-	return closestIndex != -1;
+	return found;
 }
 
 template<size_t WIDTH>
@@ -794,8 +819,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 	int nLeafs = node.child[1];
 	int referenceOffset = node.child[2];
 	int nReferences = node.child[3];
-	int closestIndex = -1;
 	int startReference = 0;
+	bool found = false;
 
 	for (int l = 0; l < nLeafs; l++) {
 		// perform vectorized closest point query
@@ -809,33 +834,36 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 		FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(s.c, pa, pb, pc, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
-		// determine closest primitive
-		int endReference = startReference + WIDTH;
-		if (endReference > nReferences) endReference = nReferences;
+		// determine closest index
+		int closestIndex = -1;
+		int W = std::min((int)WIDTH, nReferences - startReference);
 
-		for (int p = startReference; p < endReference; p++) {
-			int w = p - startReference;
-
+		for (int w = 0; w < W; w++) {
 			if (d2[w] <= s.r2) {
+				closestIndex = w;
 				s.r2 = d2[w];
-				i.d = d[w];
-				i.p[0] = pt[0][w];
-				i.p[1] = pt[1][w];
-				i.p[2] = pt[2][w];
-				i.uv[0] = t[0][w];
-				i.uv[1] = t[1][w];
-				i.primitiveIndex = primitiveIndex[w];
-				i.nodeIndex = nodeIndex;
-				i.referenceIndex = referenceOffset + p;
-				i.objectIndex = aggregateIndex;
-				closestIndex = i.referenceIndex;
 			}
+		}
+
+		// update interaction
+		if (closestIndex != -1) {
+			i.d = d[closestIndex];
+			i.p[0] = pt[0][closestIndex];
+			i.p[1] = pt[1][closestIndex];
+			i.p[2] = pt[2][closestIndex];
+			i.uv[0] = t[0][closestIndex];
+			i.uv[1] = t[1][closestIndex];
+			i.primitiveIndex = primitiveIndex[closestIndex];
+			i.nodeIndex = nodeIndex;
+			i.referenceIndex = referenceOffset + startReference + closestIndex;
+			i.objectIndex = aggregateIndex;
+			found = true;
 		}
 
 		startReference += WIDTH;
 	}
 
-	return closestIndex != -1;
+	return found;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
