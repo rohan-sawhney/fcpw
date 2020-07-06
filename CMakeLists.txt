@@ -51,7 +51,6 @@ endif()
 if(BUILD_ENOKI)
 	set(CMAKE_CXX_STANDARD 17)
 	add_definitions(-DBUILD_ENOKI)
-	set(ENOKI_AUTODIFF ON CACHE BOOL "Enable enoki autodiff")
 	add_subdirectory(deps/enoki)
 
 	# define SIMD width
@@ -127,7 +126,6 @@ target_include_directories(fcpw PUBLIC deps/eigen-git-mirror)
 
 if(BUILD_ENOKI)
 	target_include_directories(fcpw PUBLIC deps/enoki/include)
-	list(APPEND ALL_FCPW_LIBS enoki-autodiff)
 endif()
 
 if(PROFILE)
