@@ -53,3 +53,5 @@ private:
 };
 
 } // namespace fcpw
+
+#include "line_segments.inl"

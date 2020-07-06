@@ -506,7 +506,7 @@ void run()
 				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 											 indices, bvhTypes[bvh - 1], true);
 
-#ifndef BUILD_ENOKI
+#ifndef LINK_ENOKI
 				break;
 #endif
 			}
@@ -552,7 +552,7 @@ void run()
 				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, indices, true);
 
-#ifndef BUILD_ENOKI
+#ifndef LINK_ENOKI
 				break;
 #endif
 			}

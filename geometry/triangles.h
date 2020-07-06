@@ -56,3 +56,5 @@ private:
 };
 
 } // namespace fcpw
+
+#include "triangles.inl"

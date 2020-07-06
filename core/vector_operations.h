@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	#include <enoki/array.h>
 #endif
 #include <Eigen/Core>
@@ -8,7 +8,7 @@
 
 namespace fcpw {
 
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	template<size_t DIM>
 	using Vector = enoki::Array<float, DIM>;
 	template<size_t WIDTH>
@@ -37,7 +37,7 @@ using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
 template<size_t DIM>
 inline Vector<DIM> zeroVector()
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::zero<Vector<DIM>>();
 #else
 	return Vector<DIM>::Zero();
@@ -47,7 +47,7 @@ inline Vector<DIM> zeroVector()
 template<size_t DIM>
 inline Vector<DIM> constantVector(float constant)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return Vector<DIM>(constant);
 #else
 	return Vector<DIM>::Constant(constant);
@@ -57,7 +57,7 @@ inline Vector<DIM> constantVector(float constant)
 template<size_t DIM>
 inline Vector<DIM> unit(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::normalize(v);
 #else
 	return v.normalized();
@@ -67,7 +67,7 @@ inline Vector<DIM> unit(const Vector<DIM>& v)
 template<size_t DIM>
 inline float norm(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::norm(v);
 #else
 	return v.norm();
@@ -77,7 +77,7 @@ inline float norm(const Vector<DIM>& v)
 template<size_t DIM>
 inline float squaredNorm(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::squared_norm(v);
 #else
 	return v.squaredNorm();
@@ -87,7 +87,7 @@ inline float squaredNorm(const Vector<DIM>& v)
 template<size_t DIM>
 inline float sum(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::hsum(v);
 #else
 	return v.sum();
@@ -97,7 +97,7 @@ inline float sum(const Vector<DIM>& v)
 template<size_t DIM>
 inline float product(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::hprod(v);
 #else
 	return v.prod();
@@ -107,7 +107,7 @@ inline float product(const Vector<DIM>& v)
 template<size_t DIM>
 inline float minCoeff(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::hmin(v);
 #else
 	return v.minCoeff();
@@ -117,7 +117,7 @@ inline float minCoeff(const Vector<DIM>& v)
 template<size_t DIM>
 inline float maxCoeff(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::hmax(v);
 #else
 	return v.maxCoeff();
@@ -127,7 +127,7 @@ inline float maxCoeff(const Vector<DIM>& v)
 template<size_t DIM>
 inline float minCoeff(const Vector<DIM>& v, int& index)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	index = 0;
 	float value = v[0];
 
@@ -146,7 +146,7 @@ inline float minCoeff(const Vector<DIM>& v, int& index)
 template<size_t DIM>
 inline float maxCoeff(const Vector<DIM>& v, int& index)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	index = 0;
 	float value = v[0];
 
@@ -165,7 +165,7 @@ inline float maxCoeff(const Vector<DIM>& v, int& index)
 template<size_t DIM>
 inline float dot(const Vector<DIM>& u, const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::dot(u, v);
 #else
 	return u.dot(v);
@@ -174,7 +174,7 @@ inline float dot(const Vector<DIM>& u, const Vector<DIM>& v)
 
 inline Vector3 cross(const Vector3& u, const Vector3& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::cross(u, v);
 #else
 	return u.cross(v);
@@ -184,7 +184,7 @@ inline Vector3 cross(const Vector3& u, const Vector3& v)
 template<size_t DIM>
 inline Vector<DIM> cwiseMin(const Vector<DIM>& u, const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::min(u, v);
 #else
 	return u.cwiseMin(v);
@@ -194,7 +194,7 @@ inline Vector<DIM> cwiseMin(const Vector<DIM>& u, const Vector<DIM>& v)
 template<size_t DIM>
 inline Vector<DIM> cwiseMax(const Vector<DIM>& u, const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::max(u, v);
 #else
 	return u.cwiseMax(v);
@@ -204,7 +204,7 @@ inline Vector<DIM> cwiseMax(const Vector<DIM>& u, const Vector<DIM>& v)
 template<size_t DIM>
 inline Vector<DIM> cwiseMin(const Vector<DIM>& v, float s)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::min(v, s);
 #else
 	return v.cwiseMin(s);
@@ -214,7 +214,7 @@ inline Vector<DIM> cwiseMin(const Vector<DIM>& v, float s)
 template<size_t DIM>
 inline Vector<DIM> cwiseMax(const Vector<DIM>& v, float s)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::max(v, s);
 #else
 	return v.cwiseMax(s);
@@ -224,7 +224,7 @@ inline Vector<DIM> cwiseMax(const Vector<DIM>& v, float s)
 template<size_t DIM>
 inline Vector<DIM> cwiseProduct(const Vector<DIM>& u, const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return u*v;
 #else
 	return u.cwiseProduct(v);
@@ -234,7 +234,7 @@ inline Vector<DIM> cwiseProduct(const Vector<DIM>& u, const Vector<DIM>& v)
 template<size_t DIM>
 inline Vector<DIM> cwiseQuotient(const Vector<DIM>& u, const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return u/v;
 #else
 	return u.cwiseQuotient(v);
@@ -244,7 +244,7 @@ inline Vector<DIM> cwiseQuotient(const Vector<DIM>& u, const Vector<DIM>& v)
 template<size_t DIM>
 inline Vector<DIM> cwiseInverse(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::rcp(v);
 #else
 	return v.cwiseInverse();
@@ -254,7 +254,7 @@ inline Vector<DIM> cwiseInverse(const Vector<DIM>& v)
 template<size_t DIM>
 inline Vector<DIM> transformVector(const Transform<DIM>& t, const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	// convert enoki array to eigen
 	Eigen::Matrix<float, DIM, 1> u;
 	enoki::Array<int, DIM> index = enoki::arange<enoki::Array<int, DIM>>();
@@ -273,7 +273,7 @@ inline Vector<DIM> transformVector(const Transform<DIM>& t, const Vector<DIM>& v
 template<size_t DIM>
 inline bool allLeq(const Vector<DIM>& u, const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::all(u <= v);
 #else
 	return (u.array() <= v.array()).all();
@@ -283,7 +283,7 @@ inline bool allLeq(const Vector<DIM>& u, const Vector<DIM>& v)
 template<size_t DIM>
 inline bool allGeq(const Vector<DIM>& u, const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::all(u >= v);
 #else
 	return (u.array() >= v.array()).all();
@@ -293,7 +293,7 @@ inline bool allGeq(const Vector<DIM>& u, const Vector<DIM>& v)
 template<size_t DIM>
 inline bool isNaN(const Vector<DIM>& v)
 {
-#ifdef BUILD_ENOKI
+#ifdef LINK_ENOKI
 	return enoki::any(enoki::isnan(v));
 #else
 	return v.array().isNaN().any();

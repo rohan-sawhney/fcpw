@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(fcpw)
 
-option(BUILD_ENOKI "Build enoki" ON)
+option(LINK_ENOKI "Build enoki" ON)
 option(USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
 option(BUILD_TESTS "Build tests" ON)
 option(BENCHMARK_EMBREE "Benchmark embree" OFF)
@@ -41,9 +41,9 @@ if(BUILD_TESTS AND BENCHMARK_EMBREE)
 	message(STATUS "Embree SKX: " ${EMBREE_ISA_AVX512SKX})
 endif()
 
-if(BUILD_ENOKI)
+if(LINK_ENOKI)
 	set(CMAKE_CXX_STANDARD 17)
-	add_definitions(-DBUILD_ENOKI)
+	add_definitions(-DLINK_ENOKI)
 	add_subdirectory(deps/enoki)
 
 	# define SIMD width
@@ -71,11 +71,8 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 ################################################################################
-# fcpw header and source files
-set(FCPW_CORE_SOURCE
-	)
-
-set(FCPW_CORE_HEADERS
+# fcpw headers
+set(FCPW_HEADERS
 	core/vector_operations.h
 	core/core.h
 	core/ray.h
@@ -83,60 +80,49 @@ set(FCPW_CORE_HEADERS
 	core/interaction.h
 	core/primitive.h
 	core/wide_query_operations.h
+	geometry/polygon_soup.h
+	geometry/line_segments.h
+	geometry/line_segments.inl
+	geometry/triangles.h
+	geometry/triangles.inl
+	aggregates/baseline.h
+	aggregates/baseline.inl
+	aggregates/sbvh.h
+	aggregates/sbvh.inl
+	aggregates/mbvh.h
+	aggregates/mbvh.inl
+	aggregates/csg_node.h
+	aggregates/csg_node.inl
+	utilities/scene_data.h
+	utilities/scene_data.inl
+	utilities/fcpw.h
+	utilities/fcpw.inl
+	utilities/scene_loader.h
+	utilities/scene_loader.inl
 	)
-
-file(GLOB FCPW_SOURCE
-	 geometry/polygon_soup.h
-	 geometry/line_segments.h
-	 geometry/line_segments.cpp
-	 geometry/triangles.h
-	 geometry/triangles.cpp
-	 aggregates/baseline.h
-	 aggregates/baseline.inl
-	 aggregates/sbvh.h
-	 aggregates/sbvh.inl
-	 aggregates/mbvh.h
-	 aggregates/mbvh.inl
-	 aggregates/csg_node.h
-	 aggregates/csg_node.inl
-	 utilities/scene_data.h
-	 utilities/scene_data.inl
-	 utilities/fcpw.h
-	 utilities/fcpw.inl
-	 utilities/scene_loader.h
-	 utilities/scene_loader.inl
-	 )
-
-################################################################################
-# fcpw library
-add_library(fcpw STATIC
-			${FCPW_CORE_SOURCE}
-			${FCPW_CORE_HEADERS}
-			${FCPW_SOURCE}
-			)
-
-target_include_directories(fcpw PUBLIC deps/eigen-git-mirror)
-
-if(BUILD_ENOKI)
-	target_include_directories(fcpw PUBLIC deps/enoki/include)
-endif()
-
-set(FCPW_LIB fcpw)
 
 ################################################################################
 if(BUILD_TESTS)
 	add_subdirectory(deps/polyscope)
 
-	add_executable(aggregate_tests tests/aggregate_tests.cpp)
+	add_executable(aggregate_tests tests/aggregate_tests.cpp ${FCPW_HEADERS})
+	target_include_directories(aggregate_tests PUBLIC deps/eigen-git-mirror)
 	target_include_directories(aggregate_tests PUBLIC deps/ThreadPool)
+	if(LINK_ENOKI)
+		target_include_directories(aggregate_tests PUBLIC deps/enoki/include)
+	endif()
 	if(BENCHMARK_EMBREE)
 		target_include_directories(aggregate_tests PUBLIC deps/embree)
-		target_link_libraries(aggregate_tests fcpw polyscope embree)
+		target_link_libraries(aggregate_tests polyscope embree)
 	else()
-		target_link_libraries(aggregate_tests fcpw polyscope)
+		target_link_libraries(aggregate_tests polyscope)
 	endif()
 
-	add_executable(csg_tests tests/csg_tests.cpp)
+	add_executable(csg_tests tests/csg_tests.cpp ${FCPW_HEADERS})
+	target_include_directories(csg_tests PUBLIC deps/eigen-git-mirror)
 	target_include_directories(csg_tests PUBLIC deps/ThreadPool)
-	target_link_libraries(csg_tests fcpw polyscope)
+	if(LINK_ENOKI)
+		target_include_directories(csg_tests PUBLIC deps/enoki/include)
+	endif()
+	target_link_libraries(csg_tests polyscope)
 endif()
