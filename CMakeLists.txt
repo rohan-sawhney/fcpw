@@ -66,6 +66,10 @@ if(LINK_ENOKI)
 		add_definitions(-DSIMD_WIDTH=4)
 	endif()
 
+	# Update the compilation flags
+	enoki_set_compile_flags()
+	enoki_set_native_flags()
+
 	if(USE_EIGHT_WIDE_BRANCHING)
 		add_definitions(-DUSE_EIGHT_WIDE_BRANCHING)
 	endif()

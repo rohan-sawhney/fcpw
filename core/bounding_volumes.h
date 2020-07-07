@@ -34,12 +34,17 @@ struct BoundingBox {
 				   pMax(constantVector<DIM>(minFloat)) {}
 
 	// constructor
-	BoundingBox(const Vector<DIM>& p): pMin(p), pMax(p) {}
+	BoundingBox(const Vector<DIM>& p) {
+		Vector<DIM> epsilonVector = constantVector<DIM>(epsilon);
+		pMin = p - epsilonVector;
+		pMax = p + epsilonVector;
+	}
 
 	// expands volume to include point
 	void expandToInclude(const Vector<DIM>& p) {
-		pMin = cwiseMin<DIM>(pMin, p);
-		pMax = cwiseMax<DIM>(pMax, p);
+		Vector<DIM> epsilonVector = constantVector<DIM>(epsilon);
+		pMin = cwiseMin<DIM>(pMin, p - epsilonVector);
+		pMax = cwiseMax<DIM>(pMax, p + epsilonVector);
 	}
 
 	// expands volume to include box

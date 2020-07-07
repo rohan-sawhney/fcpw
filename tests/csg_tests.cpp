@@ -23,7 +23,10 @@ void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatt
 	for (int i = 0; i < nPoints; i++) {
 		Vector<DIM> o = boundingBox.pMin + cwiseProduct<DIM>(e, uniformRealRandomVector<DIM>());
 		Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f);
-		if (std::fabs(e[DIM - 1]) < epsilon) d[DIM - 1] = 0.0;
+		if (std::fabs(e[DIM - 1]) < 5*epsilon) {
+			o[DIM - 1] = 0.0f;
+			d[DIM - 1] = 0.0f;
+		}
 		d = unit<DIM>(d);
 
 		scatteredPoints.emplace_back(o);
