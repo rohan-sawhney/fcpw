@@ -4,7 +4,7 @@ project(fcpw)
 option(LINK_ENOKI "Build enoki" ON)
 option(USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
 option(BUILD_TESTS "Build tests" ON)
-option(BENCHMARK_EMBREE "Benchmark embree" ON)
+option(BENCHMARK_EMBREE "Benchmark embree" OFF)
 
 ################################################################################
 # c++ version
