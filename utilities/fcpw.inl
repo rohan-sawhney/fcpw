@@ -100,7 +100,7 @@ inline void Scene<DIM>::setObjectVertex(const Vector<DIM>& position, int vertexI
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::setObjectLineSegment(const std::vector<int>& indices, int lineSegmentIndex, int objectIndex)
+inline void Scene<DIM>::setObjectLineSegment(const int *indices, int lineSegmentIndex, int objectIndex)
 {
 	// update soup indices
 	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
@@ -117,7 +117,7 @@ inline void Scene<DIM>::setObjectLineSegment(const std::vector<int>& indices, in
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::setObjectTriangle(const std::vector<int>& indices, int triangleIndex, int objectIndex)
+inline void Scene<DIM>::setObjectTriangle(const int *indices, int triangleIndex, int objectIndex)
 {
 	// update soup indices
 	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
@@ -136,7 +136,7 @@ inline void Scene<DIM>::setObjectTriangle(const std::vector<int>& indices, int t
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::setObjectPrimitive(const std::vector<int>& indices, const PrimitiveType& primitiveType,
+inline void Scene<DIM>::setObjectPrimitive(const int *indices, const PrimitiveType& primitiveType,
 										   int primitiveIndex, int objectIndex)
 {
 	// count line segments and triangles

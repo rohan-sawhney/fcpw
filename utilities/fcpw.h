@@ -38,16 +38,16 @@ public:
 	void setObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex);
 
 	// sets the vertex indices of a line segment in an object
-	void setObjectLineSegment(const std::vector<int>& indices, int lineSegmentIndex, int objectIndex);
+	void setObjectLineSegment(const int *indices, int lineSegmentIndex, int objectIndex);
 
 	// sets the vertex indices of a triangle in an object
-	void setObjectTriangle(const std::vector<int>& indices, int triangleIndex, int objectIndex);
+	void setObjectTriangle(const int *indices, int triangleIndex, int objectIndex);
 
 	// sets the vertex indices of a primitive in an object; primitiveIndex must lie in the range
 	// [0, nLineSegments) or [0, nTriangles) based on the primitive type; internally, the line
 	// segments are stored before the triangles; NOTE: use this function only if an object contains
 	// mixed primitive types, otherwise use one of the two functions above
-	void setObjectPrimitive(const std::vector<int>& indices, const PrimitiveType& primitiveType,
+	void setObjectPrimitive(const int *indices, const PrimitiveType& primitiveType,
 							int primitiveIndex, int objectIndex);
 
 	// sets the instance transforms for an object
