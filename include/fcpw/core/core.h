@@ -12,7 +12,7 @@
 #include <chrono>
 #include <random>
 #include <type_traits>
-#include "vector_operations.h"
+#include <fcpw/core/vector_operations.h>
 
 namespace fcpw {
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/primitive.h"
+#include <fcpw/core/primitive.h>
 
 namespace fcpw {
 

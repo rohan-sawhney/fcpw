@@ -1,7 +1,7 @@
 #pragma once
 
-#include "aggregates/baseline.h"
-#include "geometry/polygon_soup.h"
+#include <fcpw/aggregates/baseline.h>
+#include <fcpw/geometry/polygon_soup.h>
 #include <include/embree3/rtcore.h>
 
 namespace fcpw {

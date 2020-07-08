@@ -1,7 +1,7 @@
-#include "aggregates/baseline.h"
-#include "aggregates/sbvh.h"
+#include <fcpw/aggregates/baseline.h>
+#include <fcpw/aggregates/sbvh.h>
 #ifdef FCPW_LINK_ENOKI
-	#include "aggregates/mbvh.h"
+	#include <fcpw/aggregates/mbvh.h>
 #endif
 #include <map>
 

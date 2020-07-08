@@ -79,42 +79,17 @@ endif()
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 ################################################################################
-# fcpw headers
-set(FCPW_INCLUDES
-	core/vector_operations.h
-	core/core.h
-	core/ray.h
-	core/bounding_volumes.h
-	core/interaction.h
-	core/primitive.h
-	core/wide_query_operations.h
-	geometry/polygon_soup.h
-	geometry/line_segments.h
-	geometry/line_segments.inl
-	geometry/triangles.h
-	geometry/triangles.inl
-	aggregates/baseline.h
-	aggregates/baseline.inl
-	aggregates/sbvh.h
-	aggregates/sbvh.inl
-	aggregates/mbvh.h
-	aggregates/mbvh.inl
-	aggregates/csg_node.h
-	aggregates/csg_node.inl
-	utilities/scene_data.h
-	utilities/scene_data.inl
-	utilities/fcpw.h
-	utilities/fcpw.inl
-	utilities/scene_loader.h
-	utilities/scene_loader.inl
-	)
+# build library
+add_library(${PROJECT_NAME} INTERFACE)
+target_include_directories(${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>)
 
 ################################################################################
 if(FCPW_BUILD_TESTS)
 	add_subdirectory(tests/deps/polyscope)
 
 	# build test to time and check aggregate correctness
-	add_executable(aggregate_tests tests/aggregate_tests.cpp ${FCPW_INCLUDES})
+	add_executable(aggregate_tests tests/aggregate_tests.cpp)
+	target_link_libraries(aggregate_tests fcpw)
 	target_include_directories(aggregate_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
 	target_include_directories(aggregate_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/deps/ThreadPool)
 	if(FCPW_LINK_ENOKI)
@@ -128,7 +103,8 @@ if(FCPW_BUILD_TESTS)
 	endif()
 
 	# build csg test
-	add_executable(csg_tests tests/csg_tests.cpp ${FCPW_INCLUDES})
+	add_executable(csg_tests tests/csg_tests.cpp)
+	target_link_libraries(csg_tests fcpw)
 	target_include_directories(csg_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
 	target_include_directories(csg_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/deps/ThreadPool)
 	if(FCPW_LINK_ENOKI)

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "polygon_soup.h"
+#include <fcpw/geometry/polygon_soup.h>
 
 namespace fcpw {
 

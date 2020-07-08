@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scene_data.h"
+#include <fcpw/utilities/scene_data.h>
 
 namespace fcpw {
 

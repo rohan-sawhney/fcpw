@@ -1,4 +1,4 @@
-#include "utilities/scene_loader.h"
+#include <fcpw/utilities/scene_loader.h>
 #include <ThreadPool.h>
 
 #include "polyscope/polyscope.h"

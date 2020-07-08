@@ -1,8 +1,7 @@
 #pragma once
 
-#include "core/primitive.h"
+#include <fcpw/core/primitive.h>
 #include <tuple>
-#include <deque>
 #define SBVH_MAX_DEPTH 64
 
 namespace fcpw {

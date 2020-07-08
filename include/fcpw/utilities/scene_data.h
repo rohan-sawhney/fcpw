@@ -1,8 +1,8 @@
 #pragma once
 
-#include "aggregates/csg_node.h"
-#include "geometry/line_segments.h"
-#include "geometry/triangles.h"
+#include <fcpw/aggregates/csg_node.h>
+#include <fcpw/geometry/line_segments.h>
+#include <fcpw/geometry/triangles.h>
 #include <unordered_map>
 
 namespace fcpw {

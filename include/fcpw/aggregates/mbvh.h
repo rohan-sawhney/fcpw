@@ -1,6 +1,6 @@
 #pragma once
 
-#include "sbvh.h"
+#include <fcpw/aggregates/sbvh.h>
 #ifdef FCPW_USE_EIGHT_WIDE_BRANCHING
 	#define MBVH_BRANCHING_FACTOR 8
 	#define MBVH_MAX_DEPTH 154
