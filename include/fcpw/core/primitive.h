@@ -1,8 +1,8 @@
 #pragma once
 
-#include "ray.h"
-#include "bounding_volumes.h"
-#include "interaction.h"
+#include <fcpw/core/ray.h>
+#include <fcpw/core/bounding_volumes.h>
+#include <fcpw/core/interaction.h>
 
 namespace fcpw {
 

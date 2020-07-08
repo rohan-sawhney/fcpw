@@ -2,10 +2,10 @@
 
 #include "sbvh.h"
 #ifdef USE_EIGHT_WIDE_BRANCHING
-	#define MBVH_BRANCHING_FACTOR 8
+	#define FCPW_MBVH_BRANCHING_FACTOR 8
 	#define MBVH_MAX_DEPTH 154
 #else
-	#define MBVH_BRANCHING_FACTOR 4
+	#define FCPW_MBVH_BRANCHING_FACTOR 4
 	#define MBVH_MAX_DEPTH 96
 #endif
 
@@ -14,13 +14,13 @@ namespace fcpw {
 template<size_t DIM>
 struct MbvhNode {
 	// constructor
-	MbvhNode(): boxMin(FloatP<MBVH_BRANCHING_FACTOR>(maxFloat)),
-				boxMax(FloatP<MBVH_BRANCHING_FACTOR>(minFloat)),
+	MbvhNode(): boxMin(FloatP<FCPW_MBVH_BRANCHING_FACTOR>(maxFloat)),
+				boxMax(FloatP<FCPW_MBVH_BRANCHING_FACTOR>(minFloat)),
 				child(maxInt) {}
 
 	// members
-	VectorP<MBVH_BRANCHING_FACTOR, DIM> boxMin, boxMax;
-	IntP<MBVH_BRANCHING_FACTOR> child; // use sign to differentiate between inner and leaf nodes
+	VectorP<FCPW_MBVH_BRANCHING_FACTOR, DIM> boxMin, boxMax;
+	IntP<FCPW_MBVH_BRANCHING_FACTOR> child; // use sign to differentiate between inner and leaf nodes
 };
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>

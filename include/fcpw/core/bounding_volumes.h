@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ray.h"
+#include <fcpw/core/ray.h>
 
 namespace fcpw {
 

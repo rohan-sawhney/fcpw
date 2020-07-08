@@ -54,7 +54,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeSplitCost(const BoundingBox<DIM>& 
 {
 	float cost = maxFloat;
 
-#ifdef LINK_ENOKI
+#ifdef FCPW_LINK_ENOKI
 	if (packLeaves && depth > 0 && ((float)depthGuess/depth) < 1.5f &&
 		nReferencesLeft%leafSize != 0 && nReferencesRight%leafSize != 0) {
 		return cost;
@@ -219,7 +219,7 @@ inline void Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM
 
 	// if the number of references at this point is less than the leaf
 	// size, then this will become a leaf
-	if (nReferences <= leafSize || depth == SBVH_MAX_DEPTH - 2) {
+	if (nReferences <= leafSize || depth == FCPW_SBVH_MAX_DEPTH - 2) {
 		node.referenceOffset = start;
 		node.nReferences = nReferences;
 		nLeafs++;
@@ -443,7 +443,7 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
-	BvhTraversal subtree[SBVH_MAX_DEPTH];
+	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
 	float boxHits[4];
 
 	if (flatTree[0].box.intersect(r, boxHits[0], boxHits[1])) {
@@ -585,7 +585,7 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 {
 	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
-	BvhTraversal subtree[SBVH_MAX_DEPTH];
+	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
 	float boxHits[4];
 
 	if (flatTree[0].box.overlap(s, boxHits[0], boxHits[1])) {

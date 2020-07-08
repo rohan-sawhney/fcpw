@@ -1,4 +1,4 @@
-#include "utilities/scene_loader.h"
+#include <fcpw/utilities/scene_loader.h>
 #include <ThreadPool.h>
 #include <atomic>
 
@@ -6,7 +6,7 @@
 #include "polyscope/surface_mesh.h"
 #include "polyscope/point_cloud.h"
 #include "polyscope/curve_network.h"
-#ifdef BENCHMARK_EMBREE
+#ifdef FCPW_BENCHMARK_EMBREE
 	#include "embree_bvh.h"
 #endif
 
@@ -79,7 +79,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 	randomDirections.resize(nQueries);
 }
 
-#ifdef BENCHMARK_EMBREE
+#ifdef FCPW_BENCHMARK_EMBREE
 template<size_t DIM>
 inline bool buildEmbreeAggregate(SceneData<DIM> *sceneData, bool printStats=false)
 {

@@ -1,4 +1,4 @@
-#include "core/wide_query_operations.h"
+#include <fcpw/core/wide_query_operations.h>
 
 namespace fcpw {
 
@@ -29,12 +29,12 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 	} else {
 		// sbvh node is an inner node, flatten it
 		int nNodesToCollapse = 2;
-		int nodesToCollapse[MBVH_BRANCHING_FACTOR];
+		int nodesToCollapse[FCPW_MBVH_BRANCHING_FACTOR];
 		nodesToCollapse[0] = sbvhNodeIndex + sbvhNode.secondChildOffset;
 		nodesToCollapse[1] = sbvhNodeIndex + 1;
 		bool noMoreNodesToCollapse = false;
 
-		while (nNodesToCollapse < MBVH_BRANCHING_FACTOR && !noMoreNodesToCollapse) {
+		while (nNodesToCollapse < FCPW_MBVH_BRANCHING_FACTOR && !noMoreNodesToCollapse) {
 			// find the (non-leaf) node entry with the largest surface area
 			float maxSurfaceArea = minFloat;
 			int maxIndex = -1;
@@ -177,7 +177,7 @@ nLeafs(0),
 maxDepth(0),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
-	static_assert(MBVH_BRANCHING_FACTOR == 4 || MBVH_BRANCHING_FACTOR == 8,
+	static_assert(FCPW_MBVH_BRANCHING_FACTOR == 4 || FCPW_MBVH_BRANCHING_FACTOR == 8,
 				  "Branching factor must be atleast 4");
 
 	using namespace std::chrono;
@@ -214,7 +214,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 
 			} else {
 				nInnerNodes++;
-				for (int w = 0; w < MBVH_BRANCHING_FACTOR; w++) {
+				for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
 					if (node.child[w] == maxInt) {
 						nNodesNotFull += 1.0f;
 						break;
@@ -225,7 +225,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
 		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-		std::cout << "Built " << MBVH_BRANCHING_FACTOR << "-bvh with "
+		std::cout << "Built " << FCPW_MBVH_BRANCHING_FACTOR << "-bvh with "
 				  << nNodes << " nodes, "
 				  << nLeafs << " leaves, "
 				  << (nNodesNotFull*100/nInnerNodes) << "% nodes & "
@@ -535,7 +535,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
 	BvhTraversal subtree[MBVH_MAX_DEPTH];
-	FloatP<MBVH_BRANCHING_FACTOR> tMin, tMax;
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
 
 	// push root node
 	subtree[0].node = 0;
@@ -612,7 +612,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 		} else {
 			// intersect ray with boxes
-			MaskP<MBVH_BRANCHING_FACTOR> mask = intersectWideBox<MBVH_BRANCHING_FACTOR, DIM>(r,
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(r,
 														  node.boxMin, node.boxMax, tMin, tMax);
 
 			// enqueue intersecting boxes in sorted order
@@ -834,7 +834,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
 	BvhTraversal subtree[MBVH_MAX_DEPTH];
-	FloatP<MBVH_BRANCHING_FACTOR> d2Min, d2Max;
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 
 	// push root node
 	subtree[0].node = 0;
@@ -895,7 +895,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 		} else {
 			// overlap sphere with boxes
-			MaskP<MBVH_BRANCHING_FACTOR> mask = overlapWideBox<MBVH_BRANCHING_FACTOR, DIM>(s,
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(s,
 													  node.boxMin, node.boxMax, d2Min, d2Max);
 
 			// enqueue overlapping boxes in sorted order

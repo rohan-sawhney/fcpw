@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core.h"
+#include <fcpw/core/core.h>
 
 namespace fcpw {
 

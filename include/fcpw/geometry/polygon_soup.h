@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/primitive.h"
+#include <fcpw/core/primitive.h>
 
 namespace fcpw {
 
@@ -10,7 +10,7 @@ struct PolygonSoup {
 	PolygonSoup() {}
 
 	// constructor
- 	PolygonSoup(const std::vector<int>& indices_,
+	PolygonSoup(const std::vector<int>& indices_,
 				const std::vector<Vector<DIM>>& positions_):
 				indices(indices_), positions(positions_) {}
 
