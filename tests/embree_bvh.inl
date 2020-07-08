@@ -1,3 +1,4 @@
+#include <common/math/vec2.h>
 #include <common/math/vec3.h>
 
 namespace fcpw {

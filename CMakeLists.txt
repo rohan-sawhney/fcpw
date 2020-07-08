@@ -33,8 +33,8 @@ if(FCPW_BUILD_TESTS AND FCPW_BENCHMARK_EMBREE)
 	add_definitions(-DFCPW_BENCHMARK_EMBREE)
 	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Enable ispc functionality")
 	set(EMBREE_TUTORIALS OFF CACHE BOOL "Enable embree tutorials")
-	add_subdirectory(deps/embree)
-	set(FCPW_EMBREE_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/embree)
+	add_subdirectory(tests/deps/embree)
+	set(FCPW_EMBREE_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/tests/deps/embree)
 
 	message(STATUS "Embree SSE2: " ${EMBREE_ISA_SSE2})
 	message(STATUS "Embree SSE42: " ${EMBREE_ISA_SSE42})
@@ -111,12 +111,12 @@ set(FCPW_INCLUDES
 
 ################################################################################
 if(FCPW_BUILD_TESTS)
-	add_subdirectory(deps/polyscope)
+	add_subdirectory(tests/deps/polyscope)
 
 	# build test to time and check aggregate correctness
 	add_executable(aggregate_tests tests/aggregate_tests.cpp ${FCPW_INCLUDES})
 	target_include_directories(aggregate_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
-	target_include_directories(aggregate_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/ThreadPool)
+	target_include_directories(aggregate_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/deps/ThreadPool)
 	if(FCPW_LINK_ENOKI)
 		target_include_directories(aggregate_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
 	endif()
@@ -130,7 +130,7 @@ if(FCPW_BUILD_TESTS)
 	# build csg test
 	add_executable(csg_tests tests/csg_tests.cpp ${FCPW_INCLUDES})
 	target_include_directories(csg_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
-	target_include_directories(csg_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/ThreadPool)
+	target_include_directories(csg_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tests/deps/ThreadPool)
 	if(FCPW_LINK_ENOKI)
 		target_include_directories(csg_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
 	endif()
