@@ -1,10 +1,10 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(fcpw)
 
-option(LINK_ENOKI "Build enoki" ON)
-option(USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
-option(BUILD_TESTS "Build tests" ON)
-option(BENCHMARK_EMBREE "Benchmark embree" OFF)
+option(FCPW_LINK_ENOKI "Build enoki" ON)
+option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
+option(FCPW_BUILD_TESTS "Build tests" ON)
+option(FCPW_BENCHMARK_EMBREE "Benchmark embree" OFF)
 
 ################################################################################
 # c++ version
@@ -27,14 +27,14 @@ endif()
 
 ################################################################################
 # dependencies
-set(EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror)
+set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror)
 
-if(BUILD_TESTS AND BENCHMARK_EMBREE)
-	add_definitions(-DBENCHMARK_EMBREE)
+if(FCPW_BUILD_TESTS AND FCPW_BENCHMARK_EMBREE)
+	add_definitions(-DFCPW_BENCHMARK_EMBREE)
 	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Enable ispc functionality")
 	set(EMBREE_TUTORIALS OFF CACHE BOOL "Enable embree tutorials")
 	add_subdirectory(deps/embree)
-	set(EMBREE_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/embree)
+	set(FCPW_EMBREE_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/embree)
 
 	message(STATUS "Embree SSE2: " ${EMBREE_ISA_SSE2})
 	message(STATUS "Embree SSE42: " ${EMBREE_ISA_SSE42})
@@ -44,9 +44,9 @@ if(BUILD_TESTS AND BENCHMARK_EMBREE)
 	message(STATUS "Embree SKX: " ${EMBREE_ISA_AVX512SKX})
 endif()
 
-if(LINK_ENOKI)
+if(FCPW_LINK_ENOKI)
 	set(CMAKE_CXX_STANDARD 17)
-	add_definitions(-DLINK_ENOKI)
+	add_definitions(-DFCPW_LINK_ENOKI)
 	add_subdirectory(deps/enoki)
 
 	# define SIMD width
@@ -70,10 +70,10 @@ if(LINK_ENOKI)
 	enoki_set_compile_flags()
 	enoki_set_native_flags()
 
-	if(USE_EIGHT_WIDE_BRANCHING)
-		add_definitions(-DUSE_EIGHT_WIDE_BRANCHING)
+	if(FCPW_USE_EIGHT_WIDE_BRANCHING)
+		add_definitions(-DFCPW_USE_EIGHT_WIDE_BRANCHING)
 	endif()
-	set(ENOKI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki/include)
+	set(FCPW_ENOKI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki/include)
 endif()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -110,18 +110,18 @@ set(FCPW_INCLUDES
 	)
 
 ################################################################################
-if(BUILD_TESTS)
+if(FCPW_BUILD_TESTS)
 	add_subdirectory(deps/polyscope)
 
 	# build test to time and check aggregate correctness
 	add_executable(aggregate_tests tests/aggregate_tests.cpp ${FCPW_INCLUDES})
-	target_include_directories(aggregate_tests PUBLIC ${EIGEN_INCLUDES})
+	target_include_directories(aggregate_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
 	target_include_directories(aggregate_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/ThreadPool)
-	if(LINK_ENOKI)
-		target_include_directories(aggregate_tests PUBLIC ${ENOKI_INCLUDES})
+	if(FCPW_LINK_ENOKI)
+		target_include_directories(aggregate_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
 	endif()
-	if(BENCHMARK_EMBREE)
-		target_include_directories(aggregate_tests PUBLIC ${EMBREE_INCLUDES})
+	if(FCPW_BENCHMARK_EMBREE)
+		target_include_directories(aggregate_tests PUBLIC ${FCPW_EMBREE_INCLUDES})
 		target_link_libraries(aggregate_tests polyscope embree)
 	else()
 		target_link_libraries(aggregate_tests polyscope)
@@ -129,10 +129,10 @@ if(BUILD_TESTS)
 
 	# build csg test
 	add_executable(csg_tests tests/csg_tests.cpp ${FCPW_INCLUDES})
-	target_include_directories(csg_tests PUBLIC ${EIGEN_INCLUDES})
+	target_include_directories(csg_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
 	target_include_directories(csg_tests PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/deps/ThreadPool)
-	if(LINK_ENOKI)
-		target_include_directories(csg_tests PUBLIC ${ENOKI_INCLUDES})
+	if(FCPW_LINK_ENOKI)
+		target_include_directories(csg_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
 	endif()
 	target_link_libraries(csg_tests polyscope)
 endif()

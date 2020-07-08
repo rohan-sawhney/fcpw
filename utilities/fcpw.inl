@@ -1,6 +1,6 @@
 #include "aggregates/baseline.h"
 #include "aggregates/sbvh.h"
-#ifdef LINK_ENOKI
+#ifdef FCPW_LINK_ENOKI
 	#include "aggregates/mbvh.h"
 #endif
 #include <map>
@@ -372,7 +372,7 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 	bool packLeaves = false;
 	int leafSize = 4;
 
-#ifdef LINK_ENOKI
+#ifdef FCPW_LINK_ENOKI
 	if (vectorize) {
 		packLeaves = true;
 		leafSize = SIMD_WIDTH;
@@ -403,7 +403,7 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 		return std::unique_ptr<Baseline<DIM, PrimitiveType>>(new Baseline<DIM, PrimitiveType>(primitives));
 	}
 
-#ifdef LINK_ENOKI
+#ifdef FCPW_LINK_ENOKI
 	if (vectorize) {
 		return std::unique_ptr<Mbvh<SIMD_WIDTH, DIM, PrimitiveType>>(
 				new Mbvh<SIMD_WIDTH, DIM, PrimitiveType>(sbvh.get(), printStats));
