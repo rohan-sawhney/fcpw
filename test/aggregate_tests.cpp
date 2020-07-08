@@ -509,7 +509,7 @@ void run()
 				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 											 indices, bvhTypes[bvh - 1], true);
 
-#ifndef LINK_ENOKI
+#ifndef FCPW_LINK_ENOKI
 				break;
 #endif
 			}
@@ -517,7 +517,7 @@ void run()
 			std::cout << std::endl;
 		}
 
-#ifdef BENCHMARK_EMBREE
+#ifdef FCPW_BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
 		if (buildEmbreeAggregate<DIM>(sceneData, true)) {
 			timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
@@ -555,7 +555,7 @@ void run()
 				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, indices, true);
 
-#ifndef LINK_ENOKI
+#ifndef FCPW_LINK_ENOKI
 				break;
 #endif
 			}
@@ -563,7 +563,7 @@ void run()
 			std::cout << std::endl;
 		}
 
-#ifdef BENCHMARK_EMBREE
+#ifdef FCPW_BENCHMARK_EMBREE
 		// build embree bvh aggregate and compare results with baseline
 		std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
 		Scene<DIM> embreeBvhScene;

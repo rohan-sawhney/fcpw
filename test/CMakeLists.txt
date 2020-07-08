@@ -23,6 +23,38 @@ if(CMAKE_BUILD_TYPE MATCHES RELEASE)
 	add_definitions(-DNDEBUG)
 endif()
 
+if(FCPW_LINK_ENOKI)
+	
+	add_definitions(-DFCPW_LINK_ENOKI)
+	
+	# define SIMD width
+	string(TOUPPER "${ENOKI_ARCH_FLAGS}" ENOKI_ARCH_FLAGS_UPPER)
+	message(STATUS "Enoki Max ISA: " ${ENOKI_ARCH_FLAGS_UPPER})
+	if(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "SSE")
+		add_definitions(-DFCPW_SIMD_WIDTH=4)
+	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "AVX2")
+		add_definitions(-DFCPW_SIMD_WIDTH=8)
+	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "AVX")
+		add_definitions(-DFCPW_SIMD_WIDTH=8)
+	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "KNL")
+		add_definitions(-DFCPW_SIMD_WIDTH=16)
+	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "SKX")
+		add_definitions(-DFCPW_SIMD_WIDTH=16)
+	else()
+		add_definitions(-DFCPW_SIMD_WIDTH=4)
+	endif()
+
+	# Update the compilation flags
+	enoki_set_compile_flags()
+	enoki_set_native_flags()
+
+	if(FCPW_USE_EIGHT_WIDE_BRANCHING)
+		add_definitions(-DFCPW_USE_EIGHT_WIDE_BRANCHING)
+	endif()
+	#set(FCPW_ENOKI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki/include)
+endif()
+
+
 if(FCPW_BENCHMARK_EMBREE)
 	add_definitions(-DFCPW_BENCHMARK_EMBREE)
 	set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Enable ispc functionality")
