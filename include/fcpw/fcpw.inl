@@ -613,9 +613,16 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 
 	// reduce memory footprint of aggregate
 	if (reduceMemoryFootprint) {
+		sceneData->soupToObjectsMap.clear();
+		sceneData->instanceTransforms.clear();
+		sceneData->csgTree.clear();
+
 		for (int i = 0; i < (int)sceneData->soups.size(); i++) {
 			PolygonSoup<DIM>& soup = sceneData->soups[i];
 			soup.indices.clear();
+			if (vectorize && sceneData->mixedObjectPtrs.size() == 0 && soup.vNormals.size() == 0) {
+				soup.positions.clear();
+			}
 		}
 	}
 }
