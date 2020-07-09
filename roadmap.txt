@@ -11,9 +11,8 @@ Priority:
 ---- sort nodes efficiently by direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
-4. reduce memory footprint of mbvh
-5. benchmark (https://github.com/jdumas/aabb_benchmark)
-6. README (tutorial, features, benchmark, compiling, logo)
+4. benchmark (https://github.com/jdumas/aabb_benchmark)
+5. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. add support for more geometries:
