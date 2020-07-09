@@ -4,9 +4,3 @@
 [submodule "deps/enoki"]
 	path = deps/enoki
 	url = https://github.com/mitsuba-renderer/enoki.git
-[submodule "tests/deps/embree"]
-	path = tests/deps/embree
-	url = https://github.com/embree/embree.git
-[submodule "tests/deps/polyscope"]
-	path = tests/deps/polyscope
-	url = https://github.com/nmwsharp/polyscope.git
