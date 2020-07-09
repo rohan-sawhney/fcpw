@@ -67,13 +67,13 @@ public:
 
 	// builds a (possibly vectorized) aggregate/accelerator for the scene; each call to this
 	// function rebuilds the aggregate/accelerator for the scene from the specified geometry
-	// (except when clearSceneGeometry is set to true which results in undefined behavior);
+	// (except when reduceMemoryFootprint is set to true which results in undefined behavior);
 	// it is recommended to set vectorize to false for primitives that do not implement
-	// vectorized intersection and closest point queries; set clearSceneGeometry to true
-	// to reduce the memory footprint of fcpw when constructing a vectorized aggregate,
-	// otherwise set clearSceneGeometry to false if you plan to access the scene data 
+	// vectorized intersection and closest point queries; set reduceMemoryFootprint to true
+	// to reduce the memory footprint of fcpw when constructing an aggregate, however if you
+	// plan to access the scene data let it remain false
 	void build(const AggregateType& aggregateType, bool vectorize, bool printStats,
-			   bool clearSceneGeometry=false);
+			   bool reduceMemoryFootprint=false);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// API to find closest points and intersect rays with the scene, among others

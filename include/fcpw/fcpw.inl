@@ -558,7 +558,7 @@ inline std::unique_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 
 template<size_t DIM>
 inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize,
-							  bool printStats, bool clearSceneGeometry)
+							  bool printStats, bool reduceMemoryFootprint)
 {
 	// clear old aggregate data
 	sceneData->clearAggregateData();
@@ -611,12 +611,12 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		sceneData->aggregate->index = nAggregates++;
 	}
 
-	// reduce memory footprint for vectorized aggregate
-	if (vectorize && clearSceneGeometry) {
-		if (sceneData->mixedObjectPtrs.size() == 0) {
-			for (int i = 0; i < (int)sceneData->soups.size(); i++) {
-				PolygonSoup<DIM>& soup = sceneData->soups[i];
-				soup.indices.clear();
+	// reduce memory footprint of aggregate
+	if (reduceMemoryFootprint) {
+		for (int i = 0; i < (int)sceneData->soups.size(); i++) {
+			PolygonSoup<DIM>& soup = sceneData->soups[i];
+			soup.indices.clear();
+			if (vectorize && sceneData->mixedObjectPtrs.size() == 0) {
 				soup.positions.clear();
 			}
 		}
