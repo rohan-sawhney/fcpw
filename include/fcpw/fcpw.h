@@ -66,7 +66,9 @@ public:
 	// API to build the scene aggregate/accelerator
 
 	// builds a (possibly vectorized) aggregate/accelerator for the scene; each call to this
-	// function rebuilds the aggregate/accelerator for the scene from the specified geometry
+	// function rebuilds the aggregate/accelerator for the scene from the specified geometry;
+	// it is recommended to set vectorize to false for primitives that do not implement
+	// vectorized closest point and intersection queries
 	void build(const AggregateType& aggregateType, bool vectorize, bool printStats);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////

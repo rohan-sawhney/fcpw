@@ -6,7 +6,7 @@
 #include "polyscope/surface_mesh.h"
 #include "polyscope/point_cloud.h"
 #include "polyscope/curve_network.h"
-#ifdef FCPW_BENCHMARK_EMBREE
+#ifdef FCPW_TESTS_BENCHMARK_EMBREE
 	#include "embree_bvh.h"
 #endif
 
@@ -79,7 +79,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 	randomDirections.resize(nQueries);
 }
 
-#ifdef FCPW_BENCHMARK_EMBREE
+#ifdef FCPW_TESTS_BENCHMARK_EMBREE
 template<size_t DIM>
 inline bool buildEmbreeAggregate(SceneData<DIM> *sceneData, bool printStats=false)
 {
@@ -509,7 +509,7 @@ void run()
 				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 											 indices, bvhTypes[bvh - 1], true);
 
-#ifndef FCPW_LINK_ENOKI
+#ifndef FCPW_USE_ENOKI
 				break;
 #endif
 			}
@@ -517,7 +517,7 @@ void run()
 			std::cout << std::endl;
 		}
 
-#ifdef FCPW_BENCHMARK_EMBREE
+#ifdef FCPW_TESTS_BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
 		if (buildEmbreeAggregate<DIM>(sceneData, true)) {
 			timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
@@ -555,7 +555,7 @@ void run()
 				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, indices, true);
 
-#ifndef FCPW_LINK_ENOKI
+#ifndef FCPW_USE_ENOKI
 				break;
 #endif
 			}
@@ -563,7 +563,7 @@ void run()
 			std::cout << std::endl;
 		}
 
-#ifdef FCPW_BENCHMARK_EMBREE
+#ifdef FCPW_TESTS_BENCHMARK_EMBREE
 		// build embree bvh aggregate and compare results with baseline
 		std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
 		Scene<DIM> embreeBvhScene;

@@ -11,21 +11,19 @@ Priority:
 ---- sort nodes efficiently by direction
 ---- start search from specified node (and walk up/laterally in the tree)
 ---- enoki cmake linking on ubuntu & windows
-4. correctly setup cmake (make header only) + reduce memory footprint (especially for mbvh)
+4. reduce memory footprint of mbvh
 5. benchmark (https://github.com/jdumas/aabb_benchmark)
-6. travis/circle CI
-7. README (tutorial, features, benchmark, compiling, logo)
+6. README (tutorial, features, benchmark, compiling, logo)
 
 Future Optimizations & Features:
 1. add support for more geometries:
----- thickened lines & tris, beziers, libfive (+ exact distance to implicit), subdivision surfaces, nurbs
+---- thickened line segments & triangles, beziers, nurbs, implicits (libfive), subdivision surfaces
 2. tree construction:
 ---- spatial split bvh
----- support oriented bounding boxes + RSS (specify bounding volume via templates)
+---- oriented bounding boxes + rectangular swept spheres (specify bounding volume via templates)
 ---- rebalance tree
 ---- vectorize + thread
-3. packet (coherent) queries
----- keyword: breadth first ray tracing
+3. packet queries
 4. traversal optimization for closest point queries & intersections:
 ---- implement "stackless" traversal
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
@@ -35,8 +33,8 @@ Future Optimizations & Features:
 
 Done:
 1. closest point and ray intersections queries leveraging coherency between queries
-2. bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
-									 Surface Area Overlap, Volume Overlap)
+2. vectorized bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
+												Surface Area Overlap, Volume Overlap)
 3. improved cache locality with optional spatial sorting of soup positions & indices
 4. constructive solid geometry
 5. instancing
