@@ -175,6 +175,8 @@ primitives(sbvh_->primitives),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
+area(0.0f),
+volume(0.0f),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
 	static_assert(MBVH_BRANCHING_FACTOR == 4 || MBVH_BRANCHING_FACTOR == 8,
@@ -193,6 +195,18 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
+
+	// precompute surface area and signed volume
+	int nPrimitives = (int)primitives.size();
+	aggregateCentroid = zeroVector<DIM>();
+
+	for (int p = 0; p < nPrimitives; p++) {
+		aggregateCentroid += primitives[p]->centroid();
+		area += primitives[p]->surfaceArea();
+		volume += primitives[p]->signedVolume();
+	}
+
+	aggregateCentroid /= nPrimitives;
 
 	// don't compute normals by default
 	this->computeNormals = false;
@@ -250,35 +264,18 @@ inline BoundingBox<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::boundingBox() const
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline Vector<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::centroid() const
 {
-	Vector<DIM> c = zeroVector<DIM>();
-	int nPrimitives = (int)primitives.size();
-
-	for (int p = 0; p < nPrimitives; p++) {
-		c += primitives[p]->centroid();
-	}
-
-	return c/nPrimitives;
+	return aggregateCentroid;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline float Mbvh<WIDTH, DIM, PrimitiveType>::surfaceArea() const
 {
-	float area = 0.0f;
-	for (int p = 0; p < (int)primitives.size(); p++) {
-		area += primitives[p]->surfaceArea();
-	}
-
 	return area;
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 {
-	float volume = 0.0f;
-	for (int p = 0; p < (int)primitives.size(); p++) {
-		volume += primitives[p]->signedVolume();
-	}
-
 	return volume;
 }
 

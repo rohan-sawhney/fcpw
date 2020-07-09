@@ -87,6 +87,8 @@ protected:
 
 	// members
 	int nNodes, nLeafs, maxDepth;
+	float area, volume;
+	Vector<DIM> aggregateCentroid;
 	const std::vector<PrimitiveType *>& primitives;
 	std::vector<MbvhNode<DIM>> flatTree;
 	std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>> leafNodes;
