@@ -616,9 +616,6 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 		for (int i = 0; i < (int)sceneData->soups.size(); i++) {
 			PolygonSoup<DIM>& soup = sceneData->soups[i];
 			soup.indices.clear();
-			if (vectorize && sceneData->mixedObjectPtrs.size() == 0) {
-				soup.positions.clear();
-			}
 		}
 	}
 }
