@@ -3,10 +3,7 @@ Priority:
    possibly go very wrong if guess is totally off for certain geometric distributions)
 2. start search from specified node (and walk up/laterally in the tree)
 3. mbvh
----- don't broadcast sphere & ray: NOT MUCH EFFECT
----- layout flatTree BFS: NOT MUCH EFFECT
----- don't pack leaves in sbvh, pack in mbvh instead
----- better construction, sorting, memory layout: http://www.cs.ubbcluj.ro/~afra/publications/afra2013tr_mbvh8.pdf
+---- better construction & sorting: http://www.cs.ubbcluj.ro/~afra/publications/afra2013tr_mbvh8.pdf
 ---- use unused vector units during overlap/intersection with AVX & 4 wide branching?
 ---- sort nodes efficiently by direction
 ---- start search from specified node (and walk up/laterally in the tree)

@@ -186,6 +186,12 @@ inline int Sbvh<DIM, PrimitiveType>::performObjectSplit(int nodeStart, int nodeE
 	// if we get a bad split, just choose the center...
 	if (mid == nodeStart || mid == nodeEnd) {
 		mid = nodeStart + (nodeEnd - nodeStart)/2;
+
+		// ensure the number of primitives in one branch is a multiple of the leaf size
+		if (packLeaves) {
+			while ((mid - nodeStart)%leafSize != 0 && mid < nodeEnd) mid++;
+			if (mid == nodeEnd) mid = nodeStart + (nodeEnd - nodeStart)/2;
+		}
 	}
 
 	return mid;
@@ -249,7 +255,7 @@ inline void Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM
 	// compute object split
 	int splitDim;
 	float splitCoord;
-	BoundingBox<DIM> boxLeft, boxRight, boxIntersected;
+	BoundingBox<DIM> boxIntersected;
 	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids, depth,
 										 start, end, splitDim, splitCoord, boxIntersected);
 
