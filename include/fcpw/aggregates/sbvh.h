@@ -2,7 +2,7 @@
 
 #include <fcpw/core/primitive.h>
 #include <tuple>
-#define SBVH_MAX_DEPTH 64
+#define FCPW_SBVH_MAX_DEPTH 64
 
 namespace fcpw {
 // modified version of https://github.com/brandonpelfrey/Fast-BVH and
