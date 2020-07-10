@@ -375,7 +375,7 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 #ifdef FCPW_USE_ENOKI
 	if (vectorize) {
 		packLeaves = true;
-		leafSize = SIMD_WIDTH;
+		leafSize = FCPW_SIMD_WIDTH;
 	}
 #endif
 
@@ -405,8 +405,8 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 
 #ifdef FCPW_USE_ENOKI
 	if (vectorize) {
-		return std::unique_ptr<Mbvh<SIMD_WIDTH, DIM, PrimitiveType>>(
-				new Mbvh<SIMD_WIDTH, DIM, PrimitiveType>(sbvh.get(), printStats));
+		return std::unique_ptr<Mbvh<FCPW_SIMD_WIDTH, DIM, PrimitiveType>>(
+				new Mbvh<FCPW_SIMD_WIDTH, DIM, PrimitiveType>(sbvh.get(), printStats));
 	}
 #endif
 
