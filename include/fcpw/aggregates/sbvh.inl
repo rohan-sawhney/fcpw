@@ -53,13 +53,10 @@ inline float Sbvh<DIM, PrimitiveType>::computeSplitCost(const BoundingBox<DIM>& 
 														int depth) const
 {
 	float cost = maxFloat;
-
-#ifdef FCPW_USE_ENOKI
 	if (packLeaves && depth > 0 && ((float)depthGuess/depth) < 1.5f &&
 		nReferencesLeft%leafSize != 0 && nReferencesRight%leafSize != 0) {
 		return cost;
 	}
-#endif
 
 	if (costHeuristic == CostHeuristic::SurfaceArea) {
 		cost = (nReferencesLeft*boxLeft.surfaceArea() +
