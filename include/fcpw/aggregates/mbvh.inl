@@ -281,22 +281,23 @@ inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 
 template<size_t WIDTH, size_t DIM>
 inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<WIDTH>& tMin,
-						 float tMax, MaskP<WIDTH>& mask, int& stackPtr,
-						 BvhTraversal *subtree)
+						 const FloatP<WIDTH>& tMax, const MaskP<WIDTH>& mask,
+						 float dist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
 {
 	// enqueue nodes
 	int closestIndex = -1;
-	float minHit = tMax;
+	float minDist = dist;
 
 	for (int w = 0; w < WIDTH; w++) {
 		if (mask[w]) {
 			stackPtr++;
 			subtree[stackPtr].node = node.child[w];
 			subtree[stackPtr].distance = tMin[w];
+			tMaxMin = std::min(tMaxMin, tMax[w]);
 
-			if (tMin[w] < minHit) {
+			if (tMin[w] < minDist) {
 				closestIndex = stackPtr;
-				minHit = tMin[w];
+				minDist = tMin[w];
 			}
 		}
 	}
@@ -577,7 +578,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			nodesVisited++;
 			mask &= enoki::neq(node.child, maxInt);
 			if (enoki::any(mask)) {
-				enqueueNodes(node, tMin, r.tMax, mask, stackPtr, subtree);
+				float t = 0.0f;
+				enqueueNodes(node, tMin, tMax, mask, r.tMax, t, stackPtr, subtree);
 			}
 		}
 	}
@@ -804,10 +806,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			nodesVisited++;
 			mask &= enoki::neq(node.child, maxInt);
 			if (enoki::any(mask)) {
-				for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
-					if (mask[w]) s.r2 = std::min(s.r2, d2Max[w]);
-				}
-				enqueueNodes(node, d2Min, s.r2, mask, stackPtr, subtree);
+				enqueueNodes(node, d2Min, d2Max, mask, s.r2, s.r2, stackPtr, subtree);
 			}
 		}
 	}
