@@ -282,12 +282,10 @@ inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 template<size_t WIDTH, size_t DIM>
 inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<WIDTH>& tMin,
 						 const FloatP<WIDTH>& tMax, const MaskP<WIDTH>& mask,
-						 float dist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
+						 float minDist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
 {
 	// enqueue nodes
 	int closestIndex = -1;
-	float minDist = dist;
-
 	for (int w = 0; w < WIDTH; w++) {
 		if (mask[w]) {
 			stackPtr++;
@@ -322,7 +320,7 @@ inline void sortOrder4(const FloatP<4>& t, int& a, int& b, int& c, int& d)
 template<size_t DIM>
 inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
 						 const FloatP<4>& tMax, const MaskP<4>& mask,
-						 float dist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
+						 float minDist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
 {
 	// sort nodes
 	int order[4] = {0, 1, 2, 3};
