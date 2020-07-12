@@ -308,6 +308,39 @@ inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<WIDTH>& tMin,
 	}
 }
 
+inline void sortOrder4(const FloatP<4>& t, int& a, int& b, int& c, int& d)
+{
+	// source: https://stackoverflow.com/questions/25070577/sort-4-numbers-without-array
+	int tmp;
+	if (t[a] < t[b]) { tmp = a; a = b; b = tmp; }
+	if (t[c] < t[d]) { tmp = c; c = d; d = tmp; }
+	if (t[a] < t[c]) { tmp = a; a = c; c = tmp; }
+	if (t[b] < t[d]) { tmp = b; b = d; d = tmp; }
+	if (t[b] < t[c]) { tmp = b; b = c; c = tmp; }
+}
+
+template<size_t DIM>
+inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
+						 const FloatP<4>& tMax, const MaskP<4>& mask,
+						 float dist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
+{
+	// sort nodes
+	int order[4] = {0, 1, 2, 3};
+	sortOrder4(tMin, order[0], order[1], order[2], order[3]);
+
+	// enqueue overlapping nodes in sorted order
+	for (int w = 0; w < 4; w++) {
+		int W = order[w];
+
+		if (mask[W]) {
+			stackPtr++;
+			subtree[stackPtr].node = node.child[W];
+			subtree[stackPtr].distance = tMin[W];
+			tMaxMin = std::min(tMaxMin, tMax[W]);
+		}
+	}
+}
+
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int intersectPrimitives(const MbvhNode<DIM>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
