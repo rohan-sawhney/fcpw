@@ -308,15 +308,22 @@ inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<WIDTH>& tMin,
 	}
 }
 
-inline void sortOrder4(const FloatP<4>& t, int& a, int& b, int& c, int& d)
+inline void sortOrder3(BvhTraversal& a, BvhTraversal& b, BvhTraversal& c)
 {
-	// source: https://stackoverflow.com/questions/25070577/sort-4-numbers-without-array
-	int tmp;
-	if (t[a] < t[b]) { tmp = a; a = b; b = tmp; }
-	if (t[c] < t[d]) { tmp = c; c = d; d = tmp; }
-	if (t[a] < t[c]) { tmp = a; a = c; c = tmp; }
-	if (t[b] < t[d]) { tmp = b; b = d; d = tmp; }
-	if (t[b] < t[c]) { tmp = b; b = c; c = tmp; }
+	BvhTraversal tmp;
+	if (b.distance < c.distance) { tmp = b; b = c; c = tmp; }
+	if (a.distance < c.distance) { tmp = a; a = c; c = tmp; }
+	if (a.distance < b.distance) { tmp = a; a = b; b = tmp; }
+}
+
+inline void sortOrder4(BvhTraversal& a, BvhTraversal& b, BvhTraversal& c, BvhTraversal& d)
+{
+	BvhTraversal tmp;
+	if (a.distance < b.distance) { tmp = a; a = b; b = tmp; }
+	if (c.distance < d.distance) { tmp = c; c = d; d = tmp; }
+	if (a.distance < c.distance) { tmp = a; a = c; c = tmp; }
+	if (b.distance < d.distance) { tmp = b; b = d; d = tmp; }
+	if (b.distance < c.distance) { tmp = b; b = c; c = tmp; }
 }
 
 template<size_t DIM>
@@ -324,20 +331,29 @@ inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
 						 const FloatP<4>& tMax, const MaskP<4>& mask,
 						 float dist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
 {
-	// sort nodes
-	int order[4] = {0, 1, 2, 3};
-	sortOrder4(tMin, order[0], order[1], order[2], order[3]);
-
-	// enqueue overlapping nodes in sorted order
+	// enqueue nodes
+	int count = 0;
 	for (int w = 0; w < 4; w++) {
-		int W = order[w];
-
-		if (mask[W]) {
+		if (mask[w]) {
+			count++;
 			stackPtr++;
-			subtree[stackPtr].node = node.child[W];
-			subtree[stackPtr].distance = tMin[W];
-			tMaxMin = std::min(tMaxMin, tMax[W]);
+			subtree[stackPtr].node = node.child[w];
+			subtree[stackPtr].distance = tMin[w];
+			tMaxMin = std::min(tMaxMin, tMax[w]);
 		}
+	}
+
+	// sort nodes
+	if (count == 2) {
+		if (subtree[stackPtr - 1].distance < subtree[stackPtr].distance) {
+			std::swap(subtree[stackPtr - 1], subtree[stackPtr]);
+		}
+
+	} else if (count == 3) {
+		sortOrder3(subtree[stackPtr - 2], subtree[stackPtr - 1], subtree[stackPtr]);
+
+	} else if (count == 4) {
+		sortOrder4(subtree[stackPtr - 3], subtree[stackPtr - 2], subtree[stackPtr - 1], subtree[stackPtr]);
 	}
 }
 
