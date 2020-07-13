@@ -18,7 +18,6 @@ Future Optimizations & Features:
 4. tree construction:
 ---- spatial split bvh
 ---- oriented bounding boxes + rectangular swept spheres (specify bounding volume via templates)
----- rebalance tree
 ---- vectorize + thread
 5. packet queries
 6. refit bvh
