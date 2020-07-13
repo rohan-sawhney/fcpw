@@ -24,7 +24,7 @@ Future Optimizations & Features:
 6. refit bvh
 
 Done:
-1. closest point and ray intersections queries leveraging coherency between queries
+1. closest point and ray intersections queries
 2. vectorized bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
 												Surface Area Overlap, Volume Overlap)
 3. improved cache locality with optional spatial sorting of soup positions & indices
