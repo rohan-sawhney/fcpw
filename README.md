@@ -1,11 +1,11 @@
 <img align="right" src="logo.png" height="70" width="50">
-<h1 align="center">Fastest Closest Points in the West (FCPW)</h1>
+<h1 align="center">Fastest Closest Points in the West (<em>FCPW</em>)</h1>
 
-FCPW is a lightweight, header only C++ library for fast closest point and ray intersection queries. It is about 3x faster than <a href="https://www.embree.org">Embree</a> for closest point queries and is only slightly slower for ray intersection queries (0.8x) (see [Benchmarks](#Benchmarks)). FCPW uses a wide BVH with vectorized traversal to accelerate queries to geometric primitives, with additional support for constructive solid geometry (CSG) and instancing. The geometric primitives currently supported are triangles, line segments or a mixture of the two, though it is fairly easy to add support for other types of primitives in the library. FCPW uses the amazing <a href="https://github.com/mitsuba-renderer/enoki">Enoki</a> library for vectorization, though it falls back to <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page">Eigen</a> if Enoki is not included in the project. In the latter case, FCPW performs queries with a non-vectorized binary BVH.
+*FCPW* is a lightweight, header only C++ library for fast closest point and ray intersection queries. It is about 3x faster than <a href="https://www.embree.org">Embree</a> for closest point queries and is only slightly slower for ray intersection queries (0.8x) (see [Benchmarks](#Benchmarks)). *FCPW* uses a wide BVH with vectorized traversal to accelerate queries to geometric primitives, with additional support for constructive solid geometry (CSG) and instancing. The geometric primitives currently supported are triangles, line segments or a mixture of the two, though it is fairly easy to add support for other types of primitives in the library. *FCPW* uses the amazing <a href="https://github.com/mitsuba-renderer/enoki">Enoki</a> library for vectorization, though it falls back to <a href="http://eigen.tuxfamily.org/index.php?title=Main_Page">Eigen</a> if Enoki is not included in the project. In the latter case, *FCPW* performs queries with a non-vectorized binary BVH.
 
-# Including FCPW
+# Including *FCPW*
 
-FCPW does not require compiling or installing, you just need to add the following lines
+*FCPW* does not require compiling or installing, you just need to add the following lines
 
 ```
 #define FCPW_USE_ENOKI
@@ -27,7 +27,7 @@ endif()
 
 # API
 
-The easiest and most direct way to use FCPW is through its <a href="https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/fcpw.h">Scene</a> class that provides methods to load the geometry, build the acceleration structure and perform geometric queries. Here is an example of doing this with a geometric object consisting of triangles
+The easiest and most direct way to use *FCPW* is through its <a href="https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/fcpw.h">Scene</a> class that provides methods to load the geometry, build the acceleration structure and perform geometric queries. Here is an example of doing this with a geometric object consisting of triangles
 
 ```
 // initialize the scene
@@ -63,7 +63,7 @@ std::vector<Interaction<3>> interactions;
 scene.intersect(queryRay, interactions, false, true); // don't check for occlusion, and record all hits
 ```
 
-Notice that `Scene` is templated on dimension, enabling FCPW to work with geometric data in any dimension out of the box as long the geometric primitives are specialized to the dimension of interest as well. The <a href="https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/core/interaction.h">Interaction</a> object stores all the relevant information pertaining to the query, such as the parametric distance to the geometric primitive, the point of intersection or closest point on the primitive, the local uv coordinates of that point, as well as the primitive's index. FCPW can additionally compute the normal at the point of intersection or closest point, though this must be explicitly requested through the `computeObjectNormals` method in the `Scene`. Furthermore, it is possible to load multiple objects, possibly with mixed primitives and instance transforms, into the `Scene`. A CSG tree can also be built via the `setCsgTreeNode` method. More details can be found in `fcpw.h`.
+Notice that `Scene` is templated on dimension, enabling *FCPW* to work with geometric data in any dimension out of the box as long the geometric primitives are specialized to the dimension of interest as well. The <a href="https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/core/interaction.h">Interaction</a> object stores all the relevant information pertaining to the query, such as the parametric distance to the geometric primitive, the point of intersection or closest point on the primitive, the local uv coordinates of that point, as well as the primitive's index. *FCPW* can additionally compute the normal at the point of intersection or closest point, though this must be explicitly requested through the `computeObjectNormals` method in the `Scene`. Furthermore, it is possible to load multiple objects, possibly with mixed primitives and instance transforms, into the `Scene`. A CSG tree can also be built via the `setCsgTreeNode` method. More details can be found in `fcpw.h`.
 
 # Benchmarks
 
