@@ -1,5 +1,5 @@
-<p align="right">
-<img src="logo.png" height="75" width="55">
+<p align="center">
+<img src="logo.png" height="100" width="80">
 </p>
 
 <h1 align="center">Fastest Closest Points in the West (FCPW)</h1>
