@@ -7,14 +7,15 @@ FCPW is a lightweight, header only C++ library for fast closest point and ray in
 FCPW does not require compiling or installing, you just need to add the following lines
 
 ```
-#define FCPW_USE_ENOKI ON
-#define FCPW_SIMD_WIDTH 8
+#define FCPW_USE_ENOKI
+#define FCPW_SIMD_WIDTH 4
 #include <fcpw/fcpw.h>
 ```
 
 in your code. Alternatively, you can avoid the `#define`s by adding the following lines to your CMakeLists.txt file
 
 ```
+set(FCPW_USE_ENOKI ON CACHE BOOL "Enable enoki")
 add_subdirectory(fcpw)
 target_link_libraries(YOUR_TARGET fcpw)
 target_include_directories(YOUR_TARGET PUBLIC ${FCPW_EIGEN_INCLUDES})
@@ -25,7 +26,7 @@ endif()
 
 # API
 
-The easiest and most direct way to use FCPW is through its `Scene` class that provides methods to load the geometry, build the acceleration structure and perform geometric queries. Here is an example of doing this with a geometric object consisting of triangles
+The easiest and most direct way to use FCPW is through its <a href="https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/fcpw.h">Scene</a> class that provides methods to load the geometry, build the acceleration structure and perform geometric queries. Here is an example of doing this with a geometric object consisting of triangles
 
 ```
 // initialize the scene
@@ -52,16 +53,16 @@ for (int i = 0; i < nTriangles; i++) {
 // now that the geometry has been specified, build the acceleration structure
 scene.build(AggregateType::Bvh_SurfaceArea, true); // the second boolean argument enables vectorization
 
-// perform closest point query
+// perform a closest point query
 Interaction<3> interaction;
 scene.findClosestPoint(queryPoint, interaction);
 
-// perform ray intersection query
+// perform a ray intersection query
 std::vector<Interaction<3>> interactions;
 scene.intersect(queryRay, interactions, false, true); // don't check for occlusion, and record all hits
 ```
 
-Notice that `Scene` is templated on dimension, enabling FCPW to work with geometric data in any dimension out of the box as long the geometric primitives are specialized to the dimension of interest as well. The `Interaction` object stores all the relevant information pertaining to the query, such as the parametric distance to the geometric primitive, the point of intersection or closest point on the primitive, the local uv coordinates of that point, as well as the primitive's index. FCPW can additionally compute the normal at the point of intersection or closest point, though this must be explicitly requested through the `computeObjectNormals` method in the `Scene`. Furthermore, it is possible to load multiple objects, possibly with mixed primitives and instance transforms, into the `Scene`. A CSG tree can also be built via the `setCsgTreeNode` method. More details can be found in `fcpw.h`.
+Notice that `Scene` is templated on dimension, enabling FCPW to work with geometric data in any dimension out of the box as long the geometric primitives are specialized to the dimension of interest as well. The <a href="https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/core/interaction.h">Interaction</a> object stores all the relevant information pertaining to the query, such as the parametric distance to the geometric primitive, the point of intersection or closest point on the primitive, the local uv coordinates of that point, as well as the primitive's index. FCPW can additionally compute the normal at the point of intersection or closest point, though this must be explicitly requested through the `computeObjectNormals` method in the `Scene`. Furthermore, it is possible to load multiple objects, possibly with mixed primitives and instance transforms, into the `Scene`. A CSG tree can also be built via the `setCsgTreeNode` method. More details can be found in `fcpw.h`.
 
 # Benchmarks
 
