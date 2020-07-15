@@ -1,6 +1,6 @@
 Priority:
 1. benchmark (https://github.com/jdumas/aabb_benchmark)
-2. README (tutorial, features, benchmark, compiling, logo)
+2. README (logo, leveraging coherency in cpqs, benchmark results)
 
 Future Optimizations & Features:
 1. add support for more geometries:
