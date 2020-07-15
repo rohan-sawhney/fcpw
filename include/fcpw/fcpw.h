@@ -72,8 +72,8 @@ public:
 	// vectorized intersection and closest point queries; set reduceMemoryFootprint to true
 	// to reduce the memory footprint of fcpw when constructing an aggregate, however if you
 	// plan to access the scene data let it remain false
-	void build(const AggregateType& aggregateType, bool vectorize, bool printStats,
-			   bool reduceMemoryFootprint=false);
+	void build(const AggregateType& aggregateType, bool vectorize,
+			   bool printStats=false, bool reduceMemoryFootprint=false);
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////
 	// API to find closest points and intersect rays with the scene, among others
@@ -83,8 +83,7 @@ public:
 	// if checkForOcclusion is enabled, the interactions vector is not populated;
 	// if recordAllHits is enabled, sorts the interactions by distance to the ray origin
 	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-				  bool checkForOcclusion=false,
-				  bool recordAllHits=false) const;
+				  bool checkForOcclusion=false, bool recordAllHits=false) const;
 
 	// checks whether a point is contained inside a scene; NOTE: the scene must be watertight
 	bool contains(const Vector<DIM>& x) const;

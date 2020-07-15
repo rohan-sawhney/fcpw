@@ -21,11 +21,3 @@ Future Optimizations & Features:
 ---- vectorize + thread
 5. packet queries
 6. refit bvh
-
-Done:
-1. closest point and ray intersections queries
-2. vectorized bvh with various cost heuristics (Centroid Split, Surface Area, Volume,
-												Surface Area Overlap, Volume Overlap)
-3. improved cache locality with optional spatial sorting of soup positions & indices
-4. constructive solid geometry
-5. instancing
