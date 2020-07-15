@@ -14,7 +14,7 @@ Future Optimizations & Features:
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
 	  structure while querying that stores pointers to nodes in the tree based on
 	  positions and directions to boundary
-3. GPU traversal
+3. GPU traversal (Enoki CUDA vs GLSL)
 4. tree construction:
 ---- spatial split bvh
 ---- oriented bounding boxes + rectangular swept spheres (specify bounding volume via templates)
