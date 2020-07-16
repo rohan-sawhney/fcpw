@@ -72,8 +72,8 @@ Expert comment: if you have multiple objects all containing the same primitive t
 TODO
 
 # Author
-[Rohan Sawhney](http://www.rohansawhney.io), with support from Ruihao Ye, Keenan Crane and Johann Korndoerfer
+[Rohan Sawhney](http://www.rohansawhney.io), with support from Ruihao Ye, [Keenan Crane](https://www.cs.cmu.edu/~kmcrane/) and Johann Korndoerfer.
 
 # License
 
-Released under the [MIT License](https://opensource.org/licenses/MIT)
+Released under the [MIT License](https://opensource.org/licenses/MIT).
