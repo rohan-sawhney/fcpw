@@ -1,5 +1,6 @@
 #include <fcpw/utilities/scene_loader.h>
-#include <ThreadPool.h>
+#include "tbb/parallel_for.h"
+#include "tbb/blocked_range.h"
 
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
@@ -9,9 +10,6 @@
 #include "args/args.hxx"
 
 using namespace fcpw;
-
-static progschj::ThreadPool pool;
-static int nThreads = 8;
 
 template<size_t DIM>
 void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatteredPoints,
@@ -72,41 +70,33 @@ void clampToCsg(const std::string& method,
 				std::vector<Vector<DIM>>& clampedPoints)
 {
 	int N = (int)scatteredPoints.size();
-	int pCurrent = 0;
-	int pRange = std::max(100, N/nThreads);
 	std::vector<Vector<DIM>> hitPoints(N);
 	std::vector<bool> didHit(N, false);
 
-	while (pCurrent < N) {
-		int pEnd = std::min(N, pCurrent + pRange);
-		pool.enqueue([&scatteredPoints, &randomDirections, &hitPoints, &didHit,
-					  &method, &aggregate, &boundingBox, pCurrent, pEnd]() {
-			for (int i = pCurrent; i < pEnd; i++) {
-				Ray<DIM> r(scatteredPoints[i], randomDirections[i]);
+	auto clamp = [&](const tbb::blocked_range<int>& range) {
+		for (int i = range.begin(); i < range.end(); ++i) {
+			Ray<DIM> r(scatteredPoints[i], randomDirections[i]);
 
-				if (method == "intersect") {
-					std::vector<Interaction<DIM>> cs;
-					int hits = aggregate->intersect(r, cs, false, true);
-					if (hits > 0) {
-						hitPoints[i] = cs[0].p;
-						didHit[i] = true;
-					}
+			if (method == "intersect") {
+				std::vector<Interaction<DIM>> cs;
+				int hits = aggregate->intersect(r, cs, false, true);
+				if (hits > 0) {
+					hitPoints[i] = cs[0].p;
+					didHit[i] = true;
+				}
 
-				} else {
-					Interaction<DIM> c;
-					if (raymarch<DIM>(aggregate, boundingBox, r, c)) {
-						hitPoints[i] = c.p;
-						didHit[i] = true;
-					}
+			} else {
+				Interaction<DIM> c;
+				if (raymarch<DIM>(aggregate, boundingBox, r, c)) {
+					hitPoints[i] = c.p;
+					didHit[i] = true;
 				}
 			}
-		});
+		}
+	};
 
-		pCurrent += pRange;
-	}
-
-	pool.wait_until_empty();
-	pool.wait_until_nothing_in_flight();
+	tbb::blocked_range<int> range(0, N);
+	tbb::parallel_for(range, clamp);
 
 	// add points for which hit was found
 	for (int i = 0; i < N; i++) {
@@ -266,7 +256,6 @@ int main(int argc, const char *argv[]) {
 	args::ArgumentParser parser("csg tests");
 	args::Group group(parser, "", args::Group::Validators::DontCare);
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
-	args::ValueFlag<int> nThreads(parser, "integer", "nThreads", {"nThreads"});
 	args::ValueFlag<std::string> csgFilename(parser, "string", "csg filename", {"csgFile"});
 	args::ValueFlag<std::string> instanceFilename(parser, "string", "instance filename", {"instanceFile"});
 	args::ValueFlagList<std::string> lineSegmentFilenames(parser, "string", "line segment soup filenames", {"lFile"});
@@ -304,7 +293,6 @@ int main(int argc, const char *argv[]) {
 	}
 
 	// set global flags
-	if (nThreads) ::nThreads = args::get(nThreads);
 	if (csgFilename) ::csgFilename = args::get(csgFilename);
 	if (instanceFilename) ::instanceFilename = args::get(instanceFilename);
 	if (lineSegmentFilenames) {

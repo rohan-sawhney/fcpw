@@ -1,5 +1,6 @@
 #include <fcpw/utilities/scene_loader.h>
-#include <ThreadPool.h>
+#include "tbb/parallel_for.h"
+#include "tbb/blocked_range.h"
 #include <atomic>
 
 #include "polyscope/polyscope.h"
@@ -20,8 +21,6 @@ static bool plotInteriorPoints = false;
 static bool checkCorrectness = false;
 static bool checkPerformance = false;
 static int nQueries = 10000;
-static progschj::ThreadPool pool;
-static int nThreads = 8;
 
 template<size_t DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,
@@ -49,7 +48,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 									std::vector<Vector<DIM>>& randomDirections,
 									const BoundingBox<DIM>& boundingBox)
 {
-	// parition the scene bounding box into nThreads boxes
+	// parition the scene bounding box into boxes
 	std::vector<BoundingBox<DIM>> boxes;
 	splitBoxRecursive<DIM>(boundingBox, boxes, 6);
 
@@ -134,39 +133,31 @@ void timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 							 const std::string& aggregateType,
 							 bool queriesCoherent=false)
 {
-	int pCurrent = 0;
-	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::atomic<int> totalNodesVisited(0);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-	while (pCurrent < nQueries) {
-		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate, &rayOrigins, &rayDirections, &indices,
-					  &totalNodesVisited, queriesCoherent, pCurrent, pEnd]() {
-			int nodesVisitedByThread = 0;
-			Interaction<DIM> cPrev;
+	auto time = [&](const tbb::blocked_range<int>& range) {
+		int nodesVisitedByThread = 0;
+		Interaction<DIM> cPrev;
 
-			for (int i = pCurrent; i < pEnd; i++) {
-				int I = indices[i];
-				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
+		for (int i = range.begin(); i < range.end(); ++i) {
+			int I = indices[i];
+			int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
-				int nodesVisited = 0;
-				std::vector<Interaction<DIM>> cs;
-				Ray<DIM> r(rayOrigins[I], rayDirections[I]);
-				bool hit = (bool)aggregate->intersectFromNode(r, cs, nodeIndex, cPrev.objectIndex, nodesVisited);
-				nodesVisitedByThread += nodesVisited;
+			int nodesVisited = 0;
+			std::vector<Interaction<DIM>> cs;
+			Ray<DIM> r(rayOrigins[I], rayDirections[I]);
+			bool hit = (bool)aggregate->intersectFromNode(r, cs, nodeIndex, cPrev.objectIndex, nodesVisited);
+			nodesVisitedByThread += nodesVisited;
 
-				if (hit) cPrev = cs[0];
-			}
+			if (hit) cPrev = cs[0];
+		}
 
-			totalNodesVisited += nodesVisitedByThread;
-		});
+		totalNodesVisited += nodesVisitedByThread;
+	};
 
-		pCurrent += pRange;
-	}
-
-	pool.wait_until_empty();
-	pool.wait_until_nothing_in_flight();
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, time);
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
@@ -185,52 +176,44 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 							 const std::string& aggregateType,
 							 bool queriesCoherent=false)
 {
-	int pCurrent = 0;
-	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::atomic<int> totalNodesVisited(0);
 	std::atomic<bool> stopQueries(false);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
-	while (pCurrent < nQueries) {
-		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate, &queryPoints, &indices, &totalNodesVisited,
-					  &stopQueries, queriesCoherent, pCurrent, pEnd]() {
-			int nodesVisitedByThread = 0;
-			Interaction<DIM> cPrev;
-			Vector<DIM> queryPrev = zeroVector<DIM>();
+	auto time = [&](const tbb::blocked_range<int>& range) {
+		int nodesVisitedByThread = 0;
+		Interaction<DIM> cPrev;
+		Vector<DIM> queryPrev = zeroVector<DIM>();
 
-			for (int i = pCurrent; i < pEnd; i++) {
-				if (stopQueries) break;
+		for (int i = range.begin(); i < range.end(); ++i) {
+			if (stopQueries) break;
 
-				int I = indices[i];
-				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
-				float r2 = i == pCurrent ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
-				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
+			int I = indices[i];
+			float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
+			float r2 = cPrev.nodeIndex == -1 ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
+			int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
-				int nodesVisited = 0;
-				Interaction<DIM> c;
-				BoundingSphere<DIM> s(queryPoints[I], r2);
-				bool found = aggregate->findClosestPointFromNode(s, c, nodeIndex, cPrev.objectIndex,
-																 zeroVector<DIM>(), nodesVisited);
-				nodesVisitedByThread += nodesVisited;
+			int nodesVisited = 0;
+			Interaction<DIM> c;
+			BoundingSphere<DIM> s(queryPoints[I], r2);
+			bool found = aggregate->findClosestPointFromNode(s, c, nodeIndex, cPrev.objectIndex,
+															 zeroVector<DIM>(), nodesVisited);
+			nodesVisitedByThread += nodesVisited;
 
-				if (found) cPrev = c;
-				else {
-					std::cerr << "Closest points not found!" << std::endl;
-					stopQueries = true;
-				}
-
-				queryPrev = queryPoints[I];
+			if (found) cPrev = c;
+			else {
+				std::cerr << "Closest points not found!" << std::endl;
+				stopQueries = true;
 			}
 
-			totalNodesVisited += nodesVisitedByThread;
-		});
+			queryPrev = queryPoints[I];
+		}
 
-		pCurrent += pRange;
-	}
+		totalNodesVisited += nodesVisitedByThread;
+	};
 
-	pool.wait_until_empty();
-	pool.wait_until_nothing_in_flight();
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, time);
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
@@ -250,64 +233,55 @@ void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::vector<int>& indices,
 							 bool queriesCoherent=false)
 {
-	int pCurrent = 0;
-	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::atomic<bool> stopQueries(false);
+	auto test = [&](const tbb::blocked_range<int>& range) {
+		Interaction<DIM> cPrev;
 
-	while (pCurrent < nQueries) {
-		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate1, &aggregate2, &rayOrigins, &rayDirections,
-					  &indices, &stopQueries, queriesCoherent, pCurrent, pEnd]() {
-			Interaction<DIM> cPrev;
+		for (int i = range.begin(); i < range.end(); ++i) {
+			if (stopQueries) break;
 
-			for (int i = pCurrent; i < pEnd; i++) {
-				if (stopQueries) break;
+			int I = indices[i];
+			int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
-				int I = indices[i];
-				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
+			std::vector<Interaction<DIM>> c1;
+			Ray<DIM> r1(rayOrigins[I], rayDirections[I]);
+			bool hit1 = (bool)aggregate1->intersect(r1, c1);
 
-				std::vector<Interaction<DIM>> c1;
-				Ray<DIM> r1(rayOrigins[I], rayDirections[I]);
-				bool hit1 = (bool)aggregate1->intersect(r1, c1);
+			int nodesVisited = 0;
+			std::vector<Interaction<DIM>> c2;
+			Ray<DIM> r2(rayOrigins[I], rayDirections[I]);
+			bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, nodeIndex, cPrev.objectIndex, nodesVisited);
 
-				int nodesVisited = 0;
-				std::vector<Interaction<DIM>> c2;
-				Ray<DIM> r2(rayOrigins[I], rayDirections[I]);
-				bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, nodeIndex, cPrev.objectIndex, nodesVisited);
-
-				if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
-					std::cerr << "d1: " << c1[0].d << " d2: " << c2[0].d
-							  << "\np1: " << c1[0].p << " p2: " << c2[0].p
-							  << "\nIntersections do not match!" << std::endl;
-					stopQueries = true;
-				}
-
-				if (hit2) cPrev = c2[0];
-
-				std::vector<Interaction<DIM>> c3;
-				Ray<DIM> r3(rayOrigins[I], rayDirections[I]);
-				int hit3 = aggregate1->intersect(r3, c3, false, true);
-
-				nodesVisited = 0;
-				std::vector<Interaction<DIM>> c4;
-				Ray<DIM> r4(rayOrigins[I], rayDirections[I]);
-				int hit4 = aggregate2->intersectFromNode(r4, c4, 0, aggregate2->index, nodesVisited, false, true);
-
-				if (hit3 != hit4) {
-					std::cerr << "Number of intersections do not match!"
-							  << " hits1: " << hit3
-							  << " hits2: " << hit4
-							  << std::endl;
-					stopQueries = true;
-				}
+			if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
+				std::cerr << "d1: " << c1[0].d << " d2: " << c2[0].d
+						  << "\np1: " << c1[0].p << " p2: " << c2[0].p
+						  << "\nIntersections do not match!" << std::endl;
+				stopQueries = true;
 			}
-		});
 
-		pCurrent += pRange;
-	}
+			if (hit2) cPrev = c2[0];
 
-	pool.wait_until_empty();
-	pool.wait_until_nothing_in_flight();
+			std::vector<Interaction<DIM>> c3;
+			Ray<DIM> r3(rayOrigins[I], rayDirections[I]);
+			int hit3 = aggregate1->intersect(r3, c3, false, true);
+
+			nodesVisited = 0;
+			std::vector<Interaction<DIM>> c4;
+			Ray<DIM> r4(rayOrigins[I], rayDirections[I]);
+			int hit4 = aggregate2->intersectFromNode(r4, c4, 0, aggregate2->index, nodesVisited, false, true);
+
+			if (hit3 != hit4) {
+				std::cerr << "Number of intersections do not match!"
+						  << " hits1: " << hit3
+						  << " hits2: " << hit4
+						  << std::endl;
+				stopQueries = true;
+			}
+		}
+	};
+
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, test);
 }
 
 template<size_t DIM>
@@ -317,57 +291,48 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::vector<int>& indices,
 							 bool queriesCoherent=false)
 {
-	int pCurrent = 0;
-	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::atomic<bool> stopQueries(false);
+	auto test = [&](const tbb::blocked_range<int>& range) {
+		Interaction<DIM> cPrev;
+		Vector<DIM> queryPrev = zeroVector<DIM>();
 
-	while (pCurrent < nQueries) {
-		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate1, &aggregate2, &queryPoints, &indices,
-					  &stopQueries, queriesCoherent, pCurrent, pEnd]() {
-			Interaction<DIM> cPrev;
-			Vector<DIM> queryPrev = zeroVector<DIM>();
+		for (int i = range.begin(); i < range.end(); ++i) {
+			if (stopQueries) break;
 
-			for (int i = pCurrent; i < pEnd; i++) {
-				if (stopQueries) break;
+			int I = indices[i];
+			float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
+			float r2 = cPrev.nodeIndex == -1 ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
+			int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
-				int I = indices[i];
-				float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
-				float r2 = i == pCurrent ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
-				int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
+			Interaction<DIM> c1;
+			BoundingSphere<DIM> s1(queryPoints[I], maxFloat);
+			bool found1 = aggregate1->findClosestPoint(s1, c1);
 
-				Interaction<DIM> c1;
-				BoundingSphere<DIM> s1(queryPoints[I], maxFloat);
-				bool found1 = aggregate1->findClosestPoint(s1, c1);
+			int nodesVisited = 0;
+			Interaction<DIM> c2;
+			BoundingSphere<DIM> s2(queryPoints[I], r2);
+			bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex, cPrev.objectIndex,
+															   zeroVector<DIM>(), nodesVisited);
 
-				int nodesVisited = 0;
-				Interaction<DIM> c2;
-				BoundingSphere<DIM> s2(queryPoints[I], r2);
-				bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex, cPrev.objectIndex,
-																   zeroVector<DIM>(), nodesVisited);
-
-				if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
-					std::cerr << "d1: " << c1.d << " d2: " << c2.d
-							  << "\np1: " << c1.p << " p2: " << c2.p
-							  << "\nClosest points do not match!" << std::endl;
-					stopQueries = true;
-				}
-
-				if (found2) cPrev = c2;
-				else {
-					std::cerr << "Closest points not found!" << std::endl;
-					stopQueries = true;
-				}
-
-				queryPrev = queryPoints[I];
+			if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
+				std::cerr << "d1: " << c1.d << " d2: " << c2.d
+						  << "\np1: " << c1.p << " p2: " << c2.p
+						  << "\nClosest points do not match!" << std::endl;
+				stopQueries = true;
 			}
-		});
 
-		pCurrent += pRange;
-	}
+			if (found2) cPrev = c2;
+			else {
+				std::cerr << "Closest points not found!" << std::endl;
+				stopQueries = true;
+			}
 
-	pool.wait_until_empty();
-	pool.wait_until_nothing_in_flight();
+			queryPrev = queryPoints[I];
+		}
+	};
+
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, test);
 }
 
 template<size_t DIM>
@@ -375,25 +340,17 @@ void isolateInteriorPoints(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 						   const std::vector<Vector<DIM>>& queryPoints,
 						   std::vector<Vector<DIM>>& interiorPoints)
 {
-	int pCurrent = 0;
-	int pRange = std::max(100, (int)nQueries/nThreads);
 	std::vector<bool> isInterior(nQueries, false);
-
-	while (pCurrent < nQueries) {
-		int pEnd = std::min(nQueries, pCurrent + pRange);
-		pool.enqueue([&aggregate, &queryPoints, &isInterior, pCurrent, pEnd]() {
-			for (int i = pCurrent; i < pEnd; i++) {
-				if (aggregate->contains(queryPoints[i])) {
-					isInterior[i] = true;
-				}
+	auto setInterior = [&](const tbb::blocked_range<int>& range) {
+		for (int i = range.begin(); i < range.end(); ++i) {
+			if (aggregate->contains(queryPoints[i])) {
+				isInterior[i] = true;
 			}
-		});
+		}
+	};
 
-		pCurrent += pRange;
-	}
-
-	pool.wait_until_empty();
-	pool.wait_until_nothing_in_flight();
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, setInterior);
 
 	for (int i = 0; i < nQueries; i++) {
 		if (isInterior[i]) interiorPoints.emplace_back(queryPoints[i]);
@@ -603,7 +560,6 @@ int main(int argc, const char *argv[]) {
 	args::Flag checkPerformance(group, "bool", "check aggregate performance", {"checkPerformance"});
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
 	args::ValueFlag<int> nQueries(parser, "integer", "number of queries", {"nQueries"});
-	args::ValueFlag<int> nThreads(parser, "integer", "nThreads", {"nThreads"});
 	args::ValueFlagList<std::string> lineSegmentFilenames(parser, "string", "line segment soup filenames", {"lFile"});
 	args::ValueFlagList<std::string> triangleFilenames(parser, "string", "triangle soup filenames", {"tFile"});
 
@@ -644,7 +600,6 @@ int main(int argc, const char *argv[]) {
 	if (checkCorrectness) ::checkCorrectness = args::get(checkCorrectness);
 	if (checkPerformance) ::checkPerformance = args::get(checkPerformance);
 	if (nQueries) ::nQueries = args::get(nQueries);
-	if (nThreads) ::nThreads = args::get(nThreads);
 	if (lineSegmentFilenames) {
 		for (const auto lsf: args::get(lineSegmentFilenames)) {
 			files.emplace_back(std::make_pair(lsf, LoadingOption::ObjLineSegments));

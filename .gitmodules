@@ -10,3 +10,6 @@
 [submodule "deps/polyscope"]
 	path = deps/polyscope
 	url = https://github.com/nmwsharp/polyscope.git
+[submodule "deps/tbb"]
+	path = deps/tbb
+	url = https://github.com/wjakob/tbb.git
