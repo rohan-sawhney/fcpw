@@ -68,6 +68,14 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 			}
 		}
 
+		// assign mbvh node the parent sbvh node's quantized box
+		flatTree[mbvhNodeIndex].start = enoki::gather<enokiVector<DIM>>(sbvhNode.box.pMin.data(), range);
+		Vector<DIM> sbvhBoxExtent = sbvhNode.box.extent();
+
+		for (int j = 0; j < DIM; j++) {
+			flatTree[mbvhNodeIndex].extent[j] = std::pow(2, std::ceil(std::log2(sbvhBoxExtent[j]/255)));
+		}
+
 		// collapse the nodes
 		std::sort(nodesToCollapse, nodesToCollapse + nNodesToCollapse);
 		for (int i = 0; i < nNodesToCollapse; i++) {
@@ -76,8 +84,10 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 
 			// assign mbvh node this sbvh node's bounding box and index
 			for (int j = 0; j < DIM; j++) {
-				flatTree[mbvhNodeIndex].boxMin[j][i] = sbvhNode.box.pMin[j];
-				flatTree[mbvhNodeIndex].boxMax[j][i] = sbvhNode.box.pMax[j];
+				float start = flatTree[mbvhNodeIndex].start[j];
+				float extent = flatTree[mbvhNodeIndex].extent[j];
+				flatTree[mbvhNodeIndex].boxMin[j][i] = std::floor((sbvhNode.box.pMin[j] - start)/extent);
+				flatTree[mbvhNodeIndex].boxMax[j][i] = std::ceil((sbvhNode.box.pMax[j] - start)/extent);
 			}
 
 			flatTree[mbvhNodeIndex].child[i] = collapseSbvh(sbvh, sbvhNodeIndex, mbvhNodeIndex, depth + 1);
@@ -257,8 +267,10 @@ inline BoundingBox<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::boundingBox() const
 	BoundingBox<DIM> box;
 	if (flatTree.size() == 0) return box;
 
-	enoki::scatter(box.pMin.data(), enoki::hmin_inner(flatTree[0].boxMin), range);
-	enoki::scatter(box.pMax.data(), enoki::hmax_inner(flatTree[0].boxMax), range);
+	// NOTE: this is an overestimate
+	const MbvhNode<DIM>& mbvhNode = flatTree[0];
+	enoki::scatter(box.pMin.data(), mbvhNode.start, range);
+	enoki::scatter(box.pMax.data(), mbvhNode.start + 255*mbvhNode.extent, range);
 
 	return box;
 }
@@ -608,7 +620,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 		} else {
 			// intersect ray with boxes
 			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
-														node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
+																	node, ro, rinvD, r.tMax, tMin, tMax);
 
 			// enqueue intersecting boxes in sorted order
 			nodesVisited++;
@@ -840,7 +852,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 		} else {
 			// overlap sphere with boxes
 			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
-																node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
+																		node, sc, s.r2, d2Min, d2Max);
 
 			// enqueue overlapping boxes in sorted order
 			nodesVisited++;

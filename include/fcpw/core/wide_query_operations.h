@@ -6,11 +6,13 @@ namespace fcpw {
 
 // performs wide version of ray box intersection test
 template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+inline MaskP<WIDTH> intersectWideBox(const MbvhNode<DIM>& mbvhNode,
 									 const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD, float rtMax,
 									 FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
 	// vectorized slab test
+	VectorP<WIDTH, DIM> bMin = mbvhNode.start + mbvhNode.extent*mbvhNode.boxMin;
+	VectorP<WIDTH, DIM> bMax = mbvhNode.start + mbvhNode.extent*mbvhNode.boxMax;
 	VectorP<WIDTH, DIM> t0 = (bMin - ro)*rinvD;
 	VectorP<WIDTH, DIM> t1 = (bMax - ro)*rinvD;
 	VectorP<WIDTH, DIM> tNear = enoki::min(t0, t1);
@@ -85,10 +87,12 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
 
 // performs wide version of sphere box overlap test
 template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+inline MaskP<WIDTH> overlapWideBox(const MbvhNode<DIM>& mbvhNode,
 								   const enokiVector<DIM>& sc, float sr2,
 								   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
 {
+	VectorP<WIDTH, DIM> bMin = mbvhNode.start + mbvhNode.extent*mbvhNode.boxMin;
+	VectorP<WIDTH, DIM> bMax = mbvhNode.start + mbvhNode.extent*mbvhNode.boxMax;
 	VectorP<WIDTH, DIM> u = bMin - sc;
 	VectorP<WIDTH, DIM> v = sc - bMax;
 	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));

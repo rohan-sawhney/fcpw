@@ -14,12 +14,15 @@ namespace fcpw {
 template<size_t DIM>
 struct MbvhNode {
 	// constructor
-	MbvhNode(): boxMin(FloatP<FCPW_MBVH_BRANCHING_FACTOR>(maxFloat)),
-				boxMax(FloatP<FCPW_MBVH_BRANCHING_FACTOR>(minFloat)),
+	MbvhNode(): start(enoki::zero<enokiVector<DIM>>()),
+				extent(enoki::zero<enokiVector<DIM>>()),
+				boxMin(UInt8P<FCPW_MBVH_BRANCHING_FACTOR>(0)),
+				boxMax(UInt8P<FCPW_MBVH_BRANCHING_FACTOR>(0)),
 				child(maxInt) {}
 
 	// members
-	VectorP<FCPW_MBVH_BRANCHING_FACTOR, DIM> boxMin, boxMax;
+	enokiVector<DIM> start, extent;
+	VectorUInt8P<FCPW_MBVH_BRANCHING_FACTOR, DIM> boxMin, boxMax;
 	IntP<FCPW_MBVH_BRANCHING_FACTOR> child; // use sign to differentiate between inner and leaf nodes
 };
 
