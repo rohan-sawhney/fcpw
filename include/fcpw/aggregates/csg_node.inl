@@ -24,8 +24,8 @@ inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeBounding
 		// use the child bounding box with the smaller extent; this is not the tightest fit box
 		BoundingBox<DIM> boxLeft = left->boundingBox();
 		BoundingBox<DIM> boxRight = right->boundingBox();
-		box.expandToInclude(squaredNorm<DIM>(boxLeft.extent()) <
-							squaredNorm<DIM>(boxRight.extent()) ?
+		box.expandToInclude(boxLeft.extent().squaredNorm() <
+							boxRight.extent().squaredNorm() ?
 							boxLeft : boxRight);
 
 	} else if (operation == BooleanOperation::Difference) {

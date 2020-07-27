@@ -21,7 +21,7 @@ struct Interaction {
 		bool distancesMatch = std::fabs(d - i.d) < 1e-6;
 		if (distanceInfo == DistanceInfo::Bounded) return distancesMatch;
 
-		return distancesMatch && squaredNorm<DIM>(p - i.p) < 1e-6;
+		return distancesMatch && (p - i.p).squaredNorm() < 1e-6;
 	}
 
 	bool operator!=(const Interaction<DIM>& i) const {

@@ -230,7 +230,7 @@ public:
 
 		// apply inverse transform to direction guess
 		Vector<DIM> boundaryHintInv = boundaryHint;
-		if (squaredNorm<DIM>(boundaryHint) > 0.0f) {
+		if (boundaryHint.squaredNorm() > 0.0f) {
 			boundaryHintInv = transformVector<DIM>(tInv, s.c + boundaryHint) - sInv.c;
 			float hintNorm = boundaryHintInv.norm();
 			boundaryHintInv /= hintNorm;

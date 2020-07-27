@@ -32,94 +32,6 @@ template<size_t DIM>
 using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
 
 template<size_t DIM>
-inline float squaredNorm(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::squared_norm(v);
-#else
-	return v.squaredNorm();
-#endif
-}
-
-template<size_t DIM>
-inline float sum(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::hsum(v);
-#else
-	return v.sum();
-#endif
-}
-
-template<size_t DIM>
-inline float product(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::hprod(v);
-#else
-	return v.prod();
-#endif
-}
-
-template<size_t DIM>
-inline float minCoeff(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::hmin(v);
-#else
-	return v.minCoeff();
-#endif
-}
-
-template<size_t DIM>
-inline float maxCoeff(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::hmax(v);
-#else
-	return v.maxCoeff();
-#endif
-}
-
-template<size_t DIM>
-inline float minCoeff(const Vector<DIM>& v, int& index)
-{
-#ifdef FCPW_USE_ENOKI
-	index = 0;
-	float value = v[0];
-
-	for (int i = 1; i < DIM; i++) {
-		auto mask = v[i] < value;
-		enoki::masked(index, mask) = i;
-		enoki::masked(value, mask) = v[i];
-	}
-
-	return index;
-#else
-	return v.minCoeff(&index);
-#endif
-}
-
-template<size_t DIM>
-inline float maxCoeff(const Vector<DIM>& v, int& index)
-{
-#ifdef FCPW_USE_ENOKI
-	index = 0;
-	float value = v[0];
-
-	for (int i = 1; i < DIM; i++) {
-		auto mask = v[i] > value;
-		enoki::masked(index, mask) = i;
-		enoki::masked(value, mask) = v[i];
-	}
-
-	return index;
-#else
-	return v.maxCoeff(&index);
-#endif
-}
-
-template<size_t DIM>
 inline float dot(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef FCPW_USE_ENOKI
@@ -244,16 +156,6 @@ inline bool allGeq(const Vector<DIM>& u, const Vector<DIM>& v)
 	return enoki::all(u >= v);
 #else
 	return (u.array() >= v.array()).all();
-#endif
-}
-
-template<size_t DIM>
-inline bool isNaN(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::any(enoki::isnan(v));
-#else
-	return v.array().isNaN().any();
 #endif
 }
 

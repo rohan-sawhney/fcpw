@@ -16,7 +16,7 @@ struct BoundingSphere {
 		if (r2 < maxFloat) {
 			Vector<DIM> direction = Vector<DIM>::Zero();
 			direction[0] = 1;
-			tr2 = squaredNorm<DIM>(transformVector<DIM>(t, c + direction*std::sqrt(r2)) - tc);
+			tr2 = (transformVector<DIM>(t, c + direction*std::sqrt(r2)) - tc).squaredNorm();
 		}
 
 		return BoundingSphere<DIM>(tc, tr2);
@@ -63,8 +63,8 @@ struct BoundingBox {
 	void computeSquaredDistance(const Vector<DIM>& p, float& d2Min, float& d2Max) const {
 		Vector<DIM> u = pMin - p;
 		Vector<DIM> v = p - pMax;
-		d2Min = squaredNorm<DIM>(cwiseMax<DIM>(cwiseMax<DIM>(u, v), 0.0f));
-		d2Max = squaredNorm<DIM>(cwiseMin<DIM>(u, v));
+		d2Min = cwiseMax<DIM>(cwiseMax<DIM>(u, v), 0.0f).squaredNorm();
+		d2Max = cwiseMin<DIM>(u, v).squaredNorm();
 	}
 
 	// checks whether box contains point
@@ -92,8 +92,8 @@ struct BoundingBox {
 		Vector<DIM> tNear = cwiseMin<DIM>(t0, t1);
 		Vector<DIM> tFar = cwiseMax<DIM>(t0, t1);
 
-		float tNearMax = std::max(0.0f, maxCoeff<DIM>(tNear));
-		float tFarMin = std::min(r.tMax, minCoeff<DIM>(tFar));
+		float tNearMax = std::max(0.0f, tNear.maxCoeff());
+		float tFarMin = std::min(r.tMax, tFar.minCoeff());
 		if (tNearMax > tFarMin) return false;
 
 		tMin = tNearMax;
@@ -109,7 +109,7 @@ struct BoundingBox {
 	// returns max dimension
 	int maxDimension() const {
 		int index;
-		float maxLength = maxCoeff<DIM>(pMax - pMin, index);
+		float maxLength = (pMax - pMin).maxCoeff(&index);
 
 		return index;
 	}
@@ -122,12 +122,12 @@ struct BoundingBox {
 	// returns surface area
 	float surfaceArea() const {
 		Vector<DIM> e = cwiseMax<DIM>(extent(), 1e-5); // the 1e-5 is to prevent division by zero
-		return 2.0f*sum<DIM>(cwiseQuotient<DIM>(Vector<DIM>::Constant(product<DIM>(e)), e));
+		return 2.0f*cwiseQuotient<DIM>(Vector<DIM>::Constant(e.prod()), e).sum();
 	}
 
 	// returns volume
 	float volume() const {
-		return product<DIM>(extent());
+		return extent().prod();
 	}
 
 	// computes transformed box
