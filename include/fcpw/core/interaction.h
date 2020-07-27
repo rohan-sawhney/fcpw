@@ -12,9 +12,9 @@ enum class DistanceInfo {
 template<size_t DIM>
 struct Interaction {
 	// constructor
-	Interaction(): d(maxFloat), sign(0), primitiveIndex(-1), nodeIndex(-1), referenceIndex(-1),
-				   objectIndex(-1), p(zeroVector<DIM>()), n(zeroVector<DIM>()),
-				   uv(zeroVector<DIM - 1>()), distanceInfo(DistanceInfo::Exact) {}
+	Interaction(): p(zeroVector<DIM>()), n(zeroVector<DIM>()), uv(zeroVector<DIM - 1>()),
+				   d(maxFloat), sign(0), primitiveIndex(-1), nodeIndex(-1),
+				   referenceIndex(-1), objectIndex(-1), distanceInfo(DistanceInfo::Exact) {}
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
@@ -49,14 +49,14 @@ struct Interaction {
 	}
 
 	// members
+	Vector<DIM> p, n;
+	Vector<DIM - 1> uv;
 	float d;
 	int sign; // sign bit used for difference ops
 	int primitiveIndex; // index of primitive in polygon soup
 	int nodeIndex; // index of aggregate node containing intersected or closest point
 	int referenceIndex; // reference index of primitive for internal library use
 	int objectIndex; // index of object containing the primitive
-	Vector<DIM> p, n;
-	Vector<DIM - 1> uv;
 	DistanceInfo distanceInfo;
 };
 
