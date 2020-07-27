@@ -71,34 +71,4 @@ inline Vector<DIM> cwiseMax(const Vector<DIM>& v, float s)
 #endif
 }
 
-template<size_t DIM>
-inline Vector<DIM> cwiseProduct(const Vector<DIM>& u, const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return u*v;
-#else
-	return u.cwiseProduct(v);
-#endif
-}
-
-template<size_t DIM>
-inline Vector<DIM> cwiseQuotient(const Vector<DIM>& u, const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return u/v;
-#else
-	return u.cwiseQuotient(v);
-#endif
-}
-
-template<size_t DIM>
-inline Vector<DIM> cwiseInverse(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::rcp(v);
-#else
-	return v.cwiseInverse();
-#endif
-}
-
 } // namespace fcpw

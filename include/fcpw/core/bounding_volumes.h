@@ -89,8 +89,8 @@ struct BoundingBox {
 	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
 		// slab test for ray box intersection
 		// source: http://www.jcgt.org/published/0007/03/04/paper-lowres.pdf
-		Vector<DIM> t0 = cwiseProduct<DIM>(pMin - r.o, r.invD);
-		Vector<DIM> t1 = cwiseProduct<DIM>(pMax - r.o, r.invD);
+		Vector<DIM> t0 = (pMin - r.o).cwiseProduct(r.invD);
+		Vector<DIM> t1 = (pMax - r.o).cwiseProduct(r.invD);
 		Vector<DIM> tNear = cwiseMin<DIM>(t0, t1);
 		Vector<DIM> tFar = cwiseMax<DIM>(t0, t1);
 
@@ -124,7 +124,7 @@ struct BoundingBox {
 	// returns surface area
 	float surfaceArea() const {
 		Vector<DIM> e = cwiseMax<DIM>(extent(), 1e-5); // the 1e-5 is to prevent division by zero
-		return 2.0f*cwiseQuotient<DIM>(Vector<DIM>::Constant(e.prod()), e).sum();
+		return 2.0f*Vector<DIM>::Constant(e.prod()).cwiseQuotient(e).sum();
 	}
 
 	// returns volume
