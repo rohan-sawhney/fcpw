@@ -23,21 +23,6 @@ inline MaskP<WIDTH> intersectWideBox(const Ray<DIM>& r,
 	return tMin <= tMax;
 }
 
-// performs wide version of sphere box overlap test
-template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
-								   const VectorP<WIDTH, DIM>& bMin,
-								   const VectorP<WIDTH, DIM>& bMax,
-								   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
-{
-	VectorP<WIDTH, DIM> u = bMin - s.c;
-	VectorP<WIDTH, DIM> v = s.c - bMax;
-	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
-	d2Max = enoki::squared_norm(enoki::min(u, v));
-
-	return d2Min <= s.r2;
-}
-
 // performs wide version of ray line segment intersection test
 template<size_t WIDTH>
 inline MaskP<WIDTH> intersectWideLineSegment(const Ray<3>& r, const Vector3P<WIDTH>& pa,
@@ -98,6 +83,21 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>
 	t[1] = v;
 
 	return active;
+}
+
+// performs wide version of sphere box overlap test
+template<size_t WIDTH, size_t DIM>
+inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
+								   const VectorP<WIDTH, DIM>& bMin,
+								   const VectorP<WIDTH, DIM>& bMax,
+								   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
+{
+	VectorP<WIDTH, DIM> u = bMin - s.c;
+	VectorP<WIDTH, DIM> v = s.c - bMax;
+	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
+	d2Max = enoki::squared_norm(enoki::min(u, v));
+
+	return d2Min <= s.r2;
 }
 
 // finds closest point on wide line segment to point
