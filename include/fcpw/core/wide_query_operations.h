@@ -6,79 +6,77 @@ namespace fcpw {
 
 // performs wide version of ray box intersection test
 template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> intersectWideBox(const Ray<DIM>& r,
-									 const VectorP<WIDTH, DIM>& bMin,
-									 const VectorP<WIDTH, DIM>& bMax,
+inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+									 const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD, float rtMax,
 									 FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
 	// vectorized slab test
-	VectorP<WIDTH, DIM> t0 = (bMin - r.o)*r.invD;
-	VectorP<WIDTH, DIM> t1 = (bMax - r.o)*r.invD;
+	VectorP<WIDTH, DIM> t0 = (bMin - ro)*rinvD;
+	VectorP<WIDTH, DIM> t1 = (bMax - ro)*rinvD;
 	VectorP<WIDTH, DIM> tNear = enoki::min(t0, t1);
 	VectorP<WIDTH, DIM> tFar = enoki::max(t0, t1);
 
 	tMin = enoki::max(0.0f, enoki::hmax(tNear));
-	tMax = enoki::min(r.tMax, enoki::hmin(tFar));
+	tMax = enoki::min(rtMax, enoki::hmin(tFar));
 
 	return tMin <= tMax;
 }
 
 // performs wide version of ray line segment intersection test
 template<size_t WIDTH>
-inline MaskP<WIDTH> intersectWideLineSegment(const Ray<3>& r, const Vector3P<WIDTH>& pa,
-											 const Vector3P<WIDTH>& pb, FloatP<WIDTH>& d,
-											 Vector3P<WIDTH>& pt, FloatP<WIDTH>& t)
+inline MaskP<WIDTH> intersectWideLineSegment(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb,
+											 const enokiVector3& ro, const enokiVector3& rd, float rtMax,
+											 FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, FloatP<WIDTH>& t)
 {
-	Vector3P<WIDTH> u = pa - r.o;
+	Vector3P<WIDTH> u = pa - ro;
 	Vector3P<WIDTH> v = pb - pa;
 
 	// track non-parallel line segments and rays
-	FloatP<WIDTH> dv = enoki::cross(r.d, v)[2];
+	FloatP<WIDTH> dv = enoki::cross(rd, v)[2];
 	MaskP<WIDTH> active = enoki::abs(dv) >= epsilon;
 	FloatP<WIDTH> invDv = enoki::rcp(dv);
 
 	// solve r.o + s*r.d = pa + t*(pb - pa) for s >= 0 && 0 <= t <= 1
 	// t = (u x r.d)/(r.d x v)
-	FloatP<WIDTH> ud = enoki::cross(u, r.d)[2];
+	FloatP<WIDTH> ud = enoki::cross(u, rd)[2];
 	t = ud*invDv;
 	active &= t >= 0.0f && t <= 1.0f;
 
 	// s = (u x v)/(r.d x v)
 	FloatP<WIDTH> uv = enoki::cross(u, v)[2];
 	d = uv*invDv;
-	active &= d > epsilon && d <= r.tMax;
-	pt = r.o + r.d*Vector3P<WIDTH>(d);
+	active &= d > epsilon && d <= rtMax;
+	pt = ro + rd*Vector3P<WIDTH>(d);
 
 	return active;
 }
 
 // performs wide version of ray triangle intersection test
 template<size_t WIDTH>
-inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>& pa,
-										  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-										  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt,
-										  Vector2P<WIDTH>& t)
+inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+										  const enokiVector3& ro, const enokiVector3& rd, float rtMax,
+										  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
 {
 	// vectorized Möller–Trumbore intersection algorithm
 	Vector3P<WIDTH> v1 = pb - pa;
 	Vector3P<WIDTH> v2 = pc - pa;
-	Vector3P<WIDTH> p = enoki::cross(r.d, v2);
+	Vector3P<WIDTH> p = enoki::cross(rd, v2);
 	FloatP<WIDTH> det = enoki::dot(v1, p);
 
 	MaskP<WIDTH> active = enoki::abs(det) >= epsilon;
 	FloatP<WIDTH> invDet = enoki::rcp(det);
 
-	Vector3P<WIDTH> s = r.o - pa;
+	Vector3P<WIDTH> s = ro - pa;
 	FloatP<WIDTH> u = enoki::dot(s, p)*invDet;
 	active &= u >= 0.0f && u <= 1.0f;
 
 	Vector3P<WIDTH> q = enoki::cross(s, v1);
-	FloatP<WIDTH> v = enoki::dot(r.d, q)*invDet;
+	FloatP<WIDTH> v = enoki::dot(rd, q)*invDet;
 	active &= v >= 0.0f && u + v <= 1.0f;
 
 	d = enoki::dot(v2, q)*invDet;
-	active &= d > epsilon && d <= r.tMax;
-	pt = r.o + r.d*Vector3P<WIDTH>(d);
+	active &= d > epsilon && d <= rtMax;
+	pt = ro + rd*Vector3P<WIDTH>(d);
 	t[0] = u;
 	t[1] = v;
 
@@ -87,24 +85,22 @@ inline MaskP<WIDTH> intersectWideTriangle(const Ray<3>& r, const Vector3P<WIDTH>
 
 // performs wide version of sphere box overlap test
 template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> overlapWideBox(const BoundingSphere<DIM>& s,
-								   const VectorP<WIDTH, DIM>& bMin,
-								   const VectorP<WIDTH, DIM>& bMax,
+inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+								   const enokiVector<DIM>& sc, float sr2,
 								   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
 {
-	VectorP<WIDTH, DIM> u = bMin - s.c;
-	VectorP<WIDTH, DIM> v = s.c - bMax;
+	VectorP<WIDTH, DIM> u = bMin - sc;
+	VectorP<WIDTH, DIM> v = sc - bMax;
 	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
 	d2Max = enoki::squared_norm(enoki::min(u, v));
 
-	return d2Min <= s.r2;
+	return d2Min <= sr2;
 }
 
 // finds closest point on wide line segment to point
 template<size_t WIDTH>
-inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector3& x, const Vector3P<WIDTH>& pa,
-													 const Vector3P<WIDTH>& pb, Vector3P<WIDTH>& pt,
-													 FloatP<WIDTH>& t)
+inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb,
+													 const enokiVector3& x, Vector3P<WIDTH>& pt, FloatP<WIDTH>& t)
 {
 	Vector3P<WIDTH> u = pb - pa;
 	Vector3P<WIDTH> v = x - pa;
@@ -126,9 +122,8 @@ inline FloatP<WIDTH> findClosestPointWideLineSegment(const Vector3& x, const Vec
 
 // finds closest point on wide triangle to point
 template<size_t WIDTH>
-inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3& x, const Vector3P<WIDTH>& pa,
-												  const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-												  Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
+inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+												  const enokiVector3& x, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
 {
 	// check if x in vertex region outside pa
 	Vector3P<WIDTH> ab = pb - pa;

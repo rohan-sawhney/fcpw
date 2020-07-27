@@ -177,7 +177,8 @@ nLeafs(0),
 maxDepth(0),
 area(0.0f),
 volume(0.0f),
-primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
+primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value),
+range(enoki::arange<enoki::Array<int, DIM>>())
 {
 	static_assert(FCPW_MBVH_BRANCHING_FACTOR == 4 || FCPW_MBVH_BRANCHING_FACTOR == 8,
 				  "Branching factor must be atleast 4");
@@ -256,8 +257,9 @@ inline BoundingBox<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::boundingBox() const
 	BoundingBox<DIM> box;
 	if (flatTree.size() == 0) return box;
 
-	box.pMin = enoki::hmin_inner(flatTree[0].boxMin);
-	box.pMax = enoki::hmax_inner(flatTree[0].boxMax);
+	enoki::scatter(box.pMin.data(), enoki::hmin_inner(flatTree[0].boxMin), range);
+	enoki::scatter(box.pMax.data(), enoki::hmax_inner(flatTree[0].boxMax), range);
+
 	return box;
 }
 
@@ -342,8 +344,8 @@ inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int intersectPrimitives(const MbvhNode<DIM>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
-							   int nodeIndex, int aggregateIndex, Ray<DIM>& r,
-							   std::vector<Interaction<DIM>>& is, bool recordAllHits)
+							   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
+							   float& rtMax, std::vector<Interaction<DIM>>& is, bool recordAllHits)
 {
 	std::cerr << "intersectPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -354,8 +356,8 @@ inline int intersectPrimitives(const MbvhNode<DIM>& node,
 template<size_t WIDTH>
 inline int intersectPrimitives(const MbvhNode<3>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
-							   int nodeIndex, int aggregateIndex, Ray<3>& r,
-							   std::vector<Interaction<3>>& is, bool recordAllHits)
+							   int nodeIndex, int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
+							   float& rtMax, std::vector<Interaction<3>>& is, bool recordAllHits)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -373,7 +375,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
 		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(r, pa, pb, d, pt, t);
+		MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMax, d, pt, t);
 
 		if (recordAllHits) {
 			// record interactions
@@ -405,9 +407,9 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 			int W = std::min((int)WIDTH, nReferences - startReference);
 
 			for (int w = 0; w < W; w++) {
-				if (mask[w] && d[w] <= r.tMax) {
+				if (mask[w] && d[w] <= rtMax) {
 					closestIndex = w;
-					r.tMax = d[w];
+					rtMax = d[w];
 				}
 			}
 
@@ -436,8 +438,8 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 template<size_t WIDTH>
 inline int intersectPrimitives(const MbvhNode<3>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
-							   int nodeIndex, int aggregateIndex, Ray<3>& r,
-							   std::vector<Interaction<3>>& is, bool recordAllHits)
+							   int nodeIndex, int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
+							   float& rtMax, std::vector<Interaction<3>>& is, bool recordAllHits)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -456,7 +458,7 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(r, pa, pb, pc, d, pt, t);
+		MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMax, d, pt, t);
 
 		if (recordAllHits) {
 			// record interactions
@@ -488,9 +490,9 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 			int W = std::min((int)WIDTH, nReferences - startReference);
 
 			for (int w = 0; w < W; w++) {
-				if (mask[w] && d[w] <= r.tMax) {
+				if (mask[w] && d[w] <= rtMax) {
 					closestIndex = w;
-					r.tMax = d[w];
+					rtMax = d[w];
 				}
 			}
 
@@ -526,6 +528,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	if (!recordAllHits) is.resize(1);
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
+	enokiVector<DIM> ro = enoki::gather<enokiVector<DIM>>(r.o.data(), range);
+	enokiVector<DIM> rd = enoki::gather<enokiVector<DIM>>(r.d.data(), range);
+	enokiVector<DIM> rinvD = enoki::gather<enokiVector<DIM>>(r.invD.data(), range);
 
 	// push root node
 	subtree[0].node = 0;
@@ -546,7 +551,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			if (vectorizedLeafType == ObjectType::LineSegments ||
 				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized intersection query
-				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, r, is, recordAllHits);
+				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, ro, rd, r.tMax, is, recordAllHits);
 				nodesVisited++;
 
 				if (hits > 0 && checkForOcclusion) {
@@ -602,8 +607,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 		} else {
 			// intersect ray with boxes
-			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(r,
-																	node.boxMin, node.boxMax, tMin, tMax);
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+														node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
 
 			// enqueue intersecting boxes in sorted order
 			nodesVisited++;
@@ -642,7 +647,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline bool findClosestPointPrimitives(const MbvhNode<DIM>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
-									   int nodeIndex, int aggregateIndex, BoundingSphere<DIM>& s, Interaction<DIM>& i)
+									   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc, float& sr2,
+									   Interaction<DIM>& i)
 {
 	std::cerr << "findClosestPointPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -653,7 +659,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<DIM>& node,
 template<size_t WIDTH>
 inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
-									   int nodeIndex, int aggregateIndex, BoundingSphere<3>& s, Interaction<3>& i)
+									   int nodeIndex, int aggregateIndex, const enokiVector3& sc, float& sr2,
+									   Interaction<3>& i)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -670,7 +677,7 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
 		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH>(s.c, pa, pb, pt, t);
+		FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH>(pa, pb, sc, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
 		// determine closest index
@@ -678,9 +685,9 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 		int W = std::min((int)WIDTH, nReferences - startReference);
 
 		for (int w = 0; w < W; w++) {
-			if (d2[w] <= s.r2) {
+			if (d2[w] <= sr2) {
 				closestIndex = w;
-				s.r2 = d2[w];
+				sr2 = d2[w];
 			}
 		}
 
@@ -708,7 +715,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 template<size_t WIDTH>
 inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
-									   int nodeIndex, int aggregateIndex, BoundingSphere<3>& s, Interaction<3>& i)
+									   int nodeIndex, int aggregateIndex, const enokiVector3& sc, float& sr2,
+									   Interaction<3>& i)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -726,7 +734,7 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(s.c, pa, pb, pc, pt, t);
+		FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(pa, pb, pc, sc, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
 		// determine closest index
@@ -734,9 +742,9 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 		int W = std::min((int)WIDTH, nReferences - startReference);
 
 		for (int w = 0; w < W; w++) {
-			if (d2[w] <= s.r2) {
+			if (d2[w] <= sr2) {
 				closestIndex = w;
-				s.r2 = d2[w];
+				sr2 = d2[w];
 			}
 		}
 
@@ -770,6 +778,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 	bool notFound = true;
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
+	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
 	// push root node
 	subtree[0].node = 0;
@@ -790,7 +799,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			if (vectorizedLeafType == ObjectType::LineSegments ||
 				vectorizedLeafType == ObjectType::Triangles) {
 				// perform vectorized closest point query to triangle
-				bool found = findClosestPointPrimitives(node, leafNodes, nodeIndex, this->index, s, i);
+				bool found = findClosestPointPrimitives(node, leafNodes, nodeIndex, this->index, sc, s.r2, i);
 				if (found) notFound = false;
 				nodesVisited++;
 
@@ -830,8 +839,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 		} else {
 			// overlap sphere with boxes
-			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(s,
-																node.boxMin, node.boxMax, d2Min, d2Max);
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+																node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
 
 			// enqueue overlapping boxes in sorted order
 			nodesVisited++;

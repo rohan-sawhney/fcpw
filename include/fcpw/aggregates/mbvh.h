@@ -94,6 +94,7 @@ protected:
 	std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>> leafNodes;
 	ObjectType vectorizedLeafType;
 	bool primitiveTypeIsAggregate;
+	enoki::Array<int, DIM> range;
 };
 
 } // namespace fcpw
