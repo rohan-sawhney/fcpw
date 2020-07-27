@@ -40,7 +40,7 @@ inline float LineSegment::signedVolume() const
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
 
-	return 0.5f*cross(pa, pb)[2];
+	return 0.5f*pa.cross(pb)[2];
 }
 
 inline Vector3 LineSegment::normal(bool normalize) const
@@ -131,17 +131,17 @@ inline int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	Vector3 v = pb - pa;
 
 	// return if line segment and ray are parallel
-	float dv = cross(r.d, v)[2];
+	float dv = r.d.cross(v)[2];
 	if (std::fabs(dv) < epsilon) return 0;
 
 	// solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
 	// s = (u x r.d)/(r.d x v)
-	float ud = cross(u, r.d)[2];
+	float ud = u.cross(r.d)[2];
 	float s = ud/dv;
 
 	if (s >= 0.0f && s <= 1.0f) {
 		// t = (u x v)/(r.d x v)
-		float uv = cross(u, v)[2];
+		float uv = u.cross(v)[2];
 		float t = uv/dv;
 
 		if (t > epsilon && t <= r.tMax) {
@@ -165,7 +165,7 @@ inline float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
 	Vector3 u = pb - pa;
 	Vector3 v = x - pa;
 
-	float c1 = dot<3>(u, v);
+	float c1 = u.dot(v);
 	if (c1 <= 0.0f) {
 		pt = pa;
 		t = 0.0f;
@@ -173,7 +173,7 @@ inline float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
 		return (x - pt).norm();
 	}
 
-	float c2 = dot<3>(u, u);
+	float c2 = u.dot(u);
 	if (c2 <= c1) {
 		pt = pb;
 		t = 1.0f;

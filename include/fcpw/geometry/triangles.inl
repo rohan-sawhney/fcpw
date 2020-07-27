@@ -42,7 +42,7 @@ inline float Triangle::signedVolume() const
 	const Vector3& pb = soup->positions[indices[1]];
 	const Vector3& pc = soup->positions[indices[2]];
 
-	return dot<3>(cross(pa, pb), pc)/6.0f;
+	return pa.cross(pb).dot(pc)/6.0f;
 }
 
 inline Vector3 Triangle::normal(bool normalize) const
@@ -54,7 +54,7 @@ inline Vector3 Triangle::normal(bool normalize) const
 	Vector3 v1 = pb - pa;
 	Vector3 v2 = pc - pa;
 
-	Vector3 n = cross(v1, v2);
+	Vector3 n = v1.cross(v2);
 	return normalize ? n.normalized() : n;
 }
 
@@ -98,11 +98,11 @@ inline Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 	Vector3 v2 = pc - pa;
 	Vector3 v3 = p - pa;
 
-	float d11 = dot<3>(v1, v1);
-	float d12 = dot<3>(v1, v2);
-	float d22 = dot<3>(v2, v2);
-	float d31 = dot<3>(v3, v1);
-	float d32 = dot<3>(v3, v2);
+	float d11 = v1.dot(v1);
+	float d12 = v1.dot(v2);
+	float d22 = v2.dot(v2);
+	float d31 = v3.dot(v1);
+	float d32 = v3.dot(v2);
 	float denom = d11*d22 - d12*d12;
 	float v = (d22*d31 - d12*d32)/denom;
 	float w = (d11*d32 - d12*d31)/denom;
@@ -198,22 +198,22 @@ inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 
 	Vector3 v1 = pb - pa;
 	Vector3 v2 = pc - pa;
-	Vector3 p = cross(r.d, v2);
-	float det = dot<3>(v1, p);
+	Vector3 p = r.d.cross(v2);
+	float det = v1.dot(p);
 
 	// ray and triangle are parallel if det is close to 0
 	if (std::fabs(det) < epsilon) return 0;
 	float invDet = 1.0f/det;
 
 	Vector3 s = r.o - pa;
-	float u = dot<3>(s, p)*invDet;
+	float u = s.dot(p)*invDet;
 	if (u < 0 || u > 1) return 0;
 
-	Vector3 q = cross(s, v1);
-	float v = dot<3>(r.d, q)*invDet;
+	Vector3 q = s.cross(v1);
+	float v = r.d.dot(q)*invDet;
 	if (v < 0 || u + v > 1) return 0;
 
-	float t = dot<3>(v2, q)*invDet;
+	float t = v2.dot(q)*invDet;
 	if (t > epsilon && t <= r.tMax) {
 		auto it = is.emplace(is.end(), Interaction<3>());
 		it->d = t;
@@ -236,8 +236,8 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 	Vector3 ab = pb - pa;
 	Vector3 ac = pc - pa;
 	Vector3 ax = x - pa;
-	float d1 = dot<3>(ab, ax);
-	float d2 = dot<3>(ac, ax);
+	float d1 = ab.dot(ax);
+	float d2 = ac.dot(ax);
 	if (d1 <= 0.0f && d2 <= 0.0f) {
 		// barycentric coordinates (1, 0, 0)
 		t[0] = 1.0f;
@@ -248,8 +248,8 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 
 	// check if x in vertex region outside pb
 	Vector3 bx = x - pb;
-	float d3 = dot<3>(ab, bx);
-	float d4 = dot<3>(ac, bx);
+	float d3 = ab.dot(bx);
+	float d4 = ac.dot(bx);
 	if (d3 >= 0.0f && d4 <= d3) {
 		// barycentric coordinates (0, 1, 0)
 		t[0] = 0.0f;
@@ -260,8 +260,8 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 
 	// check if x in vertex region outside pc
 	Vector3 cx = x - pc;
-	float d5 = dot<3>(ab, cx);
-	float d6 = dot<3>(ac, cx);
+	float d5 = ab.dot(cx);
+	float d6 = ac.dot(cx);
 	if (d6 >= 0.0f && d5 <= d6) {
 		// barycentric coordinates (0, 0, 1)
 		t[0] = 0.0f;

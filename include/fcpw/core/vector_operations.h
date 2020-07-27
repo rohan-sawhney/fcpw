@@ -32,25 +32,6 @@ template<size_t DIM>
 using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
 
 template<size_t DIM>
-inline float dot(const Vector<DIM>& u, const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::dot(u, v);
-#else
-	return u.dot(v);
-#endif
-}
-
-inline Vector3 cross(const Vector3& u, const Vector3& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::cross(u, v);
-#else
-	return u.cross(v);
-#endif
-}
-
-template<size_t DIM>
 inline Vector<DIM> cwiseMin(const Vector<DIM>& u, const Vector<DIM>& v)
 {
 #ifdef FCPW_USE_ENOKI

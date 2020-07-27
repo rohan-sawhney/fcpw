@@ -30,7 +30,7 @@ struct Interaction {
 
 	// returns signed distance
 	float signedDistance(const Vector<DIM>& x) const {
-		return sign == 0 ? (dot<DIM>(x - p, n) > 0.0f ? 1.0f : -1.0f)*d : sign*d;
+		return sign == 0 ? ((x - p).dot(n) > 0.0f ? 1.0f : -1.0f)*d : sign*d;
 	}
 
 	// computes normal from geometric primitive if unspecified
