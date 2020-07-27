@@ -301,7 +301,7 @@ inline BoundingBox<DIM> Sbvh<DIM, PrimitiveType>::boundingBox() const
 template<size_t DIM, typename PrimitiveType>
 inline Vector<DIM> Sbvh<DIM, PrimitiveType>::centroid() const
 {
-	Vector<DIM> c = zeroVector<DIM>();
+	Vector<DIM> c = Vector<DIM>::Zero();
 	int nPrimitives = (int)primitives.size();
 
 	for (int p = 0; p < nPrimitives; p++) {

@@ -198,7 +198,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 
 	// precompute surface area and signed volume
 	int nPrimitives = (int)primitives.size();
-	aggregateCentroid = zeroVector<DIM>();
+	aggregateCentroid = Vector<DIM>::Zero();
 
 	for (int p = 0; p < nPrimitives; p++) {
 		aggregateCentroid += primitives[p]->centroid();

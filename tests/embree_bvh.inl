@@ -335,7 +335,7 @@ inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interactio
 		i.p[0] = result.p.x;
 		i.p[1] = result.p.y;
 		i.p[2] = result.p.z;
-		i.d = norm<3>(i.p - s.c);
+		i.d = (i.p - s.c).norm();
 		const Triangle *triangle = this->primitives[result.primID];
 		i.uv = triangle->barycentricCoordinates(i.p);
 		if (this->computeNormals) i.computeNormal(triangle);

@@ -14,7 +14,7 @@ struct BoundingSphere {
 		Vector<DIM> tc = transformVector<DIM>(t, c);
 		float tr2 = maxFloat;
 		if (r2 < maxFloat) {
-			Vector<DIM> direction = zeroVector<DIM>();
+			Vector<DIM> direction = Vector<DIM>::Zero();
 			direction[0] = 1;
 			tr2 = squaredNorm<DIM>(transformVector<DIM>(t, c + direction*std::sqrt(r2)) - tc);
 		}
@@ -30,19 +30,19 @@ struct BoundingSphere {
 template<size_t DIM>
 struct BoundingBox {
 	// constructor
-	BoundingBox(): pMin(constantVector<DIM>(maxFloat)),
-				   pMax(constantVector<DIM>(minFloat)) {}
+	BoundingBox(): pMin(Vector<DIM>::Constant(maxFloat)),
+				   pMax(Vector<DIM>::Constant(minFloat)) {}
 
 	// constructor
 	BoundingBox(const Vector<DIM>& p) {
-		Vector<DIM> epsilonVector = constantVector<DIM>(epsilon);
+		Vector<DIM> epsilonVector = Vector<DIM>::Constant(epsilon);
 		pMin = p - epsilonVector;
 		pMax = p + epsilonVector;
 	}
 
 	// expands volume to include point
 	void expandToInclude(const Vector<DIM>& p) {
-		Vector<DIM> epsilonVector = constantVector<DIM>(epsilon);
+		Vector<DIM> epsilonVector = Vector<DIM>::Constant(epsilon);
 		pMin = cwiseMin<DIM>(pMin, p - epsilonVector);
 		pMax = cwiseMax<DIM>(pMax, p + epsilonVector);
 	}
@@ -122,7 +122,7 @@ struct BoundingBox {
 	// returns surface area
 	float surfaceArea() const {
 		Vector<DIM> e = cwiseMax<DIM>(extent(), 1e-5); // the 1e-5 is to prevent division by zero
-		return 2.0f*sum<DIM>(cwiseQuotient<DIM>(constantVector<DIM>(product<DIM>(e)), e));
+		return 2.0f*sum<DIM>(cwiseQuotient<DIM>(Vector<DIM>::Constant(product<DIM>(e)), e));
 	}
 
 	// returns volume
@@ -136,7 +136,7 @@ struct BoundingBox {
 		int nCorners = 1 << DIM;
 
 		for (int i = 0; i < nCorners; i++) {
-			Vector<DIM> p = zeroVector<DIM>();
+			Vector<DIM> p = Vector<DIM>::Zero();
 			int temp = i;
 
 			for (int j = 0; j < DIM; j++) {

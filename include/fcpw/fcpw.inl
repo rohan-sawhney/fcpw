@@ -209,7 +209,7 @@ inline void computeWeightedNormals<3, LineSegment>(const std::vector<LineSegment
 {
 	int N = (int)lineSegments.size();
 	int V = (int)soup.positions.size();
-	soup.vNormals.resize(V, zeroVector<3>());
+	soup.vNormals.resize(V, Vector<3>::Zero());
 
 	for (int i = 0; i < N; i++) {
 		Vector3 n = lineSegments[i].normal(true);
@@ -218,7 +218,7 @@ inline void computeWeightedNormals<3, LineSegment>(const std::vector<LineSegment
 	}
 
 	for (int i = 0; i < V; i++) {
-		soup.vNormals[i] = unit<3>(soup.vNormals[i]);
+		soup.vNormals[i].normalize();
 	}
 }
 
@@ -246,8 +246,8 @@ inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& tri
 
 	// compute normals
 	int V = (int)soup.positions.size();
-	soup.vNormals.resize(V, zeroVector<3>());
-	soup.eNormals.resize(E, zeroVector<3>());
+	soup.vNormals.resize(V, Vector<3>::Zero());
+	soup.eNormals.resize(E, Vector<3>::Zero());
 
 	for (int i = 0; i < N; i++) {
 		Vector3 n = triangles[i].normal(true);
@@ -258,8 +258,8 @@ inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& tri
 		}
 	}
 
-	for (int i = 0; i < V; i++) soup.vNormals[i] = unit<3>(soup.vNormals[i]);
-	for (int i = 0; i < E; i++) soup.eNormals[i] = unit<3>(soup.eNormals[i]);
+	for (int i = 0; i < V; i++) soup.vNormals[i].normalize();
+	for (int i = 0; i < E; i++) soup.eNormals[i].normalize();
 }
 
 template<size_t DIM>

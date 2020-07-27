@@ -81,7 +81,7 @@ public:
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
 		int nodesVisited = 0;
-		return this->findClosestPointFromNode(s, i, 0, this->index, zeroVector<DIM>(), nodesVisited);
+		return this->findClosestPointFromNode(s, i, 0, this->index, Vector<DIM>::Zero(), nodesVisited);
 	}
 
 	// performs inside outside test for x
@@ -89,8 +89,8 @@ public:
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
 		if (useRayIntersection) {
 			// do two intersection tests for robustness
-			Vector<DIM> direction1 = zeroVector<DIM>();
-			Vector<DIM> direction2 = zeroVector<DIM>();
+			Vector<DIM> direction1 = Vector<DIM>::Zero();
+			Vector<DIM> direction2 = Vector<DIM>::Zero();
 			direction1[0] = 1;
 			direction2[1] = 1;
 
@@ -115,7 +115,7 @@ public:
 	// checks whether there is a line of sight between xi and xj
 	bool hasLineOfSight(const Vector<DIM>& xi, const Vector<DIM>& xj) const {
 		Vector<DIM> direction = xj - xi;
-		float dNorm = norm<DIM>(direction);
+		float dNorm = direction.norm();
 		direction /= dNorm;
 
 		std::vector<Interaction<DIM>> is;
@@ -232,7 +232,7 @@ public:
 		Vector<DIM> boundaryHintInv = boundaryHint;
 		if (squaredNorm<DIM>(boundaryHint) > 0.0f) {
 			boundaryHintInv = transformVector<DIM>(tInv, s.c + boundaryHint) - sInv.c;
-			float hintNorm = norm<DIM>(boundaryHintInv);
+			float hintNorm = boundaryHintInv.norm();
 			boundaryHintInv /= hintNorm;
 		}
 
@@ -264,9 +264,9 @@ public:
 		// apply inverse transform to x and distance bound
 		Vector<DIM> xInv = transformVector<DIM>(tInv, x);
 		if (distanceUpperBound < maxFloat) {
-			Vector<DIM> direction = zeroVector<DIM>();
+			Vector<DIM> direction = Vector<DIM>::Zero();
 			direction[0] = 1;
-			distanceUpperBound = norm<DIM>(transformVector<DIM>(tInv, x + direction*distanceUpperBound) - xInv);
+			distanceUpperBound = (transformVector<DIM>(tInv, x + direction*distanceUpperBound) - xInv).norm();
 		}
 
 		// clamp in object space and apply transform to x

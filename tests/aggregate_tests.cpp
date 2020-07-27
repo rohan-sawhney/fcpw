@@ -66,7 +66,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 				o[DIM - 1] = 0.0f;
 				d[DIM - 1] = 0.0f;
 			}
-			d = unit<DIM>(d);
+			d.normalize();
 
 			scatteredPoints.emplace_back(o);
 			randomDirections.emplace_back(d);
@@ -183,13 +183,13 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 	auto time = [&](const tbb::blocked_range<int>& range) {
 		int nodesVisitedByThread = 0;
 		Interaction<DIM> cPrev;
-		Vector<DIM> queryPrev = zeroVector<DIM>();
+		Vector<DIM> queryPrev = Vector<DIM>::Zero();
 
 		for (int i = range.begin(); i < range.end(); ++i) {
 			if (stopQueries) break;
 
 			int I = indices[i];
-			float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
+			float distPrev = (queryPoints[I] - queryPrev).norm();
 			float r2 = cPrev.nodeIndex == -1 ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
 			int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
@@ -197,7 +197,7 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 			Interaction<DIM> c;
 			BoundingSphere<DIM> s(queryPoints[I], r2);
 			bool found = aggregate->findClosestPointFromNode(s, c, nodeIndex, cPrev.objectIndex,
-															 zeroVector<DIM>(), nodesVisited);
+															 Vector<DIM>::Zero(), nodesVisited);
 			nodesVisitedByThread += nodesVisited;
 
 			if (found) cPrev = c;
@@ -294,13 +294,13 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 	std::atomic<bool> stopQueries(false);
 	auto test = [&](const tbb::blocked_range<int>& range) {
 		Interaction<DIM> cPrev;
-		Vector<DIM> queryPrev = zeroVector<DIM>();
+		Vector<DIM> queryPrev = Vector<DIM>::Zero();
 
 		for (int i = range.begin(); i < range.end(); ++i) {
 			if (stopQueries) break;
 
 			int I = indices[i];
-			float distPrev = norm<DIM>(queryPoints[I] - queryPrev);
+			float distPrev = (queryPoints[I] - queryPrev).norm();
 			float r2 = cPrev.nodeIndex == -1 ? maxFloat : std::pow((cPrev.d + distPrev)*1.25, 2);
 			int nodeIndex = !queriesCoherent || cPrev.nodeIndex == -1 ? 0 : cPrev.nodeIndex;
 
@@ -312,7 +312,7 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 			Interaction<DIM> c2;
 			BoundingSphere<DIM> s2(queryPoints[I], r2);
 			bool found2 = aggregate2->findClosestPointFromNode(s2, c2, nodeIndex, cPrev.objectIndex,
-															   zeroVector<DIM>(), nodesVisited);
+															   Vector<DIM>::Zero(), nodesVisited);
 
 			if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
 				std::cerr << "d1: " << c1.d << " d2: " << c2.d

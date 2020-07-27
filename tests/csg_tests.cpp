@@ -25,7 +25,7 @@ void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatt
 			o[DIM - 1] = 0.0f;
 			d[DIM - 1] = 0.0f;
 		}
-		d = unit<DIM>(d);
+		d.normalize();
 
 		scatteredPoints.emplace_back(o);
 		randomDirections.emplace_back(d);

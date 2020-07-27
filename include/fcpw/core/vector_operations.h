@@ -9,8 +9,6 @@
 namespace fcpw {
 
 #ifdef FCPW_USE_ENOKI
-	template<size_t DIM>
-	using Vector = enoki::Array<float, DIM>;
 	template<size_t WIDTH>
 	using IntP = enoki::Packet<int, WIDTH>;
 	template<size_t WIDTH>
@@ -23,56 +21,15 @@ namespace fcpw {
 	using Vector2P = VectorP<WIDTH, 2>;
 	template<size_t WIDTH>
 	using Vector3P = VectorP<WIDTH, 3>;
-#else
-	template<size_t DIM>
-	using Vector = Eigen::Matrix<float, DIM, 1>;
 #endif
 
+template<size_t DIM>
+using Vector = Eigen::Matrix<float, DIM, 1>;
 using Vector2 = Vector<2>;
 using Vector3 = Vector<3>;
 
 template<size_t DIM>
 using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
-
-template<size_t DIM>
-inline Vector<DIM> zeroVector()
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::zero<Vector<DIM>>();
-#else
-	return Vector<DIM>::Zero();
-#endif
-}
-
-template<size_t DIM>
-inline Vector<DIM> constantVector(float constant)
-{
-#ifdef FCPW_USE_ENOKI
-	return Vector<DIM>(constant);
-#else
-	return Vector<DIM>::Constant(constant);
-#endif
-}
-
-template<size_t DIM>
-inline Vector<DIM> unit(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::normalize(v);
-#else
-	return v.normalized();
-#endif
-}
-
-template<size_t DIM>
-inline float norm(const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::norm(v);
-#else
-	return v.norm();
-#endif
-}
 
 template<size_t DIM>
 inline float squaredNorm(const Vector<DIM>& v)

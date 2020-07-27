@@ -13,8 +13,8 @@ template<size_t DIM>
 struct Interaction {
 	// constructor
 	Interaction(): d(maxFloat), sign(0), primitiveIndex(-1), nodeIndex(-1), referenceIndex(-1),
-				   objectIndex(-1), p(zeroVector<DIM>()), n(zeroVector<DIM>()),
-				   uv(zeroVector<DIM - 1>()), distanceInfo(DistanceInfo::Exact) {}
+				   objectIndex(-1), p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()),
+				   uv(Vector<DIM - 1>::Zero()), distanceInfo(DistanceInfo::Exact) {}
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
@@ -43,9 +43,9 @@ struct Interaction {
 						const Transform<DIM>& tInv,
 						const Vector<DIM>& query) {
 		p = transformVector<DIM>(t, p);
-		d = norm<DIM>(p - query);
+		d = (p - query).norm();
 		n = transformVector<DIM>(Transform<DIM>(tInv.matrix().transpose()), n);
-		n = unit<DIM>(n);
+		n.normalize();
 	}
 
 	// members

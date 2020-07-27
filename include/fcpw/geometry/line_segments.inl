@@ -32,7 +32,7 @@ inline float LineSegment::surfaceArea() const
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
 
-	return norm<3>(pb - pa);
+	return (pb - pa).norm();
 }
 
 inline float LineSegment::signedVolume() const
@@ -51,7 +51,7 @@ inline Vector3 LineSegment::normal(bool normalize) const
 	Vector3 s = pb - pa;
 	Vector3 n(s[1], -s[0], 0);
 
-	return normalize ? unit<3>(n) : n;
+	return normalize ? n.normalized() : n;
 }
 
 inline Vector3 LineSegment::normal(int vIndex) const
@@ -77,7 +77,7 @@ inline Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
 
-	return Vector2(norm<3>(p - pa)/norm<3>(pb - pa), 0.0f);
+	return Vector2((p - pa).norm()/(pb - pa).norm(), 0.0f);
 }
 
 inline void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
@@ -170,7 +170,7 @@ inline float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
 		pt = pa;
 		t = 0.0f;
 
-		return norm<3>(x - pt);
+		return (x - pt).norm();
 	}
 
 	float c2 = dot<3>(u, u);
@@ -178,13 +178,13 @@ inline float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
 		pt = pb;
 		t = 1.0f;
 
-		return norm<3>(x - pt);
+		return (x - pt).norm();
 	}
 
 	t = c1/c2;
 	pt = pa + u*t;
 
-	return norm<3>(x - pt);
+	return (x - pt).norm();
 }
 
 inline bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const

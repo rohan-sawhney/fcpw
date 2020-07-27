@@ -33,7 +33,7 @@ inline Vector3 Triangle::centroid() const
 
 inline float Triangle::surfaceArea() const
 {
-	return 0.5f*norm<3>(normal());
+	return 0.5f*normal().norm();
 }
 
 inline float Triangle::signedVolume() const
@@ -55,7 +55,7 @@ inline Vector3 Triangle::normal(bool normalize) const
 	Vector3 v2 = pc - pa;
 
 	Vector3 n = cross(v1, v2);
-	return normalize ? unit<3>(n) : n;
+	return normalize ? n.normalized() : n;
 }
 
 inline Vector3 Triangle::normal(int vIndex, int eIndex) const
@@ -243,7 +243,7 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 		t[0] = 1.0f;
 		t[1] = 0.0f;
 		pt = pa;
-		return norm<3>(x - pt);
+		return (x - pt).norm();
 	}
 
 	// check if x in vertex region outside pb
@@ -255,7 +255,7 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 		t[0] = 0.0f;
 		t[1] = 1.0f;
 		pt = pb;
-		return norm<3>(x - pt);
+		return (x - pt).norm();
 	}
 
 	// check if x in vertex region outside pc
@@ -267,7 +267,7 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 		t[0] = 0.0f;
 		t[1] = 0.0f;
 		pt = pc;
-		return norm<3>(x - pt);
+		return (x - pt).norm();
 	}
 
 	// check if x in edge region of ab, if so return projection of x onto ab
@@ -278,7 +278,7 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 		t[0] = 1.0f - v;
 		t[1] = v;
 		pt = pa + ab*v;
-		return norm<3>(x - pt);
+		return (x - pt).norm();
 	}
 
 	// check if x in edge region of ac, if so return projection of x onto ac
@@ -289,7 +289,7 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 		t[0] = 1.0f - w;
 		t[1] = 0.0f;
 		pt = pa + ac*w;
-		return norm<3>(x - pt);
+		return (x - pt).norm();
 	}
 
 	// check if x in edge region of bc, if so return projection of x onto bc
@@ -300,7 +300,7 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 		t[0] = 0.0f;
 		t[1] = 1.0f - w;
 		pt = pb + (pc - pb)*w;
-		return norm<3>(x - pt);
+		return (x - pt).norm();
 	}
 
 	// x inside face region. Compute pt through its barycentric coordinates (u, v, w)
@@ -311,7 +311,7 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 	t[1] = v;
 
 	pt = pa + ab*v + ac*w; //= u*a + v*b + w*c, u = va*denom = 1.0f - v - w
-	return norm<3>(x - pt);
+	return (x - pt).norm();
 }
 
 inline bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
