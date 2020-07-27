@@ -42,9 +42,9 @@ public:
 	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;
 
 	// members
+	const PolygonSoup<3> *soup;
 	int indices[2];
 	int pIndex; // index of primitive in polygon soup
-	const PolygonSoup<3> *soup;
 
 private:
 	// returns normalized vertex normal if available;
