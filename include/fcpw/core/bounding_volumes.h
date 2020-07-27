@@ -11,12 +11,12 @@ struct BoundingSphere {
 
 	// computes transformed sphere
 	BoundingSphere<DIM> transform(const Transform<DIM>& t) const {
-		Vector<DIM> tc = transformVector<DIM>(t, c);
+		Vector<DIM> tc = t*c;
 		float tr2 = maxFloat;
 		if (r2 < maxFloat) {
 			Vector<DIM> direction = Vector<DIM>::Zero();
 			direction[0] = 1;
-			tr2 = (transformVector<DIM>(t, c + direction*std::sqrt(r2)) - tc).squaredNorm();
+			tr2 = (t*(c + direction*std::sqrt(r2)) - tc).squaredNorm();
 		}
 
 		return BoundingSphere<DIM>(tc, tr2);
@@ -69,7 +69,8 @@ struct BoundingBox {
 
 	// checks whether box contains point
 	bool contains(const Vector<DIM>& p) const {
-		return allGeq<DIM>(p, pMin) && allLeq<DIM>(p, pMax);
+		return (p.array() >= pMin.array()).all() &&
+			   (p.array() <= pMax.array()).all();
 	}
 
 	// checks for overlap with sphere
@@ -80,7 +81,8 @@ struct BoundingBox {
 
 	// checks for overlap with bounding box
 	bool overlap(const BoundingBox<DIM>& b) const {
-		return allGeq<DIM>(b.pMax, pMin) && allLeq<DIM>(b.pMin, pMax);
+		return (b.pMax.array() >= pMin.array()).all() &&
+			   (b.pMin.array() <= pMax.array()).all();
 	}
 
 	// checks for ray intersection
@@ -103,7 +105,7 @@ struct BoundingBox {
 
 	// checks whether bounding box is valid
 	bool isValid() const {
-		return allGeq<DIM>(pMax, pMin);
+		return (pMax.array() >= pMin.array()).all();
 	}
 
 	// returns max dimension
@@ -145,7 +147,7 @@ struct BoundingBox {
 				temp /= 2;
 			}
 
-			b.expandToInclude(transformVector<DIM>(t, p));
+			b.expandToInclude(t*p);
 		}
 
 		return b;

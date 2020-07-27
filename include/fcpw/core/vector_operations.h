@@ -120,43 +120,4 @@ inline Vector<DIM> cwiseInverse(const Vector<DIM>& v)
 #endif
 }
 
-template<size_t DIM>
-inline Vector<DIM> transformVector(const Transform<DIM>& t, const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	// convert enoki array to eigen
-	Eigen::Matrix<float, DIM, 1> u;
-	enoki::Array<int, DIM> index = enoki::arange<enoki::Array<int, DIM>>();
-	enoki::scatter(u.data(), v, index);
-
-	// transform
-	u = t*u;
-
-	// convert u to enoki
-	return enoki::gather<Vector<DIM>>(u.data(), index);
-#else
-	return t*v;
-#endif
-}
-
-template<size_t DIM>
-inline bool allLeq(const Vector<DIM>& u, const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::all(u <= v);
-#else
-	return (u.array() <= v.array()).all();
-#endif
-}
-
-template<size_t DIM>
-inline bool allGeq(const Vector<DIM>& u, const Vector<DIM>& v)
-{
-#ifdef FCPW_USE_ENOKI
-	return enoki::all(u >= v);
-#else
-	return (u.array() >= v.array()).all();
-#endif
-}
-
 } // namespace fcpw

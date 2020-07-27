@@ -17,8 +17,8 @@ struct Ray {
 
 	// computes transformed ray
 	Ray<DIM> transform(const Transform<DIM>& t) const {
-		Vector<DIM> to = transformVector<DIM>(t, o);
-		Vector<DIM> td = transformVector<DIM>(t, o + d*(tMax < maxFloat ? tMax : 1.0f)) - to;
+		Vector<DIM> to = t*o;
+		Vector<DIM> td = t*(o + d*(tMax < maxFloat ? tMax : 1.0f)) - to;
 		float tdNorm = td.norm();
 
 		return Ray<DIM>(to, td/tdNorm, tMax < maxFloat ? tdNorm : maxFloat);

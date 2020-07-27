@@ -42,9 +42,9 @@ struct Interaction {
 	void applyTransform(const Transform<DIM>& t,
 						const Transform<DIM>& tInv,
 						const Vector<DIM>& query) {
-		p = transformVector<DIM>(t, p);
+		p = t*p;
 		d = (p - query).norm();
-		n = transformVector<DIM>(Transform<DIM>(tInv.matrix().transpose()), n);
+		n = Transform<DIM>(tInv.matrix().transpose())*n;
 		n.normalize();
 	}
 

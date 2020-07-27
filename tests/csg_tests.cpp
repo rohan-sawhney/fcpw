@@ -169,8 +169,7 @@ void visualizeScene(SceneData<DIM> *sceneData, const BoundingBox<DIM>& boundingB
 						std::vector<Vector<DIM>> transformedPositions;
 
 						for (int k = 0; k < (int)positions.size(); k++) {
-							transformedPositions.emplace_back(transformVector<DIM>(
-												sceneData->instanceTransforms[i][j], positions[k]));
+							transformedPositions.emplace_back(sceneData->instanceTransforms[i][j]*positions[k]);
 						}
 
 						polyscope::registerSurfaceMesh(transformedMeshName, transformedPositions, indices);
@@ -197,8 +196,7 @@ void visualizeScene(SceneData<DIM> *sceneData, const BoundingBox<DIM>& boundingB
 						std::vector<Vector<DIM>> transformedPositions;
 
 						for (int k = 0; k < (int)positions.size(); k++) {
-							transformedPositions.emplace_back(transformVector<DIM>(
-												sceneData->instanceTransforms[i][j], positions[k]));
+							transformedPositions.emplace_back(sceneData->instanceTransforms[i][j]*positions[k]);
 						}
 
 						polyscope::registerCurveNetwork(transformedMeshName, transformedPositions, indices);

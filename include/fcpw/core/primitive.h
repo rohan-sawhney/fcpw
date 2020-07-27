@@ -181,7 +181,7 @@ public:
 
 	// returns centroid
 	Vector<DIM> centroid() const {
-		return transformVector<DIM>(t, aggregate->centroid());
+		return t*aggregate->centroid();
 	}
 
 	// returns surface area
@@ -231,7 +231,7 @@ public:
 		// apply inverse transform to direction guess
 		Vector<DIM> boundaryHintInv = boundaryHint;
 		if (boundaryHint.squaredNorm() > 0.0f) {
-			boundaryHintInv = transformVector<DIM>(tInv, s.c + boundaryHint) - sInv.c;
+			boundaryHintInv = tInv*(s.c + boundaryHint) - sInv.c;
 			float hintNorm = boundaryHintInv.norm();
 			boundaryHintInv /= hintNorm;
 		}
@@ -250,28 +250,27 @@ public:
 
 	// performs inside outside test for x
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
-		return aggregate->contains(transformVector<DIM>(tInv, x), useRayIntersection);
+		return aggregate->contains(tInv*x, useRayIntersection);
 	}
 
 	// checks whether there is a line of sight between xi and xj
 	bool hasLineOfSight(const Vector<DIM>& xi, const Vector<DIM>& xj) const {
-		return aggregate->hasLineOfSight(transformVector<DIM>(tInv, xi),
-										 transformVector<DIM>(tInv, xj));
+		return aggregate->hasLineOfSight(tInv*xi, tInv*xj);
 	}
 
 	// clamps x to the closest primitive this aggregate bounds
 	void clampToBoundary(Vector<DIM>& x, float distanceUpperBound) const {
 		// apply inverse transform to x and distance bound
-		Vector<DIM> xInv = transformVector<DIM>(tInv, x);
+		Vector<DIM> xInv = tInv*x;
 		if (distanceUpperBound < maxFloat) {
 			Vector<DIM> direction = Vector<DIM>::Zero();
 			direction[0] = 1;
-			distanceUpperBound = (transformVector<DIM>(tInv, x + direction*distanceUpperBound) - xInv).norm();
+			distanceUpperBound = (tInv*(x + direction*distanceUpperBound) - xInv).norm();
 		}
 
 		// clamp in object space and apply transform to x
 		aggregate->clampToBoundary(xInv, distanceUpperBound);
-		x = transformVector<DIM>(t, xInv);
+		x = t*xInv;
 	}
 
 private:
