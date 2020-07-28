@@ -69,11 +69,10 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 		}
 
 		// assign mbvh node the parent sbvh node's quantized box
-		flatTree[mbvhNodeIndex].start = enoki::gather<enokiVector<DIM>>(sbvhNode.box.pMin.data(), range);
 		Vector<DIM> sbvhBoxExtent = sbvhNode.box.extent();
-
 		for (int j = 0; j < DIM; j++) {
-			flatTree[mbvhNodeIndex].extent[j] = std::pow(2, std::ceil(std::log2(sbvhBoxExtent[j]/255)));
+			flatTree[mbvhNodeIndex].parentBox[j][0] = sbvhNode.box.pMin[j];
+			flatTree[mbvhNodeIndex].parentBox[j][1] = std::pow(2, std::ceil(std::log2(sbvhBoxExtent[j]/255)));
 		}
 
 		// collapse the nodes
@@ -84,10 +83,10 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 
 			// assign mbvh node this sbvh node's bounding box and index
 			for (int j = 0; j < DIM; j++) {
-				float start = flatTree[mbvhNodeIndex].start[j];
-				float extent = flatTree[mbvhNodeIndex].extent[j];
-				flatTree[mbvhNodeIndex].boxMin[j][i] = std::floor((sbvhNode.box.pMin[j] - start)/extent);
-				flatTree[mbvhNodeIndex].boxMax[j][i] = std::ceil((sbvhNode.box.pMax[j] - start)/extent);
+				float start = flatTree[mbvhNodeIndex].parentBox[j][0];
+				float extent = flatTree[mbvhNodeIndex].parentBox[j][1];
+				flatTree[mbvhNodeIndex].childBoxMin[j][i] = std::floor((sbvhNode.box.pMin[j] - start)/extent);
+				flatTree[mbvhNodeIndex].childBoxMax[j][i] = std::ceil((sbvhNode.box.pMax[j] - start)/extent);
 			}
 
 			flatTree[mbvhNodeIndex].child[i] = collapseSbvh(sbvh, sbvhNodeIndex, mbvhNodeIndex, depth + 1);
@@ -269,8 +268,8 @@ inline BoundingBox<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::boundingBox() const
 
 	// NOTE: this is an overestimate
 	const MbvhNode<DIM>& mbvhNode = flatTree[0];
-	enoki::scatter(box.pMin.data(), mbvhNode.start, range);
-	enoki::scatter(box.pMax.data(), mbvhNode.start + 255*mbvhNode.extent, range);
+	enoki::scatter(box.pMin.data(), enoki::slice(mbvhNode.parentBox, 0), range);
+	enoki::scatter(box.pMax.data(), enoki::slice(mbvhNode.parentBox, 0) + 255*enoki::slice(mbvhNode.parentBox, 1), range);
 
 	return box;
 }

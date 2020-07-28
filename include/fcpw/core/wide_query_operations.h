@@ -11,8 +11,8 @@ inline MaskP<WIDTH> intersectWideBox(const MbvhNode<DIM>& mbvhNode,
 									 FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
 	// vectorized slab test
-	VectorP<WIDTH, DIM> bMin = mbvhNode.start + mbvhNode.extent*mbvhNode.boxMin;
-	VectorP<WIDTH, DIM> bMax = mbvhNode.start + mbvhNode.extent*mbvhNode.boxMax;
+	VectorP<WIDTH, DIM> bMin = mbvhNode.childBoxMin*enoki::slice(mbvhNode.parentBox, 1) + enoki::slice(mbvhNode.parentBox, 0);
+	VectorP<WIDTH, DIM> bMax = mbvhNode.childBoxMax*enoki::slice(mbvhNode.parentBox, 1) + enoki::slice(mbvhNode.parentBox, 0);
 	VectorP<WIDTH, DIM> t0 = (bMin - ro)*rinvD;
 	VectorP<WIDTH, DIM> t1 = (bMax - ro)*rinvD;
 	VectorP<WIDTH, DIM> tNear = enoki::min(t0, t1);
@@ -91,8 +91,8 @@ inline MaskP<WIDTH> overlapWideBox(const MbvhNode<DIM>& mbvhNode,
 								   const enokiVector<DIM>& sc, float sr2,
 								   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
 {
-	VectorP<WIDTH, DIM> bMin = mbvhNode.start + mbvhNode.extent*mbvhNode.boxMin;
-	VectorP<WIDTH, DIM> bMax = mbvhNode.start + mbvhNode.extent*mbvhNode.boxMax;
+	VectorP<WIDTH, DIM> bMin = mbvhNode.childBoxMin*enoki::slice(mbvhNode.parentBox, 1) + enoki::slice(mbvhNode.parentBox, 0);
+	VectorP<WIDTH, DIM> bMax = mbvhNode.childBoxMax*enoki::slice(mbvhNode.parentBox, 1) + enoki::slice(mbvhNode.parentBox, 0);
 	VectorP<WIDTH, DIM> u = bMin - sc;
 	VectorP<WIDTH, DIM> v = sc - bMax;
 	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
