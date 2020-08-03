@@ -534,7 +534,6 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 															  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 															  bool checkForOcclusion, bool recordAllHits) const
 {
-	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
@@ -544,8 +543,9 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	enokiVector<DIM> rinvD = enoki::gather<enokiVector<DIM>>(r.invD.data(), range);
 
 	// push root node
-	subtree[0].node = 0;
-	subtree[0].distance = minFloat;
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	subtree[rootIndex].node = 0;
+	subtree[rootIndex].distance = minFloat;
 	int stackPtr = 0;
 
 	while (stackPtr >= 0) {
@@ -785,15 +785,16 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 																	  int nodeStartIndex, int aggregateIndex,
 																	  const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
-	// TODO: start from nodeStartIndex & use direction to boundary guess
+	// TODO: use direction to boundary guess
 	bool notFound = true;
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
 	// push root node
-	subtree[0].node = 0;
-	subtree[0].distance = minFloat;
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	subtree[rootIndex].node = 0;
+	subtree[rootIndex].distance = minFloat;
 	int stackPtr = 0;
 
 	while (stackPtr >= 0) {
