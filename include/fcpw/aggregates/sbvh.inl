@@ -443,15 +443,15 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 													   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 													   bool checkForOcclusion, bool recordAllHits) const
 {
-	// TODO: start from nodeStartIndex
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
 	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
 	float boxHits[4];
 
-	if (flatTree[0].box.intersect(r, boxHits[0], boxHits[1])) {
-		subtree[0].node = 0;
-		subtree[0].distance = boxHits[0];
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	if (flatTree[rootIndex].box.intersect(r, boxHits[0], boxHits[1])) {
+		subtree[rootIndex].node = 0;
+		subtree[rootIndex].distance = boxHits[0];
 		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, aggregateIndex, checkForOcclusion,
 													  recordAllHits, subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
@@ -586,15 +586,15 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 															   int nodeStartIndex, int aggregateIndex,
 															   const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
-	// TODO: start from nodeStartIndex & use direction to boundary guess
 	bool notFound = true;
 	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
 	float boxHits[4];
 
-	if (flatTree[0].box.overlap(s, boxHits[0], boxHits[1])) {
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
 		s.r2 = std::min(s.r2, boxHits[1]);
-		subtree[0].node = 0;
-		subtree[0].distance = boxHits[0];
+		subtree[rootIndex].node = 0;
+		subtree[rootIndex].distance = boxHits[0];
 		processSubtreeForClosestPoint(s, i, nodeStartIndex, aggregateIndex, boundaryHint,
 									  subtree, boxHits, notFound, nodesVisited);
 	}

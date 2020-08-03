@@ -10,7 +10,6 @@ Future Optimizations & Features:
 ---- implement "stackless" traversal: https://software.intel.com/content/dam/develop/external/us/en/documents/wide-bvh-traversal-with-a-short-stack-837099.pdf
 ---- sort nodes by direction for closest point queries (things can possibly go very
 	 wrong if guess is totally off for certain geometric distributions)
----- start search from specified node, and backtrack/walk laterally in the tree
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
 	  structure while querying that stores pointers to nodes in the tree based on
 	  positions and directions to boundary
@@ -19,5 +18,5 @@ Future Optimizations & Features:
 ---- spatial split bvh
 ---- oriented bounding boxes + rectangular swept spheres (specify bounding volume via templates)
 ---- vectorize + thread
-5. packet queries
+5. packet queries: lower bound distance to all points inside box (optionally, collect subtrees)
 6. refit bvh
