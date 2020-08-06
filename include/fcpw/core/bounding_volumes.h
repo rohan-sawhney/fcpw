@@ -142,7 +142,7 @@ struct BoundingBox {
 			Vector<DIM> p = Vector<DIM>::Zero();
 			int temp = i;
 
-			for (int j = 0; j < DIM; j++) {
+			for (size_t j = 0; j < DIM; j++) {
 				int idx = temp%2;
 				p[j] = idx == 0 ? pMin[j] : pMax[j];
 				temp /= 2;

@@ -75,7 +75,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 			const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 
 			// assign mbvh node this sbvh node's bounding box and index
-			for (int j = 0; j < DIM; j++) {
+			for (size_t j = 0; j < DIM; j++) {
 				flatTree[mbvhNodeIndex].boxMin[j][i] = sbvhNode.box.pMin[j];
 				flatTree[mbvhNodeIndex].boxMax[j][i] = sbvhNode.box.pMax[j];
 			}
@@ -171,12 +171,12 @@ inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_, bool printStats_):
-primitives(sbvh_->primitives),
 nNodes(0),
 nLeafs(0),
 maxDepth(0),
 area(0.0f),
 volume(0.0f),
+primitives(sbvh_->primitives),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value),
 range(enoki::arange<enoki::Array<int, DIM>>())
 {

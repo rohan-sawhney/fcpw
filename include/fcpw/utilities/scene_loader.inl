@@ -170,8 +170,8 @@ inline void loadInstanceTransforms(const std::string& filename,
 		int nTransform = (int)instanceTransforms[objectIndex].size();
 		instanceTransforms[objectIndex].emplace_back(Transform<DIM>());
 
-		for (int i = 0; i <= DIM; i++) {
-			for (int j = 0; j <= DIM; j++) {
+		for (size_t i = 0; i <= DIM; i++) {
+			for (size_t j = 0; j <= DIM; j++) {
 				ss >> instanceTransforms[objectIndex][nTransform].matrix()(i, j);
 			}
 		}
