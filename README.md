@@ -1,4 +1,4 @@
-<img align="right" src="logo.png" height="70" width="50">
+<img align="center" src="logo.png" height="140" width="100">
 <h1 align="center"><em>FCPW: Fastest Closest Points in the West</em></h1>
 
 *FCPW* is a lightweight, header only C++ library for fast closest point and ray intersection queries. It is about 3x faster than <a href="https://www.embree.org">Embree</a> for closest point queries and is only slightly slower for ray intersection queries (0.8x) (see [Benchmarks](#Benchmarks)).
