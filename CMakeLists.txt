@@ -3,8 +3,8 @@ project(fcpw)
 
 option(FCPW_USE_ENOKI "Build enoki" ON)
 option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
-option(FCPW_BUILD_TESTS "Build tests" OFF)
-option(FCPW_TESTS_BENCHMARK_EMBREE "Benchmark embree" OFF)
+option(FCPW_BUILD_TESTS "Build tests" ON)
+option(FCPW_TESTS_BENCHMARK_EMBREE "Benchmark embree" ON)
 
 ################################################################################
 # submodule check
@@ -21,22 +21,24 @@ endif()
 
 ################################################################################
 # add dependencies
-set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror)
+get_directory_property(hasParent PARENT_DIRECTORY)
+
+if(hasParent)
+	set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror PARENT_SCOPE)
+else()
+	set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror)
+endif()
 
 if(FCPW_BUILD_TESTS)
 	if(FCPW_TESTS_BENCHMARK_EMBREE)
-		add_definitions(-DFCPW_TESTS_BENCHMARK_EMBREE)
 		set(EMBREE_ISPC_SUPPORT OFF CACHE BOOL "Enable ispc functionality")
 		set(EMBREE_TUTORIALS OFF CACHE BOOL "Enable embree tutorials")
 		add_subdirectory(deps/embree)
-		set(FCPW_TESTS_EMBREE_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/embree)
-
-		message(STATUS "Embree SSE2: " ${EMBREE_ISA_SSE2})
-		message(STATUS "Embree SSE42: " ${EMBREE_ISA_SSE42})
-		message(STATUS "Embree AVX: " ${EMBREE_ISA_AVX})
-		message(STATUS "Embree AXV2: " ${EMBREE_ISA_AVX2})
-		message(STATUS "Embree KNL: " ${EMBREE_ISA_AVX512KNL})
-		message(STATUS "Embree SKX: " ${EMBREE_ISA_AVX512SKX})
+		if(hasParent)
+			set(FCPW_TESTS_EMBREE_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/embree PARENT_SCOPE)
+		else()
+			set(FCPW_TESTS_EMBREE_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/embree)
+		endif()
 	endif()
 
 	set(TBB_BUILD_SHARED          ON  CACHE BOOL " " FORCE)
@@ -46,38 +48,24 @@ if(FCPW_BUILD_TESTS)
 	set(TBB_BUILD_TBBMALLOC_PROXY OFF CACHE BOOL " " FORCE)
 	add_subdirectory(deps/tbb)
 	set_property(TARGET tbb tbb_def_files PROPERTY FOLDER "dependencies")
-	set(FCPW_TESTS_TBB_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb/include)
+	if(hasParent)
+		set(FCPW_TESTS_TBB_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb/include PARENT_SCOPE)
+	else()
+		set(FCPW_TESTS_TBB_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb/include)
+	endif()
 endif()
 
 if(FCPW_USE_ENOKI)
-	add_definitions(-DFCPW_USE_ENOKI)
 	add_subdirectory(deps/enoki)
-	set(FCPW_ENOKI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki/include)
-
-	# define SIMD width
-	string(TOUPPER "${ENOKI_ARCH_FLAGS}" ENOKI_ARCH_FLAGS_UPPER)
-	message(STATUS "Enoki Max ISA: " ${ENOKI_ARCH_FLAGS_UPPER})
-	if(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "SSE")
-		add_definitions(-DFCPW_SIMD_WIDTH=4)
-	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "AVX2")
-		add_definitions(-DFCPW_SIMD_WIDTH=8)
-	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "AVX")
-		add_definitions(-DFCPW_SIMD_WIDTH=8)
-	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "KNL")
-		add_definitions(-DFCPW_SIMD_WIDTH=16)
-	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "SKX")
-		add_definitions(-DFCPW_SIMD_WIDTH=16)
+	if(hasParent)
+		set(FCPW_ENOKI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki/include PARENT_SCOPE)
 	else()
-		add_definitions(-DFCPW_SIMD_WIDTH=4)
+		set(FCPW_ENOKI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki/include)
 	endif()
 
 	# Update the compilation flags
 	enoki_set_compile_flags()
 	enoki_set_native_flags()
-
-	if(FCPW_USE_EIGHT_WIDE_BRANCHING)
-		add_definitions(-DFCPW_USE_EIGHT_WIDE_BRANCHING)
-	endif()
 endif()
 
 ################################################################################
@@ -85,6 +73,31 @@ endif()
 add_library(${PROJECT_NAME} INTERFACE)
 target_include_directories(${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>)
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
+
+if(FCPW_USE_ENOKI)
+	target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_ENOKI)
+
+	# define SIMD width
+	string(TOUPPER "${ENOKI_ARCH_FLAGS}" ENOKI_ARCH_FLAGS_UPPER)
+	message(STATUS "Enoki Max ISA: " ${ENOKI_ARCH_FLAGS_UPPER})
+	if(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "SSE")
+		target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_SIMD_WIDTH=4)
+	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "AVX2")
+		target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_SIMD_WIDTH=8)
+	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "AVX")
+		target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_SIMD_WIDTH=8)
+	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "KNL")
+		target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_SIMD_WIDTH=16)
+	elseif(${ENOKI_ARCH_FLAGS_UPPER} MATCHES "SKX")
+		target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_SIMD_WIDTH=16)
+	else()
+		target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_SIMD_WIDTH=4)
+	endif()
+
+	if(FCPW_USE_EIGHT_WIDE_BRANCHING)
+		target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_EIGHT_WIDE_BRANCHING)
+	endif()
+endif()
 
 ################################################################################
 # build tests
