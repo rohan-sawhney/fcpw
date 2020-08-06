@@ -103,7 +103,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeObjectSplit(const BoundingBox<DIM>
 		float volume = nodeBoundingBox.volume();
 
 		// find the best split across all dimensions
-		for (int dim = 0; dim < DIM; dim++) {
+		for (size_t dim = 0; dim < DIM; dim++) {
 			// ignore flat dimension
 			if (extent[dim] < 1e-6) continue;
 
