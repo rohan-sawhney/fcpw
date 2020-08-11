@@ -26,6 +26,13 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 		mbvhNode.child[3] = sbvhNode.nReferences;
 		nLeafs += mbvhNode.child[1];
 
+		// assign mbvh node the parent sbvh node's quantized box
+		Vector<DIM> sbvhBoxExtent = sbvhNode.box.extent();
+		for (int j = 0; j < DIM; j++) {
+			flatTree[mbvhNodeIndex].parentBox[j][0] = sbvhNode.box.pMin[j];
+			flatTree[mbvhNodeIndex].parentBox[j][1] = std::pow(2, std::ceil(std::log2(sbvhBoxExtent[j]/255)));
+		}
+
 	} else {
 		// sbvh node is an inner node, flatten it
 		int nNodesToCollapse = 2;
@@ -295,15 +302,14 @@ inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 template<size_t WIDTH, size_t DIM>
 inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<WIDTH>& tMin,
 						 const FloatP<WIDTH>& tMax, const MaskP<WIDTH>& mask,
-						 float minDist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
+						 float minDist, float& tMaxMin, int& stackPtr, int *subtree)
 {
 	// enqueue nodes
 	int closestIndex = -1;
 	for (int w = 0; w < WIDTH; w++) {
 		if (mask[w]) {
 			stackPtr++;
-			subtree[stackPtr].node = node.child[w];
-			subtree[stackPtr].distance = tMin[w];
+			subtree[stackPtr] = node.child[w];
 			tMaxMin = std::min(tMaxMin, tMax[w]);
 
 			if (tMin[w] < minDist) {
@@ -333,7 +339,7 @@ inline void sortOrder4(const FloatP<4>& t, int& a, int& b, int& c, int& d)
 template<size_t DIM>
 inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
 						 const FloatP<4>& tMax, const MaskP<4>& mask,
-						 float minDist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
+						 float minDist, float& tMaxMin, int& stackPtr, int *subtree)
 {
 	// sort nodes
 	int order[4] = {0, 1, 2, 3};
@@ -345,11 +351,22 @@ inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
 
 		if (mask[W]) {
 			stackPtr++;
-			subtree[stackPtr].node = node.child[W];
-			subtree[stackPtr].distance = tMin[W];
+			subtree[stackPtr] = node.child[W];
 			tMaxMin = std::min(tMaxMin, tMax[W]);
 		}
 	}
+}
+
+template<size_t DIM>
+inline float intersectParentBox(const MbvhNode<DIM>& node, const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD)
+{
+	enokiVector<DIM> bMin = enoki::slice(node.parentBox, 0);
+	enokiVector<DIM> bMax = enoki::slice(node.parentBox, 0) + 255*enoki::slice(node.parentBox, 1);
+	enokiVector<DIM> t0 = (bMin - ro)*rinvD;
+	enokiVector<DIM> t1 = (bMax - ro)*rinvD;
+	enokiVector<DIM> tNear = enoki::min(t0, t1);
+
+	return std::max(0.0f, enoki::hmax(tNear));
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -536,7 +553,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 {
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
-	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
+	int subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
 	enokiVector<DIM> ro = enoki::gather<enokiVector<DIM>>(r.o.data(), range);
 	enokiVector<DIM> rd = enoki::gather<enokiVector<DIM>>(r.d.data(), range);
@@ -544,19 +561,18 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 	// push root node
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
-	subtree[rootIndex].node = 0;
-	subtree[rootIndex].distance = minFloat;
+	subtree[rootIndex] = 0;
 	int stackPtr = 0;
 
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
-		int nodeIndex = subtree[stackPtr].node;
-		float near = subtree[stackPtr].distance;
+		int nodeIndex = subtree[stackPtr];
+		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
+		float near = intersectParentBox<DIM>(node, ro, rinvD);
 		stackPtr--;
 
 		// if this node is further than the closest found intersection, continue
 		if (!recordAllHits && near > r.tMax) continue;
-		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
 			if (vectorizedLeafType == ObjectType::LineSegments ||
@@ -653,6 +669,17 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	}
 
 	return 0;
+}
+
+template<size_t DIM>
+inline float overlapParentBox(const MbvhNode<DIM>& node, const enokiVector<DIM>& sc)
+{
+	enokiVector<DIM> bMin = enoki::slice(node.parentBox, 0);
+	enokiVector<DIM> bMax = enoki::slice(node.parentBox, 0) + 255*enoki::slice(node.parentBox, 1);
+	enokiVector<DIM> u = bMin - sc;
+	enokiVector<DIM> v = sc - bMax;
+
+	return enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
@@ -787,25 +814,24 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 {
 	// TODO: use direction to boundary guess
 	bool notFound = true;
-	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
+	int subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
 	// push root node
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
-	subtree[rootIndex].node = 0;
-	subtree[rootIndex].distance = minFloat;
+	subtree[rootIndex] = 0;
 	int stackPtr = 0;
 
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
-		int nodeIndex = subtree[stackPtr].node;
-		float near = subtree[stackPtr].distance;
+		int nodeIndex = subtree[stackPtr];
+		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
+		float near = overlapParentBox<DIM>(node, sc);
 		stackPtr--;
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
-		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
 			if (vectorizedLeafType == ObjectType::LineSegments ||
