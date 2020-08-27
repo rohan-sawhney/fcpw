@@ -544,8 +544,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 	// push root node
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
-	subtree[rootIndex].node = 0;
-	subtree[rootIndex].distance = minFloat;
+	subtree[0].node = rootIndex;
+	subtree[0].distance = minFloat;
 	int stackPtr = 0;
 
 	while (stackPtr >= 0) {
@@ -793,8 +793,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 	// push root node
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
-	subtree[rootIndex].node = 0;
-	subtree[rootIndex].distance = minFloat;
+	subtree[0].node = rootIndex;
+	subtree[0].distance = minFloat;
 	int stackPtr = 0;
 
 	while (stackPtr >= 0) {

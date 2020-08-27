@@ -450,8 +450,8 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
 	if (flatTree[rootIndex].box.intersect(r, boxHits[0], boxHits[1])) {
-		subtree[rootIndex].node = 0;
-		subtree[rootIndex].distance = boxHits[0];
+		subtree[0].node = rootIndex;
+		subtree[0].distance = boxHits[0];
 		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, aggregateIndex, checkForOcclusion,
 													  recordAllHits, subtree, boxHits, hits, nodesVisited);
 		if (occluded) return 1;
@@ -593,8 +593,8 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
 	if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
 		s.r2 = std::min(s.r2, boxHits[1]);
-		subtree[rootIndex].node = 0;
-		subtree[rootIndex].distance = boxHits[0];
+		subtree[0].node = rootIndex;
+		subtree[0].distance = boxHits[0];
 		processSubtreeForClosestPoint(s, i, nodeStartIndex, aggregateIndex, boundaryHint,
 									  subtree, boxHits, notFound, nodesVisited);
 	}
