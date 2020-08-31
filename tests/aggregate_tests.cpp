@@ -134,10 +134,12 @@ void timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 							 bool queriesCoherent=false)
 {
 	std::atomic<int> totalNodesVisited(0);
+	std::atomic<int> maxNodesVisited(0);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	auto time = [&](const tbb::blocked_range<int>& range) {
 		int nodesVisitedByThread = 0;
+		int maxNodesVisitedByThread = 0;
 		Interaction<DIM> cPrev;
 
 		for (int i = range.begin(); i < range.end(); ++i) {
@@ -148,11 +150,15 @@ void timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 			Ray<DIM> r(rayOrigins[I], rayDirections[I]);
 			bool hit = (bool)aggregate->intersectFromNode(r, cs, 0, aggregate->index, nodesVisited);
 			nodesVisitedByThread += nodesVisited;
+			maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
 
 			if (hit) cPrev = cs[0];
 		}
 
 		totalNodesVisited += nodesVisitedByThread;
+		if (maxNodesVisited < maxNodesVisitedByThread) {
+			maxNodesVisited = maxNodesVisitedByThread; // not thread-safe, but ok for test
+		}
 	};
 
 	tbb::blocked_range<int> range(0, nQueries);
@@ -164,7 +170,8 @@ void timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 			  << (queriesCoherent ? " with backtracking search" : "")
 			  << " took " << timeSpan.count() << " seconds with "
 			  << aggregateType << "; "
-			  << (totalNodesVisited/nQueries) << " nodes visited on avg"
+			  << (totalNodesVisited/nQueries) << " nodes visited on avg and max "
+			  << maxNodesVisited << " nodes visited"
 			  << std::endl;
 }
 
@@ -176,11 +183,13 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 							 bool queriesCoherent=false)
 {
 	std::atomic<int> totalNodesVisited(0);
+	std::atomic<int> maxNodesVisited(0);
 	std::atomic<bool> stopQueries(false);
 	high_resolution_clock::time_point t1 = high_resolution_clock::now();
 
 	auto time = [&](const tbb::blocked_range<int>& range) {
 		int nodesVisitedByThread = 0;
+		int maxNodesVisitedByThread = 0;
 		Interaction<DIM> cPrev;
 		Vector<DIM> queryPrev = Vector<DIM>::Zero();
 
@@ -195,6 +204,7 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 			BoundingSphere<DIM> s(queryPoints[I], r2);
 			bool found = aggregate->findClosestPointFromNode(s, c, 0, aggregate->index, Vector<DIM>::Zero(), nodesVisited);
 			nodesVisitedByThread += nodesVisited;
+			maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
 
 			if (found) cPrev = c;
 			else {
@@ -206,6 +216,9 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 		}
 
 		totalNodesVisited += nodesVisitedByThread;
+		if (maxNodesVisited < maxNodesVisitedByThread) {
+			maxNodesVisited = maxNodesVisitedByThread; // not thread-safe, but ok for test
+		}
 	};
 
 	tbb::blocked_range<int> range(0, nQueries);
@@ -217,7 +230,8 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 			  << (queriesCoherent ? " with backtracking search" : "")
 			  << " took " << timeSpan.count() << " seconds with "
 			  << aggregateType << "; "
-			  << (totalNodesVisited/nQueries) << " nodes visited on avg"
+			  << (totalNodesVisited/nQueries) << " nodes visited on avg and max "
+			  << maxNodesVisited << " nodes visited"
 			  << std::endl;
 }
 
