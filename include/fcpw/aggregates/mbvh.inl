@@ -281,66 +281,6 @@ inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
 	return volume;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<WIDTH>& tMin,
-						 const FloatP<WIDTH>& tMax, const MaskP<WIDTH>& mask,
-						 float minDist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
-{
-	// enqueue nodes
-	int closestIndex = -1;
-	for (int w = 0; w < WIDTH; w++) {
-		if (mask[w]) {
-			stackPtr++;
-			subtree[stackPtr].node = node.child[w];
-			subtree[stackPtr].distance = tMin[w];
-			tMaxMin = std::min(tMaxMin, tMax[w]);
-
-			if (tMin[w] < minDist) {
-				closestIndex = stackPtr;
-				minDist = tMin[w];
-			}
-		}
-	}
-
-	// put closest node first
-	if (closestIndex != -1) {
-		std::swap(subtree[stackPtr], subtree[closestIndex]);
-	}
-}
-
-inline void sortOrder4(const FloatP<4>& t, int& a, int& b, int& c, int& d)
-{
-	// source: https://stackoverflow.com/questions/25070577/sort-4-numbers-without-array
-	int tmp;
-	if (t[a] < t[b]) { tmp = a; a = b; b = tmp; }
-	if (t[c] < t[d]) { tmp = c; c = d; d = tmp; }
-	if (t[a] < t[c]) { tmp = a; a = c; c = tmp; }
-	if (t[b] < t[d]) { tmp = b; b = d; d = tmp; }
-	if (t[b] < t[c]) { tmp = b; b = c; c = tmp; }
-}
-
-template<size_t DIM>
-inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
-						 const FloatP<4>& tMax, const MaskP<4>& mask,
-						 float minDist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
-{
-	// sort nodes
-	int order[4] = {0, 1, 2, 3};
-	sortOrder4(tMin, order[0], order[1], order[2], order[3]);
-
-	// enqueue overlapping nodes in sorted order
-	for (int w = 0; w < 4; w++) {
-		int W = order[w];
-
-		if (mask[W]) {
-			stackPtr++;
-			subtree[stackPtr].node = node.child[W];
-			subtree[stackPtr].distance = tMin[W];
-			tMaxMin = std::min(tMaxMin, tMax[W]);
-		}
-	}
-}
-
 template<size_t WIDTH>
 inline void sortOrder(const FloatP<WIDTH>& t, int *order)
 {
@@ -694,12 +634,19 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			mask &= enoki::neq(node.child, maxInt);
 			nodesVisited++;
 
-			// sort intersecting boxes
-			int nIntersections = enoki::count(mask);
+			// count intersecting boxes
+			int nIntersections = 0;
 			int order[FCPW_MBVH_BRANCHING_FACTOR];
-			for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) order[i] = i;
+			for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+				order[w] = w;
+
+				if (mask[w]) {
+					nIntersections++;
+				}
+			}
 
 			if (nIntersections > 0) {
+				// sort intersecting boxes
 				sortOrder<FCPW_MBVH_BRANCHING_FACTOR>(tMin, order);
 
 				// get number of nodes already visited
@@ -707,8 +654,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				if (k == FCPW_MBVH_BRANCHING_FACTOR) {
 					// remove all but last entry
 					int nRemoved = 0;
-					for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) {
-						int W = order[i];
+					for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+						int W = order[w];
 
 						if (nRemoved < nIntersections - 1 && mask[W]) {
 							mask[W] = false;
@@ -721,8 +668,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				} else {
 					// remove the first k entries
 					int nRemoved = 0;
-					for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) {
-						int W = order[i];
+					for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+						int W = order[w];
 
 						if (nRemoved < k && mask[W]) {
 							mask[W] = false;
@@ -747,8 +694,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 				int parentIndex = nodeIndex + nNodes;
 				nIntersections -= 1;
 
-				for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) {
-					int W = order[i];
+				for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+					int W = order[w];
 
 					if (mask[W]) {
 						if (first) {
@@ -757,7 +704,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 							first = false;
 						}
 
-						if (nIntersections > 1 && isLeafNode(flatTree[node.child[W]])) {
+						if (!recordAllHits && nIntersections > 1 && isLeafNode(flatTree[node.child[W]])) {
 							pushParent = true;
 						}
 					}
@@ -772,8 +719,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 					if (pushParent) nIntersections = 1;
 					int stackOverrunAmount = stackPtr + nIntersections - FCPW_SHORT_STACK_SIZE + 1;
 					if (stackOverrunAmount > 0) {
-						for (int i = 0; i < FCPW_SHORT_STACK_SIZE - stackOverrunAmount; i++) {
-							subtree[i] = subtree[i + stackOverrunAmount];
+						for (int w = 0; w < FCPW_SHORT_STACK_SIZE - stackOverrunAmount; w++) {
+							subtree[w] = subtree[w + stackOverrunAmount];
 						}
 
 						stackPtr = std::max(-1, stackPtr - stackOverrunAmount);
@@ -786,8 +733,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 					} else {
 						bool last = true;
-						for (int i = FCPW_MBVH_BRANCHING_FACTOR - 1; i >= 0; i--) {
-							int W = order[i];
+						for (int w = FCPW_MBVH_BRANCHING_FACTOR - 1; w >= 0; w--) {
+							int W = order[w];
 
 							if (mask[W]) {
 								stackPtr++;
@@ -962,31 +909,30 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 																	  const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
 	// TODO: use direction to boundary guess
+	// TODO: shrink sphere radius
 	bool notFound = true;
-	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
+
+	int level = 0;
+	int stackPtr = -1;
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	int nodeIndex = rootIndex;
+	uint8_t trail[FCPW_MBVH_MAX_DEPTH];
+	for (int level = 0; level < FCPW_MBVH_MAX_DEPTH; level++) trail[level] = 0;
+	int subtree[FCPW_SHORT_STACK_SIZE];
+
+	bool exit = false;
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
-	// push root node
-	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
-	subtree[0].node = rootIndex;
-	subtree[0].distance = minFloat;
-	int stackPtr = 0;
-
-	while (stackPtr >= 0) {
-		// pop off the next node to work on
-		int nodeIndex = subtree[stackPtr].node;
-		float near = subtree[stackPtr].distance;
-		stackPtr--;
-
-		// if this node is further than the closest found primitive, continue
-		if (near > s.r2) continue;
+	while (!exit) {
+		// get current node
 		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
+			// find closest points to primitives
 			if (vectorizedLeafType == ObjectType::LineSegments ||
 				vectorizedLeafType == ObjectType::Triangles) {
-				// perform vectorized closest point query to triangle
+				// perform vectorized closest point query
 				bool found = findClosestPointPrimitives(node, leafNodes, nodeIndex, this->index, sc, s.r2, i);
 				if (found) notFound = false;
 				nodesVisited++;
@@ -1025,16 +971,134 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 				}
 			}
 
+			// pop stack
+			exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr,
+															 nodeIndex, rootIndex, nNodes);
+
 		} else {
-			// overlap sphere with boxes
+			// intersect ray with boxes
 			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
 																node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
-
-			// enqueue overlapping boxes in sorted order
-			nodesVisited++;
 			mask &= enoki::neq(node.child, maxInt);
-			if (enoki::any(mask)) {
-				enqueueNodes(node, d2Min, d2Max, mask, s.r2, s.r2, stackPtr, subtree);
+			nodesVisited++;
+
+			// count overlapping boxes and shrink sphere if possible
+			int nOverlaps = 0;
+			int order[FCPW_MBVH_BRANCHING_FACTOR];
+			for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+				order[w] = w;
+
+				if (mask[w]) {
+					s.r2 = std::min(s.r2, d2Max[w]);
+					nOverlaps++;
+				}
+			}
+
+			if (nOverlaps > 0) {
+				// sort overlapping boxes
+				sortOrder<FCPW_MBVH_BRANCHING_FACTOR>(d2Min, order);
+
+				// get number of nodes already visited
+				int k = trail[level];
+				if (k == FCPW_MBVH_BRANCHING_FACTOR) {
+					// remove all but last entry
+					int nRemoved = 0;
+					for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+						int W = order[w];
+
+						if (nRemoved < nOverlaps - 1 && mask[W]) {
+							mask[W] = false;
+							nRemoved++;
+						}
+					}
+
+					nOverlaps = 1;
+
+				} else {
+					// remove the first k entries
+					int nRemoved = 0;
+					for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+						int W = order[w];
+
+						if (nRemoved < k && mask[W]) {
+							mask[W] = false;
+							nRemoved++;
+						}
+					}
+
+					nOverlaps -= nRemoved;
+				}
+			}
+
+			if (nOverlaps == 0) {
+				// pop stack
+				exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr,
+																 nodeIndex, rootIndex, nNodes);
+
+			} else {
+				// get the closest node and determine whether to push the parent index onto
+				// the stack to benefit from culling
+				bool first = true;
+				bool pushParent = false;
+				int parentIndex = nodeIndex + nNodes;
+				nOverlaps -= 1;
+
+				for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+					int W = order[w];
+
+					if (mask[W]) {
+						if (first) {
+							nodeIndex = node.child[W];
+							mask[W] = false;
+							first = false;
+						}
+
+						if (nOverlaps > 1 && isLeafNode(flatTree[node.child[W]])) {
+							pushParent = true;
+						}
+					}
+				}
+
+				if (nOverlaps == 0) {
+					// no more children left at this level
+					trail[level] = FCPW_MBVH_BRANCHING_FACTOR;
+
+				} else {
+					// evict entries from stack if required
+					if (pushParent) nOverlaps = 1;
+					int stackOverrunAmount = stackPtr + nOverlaps - FCPW_SHORT_STACK_SIZE + 1;
+					if (stackOverrunAmount > 0) {
+						for (int w = 0; w < FCPW_SHORT_STACK_SIZE - stackOverrunAmount; w++) {
+							subtree[w] = subtree[w + stackOverrunAmount];
+						}
+
+						stackPtr = std::max(-1, stackPtr - stackOverrunAmount);
+					}
+
+					// push remaining entries onto stack in back to front order
+					if (pushParent) {
+						stackPtr++;
+						subtree[stackPtr] = parentIndex;
+
+					} else {
+						bool last = true;
+						for (int w = FCPW_MBVH_BRANCHING_FACTOR - 1; w >= 0; w--) {
+							int W = order[w];
+
+							if (mask[W]) {
+								stackPtr++;
+								subtree[stackPtr] = node.child[W];
+								if (last) {
+									subtree[stackPtr] *= -1; // use negative sign to tag the last child
+									last = false;
+								}
+							}
+						}
+					}
+				}
+
+				// step down a level
+				level += 1;
 			}
 		}
 	}

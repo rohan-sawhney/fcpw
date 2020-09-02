@@ -465,10 +465,10 @@ void run()
 											 shuffledIndices, bvhTypes[bvh - 1]);
 				timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
 											 indices, bvhTypes[bvh - 1], true);
-				//timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
-				//							 shuffledIndices, bvhTypes[bvh - 1]);
-				//timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
-				//							 indices, bvhTypes[bvh - 1], true);
+				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
+											 shuffledIndices, bvhTypes[bvh - 1]);
+				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
+											 indices, bvhTypes[bvh - 1], true);
 
 #ifndef FCPW_USE_ENOKI
 				break;
@@ -483,8 +483,8 @@ void run()
 		if (buildEmbreeAggregate<DIM>(sceneData, true)) {
 			timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
 										 indices, "Embree Bvh");
-			//timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
-			//							 indices, "Embree Bvh");
+			timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
+										 indices, "Embree Bvh");
 		}
 #endif
 	}
@@ -511,10 +511,10 @@ void run()
 											 queryPoints, randomDirections, shuffledIndices);
 				testIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, randomDirections, indices);
-				//testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
-				//							 queryPoints, shuffledIndices);
-				//testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
-				//							 queryPoints, indices);
+				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+											 queryPoints, shuffledIndices);
+				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+											 queryPoints, indices);
 
 #ifndef FCPW_USE_ENOKI
 				break;
@@ -534,8 +534,8 @@ void run()
 		if (buildEmbreeAggregate<DIM>(embreeBvhSceneData, true)) {
 			testIntersectionQueries<DIM>(sceneData->aggregate, embreeBvhSceneData->aggregate,
 										 queryPoints, randomDirections, indices);
-			//testClosestPointQueries<DIM>(sceneData->aggregate, embreeBvhSceneData->aggregate,
-			//							 queryPoints, indices);
+			testClosestPointQueries<DIM>(sceneData->aggregate, embreeBvhSceneData->aggregate,
+										 queryPoints, indices);
 		}
 #endif
 	}
