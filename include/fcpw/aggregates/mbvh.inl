@@ -603,7 +603,6 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 															  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 															  bool checkForOcclusion, bool recordAllHits) const
 {
-	// TODO: cull stack entries
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
 
