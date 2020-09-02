@@ -367,7 +367,8 @@ inline void sortOrder<4>(const FloatP<4>& t, int *order)
 }
 
 template<size_t WIDTH>
-inline bool popShortStack(int *subtree, uint8_t *trail, int& level, int& stackPtr, int& nodeIndex, int rootIndex)
+inline bool popShortStack(int *subtree, uint8_t *trail, int& level, int& stackPtr,
+						  int& nodeIndex, int rootIndex, int nNodes)
 {
 	// find parent level
 	int parentLevel = -1;
@@ -406,8 +407,15 @@ inline bool popShortStack(int *subtree, uint8_t *trail, int& level, int& stackPt
 			nodeIndex *= -1;
 		}
 
-		// update current level
-		level = parentLevel + 1;
+		// if entry is tagged as a parent node, set the level to the parent level
+		// rather than the level of the parent's children
+		if (nodeIndex >= nNodes) {
+			level = parentLevel;
+			nodeIndex -= nNodes;
+
+		} else {
+			level = parentLevel + 1;
+		}
 	}
 
 	return false;
@@ -677,7 +685,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			}
 
 			// pop stack
-			exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr, nodeIndex, rootIndex);
+			exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr,
+															 nodeIndex, rootIndex, nNodes);
 
 		} else {
 			// intersect ray with boxes
@@ -728,18 +737,30 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 			if (nIntersections == 0) {
 				// pop stack
-				exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr, nodeIndex, rootIndex);
+				exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr,
+																 nodeIndex, rootIndex, nNodes);
 
 			} else {
-				// get the closest node
+				// get the closest node and determine whether to push the parent index onto
+				// the stack to benefit from culling
+				bool first = true;
+				bool pushParent = false;
+				int parentIndex = nodeIndex + nNodes;
+				nIntersections -= 1;
+
 				for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) {
 					int W = order[i];
 
 					if (mask[W]) {
-						nodeIndex = node.child[W];
-						mask[W] = false;
-						nIntersections--;
-						break;
+						if (first) {
+							nodeIndex = node.child[W];
+							mask[W] = false;
+							first = false;
+						}
+
+						if (nIntersections > 1 && isLeafNode(flatTree[node.child[W]])) {
+							pushParent = true;
+						}
 					}
 				}
 
@@ -749,6 +770,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 				} else {
 					// evict entries from stack if required
+					if (pushParent) nIntersections = 1;
 					int stackOverrunAmount = stackPtr + nIntersections - FCPW_SHORT_STACK_SIZE + 1;
 					if (stackOverrunAmount > 0) {
 						for (int i = 0; i < FCPW_SHORT_STACK_SIZE - stackOverrunAmount; i++) {
@@ -759,16 +781,22 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 					}
 
 					// push remaining entries onto stack in back to front order
-					bool last = true;
-					for (int i = FCPW_MBVH_BRANCHING_FACTOR - 1; i >= 0; i--) {
-						int W = order[i];
+					if (pushParent) {
+						stackPtr++;
+						subtree[stackPtr] = parentIndex;
 
-						if (mask[W]) {
-							stackPtr++;
-							subtree[stackPtr] = node.child[W];
-							if (last) {
-								subtree[stackPtr] *= -1; // use negative sign to tag the last child
-								last = false;
+					} else {
+						bool last = true;
+						for (int i = FCPW_MBVH_BRANCHING_FACTOR - 1; i >= 0; i--) {
+							int W = order[i];
+
+							if (mask[W]) {
+								stackPtr++;
+								subtree[stackPtr] = node.child[W];
+								if (last) {
+									subtree[stackPtr] *= -1; // use negative sign to tag the last child
+									last = false;
+								}
 							}
 						}
 					}
@@ -802,128 +830,6 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	}
 
 	return 0;
-
-	/*
-	int hits = 0;
-	if (!recordAllHits) is.resize(1);
-	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
-	FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
-	enokiVector<DIM> ro = enoki::gather<enokiVector<DIM>>(r.o.data(), range);
-	enokiVector<DIM> rd = enoki::gather<enokiVector<DIM>>(r.d.data(), range);
-	enokiVector<DIM> rinvD = enoki::gather<enokiVector<DIM>>(r.invD.data(), range);
-
-	// push root node
-	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
-	subtree[0].node = rootIndex;
-	subtree[0].distance = minFloat;
-	int stackPtr = 0;
-
-	while (stackPtr >= 0) {
-		// pop off the next node to work on
-		int nodeIndex = subtree[stackPtr].node;
-		float near = subtree[stackPtr].distance;
-		stackPtr--;
-
-		// if this node is further than the closest found intersection, continue
-		if (!recordAllHits && near > r.tMax) continue;
-		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
-
-		if (isLeafNode(node)) {
-			if (vectorizedLeafType == ObjectType::LineSegments ||
-				vectorizedLeafType == ObjectType::Triangles) {
-				// perform vectorized intersection query
-				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, ro, rd, r.tMax, is, recordAllHits);
-				nodesVisited++;
-
-				if (hits > 0 && checkForOcclusion) {
-					is.clear();
-					return 1;
-				}
-
-			} else {
-				// primitive type does not support vectorized intersection query,
-				// perform query to each primitive one by one
-				int referenceOffset = node.child[2];
-				int nReferences = node.child[3];
-
-				for (int p = 0; p < nReferences; p++) {
-					int referenceIndex = referenceOffset + p;
-					const PrimitiveType *prim = primitives[referenceIndex];
-					nodesVisited++;
-
-					int hit = 0;
-					std::vector<Interaction<DIM>> cs;
-					if (primitiveTypeIsAggregate) {
-						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-														   nodesVisited, checkForOcclusion, recordAllHits);
-
-					} else {
-						hit = prim->intersect(r, cs, checkForOcclusion, recordAllHits);
-						for (int i = 0; i < (int)cs.size(); i++) {
-							cs[i].nodeIndex = nodeIndex;
-							cs[i].referenceIndex = referenceIndex;
-							cs[i].objectIndex = this->index;
-						}
-					}
-
-					// keep the closest intersection only
-					if (hit > 0) {
-						if (checkForOcclusion) {
-							is.clear();
-							return 1;
-						}
-
-						hits += hit;
-						if (recordAllHits) {
-							is.insert(is.end(), cs.begin(), cs.end());
-
-						} else {
-							r.tMax = std::min(r.tMax, cs[0].d);
-							is[0] = cs[0];
-						}
-					}
-				}
-			}
-
-		} else {
-			// intersect ray with boxes
-			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
-														node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
-
-			// enqueue intersecting boxes in sorted order
-			nodesVisited++;
-			mask &= enoki::neq(node.child, maxInt);
-			if (enoki::any(mask)) {
-				float t = 0.0f;
-				enqueueNodes(node, tMin, tMax, mask, r.tMax, t, stackPtr, subtree);
-			}
-		}
-	}
-
-	if (hits > 0) {
-		// sort by distance and remove duplicates
-		if (recordAllHits) {
-			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
-			is = removeDuplicates<DIM>(is);
-			hits = (int)is.size();
-
-		} else {
-			hits = 1;
-		}
-
-		// compute normals
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
-			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal(primitives[is[i].referenceIndex]);
-			}
-		}
-
-		return hits;
-	}
-
-	return 0;
-	*/
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>

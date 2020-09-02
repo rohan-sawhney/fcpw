@@ -9,7 +9,7 @@
 	#define FCPW_MBVH_MAX_DEPTH 32
 #endif
 
-#define FCPW_SHORT_STACK_SIZE 8
+#define FCPW_SHORT_STACK_SIZE 12
 
 namespace fcpw {
 
