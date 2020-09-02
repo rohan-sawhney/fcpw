@@ -3,11 +3,13 @@
 #include <fcpw/aggregates/sbvh.h>
 #ifdef FCPW_USE_EIGHT_WIDE_BRANCHING
 	#define FCPW_MBVH_BRANCHING_FACTOR 8
-	#define FCPW_MBVH_MAX_DEPTH 154
+	#define FCPW_MBVH_MAX_DEPTH 22
 #else
 	#define FCPW_MBVH_BRANCHING_FACTOR 4
-	#define FCPW_MBVH_MAX_DEPTH 96
+	#define FCPW_MBVH_MAX_DEPTH 32
 #endif
+
+#define FCPW_SHORT_STACK_SIZE 8
 
 namespace fcpw {
 

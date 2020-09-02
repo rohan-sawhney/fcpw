@@ -341,6 +341,78 @@ inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
 	}
 }
 
+template<size_t WIDTH>
+inline void sortOrder(const FloatP<WIDTH>& t, int *order)
+{
+	std::sort(order, order + WIDTH, [&t](const int& a, const int& b) -> bool {
+		return t[a] < t[b];
+	});
+}
+
+template<>
+inline void sortOrder<4>(const FloatP<4>& t, int *order)
+{
+	// source: https://stackoverflow.com/questions/25070577/sort-4-numbers-without-array
+	int& a = order[0];
+	int& b = order[1];
+	int& c = order[2];
+	int& d = order[3];
+
+	int tmp;
+	if (t[a] > t[b]) { tmp = a; a = b; b = tmp; }
+	if (t[c] > t[d]) { tmp = c; c = d; d = tmp; }
+	if (t[a] > t[c]) { tmp = a; a = c; c = tmp; }
+	if (t[b] > t[d]) { tmp = b; b = d; d = tmp; }
+	if (t[b] > t[c]) { tmp = b; b = c; c = tmp; }
+}
+
+template<size_t WIDTH>
+inline bool popShortStack(int *subtree, uint8_t *trail, int& level, int& stackPtr, int& nodeIndex, int rootIndex)
+{
+	// find parent level
+	int parentLevel = -1;
+	for (int i = level - 1; i >= 0; i--) {
+		if (trail[i] != WIDTH) {
+			parentLevel = i;
+			break;
+		}
+	}
+
+	// search completed
+	if (parentLevel == -1) {
+		return true;
+	}
+
+	// update trail
+	trail[parentLevel] += 1;
+	for (int level = parentLevel + 1; level < FCPW_MBVH_MAX_DEPTH; level++) {
+		trail[level] = 0;
+	}
+
+	if (stackPtr == -1) {
+		// stack is emptry, restart traversal from root
+		nodeIndex = rootIndex;
+		level = 0;
+
+	} else {
+		// pop entry from stack
+		nodeIndex = subtree[stackPtr];
+		stackPtr--;
+
+		// if entry is tagged as the last child, set the parent level trail to WIDTH
+		// to indicate there are no more children nodes left to process
+		if (nodeIndex < 0) {
+			trail[parentLevel] = WIDTH;
+			nodeIndex *= -1;
+		}
+
+		// update current level
+		level = parentLevel + 1;
+	}
+
+	return false;
+}
+
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline int intersectPrimitives(const MbvhNode<DIM>& node,
 							   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
@@ -523,6 +595,215 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 															  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 															  bool checkForOcclusion, bool recordAllHits) const
 {
+	// TODO: cull stack entries
+	int hits = 0;
+	if (!recordAllHits) is.resize(1);
+
+	int level = 0;
+	int stackPtr = -1;
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	int nodeIndex = rootIndex;
+	uint8_t trail[FCPW_MBVH_MAX_DEPTH];
+	for (int level = 0; level < FCPW_MBVH_MAX_DEPTH; level++) trail[level] = 0;
+	int subtree[FCPW_SHORT_STACK_SIZE];
+
+	bool exit = false;
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
+	enokiVector<DIM> ro = enoki::gather<enokiVector<DIM>>(r.o.data(), range);
+	enokiVector<DIM> rd = enoki::gather<enokiVector<DIM>>(r.d.data(), range);
+	enokiVector<DIM> rinvD = enoki::gather<enokiVector<DIM>>(r.invD.data(), range);
+
+	while (!exit) {
+		// get current node
+		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
+
+		if (isLeafNode(node)) {
+			// intersect primitives
+			if (vectorizedLeafType == ObjectType::LineSegments ||
+				vectorizedLeafType == ObjectType::Triangles) {
+				// perform vectorized intersection query
+				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, ro, rd, r.tMax, is, recordAllHits);
+				nodesVisited++;
+
+				if (hits > 0 && checkForOcclusion) {
+					is.clear();
+					return 1;
+				}
+
+			} else {
+				// primitive type does not support vectorized intersection query,
+				// perform query to each primitive one by one
+				int referenceOffset = node.child[2];
+				int nReferences = node.child[3];
+
+				for (int p = 0; p < nReferences; p++) {
+					int referenceIndex = referenceOffset + p;
+					const PrimitiveType *prim = primitives[referenceIndex];
+					nodesVisited++;
+
+					int hit = 0;
+					std::vector<Interaction<DIM>> cs;
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+						hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
+														   nodesVisited, checkForOcclusion, recordAllHits);
+
+					} else {
+						hit = prim->intersect(r, cs, checkForOcclusion, recordAllHits);
+						for (int i = 0; i < (int)cs.size(); i++) {
+							cs[i].nodeIndex = nodeIndex;
+							cs[i].referenceIndex = referenceIndex;
+							cs[i].objectIndex = this->index;
+						}
+					}
+
+					// keep the closest intersection only
+					if (hit > 0) {
+						if (checkForOcclusion) {
+							is.clear();
+							return 1;
+						}
+
+						hits += hit;
+						if (recordAllHits) {
+							is.insert(is.end(), cs.begin(), cs.end());
+
+						} else {
+							r.tMax = std::min(r.tMax, cs[0].d);
+							is[0] = cs[0];
+						}
+					}
+				}
+			}
+
+			// pop stack
+			exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr, nodeIndex, rootIndex);
+
+		} else {
+			// intersect ray with boxes
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+														node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
+			mask &= enoki::neq(node.child, maxInt);
+			nodesVisited++;
+
+			// sort intersecting boxes
+			int nIntersections = enoki::count(mask);
+			int order[FCPW_MBVH_BRANCHING_FACTOR];
+			for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) order[i] = i;
+
+			if (nIntersections > 0) {
+				sortOrder<FCPW_MBVH_BRANCHING_FACTOR>(tMin, order);
+
+				// get number of nodes already visited
+				int k = trail[level];
+				if (k == FCPW_MBVH_BRANCHING_FACTOR) {
+					// remove all but last entry
+					int nRemoved = 0;
+					for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) {
+						int W = order[i];
+
+						if (nRemoved < nIntersections - 1 && mask[W]) {
+							mask[W] = false;
+							nRemoved++;
+						}
+					}
+
+					nIntersections = 1;
+
+				} else {
+					// remove the first k entries
+					int nRemoved = 0;
+					for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) {
+						int W = order[i];
+
+						if (nRemoved < k && mask[W]) {
+							mask[W] = false;
+							nRemoved++;
+						}
+					}
+
+					nIntersections -= nRemoved;
+				}
+			}
+
+			if (nIntersections == 0) {
+				// pop stack
+				exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr, nodeIndex, rootIndex);
+
+			} else {
+				// get the closest node
+				for (int i = 0; i < FCPW_MBVH_BRANCHING_FACTOR; i++) {
+					int W = order[i];
+
+					if (mask[W]) {
+						nodeIndex = node.child[W];
+						mask[W] = false;
+						nIntersections--;
+						break;
+					}
+				}
+
+				if (nIntersections == 0) {
+					// no more children left at this level
+					trail[level] = FCPW_MBVH_BRANCHING_FACTOR;
+
+				} else {
+					// evict entries from stack if required
+					int stackOverrunAmount = stackPtr + nIntersections - FCPW_SHORT_STACK_SIZE + 1;
+					if (stackOverrunAmount > 0) {
+						for (int i = 0; i < FCPW_SHORT_STACK_SIZE - stackOverrunAmount; i++) {
+							subtree[i] = subtree[i + stackOverrunAmount];
+						}
+
+						stackPtr = std::max(-1, stackPtr - stackOverrunAmount);
+					}
+
+					// push remaining entries onto stack in back to front order
+					bool last = true;
+					for (int i = FCPW_MBVH_BRANCHING_FACTOR - 1; i >= 0; i--) {
+						int W = order[i];
+
+						if (mask[W]) {
+							stackPtr++;
+							subtree[stackPtr] = node.child[W];
+							if (last) {
+								subtree[stackPtr] *= -1; // use negative sign to tag the last child
+								last = false;
+							}
+						}
+					}
+				}
+
+				// step down a level
+				level += 1;
+			}
+		}
+	}
+
+	if (hits > 0) {
+		// sort by distance and remove duplicates
+		if (recordAllHits) {
+			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+			is = removeDuplicates<DIM>(is);
+			hits = (int)is.size();
+
+		} else {
+			hits = 1;
+		}
+
+		// compute normals
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].computeNormal(primitives[is[i].referenceIndex]);
+			}
+		}
+
+		return hits;
+	}
+
+	return 0;
+
+	/*
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
@@ -642,6 +923,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	}
 
 	return 0;
+	*/
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
