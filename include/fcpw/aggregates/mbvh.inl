@@ -308,7 +308,7 @@ inline void sortOrder<4>(const FloatP<4>& t, int *order)
 
 template<size_t WIDTH>
 inline bool popShortStack(int *subtree, uint8_t *trail, int& level, int& stackPtr,
-						  int& nodeIndex, int rootIndex, int nNodes)
+						  int& nodeIndex, int rootIndex, int nNodes, int stackShift)
 {
 	// find parent level
 	int parentLevel = -1;
@@ -337,7 +337,7 @@ inline bool popShortStack(int *subtree, uint8_t *trail, int& level, int& stackPt
 
 	} else {
 		// pop entry from stack
-		nodeIndex = subtree[stackPtr];
+		nodeIndex = subtree[(stackPtr + stackShift)%FCPW_SHORT_STACK_SIZE];
 		stackPtr--;
 
 		// if entry is tagged as the last child, set the parent level trail to WIDTH
@@ -548,6 +548,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 	int level = 0;
 	int stackPtr = -1;
+	int stackShift = 0;
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
 	int nodeIndex = rootIndex;
 	uint8_t trail[FCPW_MBVH_MAX_DEPTH];
@@ -624,8 +625,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			}
 
 			// pop stack
-			exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr,
-															 nodeIndex, rootIndex, nNodes);
+			exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr, nodeIndex,
+															 rootIndex, nNodes, stackShift);
 
 		} else {
 			// intersect ray with boxes
@@ -683,8 +684,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 			if (nIntersections == 0) {
 				// pop stack
-				exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr,
-																 nodeIndex, rootIndex, nNodes);
+				exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr, nodeIndex,
+																 rootIndex, nNodes, stackShift);
 
 			} else {
 				// get the closest node and determine whether to push the parent index onto
@@ -719,17 +720,14 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 					if (pushParent) nIntersections = 1;
 					int stackOverrunAmount = stackPtr + nIntersections - FCPW_SHORT_STACK_SIZE + 1;
 					if (stackOverrunAmount > 0) {
-						for (int w = 0; w < FCPW_SHORT_STACK_SIZE - stackOverrunAmount; w++) {
-							subtree[w] = subtree[w + stackOverrunAmount];
-						}
-
+						stackShift += stackOverrunAmount;
 						stackPtr = std::max(-1, stackPtr - stackOverrunAmount);
 					}
 
 					// push remaining entries onto stack in back to front order
 					if (pushParent) {
 						stackPtr++;
-						subtree[stackPtr] = parentIndex;
+						subtree[(stackPtr + stackShift)%FCPW_SHORT_STACK_SIZE] = parentIndex;
 
 					} else {
 						bool last = true;
@@ -738,9 +736,11 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 
 							if (mask[W]) {
 								stackPtr++;
-								subtree[stackPtr] = node.child[W];
+								int index = (stackPtr + stackShift)%FCPW_SHORT_STACK_SIZE;
+								subtree[index] = node.child[W];
+
 								if (last) {
-									subtree[stackPtr] *= -1; // use negative sign to tag the last child
+									subtree[index] *= -1; // use negative sign to tag the last child
 									last = false;
 								}
 							}
@@ -914,6 +914,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 	int level = 0;
 	int stackPtr = -1;
+	int stackShift = 0;
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
 	int nodeIndex = rootIndex;
 	uint8_t trail[FCPW_MBVH_MAX_DEPTH];
@@ -972,8 +973,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 			}
 
 			// pop stack
-			exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr,
-															 nodeIndex, rootIndex, nNodes);
+			exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr, nodeIndex,
+															 rootIndex, nNodes, stackShift);
 
 		} else {
 			// intersect ray with boxes
@@ -1032,8 +1033,8 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 			if (nOverlaps == 0) {
 				// pop stack
-				exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr,
-																 nodeIndex, rootIndex, nNodes);
+				exit = popShortStack<FCPW_MBVH_BRANCHING_FACTOR>(subtree, trail, level, stackPtr, nodeIndex,
+																 rootIndex, nNodes, stackShift);
 
 			} else {
 				// get the closest node and determine whether to push the parent index onto
@@ -1068,17 +1069,14 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 					if (pushParent) nOverlaps = 1;
 					int stackOverrunAmount = stackPtr + nOverlaps - FCPW_SHORT_STACK_SIZE + 1;
 					if (stackOverrunAmount > 0) {
-						for (int w = 0; w < FCPW_SHORT_STACK_SIZE - stackOverrunAmount; w++) {
-							subtree[w] = subtree[w + stackOverrunAmount];
-						}
-
+						stackShift += stackOverrunAmount;
 						stackPtr = std::max(-1, stackPtr - stackOverrunAmount);
 					}
 
 					// push remaining entries onto stack in back to front order
 					if (pushParent) {
 						stackPtr++;
-						subtree[stackPtr] = parentIndex;
+						subtree[(stackPtr + stackShift)%FCPW_SHORT_STACK_SIZE] = parentIndex;
 
 					} else {
 						bool last = true;
@@ -1087,9 +1085,11 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 							if (mask[W]) {
 								stackPtr++;
-								subtree[stackPtr] = node.child[W];
+								int index = (stackPtr + stackShift)%FCPW_SHORT_STACK_SIZE;
+								subtree[index] = node.child[W];
+
 								if (last) {
-									subtree[stackPtr] *= -1; // use negative sign to tag the last child
+									subtree[index] *= -1; // use negative sign to tag the last child
 									last = false;
 								}
 							}
