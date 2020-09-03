@@ -909,7 +909,6 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 																	  const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
 	// TODO: use direction to boundary guess
-	// TODO: shrink sphere radius
 	bool notFound = true;
 
 	int level = 0;
