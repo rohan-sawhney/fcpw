@@ -251,9 +251,18 @@ inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& tri
 
 	for (int i = 0; i < N; i++) {
 		Vector3 n = triangles[i].normal(true);
-
+		auto& positions = triangles[i].soup->positions;
+		const std::vector<Vector3> p = {positions[triangles[i].indices[0]],
+		                                positions[triangles[i].indices[1]],
+		                                positions[triangles[i].indices[2]]};
 		for (int j = 0; j < 3; j++) {
-			soup.vNormals[triangles[i].indices[j]] += n;
+			// angle-weighted normals for vertices:
+			Vector3 v0 = (p[(j+1)%3] - p[j]);
+			Vector3 v1 = (p[(j + 2) % 3] - p[j]);
+			v0.normalize();
+			v1.normalize();
+			float a = acos(v0.dot(v1));
+			soup.vNormals[triangles[i].indices[j]] += n*a;
 			soup.eNormals[soup.eIndices[3*triangles[i].pIndex + j]] += n;
 		}
 	}
