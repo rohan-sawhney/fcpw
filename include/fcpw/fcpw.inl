@@ -213,8 +213,10 @@ inline void computeWeightedNormals<3, LineSegment>(const std::vector<LineSegment
 
 	for (int i = 0; i < N; i++) {
 		Vector3 n = lineSegments[i].normal(true);
-		soup.vNormals[lineSegments[i].indices[0]] += n;
-		soup.vNormals[lineSegments[i].indices[1]] += n;
+		float a = lineSegments[i].surfaceArea();
+
+		soup.vNormals[lineSegments[i].indices[0]] += a*n;
+		soup.vNormals[lineSegments[i].indices[1]] += a*n;
 	}
 
 	for (int i = 0; i < V; i++) {
@@ -253,7 +255,9 @@ inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& tri
 		Vector3 n = triangles[i].normal(true);
 
 		for (int j = 0; j < 3; j++) {
-			soup.vNormals[triangles[i].indices[j]] += n;
+			float a = triangles[i].angle(j);
+
+			soup.vNormals[triangles[i].indices[j]] += a*n;
 			soup.eNormals[soup.eIndices[3*triangles[i].pIndex + j]] += n;
 		}
 	}
