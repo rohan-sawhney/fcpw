@@ -127,6 +127,18 @@ inline Vector2 Triangle::textureCoordinates(const Vector2& uv) const
 	return Vector2(-1, -1);
 }
 
+inline float Triangle::angle(int vIndex) const
+{
+	const Vector3& pa = soup->positions[indices[vIndex]];
+	const Vector3& pb = soup->positions[indices[(vIndex + 1)%3]];
+	const Vector3& pc = soup->positions[indices[(vIndex + 2)%3]];
+
+	Vector3 u = (pb - pa).normalized();
+	Vector3 v = (pc - pa).normalized();
+
+	return std::acos(std::max(-1.0f, std::min(1.0f, u.dot(v))));
+}
+
 inline void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 							BoundingBox<3>& boxRight) const
 {
