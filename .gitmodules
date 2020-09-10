@@ -1,15 +1,1 @@
-[submodule "deps/eigen-git-mirror"]
-	path = deps/eigen-git-mirror
-	url = https://github.com/eigenteam/eigen-git-mirror.git
-[submodule "deps/enoki"]
-	path = deps/enoki
-	url = https://github.com/mitsuba-renderer/enoki.git
-[submodule "deps/embree"]
-	path = deps/embree
-	url = https://github.com/embree/embree.git
-[submodule "deps/polyscope"]
-	path = deps/polyscope
-	url = https://github.com/nmwsharp/polyscope.git
-[submodule "deps/tbb"]
-	path = deps/tbb
-	url = https://github.com/wjakob/tbb.git
+
