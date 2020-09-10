@@ -33,6 +33,9 @@ public:
 	// returns texture coordinates
 	Vector2 textureCoordinates(const Vector2& uv) const;
 
+	// returns the corner angle at the given vertex
+	float angle(int vIndex) const;
+
 	// splits the triangle along the provided coordinate and axis
 	void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
 			   BoundingBox<3>& boxRight) const;
