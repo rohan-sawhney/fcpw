@@ -45,7 +45,7 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Vector3P<WIDTH>& pa, const Ve
 	// s = (u x v)/(r.d x v)
 	FloatP<WIDTH> uv = enoki::cross(u, v)[2];
 	d = uv*invDv;
-	active &= d > epsilon && d <= rtMax;
+	active &= d >= 0.0f && d <= rtMax;
 	pt = ro + rd*Vector3P<WIDTH>(d);
 
 	return active;
@@ -75,7 +75,7 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
 	active &= v >= 0.0f && u + v <= 1.0f;
 
 	d = enoki::dot(v2, q)*invDet;
-	active &= d > epsilon && d <= rtMax;
+	active &= d >= 0.0f && d <= rtMax;
 	pt = ro + rd*Vector3P<WIDTH>(d);
 	t[0] = u;
 	t[1] = v;

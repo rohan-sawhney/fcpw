@@ -226,7 +226,7 @@ inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	if (v < 0 || u + v > 1) return 0;
 
 	float t = v2.dot(q)*invDet;
-	if (t > epsilon && t <= r.tMax) {
+	if (t >= 0.0f && t <= r.tMax) {
 		auto it = is.emplace(is.end(), Interaction<3>());
 		it->d = t;
 		it->p = r(t);
