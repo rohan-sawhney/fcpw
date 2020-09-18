@@ -37,9 +37,9 @@ in the file where you want to use *FCPW*. In case you are not using Cmake, you'l
 and include eigen and enoki (optional) independently into your project. If you plan on building and running the tests, clone the following projects into the `deps` folder
 
 ```
-git clone https://github.com/embree/embree.git
-git clone https://github.com/wjakob/tbb.git
-git clone --recurse-submodules https://github.com/nmwsharp/polyscope.git
+git clone https://github.com/embree/embree.git deps/embree
+git clone https://github.com/wjakob/tbb.git deps/tbb
+git clone --recurse-submodules https://github.com/nmwsharp/polyscope.git deps/polyscope
 ```
 
 # API
