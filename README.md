@@ -34,8 +34,7 @@ in the file where you want to use *FCPW*. In case you are not using Cmake, you'l
 #include <fcpw/fcpw.h>
 ```
 
-and include eigen and enoki (optional) independently into your project. If you plan on building and running *FCPW* tests,
-clone the following projects into the `deps` folder
+and include eigen and enoki (optional) independently into your project. If you plan on building and running the tests, clone the following projects into the `deps` folder
 
 ```
 git clone https://github.com/embree/embree.git
