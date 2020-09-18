@@ -1,0 +1,21 @@
+branches:
+  only:
+  - master
+
+language: cpp
+
+os:
+ - linux
+ - osx
+
+compiler:
+  - gcc
+  - clang
+
+before_script:
+  - cd test
+  - mkdir build
+  - cd build
+  - cmake ..
+
+script: make && ./bin/ply-test
