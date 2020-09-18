@@ -20,7 +20,7 @@ target_include_directories(YOUR_TARGET PUBLIC ${FCPW_EIGEN_INCLUDES})
 target_include_directories(YOUR_TARGET PUBLIC ${FCPW_ENOKI_INCLUDES})
 ```
 
-to include *FCPW* in your project. Then, simply
+to include *FCPW* in your project. Then, simply add
 
 ```
 #include <fcpw/fcpw.h>
@@ -34,7 +34,14 @@ in the file where you want to use *FCPW*. In case you are not using Cmake, you'l
 #include <fcpw/fcpw.h>
 ```
 
-and include eigen and enoki (optional) independently into your project.
+and include eigen and enoki (optional) independently into your project. If you plan on building and running *FCPW* tests,
+clone the following projects into the `deps` folder
+
+```
+git clone https://github.com/embree/embree.git
+git clone https://github.com/wjakob/tbb.git
+git clone --recurse-submodules https://github.com/nmwsharp/polyscope.git
+```
 
 # API
 
