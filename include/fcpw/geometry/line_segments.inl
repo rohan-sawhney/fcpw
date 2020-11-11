@@ -144,7 +144,7 @@ inline int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 		float uv = u.cross(v)[2];
 		float t = uv/dv;
 
-		if (t > epsilon && t <= r.tMax) {
+		if (t >= 0.0f && t <= r.tMax) {
 			auto it = is.emplace(is.end(), Interaction<3>());
 			it->d = t;
 			it->p = r(t);
