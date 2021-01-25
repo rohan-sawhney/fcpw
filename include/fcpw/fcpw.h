@@ -99,6 +99,8 @@ public:
 	// returns a pointer to the underlying scene data; use at your own risk...
 	SceneData<DIM>* getSceneData();
 
+	bool isSelfintersecting();
+
 private:
 	// member
 	std::unique_ptr<SceneData<DIM>> sceneData;

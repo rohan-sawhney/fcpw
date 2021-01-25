@@ -25,6 +25,8 @@ struct SbvhNode {
 		int secondChildOffset;
 	};
 	int nReferences;
+
+	bool isLeaf() const { return nReferences; }
 };
 
 struct BvhTraversal {
@@ -71,6 +73,11 @@ public:
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
 								  const Vector<DIM>& boundaryHint, int& nodesVisited) const;
+
+	bool isSelfintersecting(int nodeStartIndex, int aggregateIndex) const;
+
+	template<class F>
+	void intersectRecursive(F& f, int nodeIdx1, int depth1, int nodeIdx2, int depth2) const;
 
 protected:
 	// computes split cost based on heuristic
@@ -122,6 +129,8 @@ protected:
 	std::vector<PrimitiveType *>& primitives;
 	std::vector<SbvhNode<DIM>> flatTree;
 	bool packLeaves, primitiveTypeIsAggregate;
+
+	mutable bool foundSelfIntersection;
 
 	template<size_t U, size_t V, typename W>
 	friend class Mbvh;

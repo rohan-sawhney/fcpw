@@ -84,6 +84,8 @@ public:
 		return this->findClosestPointFromNode(s, i, 0, this->index, Vector<DIM>::Zero(), nodesVisited);
 	}
 
+	bool isSelfintersecting() { return this->isSelfintersecting(0, this->index); }
+
 	// performs inside outside test for x
 	// NOTE: assumes aggregate bounds watertight shape
 	bool contains(const Vector<DIM>& x, bool useRayIntersection=true) const {
@@ -155,6 +157,8 @@ public:
 	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 										  int nodeStartIndex, int aggregateIndex,
 										  const Vector<DIM>& boundaryHint, int& nodesVisited) const = 0;
+
+	virtual bool isSelfintersecting(int nodeStartIndex, int aggregateIndex) const { return true; }
 
 	// members
 	int index;

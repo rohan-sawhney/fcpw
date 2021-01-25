@@ -663,4 +663,11 @@ inline SceneData<DIM>* Scene<DIM>::getSceneData()
 	return sceneData.get();
 }
 
+template<size_t DIM>
+inline bool Scene<DIM>::isSelfintersecting() 
+{
+	return sceneData->aggregate->isSelfintersecting();
+}
+	
+
 } // namespace fcpw

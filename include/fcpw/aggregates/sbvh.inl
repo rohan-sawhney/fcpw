@@ -1,3 +1,5 @@
+#include <fcpw/utilities/intersection.h>
+
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveType>
@@ -609,6 +611,110 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 	}
 
 	return false;
+}
+
+template<size_t DIM, typename PrimitiveT>
+inline bool Sbvh<DIM, PrimitiveT>::isSelfintersecting(int nodeStartIndex, int aggregateIndex) const 
+{
+	// @TODO: handle this case
+	if (primitiveTypeIsAggregate) {
+		return false;
+	}
+
+	foundSelfIntersection = false;
+
+	// @TODO: this can only handle triangles for the moment
+	auto intersectPrimitives = [&](const PrimitiveT* p1, const PrimitiveT* p2) {
+		const Triangle* t1 = dynamic_cast<const Triangle*>(p1);
+		const Triangle* t2 = dynamic_cast<const Triangle*>(p2);
+		if (!t1 || !t2) {
+			throw std::runtime_error{ "FCPW: intersection test is implemented only for triangle primitives" };
+		}
+
+		const int* indices1 = t1->indices;
+		const int* indices2 = t2->indices;
+
+		/* For now, triangles which share a vertex cannot intersect.
+		 * Maybe it would be better to use an intersection algorithm which
+		 * regards touching triangles as not intersecting.
+		*/
+		for (size_t i = 0; i < 3; ++i)
+		{
+			for (size_t j = 0; j < 3; ++j) {
+				if (indices1[i] == indices2[j]) {
+					return;
+				}
+			}
+		}
+		const auto& pos1 = t1->soup->positions;
+		const auto& pos2 = t2->soup->positions;
+
+		double a1[3] = { pos1[indices1[0]][0], pos1[indices1[0]][1], pos1[indices1[0]][2] };
+		double b1[3] = { pos1[indices1[1]][0], pos1[indices1[1]][1], pos1[indices1[1]][2] };
+		double c1[3] = { pos1[indices1[2]][0], pos1[indices1[2]][1], pos1[indices1[2]][2] };
+
+		double a2[3] = { pos2[indices2[0]][0], pos2[indices2[0]][1], pos2[indices2[0]][2] };
+		double b2[3] = { pos2[indices2[1]][0], pos2[indices2[1]][1], pos2[indices2[1]][2] };
+		double c2[3] = { pos2[indices2[2]][0], pos2[indices2[2]][1], pos2[indices2[2]][2] };
+
+		foundSelfIntersection = tri_tri_overlap_test_3d(a1, b1, c1, a2, b2, c2);
+	};
+
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	intersectRecursive(intersectPrimitives, rootIndex, 0, rootIndex, 0);
+	return foundSelfIntersection;
+}
+
+template<size_t DIM, typename PrimitiveT>
+template<class F>
+void Sbvh<DIM, PrimitiveT>::intersectRecursive(F& action, int nodeIdx1, int depth1, int nodeIdx2, int depth2) const
+{
+	if (foundSelfIntersection)
+		return;
+
+	const SbvhNode<DIM>& node1 = flatTree[nodeIdx1];
+	const SbvhNode<DIM>& node2 = flatTree[nodeIdx2];
+	if (!node1.box.overlap(node2.box)) {
+		return;
+	}
+
+	if (node1.isLeaf() && node2.isLeaf()) { /* both nodes are leafs*/
+		for (int p1 = 0; p1 < node1.nReferences; p1++) {
+			for (int p2 = nodeIdx1 == nodeIdx2 ? p1 + 1 : 0; p2 < node2.nReferences; p2++) {
+				int p1Idx = node1.referenceOffset + p1;
+				int p2Idx = node2.referenceOffset + p2;
+				action(primitives[p1Idx], primitives[p2Idx]);
+				if (foundSelfIntersection)
+					return;
+			}
+		}
+		return;
+	}
+	
+	if (nodeIdx1 == nodeIdx2) { /* both nodes are the same and not a leaf */
+		const int firstChildIdx = nodeIdx1 + 1;
+		const int secondChildIdx = nodeIdx1 + node1.secondChildOffset;
+		const int childDepth = depth1 + 1;
+
+		intersectRecursive(action, firstChildIdx, childDepth, firstChildIdx, childDepth);
+		intersectRecursive(action, secondChildIdx, childDepth, secondChildIdx, childDepth);
+		intersectRecursive(action, secondChildIdx, childDepth, firstChildIdx, childDepth);
+		return;
+	}
+
+	/* @TODO: save primitive count in nodes? */
+	if (node1.isLeaf() || (depth2 < depth1 && !node2.isLeaf())) {
+		std::swap(nodeIdx1, nodeIdx2);
+		std::swap(depth1, depth2);
+	}
+
+	const int firstChildIdx = nodeIdx1 + 1;
+	const int secondChildIdx = nodeIdx1 + flatTree[nodeIdx1].secondChildOffset; /* we cannot use node1 here */
+	const int childDepth = depth1 + 1;
+
+	/* interactions between children and second node */
+	intersectRecursive(action, firstChildIdx, childDepth, nodeIdx2, depth2);
+	intersectRecursive(action, secondChildIdx, childDepth, nodeIdx2, depth2);
 }
 
 } // namespace fcpw
