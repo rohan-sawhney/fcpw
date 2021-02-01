@@ -34,3 +34,8 @@
 # Build directories
 build/
 build_debug/
+
+# External deps
+deps/embree 
+deps/polyscope
+deps/tbb
