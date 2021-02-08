@@ -150,7 +150,7 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 													nodesVisited, false, true);
 
 		} else {
-			hitsLeft = this->ignorePrimitive(left.get()) ? 0 : left->intersect(rLeft, isLeft, false, true);
+			hitsLeft = left->intersect(rLeft, isLeft, false, true);
 
 			// compute normals
 			if (this->computeNormals && hitsLeft > 0) {
@@ -175,7 +175,7 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 													 nodesVisited, false, true);
 
 		} else {
-			hitsRight = this->ignorePrimitive(right.get()) ? 0 : right->intersect(rRight, isRight, false, true);
+			hitsRight = right->intersect(rRight, isRight, false, true);
 
 			// compute normals
 			if (this->computeNormals && hitsRight > 0) {
@@ -250,7 +250,7 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 															boundaryHint, nodesVisited);
 
 		} else {
-			foundLeft = this->ignorePrimitive(left.get()) ? false : left->findClosestPoint(sLeft, iLeft);
+			foundLeft = left->findClosestPoint(sLeft, iLeft);
 
 			// compute normal
 			if (this->computeNormals && foundLeft) {
@@ -273,7 +273,7 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 															 boundaryHint, nodesVisited);
 
 		} else {
-			foundRight = this->ignorePrimitive(right.get()) ? false : right->findClosestPoint(sRight, iRight);
+			foundRight = right->findClosestPoint(sRight, iRight);
 
 			// compute normal
 			if (this->computeNormals && foundRight) {
