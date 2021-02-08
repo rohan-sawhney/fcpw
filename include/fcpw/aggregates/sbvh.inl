@@ -355,6 +355,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 			for (int p = 0; p < node.nReferences; p++) {
 				int referenceIndex = node.referenceOffset + p;
 				const PrimitiveType *prim = primitives[referenceIndex];
+				if (this->ignorePrimitive(prim)) continue;
 				nodesVisited++;
 
 				int hit = 0;
@@ -505,6 +506,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 			for (int p = 0; p < node.nReferences; p++) {
 				int referenceIndex = node.referenceOffset + p;
 				const PrimitiveType *prim = primitives[referenceIndex];
+				if (this->ignorePrimitive(prim)) continue;
 				nodesVisited++;
 
 				bool found = false;
@@ -531,10 +533,10 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 
 		} else { // not a leaf
 			bool hit0 = flatTree[nodeIndex + 1].box.overlap(s, boxHits[0], boxHits[1]);
-			s.r2 = std::min(s.r2, boxHits[1]);
+			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
 
 			bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.overlap(s, boxHits[2], boxHits[3]);
-			s.r2 = std::min(s.r2, boxHits[3]);
+			if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[3]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {
@@ -592,7 +594,7 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
 	if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
-		s.r2 = std::min(s.r2, boxHits[1]);
+		if (this->ignoreList.size() == 0) s.r2 = std::min(s.r2, boxHits[1]);
 		subtree[0].node = rootIndex;
 		subtree[0].distance = boxHits[0];
 		processSubtreeForClosestPoint(s, i, nodeStartIndex, aggregateIndex, boundaryHint,
