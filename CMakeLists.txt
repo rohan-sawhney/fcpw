@@ -102,6 +102,7 @@ endif()
 ################################################################################
 # build tests
 if(FCPW_BUILD_TESTS)
+	set(ARGS_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/polyscope/deps/args)
 	add_subdirectory(deps/polyscope)
 	add_subdirectory(tests)
 endif()
