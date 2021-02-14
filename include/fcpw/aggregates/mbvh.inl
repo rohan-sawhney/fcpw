@@ -207,7 +207,7 @@ range(enoki::arange<enoki::Array<int, DIM>>())
 		volume += primitives[p]->signedVolume();
 	}
 
-	aggregateCentroid /= nPrimitives;
+	aggregateCentroid /= (float)nPrimitives;
 
 	// don't compute normals by default
 	this->computeNormals = false;
@@ -240,14 +240,14 @@ range(enoki::arange<enoki::Array<int, DIM>>())
 
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
 		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-		std::cout << "Built " << FCPW_MBVH_BRANCHING_FACTOR << "-bvh with "
-				  << nNodes << " nodes, "
-				  << nLeafs << " leaves, "
-				  << (nNodesNotFull*100/nInnerNodes) << "% nodes & "
-				  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
-				  << maxDepth << " max depth, "
-				  << primitives.size() << " primitives in "
-				  << timeSpan.count() << " seconds" << std::endl;
+		// std::cout << "Built " << FCPW_MBVH_BRANCHING_FACTOR << "-bvh with "
+		// 		  << nNodes << " nodes, "
+		// 		  << nLeafs << " leaves, "
+		// 		  << (nNodesNotFull*100/nInnerNodes) << "% nodes & "
+		// 		  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
+		// 		  << maxDepth << " max depth, "
+		// 		  << primitives.size() << " primitives in "
+		// 		  << timeSpan.count() << " seconds" << std::endl;
 	}
 }
 

@@ -11,7 +11,7 @@ nLeafs(0),
 leafSize(leafSize_),
 nBuckets(nBuckets_),
 maxDepth(0),
-depthGuess(std::log2(primitives_.size())),
+depthGuess((int)std::log2(primitives_.size())),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 primitives(primitives_),
@@ -36,12 +36,12 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	if (printStats_) {
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
 		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-		std::cout << "Built bvh with "
-				  << nNodes << " nodes, "
-				  << nLeafs << " leaves, "
-				  << maxDepth << " max depth, "
-				  << primitives.size() << " primitives in "
-				  << timeSpan.count() << " seconds" << std::endl;
+		// std::cout << "Built bvh with "
+		// 		  << nNodes << " nodes, "
+		// 		  << nLeafs << " leaves, "
+		// 		  << maxDepth << " max depth, "
+		// 		  << primitives.size() << " primitives in "
+		// 		  << timeSpan.count() << " seconds" << std::endl;
 	}
 }
 
@@ -144,7 +144,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeObjectSplit(const BoundingBox<DIM>
 
 					if (cost < splitCost) {
 						splitCost = cost;
-						splitDim = dim;
+						splitDim = (int)dim;
 						splitCoord = nodeBoundingBox.pMin[dim] + b*bucketWidth;
 						boxIntersected = boxRefLeft.intersect(rightBucketBoxes[b].first);
 					}
