@@ -39,3 +39,4 @@ build_debug/
 deps/embree 
 deps/polyscope
 deps/tbb
+.vscode
