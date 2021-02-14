@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.1.0)
 project(fcpw)
 
 option(FCPW_USE_ENOKI "Build enoki" ON)
-option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" ON)
+option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)	
 option(FCPW_BUILD_TESTS "Build tests" ON)
 # option(FCPW_TESTS_BENCHMARK_EMBREE "Benchmark embree" OFF)
 
