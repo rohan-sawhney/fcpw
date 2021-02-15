@@ -124,7 +124,7 @@ struct BoundingBox {
 
 	// returns surface area
 	float surfaceArea() const {
-		Vector<DIM> e = extent().cwiseMax(1e-5f); // the 1e-5 is to prevent division by zero
+		Vector<DIM> e = extent().cwiseMax(1e-5); // the 1e-5 is to prevent division by zero
 		return 2.0f*Vector<DIM>::Constant(e.prod()).cwiseQuotient(e).sum();
 	}
 
