@@ -3,14 +3,24 @@ project(fcpw-tests)
 
 ################################################################################
 # build tests
-add_executable(aggregate_tests aggregate_tests.cpp)
-target_link_libraries(aggregate_tests fcpw)
-
-target_include_directories(aggregate_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
-if(FCPW_USE_ENOKI)
-	target_include_directories(aggregate_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
-endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-target_link_libraries(aggregate_tests Threads::Threads)
+
+add_executable(cpq_tests cpq_tests.cpp)
+target_link_libraries(cpq_tests fcpw Threads::Threads)
+
+target_include_directories(cpq_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
+if(FCPW_USE_ENOKI)
+	target_include_directories(cpq_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
+endif()
+
+
+add_executable(int_tests int_tests.cpp)
+target_link_libraries(int_tests fcpw Threads::Threads)
+
+target_include_directories(int_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
+if(FCPW_USE_ENOKI)
+	target_include_directories(int_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
+endif()
+
