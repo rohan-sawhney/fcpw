@@ -90,7 +90,7 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 			if (stopQueries) break;
 			int I = indices[i];
 			float distPrev = (queryPoints[I] - queryPrev).norm();
-			float r2 = cPrev.nodeIndex == -1 ? maxFloat : std::pow((cPrev.d + distPrev)*1.25f, 2);
+			float r2 = cPrev.nodeIndex == -1 ? maxFloat : (float)std::pow((cPrev.d + distPrev)*1.25f, 2);
 
 			int nodesVisited = 0;
 			Interaction<DIM> c;
