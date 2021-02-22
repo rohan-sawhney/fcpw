@@ -438,6 +438,116 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 	return false;
 }
 
+
+template<size_t DIM, typename PrimitiveType>
+inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersectionTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+																	int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
+																	bool recordAllHits, BvhTraversal *subtree,
+																	float *boxHits, int& hits, int& nodesVisited, uint64_t& ticks) const
+{
+	int stackPtr = 0;
+	while (stackPtr >= 0) {
+		// pop off the next node to work on
+		int nodeIndex = subtree[stackPtr].node;
+		float near = subtree[stackPtr].distance;
+		stackPtr--;
+
+		// if this node is further than the closest found intersection, continue
+		if (!recordAllHits && near > r.tMax) continue;
+		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
+
+		// is leaf -> intersect
+		if (node.nReferences > 0) {
+			for (int p = 0; p < node.nReferences; p++) {
+				int referenceIndex = node.referenceOffset + p;
+				const PrimitiveType *prim = primitives[referenceIndex];
+				nodesVisited++;
+
+				int hit = 0;
+				std::vector<Interaction<DIM>> cs;
+				if (primitiveTypeIsAggregate) {
+					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+					hit = aggregate->intersectFromNodeTimed(r, cs, nodeStartIndex, aggregateIndex,
+													   nodesVisited, ticks, checkForOcclusion, recordAllHits);
+
+				} else {
+					auto t1 = std::chrono::high_resolution_clock::now();
+					hit = prim->intersect(r, cs, checkForOcclusion, recordAllHits);
+					auto t2 = std::chrono::high_resolution_clock::now();
+					ticks += (t2 - t1).count();
+					
+					for (int i = 0; i < (int)cs.size(); i++) {
+						cs[i].nodeIndex = nodeIndex;
+						cs[i].referenceIndex = referenceIndex;
+						cs[i].objectIndex = this->index;
+					}
+				}
+
+				// keep the closest intersection only
+				if (hit > 0) {
+					if (checkForOcclusion) {
+						is.clear();
+						return true;
+					}
+
+					hits += hit;
+					if (recordAllHits) {
+						is.insert(is.end(), cs.begin(), cs.end());
+
+					} else {
+						r.tMax = std::min(r.tMax, cs[0].d);
+						is[0] = cs[0];
+					}
+				}
+			}
+
+		} else { // not a leaf
+			bool hit0 = flatTree[nodeIndex + 1].box.intersect(r, boxHits[0], boxHits[1]);
+			bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.intersect(r, boxHits[2], boxHits[3]);
+
+			// did we hit both nodes?
+			if (hit0 && hit1) {
+				// we assume that the left child is a closer hit...
+				int closer = nodeIndex + 1;
+				int other = nodeIndex + node.secondChildOffset;
+
+				// ... if the right child was actually closer, swap the relavent values
+				if (boxHits[2] < boxHits[0]) {
+					std::swap(boxHits[0], boxHits[2]);
+					std::swap(boxHits[1], boxHits[3]);
+					std::swap(closer, other);
+				}
+
+				// it's possible that the nearest object is still in the other side, but we'll
+				// check the farther-away node later...
+
+				// push the farther first, then the closer
+				stackPtr++;
+				subtree[stackPtr].node = other;
+				subtree[stackPtr].distance = boxHits[2];
+
+				stackPtr++;
+				subtree[stackPtr].node = closer;
+				subtree[stackPtr].distance = boxHits[0];
+
+			} else if (hit0) {
+				stackPtr++;
+				subtree[stackPtr].node = nodeIndex + 1;
+				subtree[stackPtr].distance = boxHits[0];
+
+			} else if (hit1) {
+				stackPtr++;
+				subtree[stackPtr].node = nodeIndex + node.secondChildOffset;
+				subtree[stackPtr].distance = boxHits[2];
+			}
+
+			nodesVisited++;
+		}
+	}
+
+	return false;
+}
+
 template<size_t DIM, typename PrimitiveType>
 inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
@@ -454,6 +564,49 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 		subtree[0].distance = boxHits[0];
 		bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, aggregateIndex, checkForOcclusion,
 													  recordAllHits, subtree, boxHits, hits, nodesVisited);
+		if (occluded) return 1;
+	}
+
+	if (hits > 0) {
+		// sort by distance and remove duplicates
+		if (recordAllHits) {
+			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+			is = removeDuplicates<DIM>(is);
+			hits = (int)is.size();
+
+		} else {
+			hits = 1;
+		}
+
+		// compute normals
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].computeNormal(primitives[is[i].referenceIndex]);
+			}
+		}
+
+		return hits;
+	}
+
+	return 0;
+}
+
+template<size_t DIM, typename PrimitiveType>
+inline int Sbvh<DIM, PrimitiveType>::intersectFromNodeTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+													   int nodeStartIndex, int aggregateIndex, int& nodesVisited, uint64_t& ticks,
+													   bool checkForOcclusion, bool recordAllHits) const
+{
+	int hits = 0;
+	if (!recordAllHits) is.resize(1);
+	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
+	float boxHits[4];
+
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	if (flatTree[rootIndex].box.intersect(r, boxHits[0], boxHits[1])) {
+		subtree[0].node = rootIndex;
+		subtree[0].distance = boxHits[0];
+		bool occluded = processSubtreeForIntersectionTimed(r, is, nodeStartIndex, aggregateIndex, checkForOcclusion,
+													  recordAllHits, subtree, boxHits, hits, nodesVisited, ticks);
 		if (occluded) return 1;
 	}
 
@@ -582,6 +735,109 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 }
 
 template<size_t DIM, typename PrimitiveType>
+inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPointTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																	int nodeStartIndex, int aggregateIndex,
+																	const Vector<DIM>& boundaryHint,
+																	BvhTraversal *subtree, float *boxHits,
+																	bool& notFound, int& nodesVisited, uint64_t& ticks) const
+{
+	// TODO: use direction to boundary guess
+	int stackPtr = 0;
+	while (stackPtr >= 0) {
+		// pop off the next node to work on
+		int nodeIndex = subtree[stackPtr].node;
+		float near = subtree[stackPtr].distance;
+		stackPtr--;
+
+		// if this node is further than the closest found primitive, continue
+		if (near > s.r2) continue;
+		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
+
+		// is leaf -> compute squared distance
+		if (node.nReferences > 0) {
+			for (int p = 0; p < node.nReferences; p++) {
+				int referenceIndex = node.referenceOffset + p;
+				const PrimitiveType *prim = primitives[referenceIndex];
+				nodesVisited++;
+
+				bool found = false;
+				Interaction<DIM> c;
+				if (primitiveTypeIsAggregate) {
+					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+					found = aggregate->findClosestPointFromNodeTimed(s, c, nodeStartIndex, aggregateIndex,
+																boundaryHint, nodesVisited, ticks);
+
+				} else {
+					auto t1 = std::chrono::high_resolution_clock::now();
+					found = prim->findClosestPoint(s, c);
+					auto t2 = std::chrono::high_resolution_clock::now();
+					ticks += (t2 - t1).count();
+					c.nodeIndex = nodeIndex;
+					c.referenceIndex = referenceIndex;
+					c.objectIndex = this->index;
+				}
+
+				// keep the closest point only
+				if (found) {
+					notFound = false;
+					s.r2 = std::min(s.r2, c.d*c.d);
+					i = c;
+				}
+			}
+
+		} else { // not a leaf
+			bool hit0 = flatTree[nodeIndex + 1].box.overlap(s, boxHits[0], boxHits[1]);
+			s.r2 = std::min(s.r2, boxHits[1]);
+
+			bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.overlap(s, boxHits[2], boxHits[3]);
+			s.r2 = std::min(s.r2, boxHits[3]);
+
+			// is there overlap with both nodes?
+			if (hit0 && hit1) {
+				// we assume that the left child is a closer hit...
+				int closer = nodeIndex + 1;
+				int other = nodeIndex + node.secondChildOffset;
+
+				// ... if the right child was actually closer, swap the relavent values
+				if (boxHits[0] == 0.0f && boxHits[2] == 0.0f) {
+					if (boxHits[3] < boxHits[1]) {
+						std::swap(closer, other);
+					}
+
+				} else if (boxHits[2] < boxHits[0]) {
+					std::swap(boxHits[0], boxHits[2]);
+					std::swap(closer, other);
+				}
+
+				// it's possible that the nearest object is still in the other side, but we'll
+				// check the farther-away node later...
+
+				// push the farther first, then the closer
+				stackPtr++;
+				subtree[stackPtr].node = other;
+				subtree[stackPtr].distance = boxHits[2];
+
+				stackPtr++;
+				subtree[stackPtr].node = closer;
+				subtree[stackPtr].distance = boxHits[0];
+
+			} else if (hit0) {
+				stackPtr++;
+				subtree[stackPtr].node = nodeIndex + 1;
+				subtree[stackPtr].distance = boxHits[0];
+
+			} else if (hit1) {
+				stackPtr++;
+				subtree[stackPtr].node = nodeIndex + node.secondChildOffset;
+				subtree[stackPtr].distance = boxHits[2];
+			}
+
+			nodesVisited++;
+		}
+	}
+}
+
+template<size_t DIM, typename PrimitiveType>
 inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 															   int nodeStartIndex, int aggregateIndex,
 															   const Vector<DIM>& boundaryHint, int& nodesVisited) const
@@ -597,6 +853,36 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 		subtree[0].distance = boxHits[0];
 		processSubtreeForClosestPoint(s, i, nodeStartIndex, aggregateIndex, boundaryHint,
 									  subtree, boxHits, notFound, nodesVisited);
+	}
+
+	if (!notFound) {
+		// compute normal
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			i.computeNormal(primitives[i.referenceIndex]);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+template<size_t DIM, typename PrimitiveType>
+inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNodeTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+															   int nodeStartIndex, int aggregateIndex,
+															   const Vector<DIM>& boundaryHint, int& nodesVisited, uint64_t& ticks) const
+{
+	bool notFound = true;
+	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
+	float boxHits[4];
+
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
+		s.r2 = std::min(s.r2, boxHits[1]);
+		subtree[0].node = rootIndex;
+		subtree[0].distance = boxHits[0];
+		processSubtreeForClosestPointTimed(s, i, nodeStartIndex, aggregateIndex, boundaryHint,
+									  subtree, boxHits, notFound, nodesVisited, ticks);
 	}
 
 	if (!notFound) {

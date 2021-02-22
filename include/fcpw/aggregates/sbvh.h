@@ -67,10 +67,18 @@ public:
 						  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 						  bool checkForOcclusion=false, bool recordAllHits=false) const;
 
+	int intersectFromNodeTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+						  int nodeStartIndex, int aggregateIndex, int& nodesVisited, uint64_t& ticks,
+						  bool checkForOcclusion=false, bool recordAllHits=false) const;
+
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
 								  const Vector<DIM>& boundaryHint, int& nodesVisited) const;
+
+	bool findClosestPointFromNodeTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+									   int nodeStartIndex, int aggregateIndex,
+									   const Vector<DIM>& boundaryHint, int& nodesVisited, uint64_t& ticks) const;
 
 protected:
 	// computes split cost based on heuristic
@@ -108,12 +116,23 @@ protected:
 									   bool recordAllHits, BvhTraversal *subtree,
 									   float *boxHits, int& hits, int& nodesVisited) const;
 
+	bool processSubtreeForIntersectionTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+									   int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
+									   bool recordAllHits, BvhTraversal *subtree,
+									   float *boxHits, int& hits, int& nodesVisited, uint64_t& ticks) const;
+
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 									   int nodeStartIndex, int aggregateIndex,
 									   const Vector<DIM>& boundaryHint,
 									   BvhTraversal *subtree, float *boxHits,
 									   bool& notFound, int& nodesVisited) const;
+
+	void processSubtreeForClosestPointTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+									   int nodeStartIndex, int aggregateIndex,
+									   const Vector<DIM>& boundaryHint,
+									   BvhTraversal *subtree, float *boxHits,
+									   bool& notFound, int& nodesVisited, uint64_t& ticks) const;
 
 	// members
 	CostHeuristic costHeuristic;

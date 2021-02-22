@@ -151,10 +151,18 @@ public:
 								  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 								  bool checkForOcclusion=false, bool recordAllHits=false) const = 0;
 
+	virtual int intersectFromNodeTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+								  int nodeStartIndex, int aggregateIndex, int& nodesVisited, uint64_t& ticks,
+								  bool checkForOcclusion=false, bool recordAllHits=false) const = 0;
+
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 										  int nodeStartIndex, int aggregateIndex,
 										  const Vector<DIM>& boundaryHint, int& nodesVisited) const = 0;
+
+	virtual bool findClosestPointFromNodeTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+										  int nodeStartIndex, int aggregateIndex,
+										  const Vector<DIM>& boundaryHint, int& nodesVisited, uint64_t& ticks) const = 0;
 
 	// members
 	int index;
@@ -217,6 +225,28 @@ public:
 		return hits;
 	}
 
+	int intersectFromNodeTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+						  int nodeStartIndex, int aggregateIndex, int& nodesVisited, uint64_t& ticks,
+						  bool checkForOcclusion=false, bool recordAllHits=false) const {
+		// apply inverse transform to ray
+		Ray<DIM> rInv = r.transform(tInv);
+
+		// intersect
+		int hits = aggregate->intersectFromNodeTimed(rInv, is, nodeStartIndex, aggregateIndex,
+												nodesVisited, ticks, checkForOcclusion, recordAllHits);
+
+		// apply transform to ray and interactions
+		r.tMax = rInv.transform(t).tMax;
+		if (hits > 0) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].applyTransform(t, tInv, r.o);
+			}
+		}
+
+		nodesVisited++;
+		return hits;
+	}
+
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
@@ -235,6 +265,32 @@ public:
 		// find closest point
 		bool found = aggregate->findClosestPointFromNode(sInv, i, nodeStartIndex, aggregateIndex,
 														 boundaryHintInv, nodesVisited);
+
+		// apply transform to sphere and interaction
+		s.r2 = sInv.transform(t).r2;
+		if (found) i.applyTransform(t, tInv, s.c);
+
+		nodesVisited++;
+		return found;
+	}
+
+	bool findClosestPointFromNodeTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+								  int nodeStartIndex, int aggregateIndex,
+								  const Vector<DIM>& boundaryHint, int& nodesVisited, uint64_t& ticks) const {
+		// apply inverse transform to sphere
+		BoundingSphere<DIM> sInv = s.transform(tInv);
+
+		// apply inverse transform to direction guess
+		Vector<DIM> boundaryHintInv = boundaryHint;
+		if (boundaryHint.squaredNorm() > 0.0f) {
+			boundaryHintInv = tInv*(s.c + boundaryHint) - sInv.c;
+			float hintNorm = boundaryHintInv.norm();
+			boundaryHintInv /= hintNorm;
+		}
+
+		// find closest point
+		bool found = aggregate->findClosestPointFromNodeTimed(sInv, i, nodeStartIndex, aggregateIndex,
+														 boundaryHintInv, nodesVisited, ticks);
 
 		// apply transform to sphere and interaction
 		s.r2 = sInv.transform(t).r2;

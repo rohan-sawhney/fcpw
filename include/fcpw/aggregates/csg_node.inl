@@ -231,6 +231,114 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNodeTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+																				  int nodeStartIndex, int aggregateIndex, int& nodesVisited, uint64_t& ticks,
+																				  bool checkForOcclusion, bool recordAllHits) const
+{
+	// TODO: optimize for checkForOcclusion == true
+	int hits = 0;
+	is.clear();
+	float tMin, tMax;
+	nodesVisited++;
+
+	if (box.intersect(r, tMin, tMax)) {
+		// perform intersection query for left child
+		int hitsLeft = 0;
+		Ray<DIM> rLeft = r;
+		std::vector<Interaction<DIM>> isLeft;
+		if (leftPrimitiveTypeIsAggregate) {
+			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left.get());
+			hitsLeft = aggregate->intersectFromNodeTimed(rLeft, isLeft, nodeStartIndex, aggregateIndex,
+													nodesVisited, ticks, false, true);
+
+		} else {
+			auto t1 = std::chrono::high_resolution_clock::now();
+			hitsLeft = left->intersect(rLeft, isLeft, false, true);
+			auto t2 = std::chrono::high_resolution_clock::now();
+			ticks += (t2 - t1).count();
+
+			// compute normals
+			if (this->computeNormals && hitsLeft > 0) {
+				for (int i = 0; i < (int)isLeft.size(); i++) {
+					isLeft[i].computeNormal(left.get());
+				}
+			}
+		}
+
+		// return if no intersections for the left child were found and
+		// the operation is intersection or difference
+		if (hitsLeft == 0 && (operation == BooleanOperation::Intersection ||
+							  operation == BooleanOperation::Difference)) return 0;
+
+		// perform intersection query for right child
+		int hitsRight = 0;
+		Ray<DIM> rRight = r;
+		std::vector<Interaction<DIM>> isRight;
+		if (rightPrimitiveTypeIsAggregate) {
+			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right.get());
+			hitsRight = aggregate->intersectFromNodeTimed(rRight, isRight, nodeStartIndex, aggregateIndex,
+													 nodesVisited, ticks, false, true);
+
+		} else {
+			auto t1 = std::chrono::high_resolution_clock::now();
+			hitsRight = right->intersect(rRight, isRight, false, true);
+			auto t2 = std::chrono::high_resolution_clock::now();
+			ticks += (t2 - t1).count();
+
+			// compute normals
+			if (this->computeNormals && hitsRight > 0) {
+				for (int i = 0; i < (int)isRight.size(); i++) {
+					isRight[i].computeNormal(right.get());
+				}
+			}
+		}
+
+		// return if no intersections were found for both children
+		if (hitsLeft == 0 && hitsRight == 0) return 0;
+
+		if (hitsLeft > 0 && hitsRight > 0) {
+			// determine interactions based on the operation
+			if (operation == BooleanOperation::None) {
+				// merge the left and right sorted interaction lists
+				is.resize(isLeft.size() + isRight.size());
+				std::merge(isLeft.begin(), isLeft.end(),
+						   isRight.begin(), isRight.end(),
+						   is.begin(), compareInteractions<DIM>);
+
+			} else {
+				computeInteractions(isLeft, isRight, is);
+			}
+
+		} else if (hitsLeft > 0) {
+			// return if no intersections for the right child were found and the operation
+			// is intersection
+			if (operation == BooleanOperation::Intersection) return 0;
+
+			// set the interactions to the left child's interactions for the
+			// difference, union and none operations
+			is = isLeft;
+
+		} else if (hitsRight > 0) {
+			// set the interactions to the right child's interactions for the
+			// union and none operations
+			is = isRight;
+		}
+
+		// shrink ray's tMax if possible
+		if (!recordAllHits) {
+			r.tMax = is[0].d; // list is already sorted
+			is.resize(1);
+			hits = 1;
+
+		} else {
+			hits = (int)is.size();
+		}
+	}
+
+	return hits;
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																						  int nodeStartIndex, int aggregateIndex,
 																						  const Vector<DIM>& boundaryHint, int& nodesVisited) const
@@ -274,6 +382,125 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 
 		} else {
 			foundRight = right->findClosestPoint(sRight, iRight);
+
+			// compute normal
+			if (this->computeNormals && foundRight) {
+				iRight.computeNormal(right.get());
+			}
+		}
+
+		// return if no closest point was found to both children
+		if (!foundLeft && !foundRight) return false;
+
+		if (foundLeft && foundRight) {
+			// compute signed distances
+			float sdLeft = iLeft.signedDistance(s.c);
+			float sdRight = iRight.signedDistance(s.c);
+			DistanceInfo info = iLeft.distanceInfo == DistanceInfo::Exact &&
+								iRight.distanceInfo == DistanceInfo::Exact ?
+								DistanceInfo::Exact : DistanceInfo::Bounded;
+
+			// determine which interaction to set and whether the distance info is
+			// exact or bounded based on the operation
+			if (operation == BooleanOperation::Union) {
+				i = sdLeft < sdRight ? iLeft : iRight; // min(sdLeft, sdRight)
+				i.distanceInfo = info == DistanceInfo::Exact &&
+								 sdLeft > 0 && sdRight > 0 ?
+								 DistanceInfo::Exact : DistanceInfo::Bounded;
+
+			} else if (operation == BooleanOperation::Intersection) {
+				i = sdLeft > sdRight ? iLeft : iRight; // max(sdLeft, sdRight)
+				i.distanceInfo = info == DistanceInfo::Exact &&
+								 sdLeft < 0 && sdRight < 0 ?
+								 DistanceInfo::Exact : DistanceInfo::Bounded;
+
+			} else if (operation == BooleanOperation::Difference) {
+				iRight.n *= -1; // flip normal of right child
+				iRight.sign *= -1; // flip sign of right child
+				i = sdLeft > -sdRight ? iLeft : iRight; // max(sdLeft, -sdRight)
+				i.distanceInfo = info == DistanceInfo::Exact &&
+								 sdLeft < 0 && sdRight > 0 ?
+								 DistanceInfo::Exact : DistanceInfo::Bounded;
+
+			} else {
+				// set the closer of the two interactions
+				i = iLeft.d < iRight.d ? iLeft : iRight;
+			}
+
+		} else if (foundLeft) {
+			// return if no closest point was found to the right child and the operation
+			// is intersection
+			if (operation == BooleanOperation::Intersection) return false;
+
+			// set the interaction to the left child's interaction for the
+			// difference, union and none operations
+			i = iLeft;
+
+		} else if (foundRight) {
+			// set the interaction to the right child's interaction for the
+			// union and none operations
+			i = iRight;
+		}
+
+		// shrink sphere radius if possible
+		s.r2 = std::min(s.r2, i.d*i.d);
+		notFound = false;
+	}
+
+	return !notFound;
+}
+
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPointFromNodeTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																						  int nodeStartIndex, int aggregateIndex,
+																						  const Vector<DIM>& boundaryHint, int& nodesVisited, uint64_t& ticks) const
+{
+	bool notFound = true;
+	float d2Min, d2Max;
+	nodesVisited++;
+
+	if (box.overlap(s, d2Min, d2Max)) {
+		// perform closest point query on left child
+		bool foundLeft = false;
+		Interaction<DIM> iLeft;
+		BoundingSphere<DIM> sLeft = s;
+		if (leftPrimitiveTypeIsAggregate) {
+			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left.get());
+			foundLeft = aggregate->findClosestPointFromNodeTimed(sLeft, iLeft, nodeStartIndex, aggregateIndex,
+															boundaryHint, nodesVisited, ticks);
+
+		} else {
+			auto t1 = std::chrono::high_resolution_clock::now();
+			foundLeft = left->findClosestPoint(sLeft, iLeft);
+			auto t2 = std::chrono::high_resolution_clock::now();
+			ticks += (t2 - t1).count();
+
+			// compute normal
+			if (this->computeNormals && foundLeft) {
+				iLeft.computeNormal(left.get());
+			}
+		}
+
+		// return if no closest point for the left child is found and
+		// the operation is intersection or difference
+		if (!foundLeft && (operation == BooleanOperation::Intersection ||
+						   operation == BooleanOperation::Difference)) return false;
+
+		// perform closest point query on right child
+		bool foundRight = false;
+		Interaction<DIM> iRight;
+		BoundingSphere<DIM> sRight = s;
+		if (rightPrimitiveTypeIsAggregate) {
+			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right.get());
+			foundRight = aggregate->findClosestPointFromNodeTimed(sRight, iRight, nodeStartIndex, aggregateIndex,
+															 boundaryHint, nodesVisited, ticks);
+
+		} else {
+			auto t1 = std::chrono::high_resolution_clock::now();
+			foundRight = right->findClosestPoint(sRight, iRight);
+			auto t2 = std::chrono::high_resolution_clock::now();
+			ticks += (t2 - t1).count();
 
 			// compute normal
 			if (this->computeNormals && foundRight) {

@@ -645,6 +645,139 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 }
 
 template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNodeTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+															  int nodeStartIndex, int aggregateIndex, int& nodesVisited, uint64_t& ticks,
+															  bool checkForOcclusion, bool recordAllHits) const
+{
+	int hits = 0;
+	if (!recordAllHits) is.resize(1);
+	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
+	enokiVector<DIM> ro = enoki::gather<enokiVector<DIM>>(r.o.data(), range);
+	enokiVector<DIM> rd = enoki::gather<enokiVector<DIM>>(r.d.data(), range);
+	enokiVector<DIM> rinvD = enoki::gather<enokiVector<DIM>>(r.invD.data(), range);
+
+	// push root node
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	subtree[0].node = rootIndex;
+	subtree[0].distance = minFloat;
+	int stackPtr = 0;
+
+	while (stackPtr >= 0) {
+		// pop off the next node to work on
+		int nodeIndex = subtree[stackPtr].node;
+		float near = subtree[stackPtr].distance;
+		stackPtr--;
+
+		// if this node is further than the closest found intersection, continue
+		if (!recordAllHits && near > r.tMax) continue;
+		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
+
+		if (isLeafNode(node)) {
+			if (vectorizedLeafType == ObjectType::LineSegments ||
+				vectorizedLeafType == ObjectType::Triangles) {
+				// perform vectorized intersection query
+				auto t1 = std::chrono::high_resolution_clock::now();
+				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, ro, rd, r.tMax, is, recordAllHits);
+				auto t2 = std::chrono::high_resolution_clock::now();
+				ticks += (t2 - t1).count();
+
+				nodesVisited++;
+				if (hits > 0 && checkForOcclusion) {
+					is.clear();
+					return 1;
+				}
+
+			} else {
+				// primitive type does not support vectorized intersection query,
+				// perform query to each primitive one by one
+				int referenceOffset = node.child[2];
+				int nReferences = node.child[3];
+
+				for (int p = 0; p < nReferences; p++) {
+					int referenceIndex = referenceOffset + p;
+					const PrimitiveType *prim = primitives[referenceIndex];
+					nodesVisited++;
+
+					int hit = 0;
+					std::vector<Interaction<DIM>> cs;
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+						hit = aggregate->intersectFromNodeTimed(r, cs, nodeStartIndex, aggregateIndex,
+														   		nodesVisited, ticks, checkForOcclusion, recordAllHits);
+
+					} else {
+						auto t1 = std::chrono::high_resolution_clock::now();
+						hit = prim->intersect(r, cs, checkForOcclusion, recordAllHits);
+						auto t2 = std::chrono::high_resolution_clock::now();
+						ticks += (t2 - t1).count();
+
+						for (int i = 0; i < (int)cs.size(); i++) {
+							cs[i].nodeIndex = nodeIndex;
+							cs[i].referenceIndex = referenceIndex;
+							cs[i].objectIndex = this->index;
+						}
+					}
+
+					// keep the closest intersection only
+					if (hit > 0) {
+						if (checkForOcclusion) {
+							is.clear();
+							return 1;
+						}
+
+						hits += hit;
+						if (recordAllHits) {
+							is.insert(is.end(), cs.begin(), cs.end());
+
+						} else {
+							r.tMax = std::min(r.tMax, cs[0].d);
+							is[0] = cs[0];
+						}
+					}
+				}
+			}
+
+		} else {
+			// intersect ray with boxes
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+														node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
+
+			// enqueue intersecting boxes in sorted order
+			nodesVisited++;
+			mask &= enoki::neq(node.child, maxInt);
+			if (enoki::any(mask)) {
+				float t = 0.0f;
+				enqueueNodes(node, tMin, tMax, mask, r.tMax, t, stackPtr, subtree);
+			}
+		}
+	}
+
+	if (hits > 0) {
+		// sort by distance and remove duplicates
+		if (recordAllHits) {
+			std::sort(is.begin(), is.end(), compareInteractions<DIM>);
+			is = removeDuplicates<DIM>(is);
+			hits = (int)is.size();
+
+		} else {
+			hits = 1;
+		}
+
+		// compute normals
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].computeNormal(primitives[is[i].referenceIndex]);
+			}
+		}
+
+		return hits;
+	}
+
+	return 0;
+}
+
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
 inline bool findClosestPointPrimitives(const MbvhNode<DIM>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
 									   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc, float& sr2,
@@ -824,6 +957,107 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 					} else {
 						found = prim->findClosestPoint(s, c);
+						c.nodeIndex = nodeIndex;
+						c.referenceIndex = referenceIndex;
+						c.objectIndex = this->index;
+					}
+
+					// keep the closest point only
+					if (found) {
+						notFound = false;
+						s.r2 = std::min(s.r2, c.d*c.d);
+						i = c;
+					}
+				}
+			}
+
+		} else {
+			// overlap sphere with boxes
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+																node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
+
+			// enqueue overlapping boxes in sorted order
+			nodesVisited++;
+			mask &= enoki::neq(node.child, maxInt);
+			if (enoki::any(mask)) {
+				enqueueNodes(node, d2Min, d2Max, mask, s.r2, s.r2, stackPtr, subtree);
+			}
+		}
+	}
+
+	if (!notFound) {
+		// compute normal
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			i.computeNormal(primitives[i.referenceIndex]);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+template<size_t WIDTH, size_t DIM, typename PrimitiveType>
+inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNodeTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																	  int nodeStartIndex, int aggregateIndex,
+																	  const Vector<DIM>& boundaryHint, int& nodesVisited, uint64_t& ticks) const
+{
+	// TODO: use direction to boundary guess
+	bool notFound = true;
+	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
+	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
+
+	// push root node
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	subtree[0].node = rootIndex;
+	subtree[0].distance = minFloat;
+	int stackPtr = 0;
+
+	while (stackPtr >= 0) {
+		// pop off the next node to work on
+		int nodeIndex = subtree[stackPtr].node;
+		float near = subtree[stackPtr].distance;
+		stackPtr--;
+
+		// if this node is further than the closest found primitive, continue
+		if (near > s.r2) continue;
+		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
+
+		if (isLeafNode(node)) {
+			if (vectorizedLeafType == ObjectType::LineSegments ||
+				vectorizedLeafType == ObjectType::Triangles) {
+				// perform vectorized closest point query to triangle
+				auto t1 = std::chrono::high_resolution_clock::now();
+				bool found = findClosestPointPrimitives(node, leafNodes, nodeIndex, this->index, sc, s.r2, i);
+				if (found) notFound = false;
+				auto t2 = std::chrono::high_resolution_clock::now();
+				ticks += (t2 - t1).count();
+				nodesVisited++;
+
+			} else {
+				// primitive type does not support vectorized closest point query,
+				// perform query to each primitive one by one
+				int referenceOffset = node.child[2];
+				int nReferences = node.child[3];
+
+				for (int p = 0; p < nReferences; p++) {
+					int referenceIndex = referenceOffset + p;
+					const PrimitiveType *prim = primitives[referenceIndex];
+					nodesVisited++;
+
+					bool found = false;
+					Interaction<DIM> c;
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
+																	boundaryHint, nodesVisited);
+
+					} else {
+						auto t1 = std::chrono::high_resolution_clock::now();
+						found = prim->findClosestPoint(s, c);
+						auto t2 = std::chrono::high_resolution_clock::now();
+						ticks += (t2 - t1).count();
 						c.nodeIndex = nodeIndex;
 						c.referenceIndex = referenceIndex;
 						c.objectIndex = this->index;
