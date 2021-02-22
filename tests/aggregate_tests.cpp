@@ -292,12 +292,12 @@ void run()
 	printf("FCPQ Benchmark: %d queries\n", opt_queries);
 	printf("%10s, %10s, %8s, %22s, %7s, %8s, %13s, %12s\n", "CPQ/RAY", "Vectorized", "Coherent", "Build Heuristic", "Threads", "Nodes", "% Primitive", "Time");
 	if(opt_run_auto) {
-		for(auto& use_rays : Srays) {
-			for (auto& vectorize : Svectorize) {
-				for (auto& coherent : Scoherent) {
-					for (auto& bvh_type : Stypes) {
+		for(const auto& use_rays : Srays) {
+			for (const auto& vectorize : Svectorize) {
+				for (const auto& coherent : Scoherent) {
+					for (const auto& bvh_type : Stypes) {
 						if(bvh_type == AggregateType::Baseline) continue;
-						for (auto& threads : Sthreads) {
+						for (const auto& threads : Sthreads) {
 							if(threads > 2 * (int)std::thread::hardware_concurrency()) break;
 							run_benchmark(use_rays, bvh_type, vectorize, coherent, threads);
 						}
