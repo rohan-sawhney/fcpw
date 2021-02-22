@@ -33,7 +33,7 @@ inline Index parseFaceIndex(const std::string& token) {
 
 	int i = 0;
 	while (std::getline(in, indexString, '/')) {
-		if (indexString != "/") {
+		if (indexString != "\\") {
 			std::stringstream ss(indexString);
 			ss >> indices[i++];
 		}
@@ -87,17 +87,8 @@ inline void loadLineSegmentSoupFromOBJFile(const std::string& filename, PolygonS
 	}
 	
 	for(int& idx : soup.indices) {
-		
-		if (idx < 0) {
-
-			// Negative is relative to the end of the vertex stream
-			idx += soup.indices.size();
-
-		} else {
-
-			// Indices are 1-indexed
-			idx--;
-		}
+		if (idx < 0) idx += (int)soup.positions.size();
+		else idx--;
 	}
 
 	// close
@@ -135,13 +126,6 @@ inline void loadTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup
 		} else if (token == "f") {
 			while (ss >> token) {
 				Index index = parseFaceIndex(token);
-
-				if (index.position < 0) {
-					getline(in, line);
-					size_t i = line.find_first_not_of("\t\n\v\f\r ");
-					index = parseFaceIndex(line.substr(i));
-				}
-
 				soup.indices.emplace_back(index.position);
 				soup.tIndices.emplace_back(index.uv);
 			}
@@ -150,6 +134,15 @@ inline void loadTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup
 
 	if (soup.textureCoordinates.size() == 0) {
 		soup.tIndices.clear();
+	}
+
+	for(int& idx : soup.indices) {
+		if (idx < 0) idx += (int)soup.positions.size();
+		else idx--;
+	}
+	for(int& idx : soup.tIndices) {
+		if (idx < 0) idx += (int)soup.positions.size();
+		else idx--;
 	}
 
 	// close
