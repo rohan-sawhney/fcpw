@@ -40,3 +40,4 @@ deps/embree
 deps/polyscope
 deps/tbb
 .vscode
+tests/large_input

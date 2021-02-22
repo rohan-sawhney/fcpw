@@ -33,14 +33,13 @@ inline Index parseFaceIndex(const std::string& token) {
 
 	int i = 0;
 	while (std::getline(in, indexString, '/')) {
-		if (indexString != "\\") {
+		if (indexString != "/") {
 			std::stringstream ss(indexString);
 			ss >> indices[i++];
 		}
 	}
 
-	// decrement since indices in OBJ files are 1-based
-	return Index(indices[0] - 1, indices[1] - 1, indices[2] - 1);
+	return Index(indices[0], indices[1], indices[2]);
 }
 
 inline void loadLineSegmentSoupFromOBJFile(const std::string& filename, PolygonSoup<3>& soup)
@@ -72,12 +71,6 @@ inline void loadLineSegmentSoupFromOBJFile(const std::string& filename, PolygonS
 			while (ss >> token) {
 				Index index = parseFaceIndex(token);
 
-				if (index.position < 0) {
-					getline(in, line);
-					size_t i = line.find_first_not_of("\t\n\v\f\r ");
-					index = parseFaceIndex(line.substr(i));
-				}
-
 				if (tokenIsF) indices.emplace_back(index.position);
 				else soup.indices.emplace_back(index.position);
 			}
@@ -90,6 +83,20 @@ inline void loadLineSegmentSoupFromOBJFile(const std::string& filename, PolygonS
 					soup.indices.emplace_back(indices[j]);
 				}
 			}
+		}
+	}
+	
+	for(int& idx : soup.indices) {
+		
+		if (idx < 0) {
+
+			// Negative is relative to the end of the vertex stream
+			idx += soup.indices.size();
+
+		} else {
+
+			// Indices are 1-indexed
+			idx--;
 		}
 	}
 

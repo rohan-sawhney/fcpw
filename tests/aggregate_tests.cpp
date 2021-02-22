@@ -256,9 +256,7 @@ void run()
 		scene.build(heuristic, vector, true);
 		sceneData = scene.getSceneData();
 
-		opt_time_rays = rays;
 		opt_threads = threads;
-
 		uint64_t time = 0;
 		int max_nodes = 0;
 		double prim_percent = 0.0;
@@ -286,7 +284,7 @@ void run()
 	std::vector<bool> Svectorize = {false, true};
 	std::vector<bool> Scoherent = {false, true};
 	std::vector<int> Sthreads = {1, 2, 4, 8, 16, 32, 64, 128};
-	std::vector<bool> Srays = {false, true}; 
+	std::vector<bool> Srays = {false, true};
 
 	printf("\n");
 	printf("FCPQ Benchmark: %d queries\n", opt_queries);
