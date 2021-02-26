@@ -17,4 +17,4 @@ echo "[BENCHING] Hairball"
 echo "[BENCHING] Buddha"
 ../build/tests/aggregate_tests -s large_input/buddha.obj --auto -n $QUERIES > output/buddha.txt
 echo "[BENCHING] Powerplant"
-../build/tests/aggregate_tests -s large_input/powerplant.obj --auto -n $QUERIES > output/powerplant.txt
+../build/tests/aggregate_tests -s large_input/powerplant.obj --auto -n $((QUERIES/10)) > output/powerplant.txt

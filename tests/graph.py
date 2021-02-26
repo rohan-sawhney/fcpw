@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 
 import matplotlib.pyplot as plt
+import matplotlib.ticker as ticker
 import numpy as np
-from collections import defaultdict
+import os
 import argparse
+from collections import defaultdict
 
 x_axis_types = ['Type', 'Vectorized', 'Coherent', 'Heuristic', 'Threads']
 y_axis_types = ['Nodes', 'Primitives', 'Time']
@@ -29,47 +31,106 @@ if args.vectorize not in x_axis_values[1]:
     print('invalid vectorize arg: ', x_axis_values[1])
 if args.coherent not in x_axis_values[2]:
     print('invalid coherent arg: ', x_axis_values[2])
-if args.heuristic not in x_axis_values[3]:
+if args.heuristic not in x_axis_values[3] and args.heuristic != 'avg':
     print('invalid heuristic arg: ', x_axis_values[3])
-if args.threads not in x_axis_values[4]:
+if args.threads not in x_axis_values[4] and args.threads != 'avg':
     print('invalid threads arg: ', x_axis_values[4])
-if args.x not in x_axis_types:
+if args.x not in x_axis_types and args.x != 'auto':
     print('invalid x arg: ', x_axis_values)
-if args.y not in y_axis_types:
+if args.y not in y_axis_types and args.y != 'auto':
     print('invalid y arg: ', y_axis_types)
 
 file = open(args.data, mode = 'r', encoding = 'utf-8-sig')
 lines = file.readlines()
 file.close()
-
 db = {}
 for line in lines:
     line = line.split(',')
     line = [i.strip() for i in line]
     if line[0] in x_axis_values[0]:
-        db[tuple(line[0:5])] = line[5:]
+        data = [float(line[5]), float(line[6].strip('%')), float(line[7])]
+        db[tuple(line[0:5])] = data
 
-x_axis_idx = x_axis_types.index(args.x)
-labels = x_axis_values[x_axis_idx]
-values = []
 
-key = [args.rays,args.vectorize,args.coherent,args.heuristic,args.threads]
-for k in labels:
-    key[x_axis_idx] = k
-    try:
-        values.append(db[tuple(key)][y_axis_types.index(args.y)])
-    except:
-        pass
+def accumulate(k, y_idx, ranges):
+    acc = 0
+    if len(ranges) > 0:
+        i = 0
+        for v in x_axis_values[ranges[0]]:
+            k[ranges[0]] = v
+            res = accumulate(k, y_idx, ranges[1:])
+            if res != None: 
+                acc += res
+                i += 1
+        if i > 0:
+            return acc / i
+        else:
+            return None
+    else:
+        try:
+            return db[tuple(k)][y_idx]
+        except:
+            return None
 
-labels = labels[0:len(values)]
+def do_graph(x_idx, y_idx):
+    x_name = x_axis_types[x_idx]
+    y_name = y_axis_types[y_idx]
+    labels = x_axis_values[x_idx]
+    values = []
+    
+    ranges = []
+    if args.heuristic == 'avg' and x_name != 'Heuristic' and y_name != 'Heuristic':
+        ranges.append(3)
+    if args.threads == 'avg' and x_name != 'Threads' and y_name != 'Threads':
+        ranges.append(4)
 
-plt.title('FCPQ Benchmark: {} vs {}'.format(args.x,args.y))
-plt.plot(labels, values)
-plt.xlabel(args.x)
-plt.ylabel(args.y)
-plt.gca().invert_yaxis()
+    for k in labels:
+        key = [args.rays,args.vectorize,args.coherent,args.heuristic,args.threads]
+        key[x_idx] = k
+        acc = accumulate(key, y_idx, ranges)
+        if acc != None:
+            values.append(acc)
 
-if args.save == '':
-    plt.show()
+    labels = labels[0:len(values)]
+
+    plt.clf()
+    if x_name == 'Threads':
+        labels = [float(l) for l in labels]
+        plt.xscale('log')
+        plt.xticks(labels)
+        plt.gca().xaxis.set_major_formatter(ticker.ScalarFormatter())
+        if y_name == 'Time':
+            plt.yscale('log')
+            plt.gca().yaxis.set_major_formatter(ticker.ScalarFormatter())
+            plt.gca().yaxis.set_minor_formatter(ticker.ScalarFormatter())
+            
+    plt.title('FCPQ Benchmark: {} vs {}'.format(x_name,y_name))
+    plt.plot(labels, values)
+    plt.xlabel(x_name)
+    plt.ylabel(y_name)
+
+    if args.save == '':
+        plt.show()
+    else:
+        plt.savefig(os.path.join(args.save, '{}_{}__{}_{}_{}_{}_{}.png'.format(x_name,y_name,args.rays,args.vectorize,args.coherent,args.heuristic,args.threads)))
+
+
+if args.x != 'auto' and args.y != 'auto':
+    x_axis_idx = x_axis_types.index(args.x)
+    y_axis_idx = y_axis_types.index(args.y)
+    do_graph(x_axis_idx, y_axis_idx)
+
+elif args.x != 'auto':
+    x_axis_idx = x_axis_types.index(args.x)
+    for i in range(len(y_axis_types)):
+        do_graph(x_axis_idx, i)
+
+elif args.y != 'auto':
+    y_axis_idx = x_axis_types.index(args.y)
+    for i in range(len(x_axis_types)):
+        do_graph(i, y_axis_idx)
+
 else:
-    plt.savefig(args.save + '/{}_{}.png'.format(args.x,args.y))
+    for i in range(len(x_axis_types)):
+        for j in range(len(y_axis_types)):
+            do_graph(i, j)

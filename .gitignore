@@ -41,4 +41,4 @@ deps/polyscope
 deps/tbb
 .vscode
 tests/large_input
-tests/output/*.png
+tests/output/graphs
