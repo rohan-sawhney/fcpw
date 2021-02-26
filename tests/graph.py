@@ -104,7 +104,7 @@ def do_graph(x_idx, y_idx):
             plt.gca().yaxis.set_major_formatter(ticker.ScalarFormatter())
             plt.gca().yaxis.set_minor_formatter(ticker.ScalarFormatter())
             
-    plt.title('FCPQ Benchmark: {} vs {}'.format(x_name,y_name))
+    plt.title('{} vs {} [{},{},{},{},{}]'.format(x_name,y_name,args.rays,"SIMD" if args.vectorize == 'yes' else "Scalar","Coherent" if args.coherent == 'yes' else "Incoherent",args.heuristic,args.threads))
     plt.plot(labels, values)
     plt.xlabel(x_name)
     plt.ylabel(y_name)
