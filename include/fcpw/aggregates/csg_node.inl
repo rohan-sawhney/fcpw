@@ -49,6 +49,12 @@ inline BoundingBox<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::bou
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline BoundingSphere<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::boundingSphere() const
+{
+	return box.sphere();
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline Vector<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::centroid() const
 {
 	return box.centroid();

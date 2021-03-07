@@ -19,6 +19,19 @@ inline BoundingBox<3> LineSegment::boundingBox() const
 	return box;
 }
 
+inline BoundingSphere<3> LineSegment::boundingSphere() const
+{
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+
+	const Vector3 avg = 0.5f * (pa + pb);
+	BoundingSphere<3> box(avg, 0.0f);
+	box.expandToInclude(pa);
+	box.expandToInclude(pb);
+
+	return box;
+}
+
 inline Vector3 LineSegment::centroid() const
 {
 	const Vector3& pa = soup->positions[indices[0]];

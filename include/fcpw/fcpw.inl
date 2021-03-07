@@ -494,6 +494,17 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, cons
 			case BoundingVolumeType::AABB: {
 				objectAggregates[i] = makeAggregate<3, BoundingBox<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
 			} break;
+			case BoundingVolumeType::Sphere: {
+				objectAggregates[i] = makeAggregate<3, BoundingSphere<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
+			} break;
+			case BoundingVolumeType::OBB: {
+				// objectAggregates[i] = makeAggregate<3, OrientedBoundingBox<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
+				objectAggregates[i] = makeAggregate<3, BoundingBox<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
+			} break;
+			case BoundingVolumeType::RSS: {
+				// objectAggregates[i] = makeAggregate<3, RectSweptSphere<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
+				objectAggregates[i] = makeAggregate<3, BoundingBox<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
+			} break;
 			}
 			
 			nMixedObjectPtrs++;
@@ -512,6 +523,41 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, cons
 			switch(volume) {
 			case BoundingVolumeType::AABB: {
 
+				using BoundingType = BoundingBox<3>;
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<LineSegment *>&)>;
+				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, BoundingType, LineSegment>::sort,
+																		std::placeholders::_1, std::placeholders::_2,
+																		std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, BoundingType, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize, printStats, sortLineSegmentPositions);
+
+			} break;
+
+			case BoundingVolumeType::Sphere: {
+
+				using BoundingType = BoundingSphere<3>;
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<LineSegment *>&)>;
+				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, BoundingType, LineSegment>::sort,
+																		std::placeholders::_1, std::placeholders::_2,
+																		std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, BoundingType, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize, printStats, sortLineSegmentPositions);
+
+			} break;
+
+			case BoundingVolumeType::OBB: {
+
+				// using BoundingType = OrientedBoundingBox<3>;
+				using BoundingType = BoundingBox<3>;
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<LineSegment *>&)>;
+				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, BoundingType, LineSegment>::sort,
+																		std::placeholders::_1, std::placeholders::_2,
+																		std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, BoundingType, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize, printStats, sortLineSegmentPositions);
+
+			} break;
+
+			case BoundingVolumeType::RSS: {
+
+				// using BoundingType = RectSweptSphere<3>;
 				using BoundingType = BoundingBox<3>;
 				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<LineSegment *>&)>;
 				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, BoundingType, LineSegment>::sort,
@@ -545,6 +591,42 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, cons
 				objectAggregates[i] = makeAggregate<3, BoundingType, Triangle>(aggregateType, triangleObjectPtr, vectorize,
 																printStats, sortTrianglePositions);
 			} break;
+
+			case BoundingVolumeType::Sphere: {
+				
+				using BoundingType = BoundingSphere<3>;
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<Triangle *>&)>;
+				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, BoundingType, Triangle>::sort,
+																std::placeholders::_1, std::placeholders::_2,
+																std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, BoundingType, Triangle>(aggregateType, triangleObjectPtr, vectorize,
+																printStats, sortTrianglePositions);
+			} break;
+
+			case BoundingVolumeType::OBB: {
+				
+				// using BoundingType = OrientedBoundingBox<3>;
+				using BoundingType = BoundingBox<3>;
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<Triangle *>&)>;
+				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, BoundingType, Triangle>::sort,
+																std::placeholders::_1, std::placeholders::_2,
+																std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, BoundingType, Triangle>(aggregateType, triangleObjectPtr, vectorize,
+																printStats, sortTrianglePositions);
+			} break;
+
+			case BoundingVolumeType::RSS: {
+				
+				// using BoundingType = RectSweptSphere<3>;
+				using BoundingType = BoundingBox<3>;
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<Triangle *>&)>;
+				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, BoundingType, Triangle>::sort,
+																std::placeholders::_1, std::placeholders::_2,
+																std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, BoundingType, Triangle>(aggregateType, triangleObjectPtr, vectorize,
+																printStats, sortTrianglePositions);
+			} break;
+
 			}
 
 			nTriangleObjectPtrs++;

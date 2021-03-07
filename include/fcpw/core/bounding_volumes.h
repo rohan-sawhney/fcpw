@@ -1,11 +1,18 @@
 #pragma once
 
+#include <fcpw/core/core.h>
 #include <fcpw/core/ray.h>
 
 namespace fcpw {
 
 template<size_t DIM>
+struct BoundingBox;
+
+template<size_t DIM>
 struct BoundingSphere {
+
+	BoundingSphere() : c(Vector<DIM>::Zero()), r2(-1.0f) {}
+
 	// constructor
 	BoundingSphere(const Vector<DIM>& c_, float r2_): c(c_), r2(r2_) {}
 
@@ -21,6 +28,74 @@ struct BoundingSphere {
 		}
 
 		return BoundingSphere<DIM>(tc, tr2);
+	}
+
+	// checks for ray intersection
+	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
+		
+		Vector<DIM> rel_pos = r.o - c;
+		float b = 2.0f * rel_pos.dot(r.d);
+		float c = rel_pos.squaredNorm() - r2;
+		float d = b * b - 4 * c;
+
+		if(d <= 0.0f) return false;
+
+		float sqd = std::sqrt(d);
+
+		tMin = (-b - sqd) / 2.0f;
+		tMax = (-b + sqd) / 2.0f;
+		return true;
+	}
+
+	bool overlap(const BoundingSphere<DIM>& s, float& d2Min, float& d2Max) const {
+
+		float center_dist = (s.c - c).norm();
+		float r = std::sqrt(r2);
+		float close = std::max(center_dist - r, 0.0f);
+		float far = center_dist + r;
+		d2Min = close * close;
+		d2Max = far * far;
+		return d2Min <= s.r2;
+	}
+
+	void expandToInclude(const Vector<DIM>& p) {
+		if(r2 < 0.0f) {
+			c = p;
+			r2 = 0.0f;
+		} else {
+			r2 = std::max(r2, (p - c).squaredNorm());
+		}
+	}
+
+	void expandToInclude(const BoundingSphere<DIM>& b)	{
+		float dist = (b.c - c).norm() + std::sqrt(b.r2);
+		r2 = std::max(r2, dist * dist);
+	}
+
+	BoundingBox<DIM> box() const;
+	BoundingSphere sphere() const {
+		return *this;
+	}
+
+	static constexpr float PI_F = 3.1415926535897f;
+	
+	float surfaceArea() const {
+		return 4.0f * PI_F * r2;
+	}
+	float volume() const {
+		return (4.0f / 3.0f) * PI_F * r2 * std::sqrt(r2);
+	}
+
+	bool isValid() const {
+		return r2 >= 0.0f;
+	}
+
+	BoundingSphere<DIM> intersect(const BoundingSphere<DIM>& b) const {
+		float P = (b.c - c).squaredNorm();
+		float Q = (r2 - b.r2 + P) / (2.0f * P);
+		Vector<DIM> B = c + Q * (b.c - c);
+		float R = std::sqrt(r2 - (B - c).squaredNorm());
+		return BoundingSphere(B, R);
 	}
 
 	// members
@@ -41,8 +116,17 @@ struct BoundingBox {
 		pMax = p + epsilonVector;
 	}
 
+	BoundingBox(const Vector<DIM>& pMin, const Vector<DIM>& pMax) : pMin(pMin), pMax(pMax) {}
+
 	BoundingBox box() const {
 		return *this;
+	}
+	BoundingSphere<DIM> sphere() const {
+		Vector<DIM> avg = 0.5f * (pMin + pMax);
+		BoundingSphere<DIM> box(avg, 0.0f);
+		box.expandToInclude(pMin);
+		box.expandToInclude(pMax);
+		return box;
 	}
 
 	// expands volume to include point
@@ -170,5 +254,11 @@ struct BoundingBox {
 	// members
 	Vector<DIM> pMin, pMax;
 };
+
+template<size_t DIM>
+BoundingBox<DIM> BoundingSphere<DIM>::box() const {
+	float r = std::sqrt(r2);
+	return BoundingBox<DIM>(c.array() - r, c.array() + r);
+}
 
 } // namespace fcpw

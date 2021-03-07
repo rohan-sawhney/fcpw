@@ -24,6 +24,9 @@ enum class AggregateType {
 
 enum class BoundingVolumeType {
 	AABB = 0,
+	Sphere = 1,
+	OBB = 2,
+	RSS = 3,
 };
 
 struct CsgTreeNode {

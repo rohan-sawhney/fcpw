@@ -21,6 +21,17 @@ inline BoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingBox() const
 }
 
 template<size_t DIM, typename PrimitiveType>
+inline BoundingSphere<DIM> Baseline<DIM, PrimitiveType>::boundingSphere() const
+{
+	BoundingBox<DIM> bb;
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		bb.expandToInclude(primitives[p]->boundingBox());
+	}
+
+	return bb.sphere();
+}
+
+template<size_t DIM, typename PrimitiveType>
 inline Vector<DIM> Baseline<DIM, PrimitiveType>::centroid() const
 {
 	Vector<DIM> c = Vector<DIM>::Zero();

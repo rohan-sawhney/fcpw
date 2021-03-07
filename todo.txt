@@ -1,6 +1,7 @@
 
 TODO (Max):
     - bounding sphere 
+    - fix shit with lines and 2d
     - OBB
     - RSS
     - make mbvh compile/work again

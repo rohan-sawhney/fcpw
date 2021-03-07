@@ -16,7 +16,20 @@ public:
 	virtual ~Primitive() {}
 
 	// returns bounding box
+	template<typename BoundingType>
+	BoundingType boundingVol() const {}
+
+	template<>
+	BoundingBox<DIM> boundingVol<BoundingBox<DIM>>() const {
+		return boundingBox();
+	}
+	template<>
+	BoundingSphere<DIM> boundingVol<BoundingSphere<DIM>>() const {
+		return boundingSphere();
+	}
+
 	virtual BoundingBox<DIM> boundingBox() const = 0;
+	virtual BoundingSphere<DIM> boundingSphere() const = 0;
 
 	// returns centroid
 	virtual Vector<DIM> centroid() const = 0;
@@ -183,6 +196,9 @@ public:
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const {
 		return aggregate->boundingBox().transform(t);
+	}
+	BoundingSphere<DIM> boundingSphere() const {
+		return aggregate->boundingSphere().transform(t);
 	}
 
 	// returns centroid

@@ -12,6 +12,7 @@ public:
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
+	BoundingSphere<DIM> boundingSphere() const;
 
 	// returns centroid
 	Vector<DIM> centroid() const;

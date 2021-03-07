@@ -98,7 +98,7 @@ inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeObjectSplit(const Bo
 	boxIntersected = BoundingType();
 
 	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
-		Vector<DIM> extent = nodeBoundingBox.extent();
+		Vector<DIM> extent = nodeBoundingBox.box().extent();
 		float surfaceArea = nodeBoundingBox.surfaceArea();
 		float volume = nodeBoundingBox.volume();
 
@@ -115,7 +115,7 @@ inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeObjectSplit(const Bo
 			}
 
 			for (int p = nodeStart; p < nodeEnd; p++) {
-				int bucketIndex = (int)((referenceCentroids[p][dim] - nodeBoundingBox.pMin[dim])/bucketWidth);
+				int bucketIndex = (int)((referenceCentroids[p][dim] - nodeBoundingBox.box().pMin[dim])/bucketWidth);
 				bucketIndex = clamp(bucketIndex, 0, nBuckets - 1);
 				buckets[bucketIndex].first.expandToInclude(referenceBoxes[p]);
 				buckets[bucketIndex].second += 1;
@@ -145,7 +145,7 @@ inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeObjectSplit(const Bo
 					if (cost < splitCost) {
 						splitCost = cost;
 						splitDim = (int)dim;
-						splitCoord = nodeBoundingBox.pMin[dim] + b*bucketWidth;
+						splitCoord = nodeBoundingBox.box().pMin[dim] + b*bucketWidth;
 						boxIntersected = boxRefLeft.intersect(rightBucketBoxes[b].first);
 					}
 				}
@@ -153,13 +153,13 @@ inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeObjectSplit(const Bo
 		}
 
 		// set split dim to max dimension when packing leaves
-		if (packLeaves && splitDim == -1) splitDim = nodeCentroidBox.maxDimension();
+		if (packLeaves && splitDim == -1) splitDim = nodeCentroidBox.box().maxDimension();
 	}
 
 	// if no split dimension was chosen, fallback to LongestAxisCenter heuristic
 	if (splitDim == -1) {
-		splitDim = nodeCentroidBox.maxDimension();
-		splitCoord = (nodeCentroidBox.pMin[splitDim] + nodeCentroidBox.pMax[splitDim])*0.5f;
+		splitDim = nodeCentroidBox.box().maxDimension();
+		splitCoord = (nodeCentroidBox.box().pMin[splitDim] + nodeCentroidBox.box().pMax[splitDim])*0.5f;
 	}
 
 	return splitCost;
@@ -279,7 +279,7 @@ inline void Sbvh<DIM, BoundingType, PrimitiveType>::build()
 	BoundingType boxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
-		referenceBoxes[i] = primitives[i]->boundingBox();
+		referenceBoxes[i] = primitives[i]->boundingVol<BoundingType>();
 		referenceCentroids[i] = primitives[i]->centroid();
 		boxRoot.expandToInclude(referenceBoxes[i]);
 	}
@@ -296,6 +296,12 @@ template<size_t DIM, typename BoundingType, typename PrimitiveType>
 inline BoundingBox<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingBox() const
 {
 	return flatTree.size() > 0 ? flatTree[0].box.box() : BoundingBox<DIM>();
+}
+
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline BoundingSphere<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingSphere() const
+{
+	return flatTree.size() > 0 ? flatTree[0].box.sphere() : BoundingSphere<DIM>();
 }
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>

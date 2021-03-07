@@ -22,6 +22,21 @@ inline BoundingBox<3> Triangle::boundingBox() const
 	return box;
 }
 
+inline BoundingSphere<3> Triangle::boundingSphere() const
+{
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
+
+	const Vector3 avg = (1.0f / 3.0f) * (pa + pb + pc);
+	BoundingSphere<3> box(avg, 0.0f);
+	box.expandToInclude(pa);
+	box.expandToInclude(pb);
+	box.expandToInclude(pc);
+
+	return box;
+}
+
 inline Vector3 Triangle::centroid() const
 {
 	const Vector3& pa = soup->positions[indices[0]];

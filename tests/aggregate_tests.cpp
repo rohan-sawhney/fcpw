@@ -19,6 +19,11 @@ static bool opt_time_rays = false;
 static bool opt_embree = false;
 static bool opt_check = false;
 
+const std::vector<std::string> bvh_type_names = 
+		{"Baseline", "Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea", "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"};
+const std::vector<std::string> vol_type_names = 
+		{"AABB", "Sphere", "OBB", "RSS"};
+
 template<size_t DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,
 					   std::vector<BoundingBox<DIM>>& boxes, int depth)
@@ -377,6 +382,8 @@ void run_checks() {
 
 	auto run_tests = [&](bool rays, BoundingVolumeType volume, AggregateType heuristic, bool vector) {
 			
+		printf("CHECKING: %s, %s, %s, %s\n", rays ? "RAY" : "CPQ", vector ? "yes" : "no", bvh_type_names[(int)heuristic].c_str(), vol_type_names[(int)volume].c_str());
+
 		testScene.build(heuristic, volume, vector, true);
 		SceneData<DIM>* sceneData = testScene.getSceneData();
 		if (rays) {
@@ -386,7 +393,7 @@ void run_checks() {
 		}
 	};
 
-	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB};
+	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere, BoundingVolumeType::OBB, BoundingVolumeType::RSS};
 	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};
@@ -443,11 +450,6 @@ void run()
 	//  - Coherent queries or not
 	//  - [WIP] bounding volume type
 
-	std::vector<std::string> bvh_type_names = 
-		{"Baseline", "Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea", "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"};
-	std::vector<std::string> vol_type_names = 
-		{"AABB"};
-
 	auto run_benchmark = [&](bool rays, BoundingVolumeType volume, AggregateType heuristic, bool vector, bool coherent, int threads) {
 			
 		scene.build(heuristic, volume, vector, true);
@@ -476,7 +478,7 @@ void run()
 			   bvh_type_names[(int)heuristic].c_str(), vol_type_names[(int)volume].c_str(), threads, max_nodes, prim_percent, time / 1e9);
 	};
 
-	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB};
+	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere, BoundingVolumeType::OBB, BoundingVolumeType::RSS};
 	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};
@@ -531,7 +533,7 @@ int main(int argc, const char *argv[]) {
     CLI11_PARSE(args, argc, argv);
 
 	opt_build_heuristic = clamp(opt_build_heuristic, 0, 5);
-	opt_bounding_volume = clamp(opt_bounding_volume, 0, 0);
+	opt_bounding_volume = clamp(opt_bounding_volume, 0, 3);
 
 	files.emplace_back(std::make_pair(file, LoadingOption::ObjTriangles));
 
