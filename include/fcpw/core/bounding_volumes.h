@@ -19,9 +19,9 @@ struct BoundingSphere {
 	// computes transformed sphere
 	BoundingSphere<DIM> transform(const Transform<DIM>& t) const {
 		Vector<DIM> tc = t*c;
-		float tr2 = maxFloat;
+		float tr2 = -1.0f;
 
-		if (r2 < maxFloat) {
+		if (r2 >= 0.0f) {
 			Vector<DIM> direction = Vector<DIM>::Zero();
 			direction[0] = 1;
 			tr2 = (t*(c + direction*std::sqrt(r2)) - tc).squaredNorm();
@@ -42,8 +42,8 @@ struct BoundingSphere {
 
 		float sqd = std::sqrt(d);
 
-		tMin = (-b - sqd) / 2.0f;
-		tMax = (-b + sqd) / 2.0f;
+		tMin = std::max((-b - sqd) / 2.0f, 0.0f);
+		tMax = std::min((-b + sqd) / 2.0f, r.tMax);
 		return true;
 	}
 
@@ -68,8 +68,12 @@ struct BoundingSphere {
 	}
 
 	void expandToInclude(const BoundingSphere<DIM>& b)	{
-		float dist = (b.c - c).norm() + std::sqrt(b.r2);
-		r2 = std::max(r2, dist * dist);
+		if(r2 < 0.0f) {
+			*this = b;
+		} else {
+			float dist = (b.c - c).norm() + std::sqrt(b.r2);
+			r2 = std::max(r2, dist * dist);
+		}
 	}
 
 	BoundingBox<DIM> box() const;
@@ -94,7 +98,7 @@ struct BoundingSphere {
 		float P = (b.c - c).squaredNorm();
 		float Q = (r2 - b.r2 + P) / (2.0f * P);
 		Vector<DIM> B = c + Q * (b.c - c);
-		float R = std::sqrt(r2 - (B - c).squaredNorm());
+		float R = r2 - (B - c).squaredNorm();
 		return BoundingSphere(B, R);
 	}
 
