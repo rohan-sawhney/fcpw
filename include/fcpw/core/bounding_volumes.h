@@ -41,6 +41,10 @@ struct BoundingBox {
 		pMax = p + epsilonVector;
 	}
 
+	BoundingBox box() const {
+		return *this;
+	}
+
 	// expands volume to include point
 	void expandToInclude(const Vector<DIM>& p) {
 		Vector<DIM> epsilonVector = Vector<DIM>::Constant(epsilon);

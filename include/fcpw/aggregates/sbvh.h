@@ -16,10 +16,10 @@ enum class CostHeuristic {
 	OverlapVolume
 };
 
-template<size_t DIM>
+template<typename BoundingType, size_t DIM>
 struct SbvhNode {
 	// members
-	BoundingBox<DIM> box;
+	BoundingType box;
 	union {
 		int referenceOffset;
 		int secondChildOffset;
@@ -37,16 +37,16 @@ struct BvhTraversal {
 	float distance; // minimum distance (parametric, squared, ...) to this node
 };
 
-template<size_t DIM, typename PrimitiveType>
-using SortPositionsFunc = std::function<void(const std::vector<SbvhNode<DIM>>&, std::vector<PrimitiveType *>&)>;
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+using SortPositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, DIM>>&, std::vector<PrimitiveType *>&)>;
 
-template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
+template<size_t DIM, typename BoundingType=BoundingBox<DIM>, typename PrimitiveType=Primitive<DIM>>
 class Sbvh: public Aggregate<DIM> {
 public:
 	// constructor
 	Sbvh(const CostHeuristic& costHeuristic_,
 		 std::vector<PrimitiveType *>& primitives_,
-		 SortPositionsFunc<DIM, PrimitiveType> sortPositions_={},
+		 SortPositionsFunc<DIM, BoundingType, PrimitiveType> sortPositions_={},
 		 bool printStats_=false, bool packLeaves_=false, int leafSize_=4, int nBuckets_=8);
 
 	// returns bounding box
@@ -82,29 +82,29 @@ public:
 
 protected:
 	// computes split cost based on heuristic
-	float computeSplitCost(const BoundingBox<DIM>& boxLeft,
-						   const BoundingBox<DIM>& boxRight,
+	float computeSplitCost(const BoundingType& boxLeft,
+						   const BoundingType& boxRight,
 						   float parentSurfaceArea, float parentVolume,
 						   int nReferencesLeft, int nReferencesRight,
 						   int depth) const;
 
 	// computes object split
-	float computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
-							 const BoundingBox<DIM>& nodeCentroidBox,
-							 const std::vector<BoundingBox<DIM>>& referenceBoxes,
+	float computeObjectSplit(const BoundingType& nodeBoundingBox,
+							 const BoundingType& nodeCentroidBox,
+							 const std::vector<BoundingType>& referenceBoxes,
 							 const std::vector<Vector<DIM>>& referenceCentroids,
 							 int depth, int nodeStart, int nodeEnd, int& splitDim,
-							 float& splitCoord, BoundingBox<DIM>& boxIntersected);
+							 float& splitCoord, BoundingType& boxIntersected);
 
 	// performs object split
 	int performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
-						   std::vector<BoundingBox<DIM>>& referenceBoxes,
+						   std::vector<BoundingType>& referenceBoxes,
 						   std::vector<Vector<DIM>>& referenceCentroids);
 
 	// helper function to build binary tree
-	void buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+	void buildRecursive(std::vector<BoundingType>& referenceBoxes,
 						std::vector<Vector<DIM>>& referenceCentroids,
-						std::vector<SbvhNode<DIM>>& buildNodes,
+						std::vector<SbvhNode<BoundingType, DIM>>& buildNodes,
 						int parent, int start, int end, int depth);
 
 	// builds binary tree
@@ -137,9 +137,9 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	int nNodes, nLeafs, leafSize, nBuckets, maxDepth, depthGuess;
-	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes;
+	std::vector<std::pair<BoundingType, int>> buckets, rightBucketBoxes;
 	std::vector<PrimitiveType *>& primitives;
-	std::vector<SbvhNode<DIM>> flatTree;
+	std::vector<SbvhNode<BoundingType, DIM>> flatTree;
 	bool packLeaves, primitiveTypeIsAggregate;
 
 	template<size_t U, size_t V, typename W>

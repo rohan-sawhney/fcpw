@@ -72,6 +72,7 @@ public:
 	// vectorized intersection and closest point queries; set reduceMemoryFootprint to true
 	// to reduce the memory footprint of fcpw when constructing an aggregate, however if you
 	// plan to access the scene data let it remain false
+	template<typename BoundingType=BoundingBox<DIM>>
 	void build(const AggregateType& aggregateType, bool vectorize,
 			   bool printStats=false, bool reduceMemoryFootprint=false);
 

@@ -16,6 +16,7 @@ static bool opt_coherent = false;
 static bool opt_run_auto = false;
 static bool opt_time_rays = false;
 static bool opt_embree = false;
+static bool opt_check = false;
 
 template<size_t DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,
@@ -213,6 +214,199 @@ uint64_t timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregat
 	return (t2 - t1).count();
 }
 
+
+template<size_t DIM>
+void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+							 const std::unique_ptr<Aggregate<DIM>>& aggregate2,
+							 const std::vector<Vector<DIM>>& queryPoints,
+							 const std::vector<int>& indices)
+{
+	std::atomic<bool> stopQueries(false);
+	auto test = [&](int begin, int end) {
+		Interaction<DIM> cPrev;
+		Vector<DIM> queryPrev = Vector<DIM>::Zero();
+
+		for (int i = begin; i < end; ++i) {
+			if (stopQueries) break;
+
+			int I = indices[i];
+			float distPrev = (queryPoints[I] - queryPrev).norm();
+
+			float r = (cPrev.d + distPrev)*1.25f;
+			float r2 = cPrev.nodeIndex == -1 ? maxFloat : r * r;
+
+			Interaction<DIM> c1;
+			BoundingSphere<DIM> s1(queryPoints[I], maxFloat);
+			bool found1 = aggregate1->findClosestPoint(s1, c1);
+
+			int nodesVisited = 0;
+			Interaction<DIM> c2;
+			BoundingSphere<DIM> s2(queryPoints[I], r2);
+			bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0, aggregate2->index, Vector<DIM>::Zero(), nodesVisited);
+
+			if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
+				std::cerr << "d1: " << c1.d << " d2: " << c2.d
+						  << "\np1: " << c1.p << " p2: " << c2.p
+						  << "\nClosest points do not match!" << std::endl;
+				stopQueries = true;
+			}
+
+			if (found2) cPrev = c2;
+			else {
+				std::cerr << "Closest points not found!" << std::endl;
+				stopQueries = true;
+			}
+
+			queryPrev = queryPoints[I];
+		}
+	};
+
+	{
+		int n_threads = std::thread::hardware_concurrency();
+
+		std::vector<std::thread> threads;
+		int grain = opt_queries / n_threads;
+		for(int i = 0; i < n_threads; i++) {
+			int begin = i * grain;
+			int end = i == n_threads - 1 ? opt_queries : begin + grain;
+			threads.emplace_back([&]() {
+				test(begin, end);
+			});
+		}
+		for(auto& t : threads) t.join();
+	}
+}
+
+template<size_t DIM>
+void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+							 const std::unique_ptr<Aggregate<DIM>>& aggregate2,
+							 const std::vector<Vector<DIM>>& rayOrigins,
+							 const std::vector<Vector<DIM>>& rayDirections,
+							 const std::vector<int>& indices)
+{
+	std::atomic<bool> stopQueries(false);
+	auto test = [&](int begin, int end) {
+		Interaction<DIM> cPrev;
+
+		for (int i = begin; i < end; ++i) {
+			if (stopQueries) break;
+			int I = indices[i];
+
+			std::vector<Interaction<DIM>> c1;
+			Ray<DIM> r1(rayOrigins[I], rayDirections[I]);
+			bool hit1 = (bool)aggregate1->intersect(r1, c1);
+
+			int nodesVisited = 0;
+			std::vector<Interaction<DIM>> c2;
+			Ray<DIM> r2(rayOrigins[I], rayDirections[I]);
+			bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, 0, aggregate2->index, nodesVisited);
+
+			if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
+				std::cerr << "d1: " << c1[0].d << " d2: " << c2[0].d
+						  << "\np1: " << c1[0].p << " p2: " << c2[0].p
+						  << "\nIntersections do not match!" << std::endl;
+				stopQueries = true;
+			}
+
+			if (hit2) cPrev = c2[0];
+
+			std::vector<Interaction<DIM>> c3;
+			Ray<DIM> r3(rayOrigins[I], rayDirections[I]);
+			int hit3 = aggregate1->intersect(r3, c3, false, true);
+
+			nodesVisited = 0;
+			std::vector<Interaction<DIM>> c4;
+			Ray<DIM> r4(rayOrigins[I], rayDirections[I]);
+			int hit4 = aggregate2->intersectFromNode(r4, c4, 0, aggregate2->index, nodesVisited, false, true);
+
+			if (hit3 != hit4) {
+				std::cerr << "Number of intersections do not match!"
+						  << " hits1: " << hit3
+						  << " hits2: " << hit4
+						  << std::endl;
+				stopQueries = true;
+			}
+		}
+	};
+
+	{
+		int n_threads = std::thread::hardware_concurrency();
+
+		std::vector<std::thread> threads;
+		int grain = opt_queries / n_threads;
+		for(int i = 0; i < n_threads; i++) {
+			int begin = i * grain;
+			int end = i == n_threads - 1 ? opt_queries : begin + grain;
+			threads.emplace_back([&]() {
+				test(begin, end);
+			});
+		}
+		for(auto& t : threads) t.join();
+	}
+}
+
+void run_checks() {
+
+	Scene<DIM> baseScene;
+	SceneLoader<DIM> sceneLoader;
+	sceneLoader.loadFiles(baseScene, false);
+	baseScene.build(AggregateType::Baseline, false, true);
+	SceneData<DIM> *baseSceneData = baseScene.getSceneData();
+
+	// generate random points and rays used to visualize csg
+	BoundingBox<DIM> boundingBox = baseSceneData->aggregate->boundingBox();
+	boundingBox.pMin *= opt_bb_scale;
+	boundingBox.pMax *= opt_bb_scale;
+
+	std::vector<Vector<DIM>> queryPoints, randomDirections;
+	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
+
+	// generate indices
+	std::vector<int> indices, shuffledIndices;
+	for (int i = 0; i < opt_queries; i++) {
+		indices.emplace_back(i);
+		shuffledIndices.emplace_back(i);
+	}
+
+	unsigned seed = (unsigned)std::chrono::system_clock::now().time_since_epoch().count();
+	std::shuffle(shuffledIndices.begin(), shuffledIndices.end(), std::default_random_engine(seed));
+
+	Scene<DIM> testScene;
+	sceneLoader.loadFiles(testScene, false);
+
+	std::vector<std::string> bvh_type_names = 
+		{"Baseline", "Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea", "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"};
+
+	auto run_tests = [&](bool rays, AggregateType heuristic, bool vector) {
+			
+		testScene.build(heuristic, vector, true);
+		SceneData<DIM>* sceneData = testScene.getSceneData();
+		if (rays) {
+			testIntersectionQueries<DIM>(baseSceneData->aggregate, sceneData->aggregate, queryPoints, randomDirections, shuffledIndices);
+		} else {
+			testClosestPointQueries<DIM>(baseSceneData->aggregate, sceneData->aggregate, queryPoints, shuffledIndices);
+		}
+	};
+
+	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
+										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
+	std::vector<bool> Svectorize = {false, true};
+	std::vector<bool> Srays = {false, true};
+
+	if(opt_run_auto) {
+		for(const auto& use_rays : Srays) {
+			for (const auto& vectorize : Svectorize) {
+				for (const auto& bvh_type : Stypes) {
+					if(bvh_type == AggregateType::Baseline) continue;
+					run_tests(use_rays, bvh_type, vectorize);
+				}
+			}
+		}
+	} else {
+		run_tests(opt_time_rays, Stypes[opt_build_heuristic], opt_vectorize);
+	}
+}
+
 void run()
 {
 	// build baseline scene
@@ -325,12 +519,18 @@ int main(int argc, const char *argv[]) {
 	args.add_flag("--coherent", opt_coherent, "use coherent queries");
 	args.add_flag("--embree", opt_coherent, "benchmark embree");
 
+	args.add_flag("--check", opt_check, "run correctness checks");
+
     CLI11_PARSE(args, argc, argv);
 
 	opt_build_heuristic = clamp(opt_build_heuristic, 0, 5);
 
 	files.emplace_back(std::make_pair(file, LoadingOption::ObjTriangles));
 
-	run();
+	if(opt_check) {
+		run_checks();
+	} else {
+		run();
+	}
 	return 0;
 }

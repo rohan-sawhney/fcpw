@@ -1,9 +1,9 @@
 namespace fcpw {
 
-template<size_t DIM, typename PrimitiveType>
-inline Sbvh<DIM, PrimitiveType>::Sbvh(const CostHeuristic& costHeuristic_,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline Sbvh<DIM, BoundingType, PrimitiveType>::Sbvh(const CostHeuristic& costHeuristic_,
 									  std::vector<PrimitiveType *>& primitives_,
-									  SortPositionsFunc<DIM, PrimitiveType> sortPositions_,
+									  SortPositionsFunc<DIM, BoundingType, PrimitiveType> sortPositions_,
 									  bool printStats_, bool packLeaves_, int leafSize_, int nBuckets_):
 costHeuristic(costHeuristic_),
 nNodes(0),
@@ -12,8 +12,8 @@ leafSize(leafSize_),
 nBuckets(nBuckets_),
 maxDepth(0),
 depthGuess((int)std::log2(primitives_.size())),
-buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
-rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+buckets(nBuckets, std::make_pair(BoundingType(), 0)),
+rightBucketBoxes(nBuckets, std::make_pair(BoundingType(), 0)),
 primitives(primitives_),
 packLeaves(packLeaves_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
@@ -45,9 +45,9 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	}
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline float Sbvh<DIM, PrimitiveType>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
-														const BoundingBox<DIM>& boxRight,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeSplitCost(const BoundingType& boxLeft,
+														const BoundingType& boxRight,
 														float parentSurfaceArea, float parentVolume,
 														int nReferencesLeft, int nReferencesRight,
 														int depth) const
@@ -64,7 +64,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeSplitCost(const BoundingBox<DIM>& 
 
 	} else if (costHeuristic == CostHeuristic::OverlapSurfaceArea) {
 		// set the cost to be negative if the left and right boxes don't overlap at all
-		BoundingBox<DIM> boxIntersected = boxLeft.intersect(boxRight);
+		BoundingType boxIntersected = boxLeft.intersect(boxRight);
 		cost = (nReferencesLeft/boxRight.surfaceArea() +
 				nReferencesRight/boxLeft.surfaceArea())*std::fabs(boxIntersected.surfaceArea());
 		if (!boxIntersected.isValid()) cost *= -1;
@@ -75,7 +75,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeSplitCost(const BoundingBox<DIM>& 
 
 	} else if (costHeuristic == CostHeuristic::OverlapVolume) {
 		// set the cost to be negative if the left and right boxes don't overlap at all
-		BoundingBox<DIM> boxIntersected = boxLeft.intersect(boxRight);
+		BoundingType boxIntersected = boxLeft.intersect(boxRight);
 		cost = (nReferencesLeft/boxRight.volume() +
 				nReferencesRight/boxLeft.volume())*std::fabs(boxIntersected.volume());
 		if (!boxIntersected.isValid()) cost *= -1;
@@ -84,18 +84,18 @@ inline float Sbvh<DIM, PrimitiveType>::computeSplitCost(const BoundingBox<DIM>& 
 	return cost;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline float Sbvh<DIM, PrimitiveType>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
-														  const BoundingBox<DIM>& nodeCentroidBox,
-														  const std::vector<BoundingBox<DIM>>& referenceBoxes,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeObjectSplit(const BoundingType& nodeBoundingBox,
+														  const BoundingType& nodeCentroidBox,
+														  const std::vector<BoundingType>& referenceBoxes,
 														  const std::vector<Vector<DIM>>& referenceCentroids,
 														  int depth, int nodeStart, int nodeEnd, int& splitDim,
-														  float& splitCoord, BoundingBox<DIM>& boxIntersected)
+														  float& splitCoord, BoundingType& boxIntersected)
 {
 	float splitCost = maxFloat;
 	splitDim = -1;
 	splitCoord = 0.0f;
-	boxIntersected = BoundingBox<DIM>();
+	boxIntersected = BoundingType();
 
 	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
 		Vector<DIM> extent = nodeBoundingBox.extent();
@@ -110,7 +110,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeObjectSplit(const BoundingBox<DIM>
 			// bin references into buckets
 			float bucketWidth = extent[dim]/nBuckets;
 			for (int b = 0; b < nBuckets; b++) {
-				buckets[b].first = BoundingBox<DIM>();
+				buckets[b].first = BoundingType();
 				buckets[b].second = 0;
 			}
 
@@ -122,7 +122,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeObjectSplit(const BoundingBox<DIM>
 			}
 
 			// sweep right to left to build right bucket bounding boxes
-			BoundingBox<DIM> boxRefRight;
+			BoundingType boxRefRight;
 			for (int b = nBuckets - 1; b > 0; b--) {
 				boxRefRight.expandToInclude(buckets[b].first);
 				rightBucketBoxes[b].first = boxRefRight;
@@ -131,7 +131,7 @@ inline float Sbvh<DIM, PrimitiveType>::computeObjectSplit(const BoundingBox<DIM>
 			}
 
 			// evaluate bucket split costs
-			BoundingBox<DIM> boxRefLeft;
+			BoundingType boxRefLeft;
 			int nReferencesLeft = 0;
 			for (int b = 1; b < nBuckets; b++) {
 				boxRefLeft.expandToInclude(buckets[b - 1].first);
@@ -165,9 +165,9 @@ inline float Sbvh<DIM, PrimitiveType>::computeObjectSplit(const BoundingBox<DIM>
 	return splitCost;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline int Sbvh<DIM, PrimitiveType>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
-														std::vector<BoundingBox<DIM>>& referenceBoxes,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline int Sbvh<DIM, BoundingType, PrimitiveType>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
+														std::vector<BoundingType>& referenceBoxes,
 														std::vector<Vector<DIM>>& referenceCentroids)
 {
 	int mid = nodeStart;
@@ -194,10 +194,10 @@ inline int Sbvh<DIM, PrimitiveType>::performObjectSplit(int nodeStart, int nodeE
 	return mid;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline void Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline void Sbvh<DIM, BoundingType, PrimitiveType>::buildRecursive(std::vector<BoundingType>& referenceBoxes,
 													 std::vector<Vector<DIM>>& referenceCentroids,
-													 std::vector<SbvhNode<DIM>>& buildNodes,
+													 std::vector<SbvhNode<BoundingType, DIM>>& buildNodes,
 													 int parent, int start, int end, int depth)
 {
 	const int Untouched    = 0xffffffff;
@@ -205,14 +205,14 @@ inline void Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM
 	maxDepth = std::max(depth, maxDepth);
 
 	// add node to tree
-	SbvhNode<DIM> node;
+	SbvhNode<BoundingType, DIM> node;
 	int currentNodeIndex = nNodes;
 	int nReferences = end - start;
 
 	nNodes++;
 
 	// calculate the bounding box for this node
-	BoundingBox<DIM> bb, bc;
+	BoundingType bb, bc;
 	for (int p = start; p < end; p++) {
 		bb.expandToInclude(referenceBoxes[p]);
 		bc.expandToInclude(referenceCentroids[p]);
@@ -252,7 +252,7 @@ inline void Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM
 	// compute object split
 	int splitDim;
 	float splitCoord;
-	BoundingBox<DIM> boxIntersected;
+	BoundingType boxIntersected;
 	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids, depth,
 										 start, end, splitDim, splitCoord, boxIntersected);
 
@@ -265,18 +265,18 @@ inline void Sbvh<DIM, PrimitiveType>::buildRecursive(std::vector<BoundingBox<DIM
 	buildRecursive(referenceBoxes, referenceCentroids, buildNodes, currentNodeIndex, mid, end, depth + 1);
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline void Sbvh<DIM, PrimitiveType>::build()
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline void Sbvh<DIM, BoundingType, PrimitiveType>::build()
 {
 	// precompute bounding boxes and centroids
 	int nReferences = (int)primitives.size();
-	std::vector<BoundingBox<DIM>> referenceBoxes;
+	std::vector<BoundingType> referenceBoxes;
 	std::vector<Vector<DIM>> referenceCentroids;
 
 	referenceBoxes.resize(nReferences);
 	referenceCentroids.resize(nReferences);
 	flatTree.reserve(nReferences*2);
-	BoundingBox<DIM> boxRoot;
+	BoundingType boxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
 		referenceBoxes[i] = primitives[i]->boundingBox();
@@ -292,14 +292,14 @@ inline void Sbvh<DIM, PrimitiveType>::build()
 	rightBucketBoxes.clear();
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline BoundingBox<DIM> Sbvh<DIM, PrimitiveType>::boundingBox() const
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline BoundingBox<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingBox() const
 {
-	return flatTree.size() > 0 ? flatTree[0].box : BoundingBox<DIM>();
+	return flatTree.size() > 0 ? flatTree[0].box.box() : BoundingBox<DIM>();
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline Vector<DIM> Sbvh<DIM, PrimitiveType>::centroid() const
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline Vector<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::centroid() const
 {
 	Vector<DIM> c = Vector<DIM>::Zero();
 	int nPrimitives = (int)primitives.size();
@@ -311,8 +311,8 @@ inline Vector<DIM> Sbvh<DIM, PrimitiveType>::centroid() const
 	return c/nPrimitives;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline float Sbvh<DIM, PrimitiveType>::surfaceArea() const
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline float Sbvh<DIM, BoundingType, PrimitiveType>::surfaceArea() const
 {
 	float area = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -322,8 +322,8 @@ inline float Sbvh<DIM, PrimitiveType>::surfaceArea() const
 	return area;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline float Sbvh<DIM, PrimitiveType>::signedVolume() const
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline float Sbvh<DIM, BoundingType, PrimitiveType>::signedVolume() const
 {
 	float volume = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -333,8 +333,8 @@ inline float Sbvh<DIM, PrimitiveType>::signedVolume() const
 	return volume;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline bool Sbvh<DIM, BoundingType, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 																	int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
 																	bool recordAllHits, BvhTraversal *subtree,
 																	float *boxHits, int& hits, int& nodesVisited) const
@@ -348,7 +348,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 
 		// if this node is further than the closest found intersection, continue
 		if (!recordAllHits && near > r.tMax) continue;
-		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
+		const SbvhNode<BoundingType, DIM>& node(flatTree[nodeIndex]);
 
 		// is leaf -> intersect
 		if (node.nReferences > 0) {
@@ -439,8 +439,8 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersection(Ray<DIM>& r,
 }
 
 
-template<size_t DIM, typename PrimitiveType>
-inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersectionTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline bool Sbvh<DIM, BoundingType, PrimitiveType>::processSubtreeForIntersectionTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 																	int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
 																	bool recordAllHits, BvhTraversal *subtree,
 																	float *boxHits, int& hits, int& nodesVisited, uint64_t& ticks) const
@@ -454,7 +454,7 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersectionTimed(Ray<DIM
 
 		// if this node is further than the closest found intersection, continue
 		if (!recordAllHits && near > r.tMax) continue;
-		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
+		const SbvhNode<BoundingType, DIM>& node(flatTree[nodeIndex]);
 
 		// is leaf -> intersect
 		if (node.nReferences > 0) {
@@ -548,8 +548,8 @@ inline bool Sbvh<DIM, PrimitiveType>::processSubtreeForIntersectionTimed(Ray<DIM
 	return false;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline int Sbvh<DIM, BoundingType, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 													   bool checkForOcclusion, bool recordAllHits) const
 {
@@ -591,8 +591,8 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<
 	return 0;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline int Sbvh<DIM, PrimitiveType>::intersectFromNodeTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline int Sbvh<DIM, BoundingType, PrimitiveType>::intersectFromNodeTimed(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 													   int nodeStartIndex, int aggregateIndex, int& nodesVisited, uint64_t& ticks,
 													   bool checkForOcclusion, bool recordAllHits) const
 {
@@ -634,8 +634,8 @@ inline int Sbvh<DIM, PrimitiveType>::intersectFromNodeTimed(Ray<DIM>& r, std::ve
 	return 0;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline void Sbvh<DIM, BoundingType, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																	int nodeStartIndex, int aggregateIndex,
 																	const Vector<DIM>& boundaryHint,
 																	BvhTraversal *subtree, float *boxHits,
@@ -651,7 +651,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
-		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
+		const SbvhNode<BoundingType, DIM>& node(flatTree[nodeIndex]);
 
 		// is leaf -> compute squared distance
 		if (node.nReferences > 0) {
@@ -734,8 +734,8 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 	}
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPointTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline void Sbvh<DIM, BoundingType, PrimitiveType>::processSubtreeForClosestPointTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																	int nodeStartIndex, int aggregateIndex,
 																	const Vector<DIM>& boundaryHint,
 																	BvhTraversal *subtree, float *boxHits,
@@ -751,7 +751,7 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPointTimed(Boundin
 
 		// if this node is further than the closest found primitive, continue
 		if (near > s.r2) continue;
-		const SbvhNode<DIM>& node(flatTree[nodeIndex]);
+		const SbvhNode<BoundingType, DIM>& node(flatTree[nodeIndex]);
 
 		// is leaf -> compute squared distance
 		if (node.nReferences > 0) {
@@ -837,8 +837,8 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPointTimed(Boundin
 	}
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline bool Sbvh<DIM, BoundingType, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 															   int nodeStartIndex, int aggregateIndex,
 															   const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
@@ -867,8 +867,8 @@ inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DI
 	return false;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline bool Sbvh<DIM, PrimitiveType>::findClosestPointFromNodeTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline bool Sbvh<DIM, BoundingType, PrimitiveType>::findClosestPointFromNodeTimed(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 															   int nodeStartIndex, int aggregateIndex,
 															   const Vector<DIM>& boundaryHint, int& nodesVisited, uint64_t& ticks) const
 {
