@@ -19,6 +19,17 @@ inline BoundingBox<3> LineSegment::boundingBox() const
 	return box;
 }
 
+inline OrientedBoundingBox<3> LineSegment::boundingOBB() const
+{
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+
+	OrientedBoundingBox<3> box(pa);
+	box.expandToInclude(pb);
+
+	return box;
+}
+
 inline BoundingSphere<3> LineSegment::boundingSphere() const
 {
 	const Vector3& pa = soup->positions[indices[0]];

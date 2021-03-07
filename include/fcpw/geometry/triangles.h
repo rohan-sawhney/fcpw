@@ -11,6 +11,7 @@ public:
 
 	// returns bounding box
 	BoundingBox<3> boundingBox() const;
+	OrientedBoundingBox<3> boundingOBB() const;
 	BoundingSphere<3> boundingSphere() const;
 
 	// returns centroid

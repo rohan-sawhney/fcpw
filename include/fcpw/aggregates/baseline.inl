@@ -21,14 +21,25 @@ inline BoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingBox() const
 }
 
 template<size_t DIM, typename PrimitiveType>
-inline BoundingSphere<DIM> Baseline<DIM, PrimitiveType>::boundingSphere() const
+inline OrientedBoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingOBB() const
 {
-	BoundingBox<DIM> bb;
+	OrientedBoundingBox<DIM> bb;
 	for (int p = 0; p < (int)primitives.size(); p++) {
-		bb.expandToInclude(primitives[p]->boundingBox());
+		bb.expandToInclude(primitives[p]->boundingOBB());
 	}
 
-	return bb.sphere();
+	return bb;
+}
+
+template<size_t DIM, typename PrimitiveType>
+inline BoundingSphere<DIM> Baseline<DIM, PrimitiveType>::boundingSphere() const
+{
+	BoundingSphere<DIM> bb;
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		bb.expandToInclude(primitives[p]->boundingSphere());
+	}
+
+	return bb;
 }
 
 template<size_t DIM, typename PrimitiveType>

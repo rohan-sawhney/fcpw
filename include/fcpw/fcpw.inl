@@ -498,8 +498,7 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, cons
 				objectAggregates[i] = makeAggregate<3, BoundingSphere<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
 			} break;
 			case BoundingVolumeType::OBB: {
-				// objectAggregates[i] = makeAggregate<3, OrientedBoundingBox<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
-				objectAggregates[i] = makeAggregate<3, BoundingBox<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
+				objectAggregates[i] = makeAggregate<3, OrientedBoundingBox<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
 			} break;
 			case BoundingVolumeType::RSS: {
 				// objectAggregates[i] = makeAggregate<3, RectSweptSphere<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
@@ -545,8 +544,7 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, cons
 
 			case BoundingVolumeType::OBB: {
 
-				// using BoundingType = OrientedBoundingBox<3>;
-				using BoundingType = BoundingBox<3>;
+				using BoundingType = OrientedBoundingBox<3>;
 				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<LineSegment *>&)>;
 				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, BoundingType, LineSegment>::sort,
 																		std::placeholders::_1, std::placeholders::_2,

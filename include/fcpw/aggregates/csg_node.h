@@ -21,6 +21,7 @@ public:
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;
+	OrientedBoundingBox<DIM> boundingOBB() const;
 	BoundingSphere<DIM> boundingSphere() const;
 
 	// returns centroid

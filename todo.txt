@@ -1,7 +1,7 @@
 
 TODO (Max):
-    - bounding sphere 
-    - fix shit with lines and 2d
-    - OBB
+    - make OBB actually work
+        - OBB member functions
+        - triangle/line seg OBB 
     - RSS
-    - make mbvh compile/work again
+    - make mbvh compile/work again, possibly implement wide-sphere/OBB/RSS

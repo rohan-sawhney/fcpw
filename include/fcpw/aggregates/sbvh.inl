@@ -295,13 +295,19 @@ inline void Sbvh<DIM, BoundingType, PrimitiveType>::build()
 template<size_t DIM, typename BoundingType, typename PrimitiveType>
 inline BoundingBox<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingBox() const
 {
-	return flatTree.size() > 0 ? flatTree[0].box.box() : BoundingBox<DIM>();
+	return flatTree.size() > 0 ? *reinterpret_cast<const BoundingBox<DIM>*>(&flatTree[0].box) : BoundingBox<DIM>();
+}
+
+template<size_t DIM, typename BoundingType, typename PrimitiveType>
+inline OrientedBoundingBox<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingOBB() const
+{
+	return flatTree.size() > 0 ? *reinterpret_cast<const OrientedBoundingBox<DIM>*>(&flatTree[0].box) : OrientedBoundingBox<DIM>();
 }
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>
 inline BoundingSphere<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingSphere() const
 {
-	return flatTree.size() > 0 ? flatTree[0].box.sphere() : BoundingSphere<DIM>();
+	return flatTree.size() > 0 ? *reinterpret_cast<const BoundingSphere<DIM>*>(&flatTree[0].box) : BoundingSphere<DIM>();
 }
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>

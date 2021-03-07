@@ -23,14 +23,19 @@ public:
 	BoundingType boundingVol() const {
 		return boundingVolImp(Id<BoundingType>());
 	}
+
 	BoundingBox<DIM> boundingVolImp(Id<BoundingBox<DIM>>) const {
 		return boundingBox();
 	}
 	BoundingSphere<DIM> boundingVolImp(Id<BoundingSphere<DIM>>) const {
 		return boundingSphere();
 	}
+	OrientedBoundingBox<DIM> boundingVolImp(Id<OrientedBoundingBox<DIM>>) const {
+		return boundingOBB();
+	}
 
 	virtual BoundingBox<DIM> boundingBox() const = 0;
+	virtual OrientedBoundingBox<DIM> boundingOBB() const = 0;
 	virtual BoundingSphere<DIM> boundingSphere() const = 0;
 
 	// returns centroid
@@ -198,6 +203,9 @@ public:
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const {
 		return aggregate->boundingBox().transform(t);
+	}
+	OrientedBoundingBox<DIM> boundingOBB() const {
+		return aggregate->boundingOBB().transform(t);
 	}
 	BoundingSphere<DIM> boundingSphere() const {
 		return aggregate->boundingSphere().transform(t);

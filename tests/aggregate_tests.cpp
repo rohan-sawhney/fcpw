@@ -393,8 +393,7 @@ void run_checks() {
 		}
 	};
 
-	// std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere, BoundingVolumeType::OBB, BoundingVolumeType::RSS};
-	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere};
+	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere, BoundingVolumeType::OBB, BoundingVolumeType::RSS};
 	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};
@@ -479,8 +478,7 @@ void run()
 			   bvh_type_names[(int)heuristic].c_str(), vol_type_names[(int)volume].c_str(), threads, max_nodes, prim_percent, time / 1e9);
 	};
 
-	// std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere, BoundingVolumeType::OBB, BoundingVolumeType::RSS};
-	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere};
+	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere, BoundingVolumeType::OBB, BoundingVolumeType::RSS};
 	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};

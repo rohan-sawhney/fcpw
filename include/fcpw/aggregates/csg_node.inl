@@ -49,9 +49,19 @@ inline BoundingBox<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::bou
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline OrientedBoundingBox<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::boundingOBB() const
+{	
+	std::cerr << "CSG::boundingOBB(): not currently a good idea!" << std::endl;
+	exit(EXIT_FAILURE);
+	return OrientedBoundingBox<DIM>();
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline BoundingSphere<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::boundingSphere() const
 {
-	return box.sphere();
+	std::cerr << "CSG::boundingSphere(): not currently a good idea!" << std::endl;
+	exit(EXIT_FAILURE);
+	return BoundingSphere<DIM>();
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
