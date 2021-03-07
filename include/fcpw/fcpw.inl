@@ -425,8 +425,17 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 	return sbvh;
 }
 
-template<typename BoundingType>
-inline void buildGeometricAggregates3D(const AggregateType& aggregateType, bool vectorize,
+template<size_t DIM>
+inline void buildGeometricAggregates(const AggregateType& aggregateType, const BoundingVolumeType& volume, bool vectorize,
+									 bool printStats, std::unique_ptr<SceneData<DIM>>& sceneData,
+									 std::vector<std::unique_ptr<Aggregate<DIM>>>& objectAggregates)
+{
+	std::cerr << "buildGeometricAggregates(): DIM: " << DIM << std::endl;
+	exit(EXIT_FAILURE);
+}
+
+template<>
+inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, const BoundingVolumeType& volume, bool vectorize,
 									 bool printStats, std::unique_ptr<SceneData<3>>& sceneData,
 									 std::vector<std::unique_ptr<Aggregate<3>>>& objectAggregates)
 {
@@ -454,8 +463,6 @@ inline void buildGeometricAggregates3D(const AggregateType& aggregateType, bool 
 	nLineSegmentObjectPtrs = 0;
 	nTriangleObjectPtrs = 0;
 	nMixedObjectPtrs = 0;
-	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<LineSegment *>&)>;
-	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<Triangle *>&)>;
 
 	for (int i = 0; i < nObjects; i++) {
 		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
@@ -483,8 +490,12 @@ inline void buildGeometricAggregates3D(const AggregateType& aggregateType, bool 
 				}
 			}
 
-			objectAggregates[i] = makeAggregate<3, BoundingType, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr,
-																		  vectorize, printStats);
+			switch(volume) {
+			case BoundingVolumeType::AABB: {
+				objectAggregates[i] = makeAggregate<3, BoundingBox<3>, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr, vectorize, printStats);
+			} break;
+			}
+			
 			nMixedObjectPtrs++;
 
 		} else if (objectsMap[0].first == ObjectType::LineSegments) {
@@ -498,11 +509,18 @@ inline void buildGeometricAggregates3D(const AggregateType& aggregateType, bool 
 			}
 
 			// make aggregate
-			SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, BoundingType, LineSegment>::sort,
-																	std::placeholders::_1, std::placeholders::_2,
-																	std::ref(sceneData->soups[i]));
-			objectAggregates[i] = makeAggregate<3, BoundingType, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize,
-																printStats, sortLineSegmentPositions);
+			switch(volume) {
+			case BoundingVolumeType::AABB: {
+
+				using BoundingType = BoundingBox<3>;
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<LineSegment *>&)>;
+				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, BoundingType, LineSegment>::sort,
+																		std::placeholders::_1, std::placeholders::_2,
+																		std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, BoundingType, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize, printStats, sortLineSegmentPositions);
+
+			} break;
+			}	
 			nLineSegmentObjectPtrs++;
 
 		} else if (objectsMap[0].first == ObjectType::Triangles) {
@@ -516,11 +534,19 @@ inline void buildGeometricAggregates3D(const AggregateType& aggregateType, bool 
 			}
 
 			// make aggregate
-			SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, BoundingType, Triangle>::sort,
-															  std::placeholders::_1, std::placeholders::_2,
-															  std::ref(sceneData->soups[i]));
-			objectAggregates[i] = makeAggregate<3, BoundingType, Triangle>(aggregateType, triangleObjectPtr, vectorize,
-															 printStats, sortTrianglePositions);
+			switch(volume) {
+			case BoundingVolumeType::AABB: {
+				
+				using BoundingType = BoundingBox<3>;
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<Triangle *>&)>;
+				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, BoundingType, Triangle>::sort,
+																std::placeholders::_1, std::placeholders::_2,
+																std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, BoundingType, Triangle>(aggregateType, triangleObjectPtr, vectorize,
+																printStats, sortTrianglePositions);
+			} break;
+			}
+
 			nTriangleObjectPtrs++;
 		}
 
@@ -560,8 +586,7 @@ inline std::unique_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 }
 
 template<size_t DIM>
-template<typename BoundingType>
-inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize,
+inline void Scene<DIM>::build(const AggregateType& aggregateType, const BoundingVolumeType& volumeType, bool vectorize,
 							  bool printStats, bool reduceMemoryFootprint)
 {
 	// clear old aggregate data
@@ -569,7 +594,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 
 	// build geometric aggregates
 	std::vector<std::unique_ptr<Aggregate<DIM>>> objectAggregates;
-	buildGeometricAggregates3D<BoundingType>(aggregateType, vectorize, printStats, sceneData, objectAggregates);
+	buildGeometricAggregates(aggregateType, volumeType, vectorize, printStats, sceneData, objectAggregates);
 	int nAggregates = (int)objectAggregates.size();
 
 	// build aggregate instances and instance ptrs
@@ -610,7 +635,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 
 	} else {
 		// make aggregate of aggregates
-		sceneData->aggregate = makeAggregate<DIM, BoundingType, Aggregate<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
+		sceneData->aggregate = makeAggregate<DIM, BoundingBox<DIM>, Aggregate<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
 																  false, printStats);
 		sceneData->aggregate->index = nAggregates++;
 	}

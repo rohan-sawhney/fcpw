@@ -7,10 +7,10 @@ import os
 import argparse
 from collections import defaultdict
 
-x_axis_types = ['Type', 'Vectorized', 'Coherent', 'Heuristic', 'Threads']
+x_axis_types = ['Type', 'Vectorized', 'Coherent', 'Heuristic', 'Volume', 'Threads']
 y_axis_types = ['Nodes', 'Primitives', 'Time']
 
-x_axis_values = [['CPQ','RAY'],['no','yes'],['no','yes'],['Bvh_LongestAxisCenter','Bvh_OverlapSurfaceArea','Bvh_SurfaceArea','Bvh_OverlapVolume','Bvh_Volume'],['1','2','4','8','16','32','64','128']]
+x_axis_values = [['CPQ','RAY'],['no','yes'],['no','yes'],['Bvh_LongestAxisCenter','Bvh_OverlapSurfaceArea','Bvh_SurfaceArea','Bvh_OverlapVolume','Bvh_Volume'],['AABB'],['1','2','4','8','16','32','64','128']]
 
 parser = argparse.ArgumentParser(description='Graph FCPQ benchmark data.')
 
@@ -19,6 +19,7 @@ parser.add_argument('rays', help='benchmark rays')
 parser.add_argument('vectorize', help='use vectorized bvh')
 parser.add_argument('coherent', help='use coherent queries')
 parser.add_argument('heuristic', help='build heuristic')
+parser.add_argument('volume', help='bounding volume')
 parser.add_argument('threads', help='number of threads')
 parser.add_argument('x', help='xaxis')
 parser.add_argument('y', help='yaxis')
@@ -33,7 +34,9 @@ if args.coherent not in x_axis_values[2]:
     print('invalid coherent arg: ', x_axis_values[2])
 if args.heuristic not in x_axis_values[3] and args.heuristic != 'avg':
     print('invalid heuristic arg: ', x_axis_values[3])
-if args.threads not in x_axis_values[4] and args.threads != 'avg':
+if args.volume not in x_axis_values[4] and args.volume != 'avg':
+    print('invalid volume arg: ', x_axis_values[3])
+if args.threads not in x_axis_values[5] and args.threads != 'avg':
     print('invalid threads arg: ', x_axis_values[4])
 if args.x not in x_axis_types and args.x != 'auto':
     print('invalid x arg: ', x_axis_values)
@@ -48,8 +51,8 @@ for line in lines:
     line = line.split(',')
     line = [i.strip() for i in line]
     if line[0] in x_axis_values[0]:
-        data = [float(line[5]), float(line[6].strip('%')), float(line[7])]
-        db[tuple(line[0:5])] = data
+        data = [float(line[6]), float(line[7].strip('%')), float(line[8])]
+        db[tuple(line[0:6])] = data
 
 
 def accumulate(k, y_idx, ranges):
@@ -81,11 +84,13 @@ def do_graph(x_idx, y_idx):
     ranges = []
     if args.heuristic == 'avg' and x_name != 'Heuristic' and y_name != 'Heuristic':
         ranges.append(3)
-    if args.threads == 'avg' and x_name != 'Threads' and y_name != 'Threads':
+    if args.volume == 'avg' and x_name != 'Volume' and y_name != 'Volume':
         ranges.append(4)
+    if args.threads == 'avg' and x_name != 'Threads' and y_name != 'Threads':
+        ranges.append(5)
 
     for k in labels:
-        key = [args.rays,args.vectorize,args.coherent,args.heuristic,args.threads]
+        key = [args.rays,args.vectorize,args.coherent,args.heuristic,args.volume,args.threads]
         key[x_idx] = k
         acc = accumulate(key, y_idx, ranges)
         if acc != None:
@@ -104,7 +109,7 @@ def do_graph(x_idx, y_idx):
             plt.gca().yaxis.set_major_formatter(ticker.ScalarFormatter())
             plt.gca().yaxis.set_minor_formatter(ticker.ScalarFormatter())
             
-    plt.title('{} vs {} [{},{},{},{},{}]'.format(x_name,y_name,args.rays,"SIMD" if args.vectorize == 'yes' else "Scalar","Coherent" if args.coherent == 'yes' else "Incoherent",args.heuristic,args.threads))
+    plt.title('{} vs {} [{},{},{},{},{},{}]'.format(x_name,y_name,args.rays,"SIMD" if args.vectorize == 'yes' else "Scalar","Coherent" if args.coherent == 'yes' else "Incoherent",args.heuristic,args.volume,args.threads))
     plt.plot(labels, values)
     plt.xlabel(x_name)
     plt.ylabel(y_name)
@@ -112,7 +117,7 @@ def do_graph(x_idx, y_idx):
     if args.save == '':
         plt.show()
     else:
-        plt.savefig(os.path.join(args.save, '{}_{}__{}_{}_{}_{}_{}.png'.format(x_name,y_name,args.rays,args.vectorize,args.coherent,args.heuristic,args.threads)))
+        plt.savefig(os.path.join(args.save, '{}_{}__{}_{}_{}_{}_{}_{}.png'.format(x_name,y_name,args.rays,args.vectorize,args.coherent,args.heuristic,args.volume,args.threads)))
 
 
 if args.x != 'auto' and args.y != 'auto':

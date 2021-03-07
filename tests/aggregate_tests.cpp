@@ -10,6 +10,7 @@ constexpr int DIM = 3;
 static int opt_threads = 1;
 static int opt_queries = 10000;
 static int opt_build_heuristic = 3;
+static int opt_bounding_volume = 0;
 static float opt_bb_scale = 1.5f;
 static bool opt_vectorize = true;
 static bool opt_coherent = false;
@@ -350,7 +351,7 @@ void run_checks() {
 	Scene<DIM> baseScene;
 	SceneLoader<DIM> sceneLoader;
 	sceneLoader.loadFiles(baseScene, false);
-	baseScene.build(AggregateType::Baseline, false, true);
+	baseScene.build(AggregateType::Baseline, BoundingVolumeType::AABB, false, true);
 	SceneData<DIM> *baseSceneData = baseScene.getSceneData();
 
 	// generate random points and rays used to visualize csg
@@ -374,12 +375,9 @@ void run_checks() {
 	Scene<DIM> testScene;
 	sceneLoader.loadFiles(testScene, false);
 
-	std::vector<std::string> bvh_type_names = 
-		{"Baseline", "Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea", "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"};
-
-	auto run_tests = [&](bool rays, AggregateType heuristic, bool vector) {
+	auto run_tests = [&](bool rays, BoundingVolumeType volume, AggregateType heuristic, bool vector) {
 			
-		testScene.build(heuristic, vector, true);
+		testScene.build(heuristic, volume, vector, true);
 		SceneData<DIM>* sceneData = testScene.getSceneData();
 		if (rays) {
 			testIntersectionQueries<DIM>(baseSceneData->aggregate, sceneData->aggregate, queryPoints, randomDirections, shuffledIndices);
@@ -388,6 +386,7 @@ void run_checks() {
 		}
 	};
 
+	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB};
 	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};
@@ -398,12 +397,14 @@ void run_checks() {
 			for (const auto& vectorize : Svectorize) {
 				for (const auto& bvh_type : Stypes) {
 					if(bvh_type == AggregateType::Baseline) continue;
-					run_tests(use_rays, bvh_type, vectorize);
+					for (const auto& vol_type : Btypes) {
+						run_tests(use_rays, vol_type, bvh_type, vectorize);
+					}
 				}
 			}
 		}
 	} else {
-		run_tests(opt_time_rays, Stypes[opt_build_heuristic], opt_vectorize);
+		run_tests(opt_time_rays, Btypes[opt_bounding_volume], Stypes[opt_build_heuristic], opt_vectorize);
 	}
 }
 
@@ -413,7 +414,7 @@ void run()
 	Scene<DIM> scene;
 	SceneLoader<DIM> sceneLoader;
 	sceneLoader.loadFiles(scene, false);
-	scene.build(AggregateType::Baseline, false, true);
+	scene.build(AggregateType::Baseline, BoundingVolumeType::AABB, false, true);
 	SceneData<DIM> *sceneData = scene.getSceneData();
 
 	// generate random points and rays used to visualize csg
@@ -444,10 +445,12 @@ void run()
 
 	std::vector<std::string> bvh_type_names = 
 		{"Baseline", "Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea", "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"};
+	std::vector<std::string> vol_type_names = 
+		{"AABB"};
 
-	auto run_benchmark = [&](bool rays, AggregateType heuristic, bool vector, bool coherent, int threads) {
+	auto run_benchmark = [&](bool rays, BoundingVolumeType volume, AggregateType heuristic, bool vector, bool coherent, int threads) {
 			
-		scene.build(heuristic, vector, true);
+		scene.build(heuristic, volume, vector, true);
 		sceneData = scene.getSceneData();
 
 		opt_threads = threads;
@@ -469,10 +472,11 @@ void run()
 			}
 		}
 
-		printf("%10s, %10s, %8s, %22s, %7d, %8d, %12.2f%%, %12f\n", rays ? "RAY" : "CPQ", vector ? "yes" : "no", coherent ? "yes" : "no", 
-			   bvh_type_names[(int)heuristic].c_str(), threads, max_nodes, prim_percent, time / 1e9);
+		printf("%10s, %10s, %8s, %22s, %16s, %7d, %8d, %12.2f%%, %12f\n", rays ? "RAY" : "CPQ", vector ? "yes" : "no", coherent ? "yes" : "no", 
+			   bvh_type_names[(int)heuristic].c_str(), vol_type_names[(int)volume].c_str(), threads, max_nodes, prim_percent, time / 1e9);
 	};
 
+	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB};
 	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};
@@ -482,23 +486,25 @@ void run()
 
 	printf("\n");
 	printf("FCPQ Benchmark: %d queries\n", opt_queries);
-	printf("%10s, %10s, %8s, %22s, %7s, %8s, %13s, %12s\n", "CPQ/RAY", "Vectorized", "Coherent", "Build Heuristic", "Threads", "Nodes", "% Primitive", "Time");
+	printf("%10s, %10s, %8s, %22s, %16s, %7s, %8s, %13s, %12s\n", "CPQ/RAY", "Vectorized", "Coherent", "Build Heuristic", "Bounding Volume", "Threads", "Nodes", "% Primitive", "Time");
 	if(opt_run_auto) {
 		for(const auto& use_rays : Srays) {
 			for (const auto& vectorize : Svectorize) {
 				for (const auto& coherent : Scoherent) {
 					for (const auto& bvh_type : Stypes) {
 						if(bvh_type == AggregateType::Baseline) continue;
-						for (const auto& threads : Sthreads) {
-							if(threads > 2 * (int)std::thread::hardware_concurrency()) break;
-							run_benchmark(use_rays, bvh_type, vectorize, coherent, threads);
+						for (const auto& vol_type : Btypes) {
+							for (const auto& threads : Sthreads) {
+								if(threads > 2 * (int)std::thread::hardware_concurrency()) break;
+								run_benchmark(use_rays, vol_type, bvh_type, vectorize, coherent, threads);
+							}
 						}
 					}
 				}
 			}
 		}
 	} else {
-		run_benchmark(opt_time_rays, Stypes[opt_build_heuristic], opt_vectorize, opt_coherent, opt_threads);
+		run_benchmark(opt_time_rays, Btypes[opt_bounding_volume], Stypes[opt_build_heuristic], opt_vectorize, opt_coherent, opt_threads);
 	}
 }
 
@@ -515,6 +521,7 @@ int main(int argc, const char *argv[]) {
 	args.add_flag("--auto", opt_run_auto, "sweep all parameters automatically");
 	args.add_option("-t,--threads", opt_threads, "number of threads");
 	args.add_option("--heuristic", opt_build_heuristic, "type of build heuristic");
+	args.add_option("--volume", opt_bounding_volume, "type of bounding volume");
 	args.add_flag("--vectorize", opt_vectorize, "use vectorized bvh");
 	args.add_flag("--coherent", opt_coherent, "use coherent queries");
 	args.add_flag("--embree", opt_coherent, "benchmark embree");
@@ -524,6 +531,7 @@ int main(int argc, const char *argv[]) {
     CLI11_PARSE(args, argc, argv);
 
 	opt_build_heuristic = clamp(opt_build_heuristic, 0, 5);
+	opt_bounding_volume = clamp(opt_bounding_volume, 0, 0);
 
 	files.emplace_back(std::make_pair(file, LoadingOption::ObjTriangles));
 

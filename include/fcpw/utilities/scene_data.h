@@ -22,6 +22,10 @@ enum class AggregateType {
 	Bvh_Volume = 5
 };
 
+enum class BoundingVolumeType {
+	AABB = 0,
+};
+
 struct CsgTreeNode {
 	int child1, child2;
 	bool isLeafChild1, isLeafChild2;

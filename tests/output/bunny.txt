@@ -1,283 +1,203 @@
 
-FCPQ Benchmark: 1000000 queries
-   CPQ/RAY, Vectorized, Coherent,        Build Heuristic, Threads,    Nodes,   % Primitive,         Time
-       CPQ,         no,       no,  Bvh_LongestAxisCenter,       1,     2454,        49.74%,     9.532159
-       CPQ,         no,       no,  Bvh_LongestAxisCenter,       2,     2384,        49.81%,     4.933997
-       CPQ,         no,       no,  Bvh_LongestAxisCenter,       4,     2284,        49.78%,     2.524474
-       CPQ,         no,       no,  Bvh_LongestAxisCenter,       8,     2284,        49.90%,     1.283255
-       CPQ,         no,       no,  Bvh_LongestAxisCenter,      16,     2284,        49.61%,     0.703102
-       CPQ,         no,       no,  Bvh_LongestAxisCenter,      32,     2454,        46.00%,     0.448201
-       CPQ,         no,       no,  Bvh_LongestAxisCenter,      64,     2454,        45.02%,     0.468370
-       CPQ,         no,       no, Bvh_OverlapSurfaceArea,       1,     2170,        48.65%,     8.670223
-       CPQ,         no,       no, Bvh_OverlapSurfaceArea,       2,     2170,        48.66%,     4.500193
-       CPQ,         no,       no, Bvh_OverlapSurfaceArea,       4,     1798,        48.68%,     2.299217
-       CPQ,         no,       no, Bvh_OverlapSurfaceArea,       8,     2170,        48.81%,     1.154650
-       CPQ,         no,       no, Bvh_OverlapSurfaceArea,      16,     2170,        48.55%,     0.635137
-       CPQ,         no,       no, Bvh_OverlapSurfaceArea,      32,     2170,        45.00%,     0.407620
-       CPQ,         no,       no, Bvh_OverlapSurfaceArea,      64,     2111,        44.64%,     0.419195
-       CPQ,         no,       no,        Bvh_SurfaceArea,       1,     2231,        49.08%,     8.745053
-       CPQ,         no,       no,        Bvh_SurfaceArea,       2,     2149,        49.07%,     4.551176
-       CPQ,         no,       no,        Bvh_SurfaceArea,       4,     2149,        49.11%,     2.317536
-       CPQ,         no,       no,        Bvh_SurfaceArea,       8,     2088,        49.17%,     1.170158
-       CPQ,         no,       no,        Bvh_SurfaceArea,      16,     2149,        49.03%,     0.638256
-       CPQ,         no,       no,        Bvh_SurfaceArea,      32,     2149,        45.40%,     0.415734
-       CPQ,         no,       no,        Bvh_SurfaceArea,      64,     2231,        44.84%,     0.406574
-       CPQ,         no,       no,      Bvh_OverlapVolume,       1,     2498,        48.43%,     8.802492
-       CPQ,         no,       no,      Bvh_OverlapVolume,       2,     2498,        48.33%,     4.593599
-       CPQ,         no,       no,      Bvh_OverlapVolume,       4,     2321,        48.46%,     2.339482
-       CPQ,         no,       no,      Bvh_OverlapVolume,       8,     2498,        48.47%,     1.181811
-       CPQ,         no,       no,      Bvh_OverlapVolume,      16,     2321,        48.37%,     0.647848
-       CPQ,         no,       no,      Bvh_OverlapVolume,      32,     2498,        44.72%,     0.423053
-       CPQ,         no,       no,      Bvh_OverlapVolume,      64,     2387,        46.37%,     0.435835
-       CPQ,         no,       no,             Bvh_Volume,       1,     2114,        48.65%,     8.950948
-       CPQ,         no,       no,             Bvh_Volume,       2,     1912,        48.61%,     4.680537
-       CPQ,         no,       no,             Bvh_Volume,       4,     1910,        48.60%,     2.365534
-       CPQ,         no,       no,             Bvh_Volume,       8,     1912,        48.68%,     1.203944
-       CPQ,         no,       no,             Bvh_Volume,      16,     1910,        48.53%,     0.667787
-       CPQ,         no,       no,             Bvh_Volume,      32,     1910,        44.92%,     0.421158
-       CPQ,         no,       no,             Bvh_Volume,      64,     2114,        45.87%,     0.414816
-       CPQ,         no,      yes,  Bvh_LongestAxisCenter,       1,     2454,        48.40%,     8.315159
-       CPQ,         no,      yes,  Bvh_LongestAxisCenter,       2,     2454,        47.57%,     3.683448
-       CPQ,         no,      yes,  Bvh_LongestAxisCenter,       4,     1283,        47.89%,     1.887976
-       CPQ,         no,      yes,  Bvh_LongestAxisCenter,       8,      912,        47.57%,     1.263777
-       CPQ,         no,      yes,  Bvh_LongestAxisCenter,      16,     1283,        47.83%,     0.917883
-       CPQ,         no,      yes,  Bvh_LongestAxisCenter,      32,     1283,        45.51%,     0.596483
-       CPQ,         no,      yes,  Bvh_LongestAxisCenter,      64,      660,        44.20%,     0.414731
-       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,       1,     2170,        47.31%,     7.539400
-       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,       2,     2170,        46.65%,     3.353225
-       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,       4,     1149,        46.86%,     1.715267
-       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,       8,     2170,        46.23%,     0.902626
-       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,      16,      579,        46.10%,     0.474795
-       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,      32,      802,        43.97%,     0.489281
-       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,      64,      802,        43.95%,     0.381200
-       CPQ,         no,      yes,        Bvh_SurfaceArea,       1,     2231,        47.70%,     7.640386
-       CPQ,         no,      yes,        Bvh_SurfaceArea,       2,     1857,        46.99%,     3.310629
-       CPQ,         no,      yes,        Bvh_SurfaceArea,       4,     1197,        47.46%,     1.684475
-       CPQ,         no,      yes,        Bvh_SurfaceArea,       8,     1857,        46.99%,     1.178010
-       CPQ,         no,      yes,        Bvh_SurfaceArea,      16,      711,        47.17%,     0.909794
-       CPQ,         no,      yes,        Bvh_SurfaceArea,      32,     1857,        44.30%,     0.477183
-       CPQ,         no,      yes,        Bvh_SurfaceArea,      64,      786,        41.54%,     0.382038
-       CPQ,         no,      yes,      Bvh_OverlapVolume,       1,     2498,        47.03%,     7.698260
-       CPQ,         no,      yes,      Bvh_OverlapVolume,       2,     1697,        46.28%,     3.436624
-       CPQ,         no,      yes,      Bvh_OverlapVolume,       4,     1697,        46.35%,     1.768781
-       CPQ,         no,      yes,      Bvh_OverlapVolume,       8,     1697,        46.20%,     0.999109
-       CPQ,         no,      yes,      Bvh_OverlapVolume,      16,      850,        46.64%,     0.865302
-       CPQ,         no,      yes,      Bvh_OverlapVolume,      32,     1291,        43.47%,     0.520037
-       CPQ,         no,      yes,      Bvh_OverlapVolume,      64,      850,        41.54%,     0.407809
-       CPQ,         no,      yes,             Bvh_Volume,       1,     2114,        47.22%,     7.795036
-       CPQ,         no,      yes,             Bvh_Volume,       2,     2114,        46.54%,     3.442895
-       CPQ,         no,      yes,             Bvh_Volume,       4,     1343,        46.95%,     1.726017
-       CPQ,         no,      yes,             Bvh_Volume,       8,     2114,        46.77%,     1.459600
-       CPQ,         no,      yes,             Bvh_Volume,      16,      670,        46.88%,     0.901047
-       CPQ,         no,      yes,             Bvh_Volume,      32,      717,        44.24%,     0.573049
-       CPQ,         no,      yes,             Bvh_Volume,      64,     1886,        43.43%,     0.366138
-       CPQ,        yes,       no,  Bvh_LongestAxisCenter,       1,      448,        51.23%,     3.658713
-       CPQ,        yes,       no,  Bvh_LongestAxisCenter,       2,      448,        51.14%,     1.931278
-       CPQ,        yes,       no,  Bvh_LongestAxisCenter,       4,      412,        51.07%,     0.996215
-       CPQ,        yes,       no,  Bvh_LongestAxisCenter,       8,      448,        51.21%,     0.534233
-       CPQ,        yes,       no,  Bvh_LongestAxisCenter,      16,      448,        51.13%,     0.306064
-       CPQ,        yes,       no,  Bvh_LongestAxisCenter,      32,      412,        56.23%,     0.214003
-       CPQ,        yes,       no,  Bvh_LongestAxisCenter,      64,      424,        55.81%,     0.218247
-       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,       1,      429,        53.06%,     3.751482
-       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,       2,      429,        53.27%,     1.959963
-       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,       4,      387,        53.35%,     1.009488
-       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,       8,      429,        53.34%,     0.539746
-       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,      16,      429,        53.37%,     0.318833
-       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,      32,      387,        58.34%,     0.225500
-       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,      64,      410,        58.06%,     0.226728
-       CPQ,        yes,       no,        Bvh_SurfaceArea,       1,      416,        51.65%,     3.645236
-       CPQ,        yes,       no,        Bvh_SurfaceArea,       2,      416,        51.76%,     1.896812
-       CPQ,        yes,       no,        Bvh_SurfaceArea,       4,      392,        52.06%,     0.982298
-       CPQ,        yes,       no,        Bvh_SurfaceArea,       8,      372,        52.04%,     0.535303
-       CPQ,        yes,       no,        Bvh_SurfaceArea,      16,      416,        52.32%,     0.347532
-       CPQ,        yes,       no,        Bvh_SurfaceArea,      32,      376,        56.95%,     0.223810
-       CPQ,        yes,       no,        Bvh_SurfaceArea,      64,      392,        56.02%,     0.219969
-       CPQ,        yes,       no,      Bvh_OverlapVolume,       1,      418,        52.37%,     3.755733
-       CPQ,        yes,       no,      Bvh_OverlapVolume,       2,      418,        52.51%,     1.960787
-       CPQ,        yes,       no,      Bvh_OverlapVolume,       4,      389,        52.62%,     1.004033
-       CPQ,        yes,       no,      Bvh_OverlapVolume,       8,      397,        52.55%,     0.539376
-       CPQ,        yes,       no,      Bvh_OverlapVolume,      16,      398,        52.63%,     0.312726
-       CPQ,        yes,       no,      Bvh_OverlapVolume,      32,      418,        57.29%,     0.222796
-       CPQ,        yes,       no,      Bvh_OverlapVolume,      64,      418,        55.36%,     0.230720
-       CPQ,        yes,       no,             Bvh_Volume,       1,      324,        51.07%,     3.883868
-       CPQ,        yes,       no,             Bvh_Volume,       2,      324,        51.26%,     2.031738
-       CPQ,        yes,       no,             Bvh_Volume,       4,      306,        51.40%,     1.038612
-       CPQ,        yes,       no,             Bvh_Volume,       8,      324,        51.37%,     0.557032
-       CPQ,        yes,       no,             Bvh_Volume,      16,      301,        51.55%,     0.344008
-       CPQ,        yes,       no,             Bvh_Volume,      32,      306,        56.40%,     0.237053
-       CPQ,        yes,       no,             Bvh_Volume,      64,      306,        56.89%,     0.244520
-       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,       1,      448,        53.55%,     3.237113
-       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,       2,      395,        52.22%,     1.452742
-       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,       4,      225,        53.03%,     0.773246
-       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,       8,      180,        52.22%,     0.482844
-       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,      16,      395,        52.07%,     0.306031
-       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,      32,      395,        57.09%,     0.247628
-       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,      64,      162,        55.99%,     0.221706
-       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,       1,      429,        56.24%,     3.317228
-       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,       2,      337,        55.04%,     1.476522
-       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,       4,      222,        55.69%,     0.747526
-       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,       8,      222,        55.64%,     0.450088
-       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,      16,      111,        55.69%,     0.361693
-       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,      32,      429,        59.66%,     0.248468
-       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,      64,      180,        57.88%,     0.202905
-       CPQ,        yes,      yes,        Bvh_SurfaceArea,       1,      416,        54.46%,     3.203774
-       CPQ,        yes,      yes,        Bvh_SurfaceArea,       2,      337,        53.77%,     1.442305
-       CPQ,        yes,      yes,        Bvh_SurfaceArea,       4,      210,        53.43%,     0.732320
-       CPQ,        yes,      yes,        Bvh_SurfaceArea,       8,      337,        53.01%,     0.407783
-       CPQ,        yes,      yes,        Bvh_SurfaceArea,      16,      337,        53.20%,     0.316655
-       CPQ,        yes,      yes,        Bvh_SurfaceArea,      32,      337,        56.77%,     0.240440
-       CPQ,        yes,      yes,        Bvh_SurfaceArea,      64,      416,        58.28%,     0.222353
-       CPQ,        yes,      yes,      Bvh_OverlapVolume,       1,      418,        55.46%,     3.315914
-       CPQ,        yes,      yes,      Bvh_OverlapVolume,       2,      319,        54.71%,     1.488720
-       CPQ,        yes,      yes,      Bvh_OverlapVolume,       4,      222,        54.91%,     0.771115
-       CPQ,        yes,      yes,      Bvh_OverlapVolume,       8,      222,        53.97%,     0.450831
-       CPQ,        yes,      yes,      Bvh_OverlapVolume,      16,      118,        56.54%,     0.360285
-       CPQ,        yes,      yes,      Bvh_OverlapVolume,      32,      222,        59.03%,     0.235098
-       CPQ,        yes,      yes,      Bvh_OverlapVolume,      64,      158,        59.98%,     0.204901
-       CPQ,        yes,      yes,             Bvh_Volume,       1,      324,        54.10%,     3.428623
-       CPQ,        yes,      yes,             Bvh_Volume,       2,      306,        53.28%,     1.525544
-       CPQ,        yes,      yes,             Bvh_Volume,       4,      306,        53.79%,     1.113177
-       CPQ,        yes,      yes,             Bvh_Volume,       8,      306,        53.14%,     0.448359
-       CPQ,        yes,      yes,             Bvh_Volume,      16,      222,        52.88%,     0.317443
-       CPQ,        yes,      yes,             Bvh_Volume,      32,      222,        57.34%,     0.257436
-       CPQ,        yes,      yes,             Bvh_Volume,      64,      178,        59.51%,     0.233965
-       RAY,         no,       no,  Bvh_LongestAxisCenter,       1,      254,        25.20%,     0.470561
-       RAY,         no,       no,  Bvh_LongestAxisCenter,       2,      254,        26.16%,     0.250201
-       RAY,         no,       no,  Bvh_LongestAxisCenter,       4,      254,        26.28%,     0.140061
-       RAY,         no,       no,  Bvh_LongestAxisCenter,       8,      254,        25.33%,     0.086698
-       RAY,         no,       no,  Bvh_LongestAxisCenter,      16,      254,        25.23%,     0.052972
-       RAY,         no,       no,  Bvh_LongestAxisCenter,      32,      221,        22.51%,     0.037110
-       RAY,         no,       no,  Bvh_LongestAxisCenter,      64,      173,        23.28%,     0.035249
-       RAY,         no,       no, Bvh_OverlapSurfaceArea,       1,      241,        24.06%,     0.427781
-       RAY,         no,       no, Bvh_OverlapSurfaceArea,       2,      241,        23.94%,     0.237298
-       RAY,         no,       no, Bvh_OverlapSurfaceArea,       4,      221,        24.19%,     0.123761
-       RAY,         no,       no, Bvh_OverlapSurfaceArea,       8,      241,        24.23%,     0.071287
-       RAY,         no,       no, Bvh_OverlapSurfaceArea,      16,      221,        24.11%,     0.045568
-       RAY,         no,       no, Bvh_OverlapSurfaceArea,      32,      221,        20.88%,     0.035929
-       RAY,         no,       no, Bvh_OverlapSurfaceArea,      64,      221,        22.68%,     0.034939
-       RAY,         no,       no,        Bvh_SurfaceArea,       1,      245,        24.51%,     0.424514
-       RAY,         no,       no,        Bvh_SurfaceArea,       2,      245,        24.30%,     0.234018
-       RAY,         no,       no,        Bvh_SurfaceArea,       4,      245,        23.69%,     0.132430
-       RAY,         no,       no,        Bvh_SurfaceArea,       8,      245,        24.60%,     0.075291
-       RAY,         no,       no,        Bvh_SurfaceArea,      16,      245,        24.12%,     0.047091
-       RAY,         no,       no,        Bvh_SurfaceArea,      32,      215,        21.71%,     0.033842
-       RAY,         no,       no,        Bvh_SurfaceArea,      64,      161,        21.17%,     0.039665
-       RAY,         no,       no,      Bvh_OverlapVolume,       1,      236,        23.61%,     0.434101
-       RAY,         no,       no,      Bvh_OverlapVolume,       2,      236,        23.33%,     0.235149
-       RAY,         no,       no,      Bvh_OverlapVolume,       4,      236,        24.25%,     0.121906
-       RAY,         no,       no,      Bvh_OverlapVolume,       8,      202,        23.76%,     0.073632
-       RAY,         no,       no,      Bvh_OverlapVolume,      16,      220,        23.23%,     0.048700
-       RAY,         no,       no,      Bvh_OverlapVolume,      32,      220,        21.58%,     0.038717
-       RAY,         no,       no,      Bvh_OverlapVolume,      64,      185,        20.36%,     0.030983
-       RAY,         no,       no,             Bvh_Volume,       1,      253,        24.01%,     0.456975
-       RAY,         no,       no,             Bvh_Volume,       2,      253,        22.82%,     0.261599
-       RAY,         no,       no,             Bvh_Volume,       4,      253,        24.62%,     0.129105
-       RAY,         no,       no,             Bvh_Volume,       8,      253,        24.64%,     0.074506
-       RAY,         no,       no,             Bvh_Volume,      16,      214,        24.07%,     0.046177
-       RAY,         no,       no,             Bvh_Volume,      32,      202,        21.31%,     0.037061
-       RAY,         no,       no,             Bvh_Volume,      64,      173,        21.17%,     0.034976
-       RAY,         no,      yes,  Bvh_LongestAxisCenter,       1,      254,        26.78%,     0.366619
-       RAY,         no,      yes,  Bvh_LongestAxisCenter,       2,      254,        27.38%,     0.227590
-       RAY,         no,      yes,  Bvh_LongestAxisCenter,       4,      254,        26.37%,     0.122046
-       RAY,         no,      yes,  Bvh_LongestAxisCenter,       8,      179,        26.70%,     0.097449
-       RAY,         no,      yes,  Bvh_LongestAxisCenter,      16,      254,        24.15%,     0.049151
-       RAY,         no,      yes,  Bvh_LongestAxisCenter,      32,      254,        20.89%,     0.043427
-       RAY,         no,      yes,  Bvh_LongestAxisCenter,      64,      221,        20.83%,     0.034456
-       RAY,         no,      yes, Bvh_OverlapSurfaceArea,       1,      241,        24.73%,     0.350051
-       RAY,         no,      yes, Bvh_OverlapSurfaceArea,       2,      241,        25.59%,     0.193661
-       RAY,         no,      yes, Bvh_OverlapSurfaceArea,       4,      241,        24.81%,     0.109095
-       RAY,         no,      yes, Bvh_OverlapSurfaceArea,       8,      241,        25.36%,     0.071947
-       RAY,         no,      yes, Bvh_OverlapSurfaceArea,      16,      221,        22.67%,     0.047660
-       RAY,         no,      yes, Bvh_OverlapSurfaceArea,      32,      241,        19.61%,     0.042097
-       RAY,         no,      yes, Bvh_OverlapSurfaceArea,      64,      175,        18.16%,     0.028035
-       RAY,         no,      yes,        Bvh_SurfaceArea,       1,      245,        25.34%,     0.331514
-       RAY,         no,      yes,        Bvh_SurfaceArea,       2,      245,        26.22%,     0.192674
-       RAY,         no,      yes,        Bvh_SurfaceArea,       4,      245,        25.45%,     0.101167
-       RAY,         no,      yes,        Bvh_SurfaceArea,       8,      245,        24.98%,     0.065605
-       RAY,         no,      yes,        Bvh_SurfaceArea,      16,      215,        23.40%,     0.045976
-       RAY,         no,      yes,        Bvh_SurfaceArea,      32,      245,        22.09%,     0.047894
-       RAY,         no,      yes,        Bvh_SurfaceArea,      64,      177,        18.91%,     0.031591
-       RAY,         no,      yes,      Bvh_OverlapVolume,       1,      236,        24.20%,     0.345243
-       RAY,         no,      yes,      Bvh_OverlapVolume,       2,      236,        25.03%,     0.211537
-       RAY,         no,      yes,      Bvh_OverlapVolume,       4,      236,        24.07%,     0.103897
-       RAY,         no,      yes,      Bvh_OverlapVolume,       8,      236,        24.35%,     0.079836
-       RAY,         no,      yes,      Bvh_OverlapVolume,      16,      236,        22.82%,     0.060236
-       RAY,         no,      yes,      Bvh_OverlapVolume,      32,      236,        19.02%,     0.043680
-       RAY,         no,      yes,      Bvh_OverlapVolume,      64,      220,        18.08%,     0.037130
-       RAY,         no,      yes,             Bvh_Volume,       1,      253,        25.11%,     0.350415
-       RAY,         no,      yes,             Bvh_Volume,       2,      253,        25.82%,     0.200343
-       RAY,         no,      yes,             Bvh_Volume,       4,      253,        25.58%,     0.110511
-       RAY,         no,      yes,             Bvh_Volume,       8,      253,        25.92%,     0.071121
-       RAY,         no,      yes,             Bvh_Volume,      16,      253,        22.49%,     0.045676
-       RAY,         no,      yes,             Bvh_Volume,      32,      253,        20.83%,     0.044526
-       RAY,         no,      yes,             Bvh_Volume,      64,      185,        17.67%,     0.028396
-       RAY,        yes,       no,  Bvh_LongestAxisCenter,       1,       66,        14.10%,     0.407396
-       RAY,        yes,       no,  Bvh_LongestAxisCenter,       2,       66,        14.98%,     0.212371
-       RAY,        yes,       no,  Bvh_LongestAxisCenter,       4,       61,        15.47%,     0.115969
-       RAY,        yes,       no,  Bvh_LongestAxisCenter,       8,       61,        15.33%,     0.074303
-       RAY,        yes,       no,  Bvh_LongestAxisCenter,      16,       58,        15.18%,     0.046256
-       RAY,        yes,       no,  Bvh_LongestAxisCenter,      32,       61,        15.22%,     0.028740
-       RAY,        yes,       no,  Bvh_LongestAxisCenter,      64,       54,        15.36%,     0.025625
-       RAY,        yes,       no, Bvh_OverlapSurfaceArea,       1,       79,        17.35%,     0.410352
-       RAY,        yes,       no, Bvh_OverlapSurfaceArea,       2,       79,        18.15%,     0.208239
-       RAY,        yes,       no, Bvh_OverlapSurfaceArea,       4,       64,        18.62%,     0.108596
-       RAY,        yes,       no, Bvh_OverlapSurfaceArea,       8,       79,        18.37%,     0.062892
-       RAY,        yes,       no, Bvh_OverlapSurfaceArea,      16,       64,        18.33%,     0.044814
-       RAY,        yes,       no, Bvh_OverlapSurfaceArea,      32,       79,        18.87%,     0.031401
-       RAY,        yes,       no, Bvh_OverlapSurfaceArea,      64,       62,        18.37%,     0.030600
-       RAY,        yes,       no,        Bvh_SurfaceArea,       1,       67,        15.65%,     0.408902
-       RAY,        yes,       no,        Bvh_SurfaceArea,       2,       67,        16.61%,     0.210995
-       RAY,        yes,       no,        Bvh_SurfaceArea,       4,       59,        16.85%,     0.105357
-       RAY,        yes,       no,        Bvh_SurfaceArea,       8,       67,        17.08%,     0.064931
-       RAY,        yes,       no,        Bvh_SurfaceArea,      16,       59,        16.75%,     0.043513
-       RAY,        yes,       no,        Bvh_SurfaceArea,      32,       56,        17.30%,     0.031417
-       RAY,        yes,       no,        Bvh_SurfaceArea,      64,       67,        18.52%,     0.030042
-       RAY,        yes,       no,      Bvh_OverlapVolume,       1,       73,        17.21%,     0.407194
-       RAY,        yes,       no,      Bvh_OverlapVolume,       2,       62,        17.82%,     0.213679
-       RAY,        yes,       no,      Bvh_OverlapVolume,       4,       62,        17.98%,     0.117167
-       RAY,        yes,       no,      Bvh_OverlapVolume,       8,       62,        18.00%,     0.070233
-       RAY,        yes,       no,      Bvh_OverlapVolume,      16,       73,        17.91%,     0.039341
-       RAY,        yes,       no,      Bvh_OverlapVolume,      32,       59,        18.51%,     0.030946
-       RAY,        yes,       no,      Bvh_OverlapVolume,      64,       62,        18.57%,     0.031163
-       RAY,        yes,       no,             Bvh_Volume,       1,       74,        16.04%,     0.424585
-       RAY,        yes,       no,             Bvh_Volume,       2,       74,        17.22%,     0.217342
-       RAY,        yes,       no,             Bvh_Volume,       4,       65,        17.54%,     0.122164
-       RAY,        yes,       no,             Bvh_Volume,       8,       74,        17.35%,     0.067512
-       RAY,        yes,       no,             Bvh_Volume,      16,       63,        17.14%,     0.048383
-       RAY,        yes,       no,             Bvh_Volume,      32,       74,        17.69%,     0.032611
-       RAY,        yes,       no,             Bvh_Volume,      64,       56,        17.56%,     0.030400
-       RAY,        yes,      yes,  Bvh_LongestAxisCenter,       1,       66,        15.68%,     0.297077
-       RAY,        yes,      yes,  Bvh_LongestAxisCenter,       2,       66,        16.56%,     0.178600
-       RAY,        yes,      yes,  Bvh_LongestAxisCenter,       4,       66,        15.73%,     0.102855
-       RAY,        yes,      yes,  Bvh_LongestAxisCenter,       8,       66,        15.73%,     0.063582
-       RAY,        yes,      yes,  Bvh_LongestAxisCenter,      16,       51,        14.59%,     0.044966
-       RAY,        yes,      yes,  Bvh_LongestAxisCenter,      32,       66,        15.39%,     0.042663
-       RAY,        yes,      yes,  Bvh_LongestAxisCenter,      64,       55,        11.89%,     0.023479
-       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,       1,       79,        19.31%,     0.314474
-       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,       2,       79,        20.23%,     0.186646
-       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,       4,       79,        19.44%,     0.089419
-       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,       8,       55,        18.88%,     0.049045
-       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,      16,       79,        15.70%,     0.045131
-       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,      32,       79,        19.45%,     0.040888
-       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,      64,       64,        16.44%,     0.028742
-       RAY,        yes,      yes,        Bvh_SurfaceArea,       1,       67,        17.36%,     0.299354
-       RAY,        yes,      yes,        Bvh_SurfaceArea,       2,       67,        18.78%,     0.172856
-       RAY,        yes,      yes,        Bvh_SurfaceArea,       4,       67,        18.02%,     0.088787
-       RAY,        yes,      yes,        Bvh_SurfaceArea,       8,       67,        18.64%,     0.060543
-       RAY,        yes,      yes,        Bvh_SurfaceArea,      16,       54,        16.57%,     0.041956
-       RAY,        yes,      yes,        Bvh_SurfaceArea,      32,       67,        15.96%,     0.034157
-       RAY,        yes,      yes,        Bvh_SurfaceArea,      64,       56,        14.64%,     0.023711
-       RAY,        yes,      yes,      Bvh_OverlapVolume,       1,       73,        19.01%,     0.287443
-       RAY,        yes,      yes,      Bvh_OverlapVolume,       2,       73,        20.02%,     0.177151
-       RAY,        yes,      yes,      Bvh_OverlapVolume,       4,       73,        19.55%,     0.093822
-       RAY,        yes,      yes,      Bvh_OverlapVolume,       8,       73,        19.12%,     0.056173
-       RAY,        yes,      yes,      Bvh_OverlapVolume,      16,       62,        18.82%,     0.046977
-       RAY,        yes,      yes,      Bvh_OverlapVolume,      32,       60,        16.33%,     0.037953
-       RAY,        yes,      yes,      Bvh_OverlapVolume,      64,       57,        15.56%,     0.031908
-       RAY,        yes,      yes,             Bvh_Volume,       1,       74,        17.95%,     0.305166
-       RAY,        yes,      yes,             Bvh_Volume,       2,       74,        18.72%,     0.176618
-       RAY,        yes,      yes,             Bvh_Volume,       4,       74,        17.82%,     0.090231
-       RAY,        yes,      yes,             Bvh_Volume,       8,       74,        17.81%,     0.055574
-       RAY,        yes,      yes,             Bvh_Volume,      16,       58,        15.15%,     0.035010
-       RAY,        yes,      yes,             Bvh_Volume,      32,       74,        17.70%,     0.034439
-       RAY,        yes,      yes,             Bvh_Volume,      64,       59,        17.22%,     0.026502
+FCPQ Benchmark: 1000 queries
+   CPQ/RAY, Vectorized, Coherent,        Build Heuristic,  Bounding Volume, Threads,    Nodes,   % Primitive,         Time
+       CPQ,         no,       no,  Bvh_LongestAxisCenter,             AABB,       1,      814,        50.74%,     0.024204
+       CPQ,         no,       no,  Bvh_LongestAxisCenter,             AABB,       2,      649,        50.52%,     0.019210
+       CPQ,         no,       no,  Bvh_LongestAxisCenter,             AABB,       4,      565,        50.74%,     0.010014
+       CPQ,         no,       no,  Bvh_LongestAxisCenter,             AABB,       8,      565,        48.26%,     0.007299
+       CPQ,         no,       no,  Bvh_LongestAxisCenter,             AABB,      16,      814,        48.23%,     0.006280
+       CPQ,         no,       no, Bvh_OverlapSurfaceArea,             AABB,       1,      661,        48.66%,     0.033648
+       CPQ,         no,       no, Bvh_OverlapSurfaceArea,             AABB,       2,      548,        49.90%,     0.018344
+       CPQ,         no,       no, Bvh_OverlapSurfaceArea,             AABB,       4,      548,        48.75%,     0.009283
+       CPQ,         no,       no, Bvh_OverlapSurfaceArea,             AABB,       8,      548,        47.64%,     0.006796
+       CPQ,         no,       no, Bvh_OverlapSurfaceArea,             AABB,      16,      661,        47.06%,     0.005873
+       CPQ,         no,       no,        Bvh_SurfaceArea,             AABB,       1,      653,        49.00%,     0.034255
+       CPQ,         no,       no,        Bvh_SurfaceArea,             AABB,       2,      644,        49.44%,     0.017721
+       CPQ,         no,       no,        Bvh_SurfaceArea,             AABB,       4,      644,        49.00%,     0.008924
+       CPQ,         no,       no,        Bvh_SurfaceArea,             AABB,       8,      603,        47.79%,     0.006875
+       CPQ,         no,       no,        Bvh_SurfaceArea,             AABB,      16,      653,        48.01%,     0.006548
+       CPQ,         no,       no,      Bvh_OverlapVolume,             AABB,       1,      681,        48.37%,     0.035000
+       CPQ,         no,       no,      Bvh_OverlapVolume,             AABB,       2,      608,        48.63%,     0.017865
+       CPQ,         no,       no,      Bvh_OverlapVolume,             AABB,       4,      608,        48.53%,     0.009299
+       CPQ,         no,       no,      Bvh_OverlapVolume,             AABB,       8,      524,        46.96%,     0.006751
+       CPQ,         no,       no,      Bvh_OverlapVolume,             AABB,      16,      681,        47.22%,     0.006154
+       CPQ,         no,       no,             Bvh_Volume,             AABB,       1,     1016,        47.76%,     0.036671
+       CPQ,         no,       no,             Bvh_Volume,             AABB,       2,      654,        49.20%,     0.018216
+       CPQ,         no,       no,             Bvh_Volume,             AABB,       4,      654,        50.00%,     0.009250
+       CPQ,         no,       no,             Bvh_Volume,             AABB,       8,      654,        47.86%,     0.006605
+       CPQ,         no,       no,             Bvh_Volume,             AABB,      16,     1016,        46.54%,     0.005295
+       CPQ,         no,      yes,  Bvh_LongestAxisCenter,             AABB,       1,      814,        48.91%,     0.028508
+       CPQ,         no,      yes,  Bvh_LongestAxisCenter,             AABB,       2,      649,        48.57%,     0.015001
+       CPQ,         no,      yes,  Bvh_LongestAxisCenter,             AABB,       4,      649,        48.56%,     0.011027
+       CPQ,         no,      yes,  Bvh_LongestAxisCenter,             AABB,       8,      649,        47.91%,     0.007756
+       CPQ,         no,      yes,  Bvh_LongestAxisCenter,             AABB,      16,      814,        47.77%,     0.005841
+       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,       1,      661,        47.65%,     0.030929
+       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,       2,      483,        48.73%,     0.013842
+       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,       4,      483,        47.49%,     0.007491
+       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,       8,      496,        47.34%,     0.007182
+       CPQ,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,      16,      661,        46.98%,     0.004723
+       CPQ,         no,      yes,        Bvh_SurfaceArea,             AABB,       1,      653,        48.53%,     0.027165
+       CPQ,         no,      yes,        Bvh_SurfaceArea,             AABB,       2,      563,        48.43%,     0.013441
+       CPQ,         no,      yes,        Bvh_SurfaceArea,             AABB,       4,      563,        48.92%,     0.007745
+       CPQ,         no,      yes,        Bvh_SurfaceArea,             AABB,       8,      563,        47.18%,     0.006947
+       CPQ,         no,      yes,        Bvh_SurfaceArea,             AABB,      16,      530,        47.89%,     0.005045
+       CPQ,         no,      yes,      Bvh_OverlapVolume,             AABB,       1,      681,        47.59%,     0.031691
+       CPQ,         no,      yes,      Bvh_OverlapVolume,             AABB,       2,      486,        45.99%,     0.013962
+       CPQ,         no,      yes,      Bvh_OverlapVolume,             AABB,       4,      486,        46.98%,     0.008174
+       CPQ,         no,      yes,      Bvh_OverlapVolume,             AABB,       8,      486,        46.34%,     0.006932
+       CPQ,         no,      yes,      Bvh_OverlapVolume,             AABB,      16,      681,        46.42%,     0.005560
+       CPQ,         no,      yes,             Bvh_Volume,             AABB,       1,      812,        47.97%,     0.030809
+       CPQ,         no,      yes,             Bvh_Volume,             AABB,       2,      590,        48.17%,     0.017011
+       CPQ,         no,      yes,             Bvh_Volume,             AABB,       4,      590,        46.78%,     0.004919
+       CPQ,         no,      yes,             Bvh_Volume,             AABB,       8,      812,        46.88%,     0.003227
+       CPQ,         no,      yes,             Bvh_Volume,             AABB,      16,      812,        47.00%,     0.002818
+       CPQ,        yes,       no,  Bvh_LongestAxisCenter,             AABB,       1,      814,        52.28%,     0.023684
+       CPQ,        yes,       no,  Bvh_LongestAxisCenter,             AABB,       2,      649,        51.32%,     0.008190
+       CPQ,        yes,       no,  Bvh_LongestAxisCenter,             AABB,       4,      649,        49.29%,     0.005474
+       CPQ,        yes,       no,  Bvh_LongestAxisCenter,             AABB,       8,      814,        48.58%,     0.003175
+       CPQ,        yes,       no,  Bvh_LongestAxisCenter,             AABB,      16,      814,        48.83%,     0.003174
+       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,       1,      661,        50.31%,     0.013626
+       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,       2,      548,        49.54%,     0.007215
+       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,       4,      548,        48.47%,     0.004852
+       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,       8,      661,        48.22%,     0.002863
+       CPQ,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,      16,      661,        46.70%,     0.003496
+       CPQ,        yes,       no,        Bvh_SurfaceArea,             AABB,       1,      653,        49.76%,     0.015560
+       CPQ,        yes,       no,        Bvh_SurfaceArea,             AABB,       2,      644,        50.99%,     0.007427
+       CPQ,        yes,       no,        Bvh_SurfaceArea,             AABB,       4,      644,        50.82%,     0.003546
+       CPQ,        yes,       no,        Bvh_SurfaceArea,             AABB,       8,      653,        48.57%,     0.002650
+       CPQ,        yes,       no,        Bvh_SurfaceArea,             AABB,      16,      653,        47.93%,     0.003768
+       CPQ,        yes,       no,      Bvh_OverlapVolume,             AABB,       1,      681,        48.66%,     0.013779
+       CPQ,        yes,       no,      Bvh_OverlapVolume,             AABB,       2,      608,        48.93%,     0.017002
+       CPQ,        yes,       no,      Bvh_OverlapVolume,             AABB,       4,      608,        47.81%,     0.012845
+       CPQ,        yes,       no,      Bvh_OverlapVolume,             AABB,       8,      681,        46.33%,     0.003535
+       CPQ,        yes,       no,      Bvh_OverlapVolume,             AABB,      16,      681,        46.57%,     0.002909
+       CPQ,        yes,       no,             Bvh_Volume,             AABB,       1,     1016,        48.56%,     0.013200
+       CPQ,        yes,       no,             Bvh_Volume,             AABB,       2,      654,        50.21%,     0.006824
+       CPQ,        yes,       no,             Bvh_Volume,             AABB,       4,      654,        47.25%,     0.004885
+       CPQ,        yes,       no,             Bvh_Volume,             AABB,       8,     1016,        47.29%,     0.004001
+       CPQ,        yes,       no,             Bvh_Volume,             AABB,      16,     1016,        46.90%,     0.002953
+       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,       1,      814,        49.36%,     0.019783
+       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,       2,      649,        48.95%,     0.007414
+       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,       4,      649,        48.72%,     0.005213
+       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,       8,      814,        48.61%,     0.002953
+       CPQ,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,      16,      814,        47.59%,     0.002804
+       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,       1,      661,        48.90%,     0.012037
+       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,       2,      483,        49.12%,     0.005774
+       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,       4,      496,        48.54%,     0.003944
+       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,       8,      496,        47.23%,     0.002664
+       CPQ,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,      16,      661,        47.61%,     0.002584
+       CPQ,        yes,      yes,        Bvh_SurfaceArea,             AABB,       1,      653,        49.24%,     0.012345
+       CPQ,        yes,      yes,        Bvh_SurfaceArea,             AABB,       2,      563,        47.98%,     0.012510
+       CPQ,        yes,      yes,        Bvh_SurfaceArea,             AABB,       4,      603,        47.62%,     0.007718
+       CPQ,        yes,      yes,        Bvh_SurfaceArea,             AABB,       8,      603,        47.99%,     0.006912
+       CPQ,        yes,      yes,        Bvh_SurfaceArea,             AABB,      16,      653,        48.19%,     0.004974
+       CPQ,        yes,      yes,      Bvh_OverlapVolume,             AABB,       1,      681,        47.11%,     0.030994
+       CPQ,        yes,      yes,      Bvh_OverlapVolume,             AABB,       2,      486,        46.07%,     0.014969
+       CPQ,        yes,      yes,      Bvh_OverlapVolume,             AABB,       4,      486,        47.19%,     0.008398
+       CPQ,        yes,      yes,      Bvh_OverlapVolume,             AABB,       8,      486,        46.29%,     0.007313
+       CPQ,        yes,      yes,      Bvh_OverlapVolume,             AABB,      16,      681,        48.10%,     0.002664
+       CPQ,        yes,      yes,             Bvh_Volume,             AABB,       1,      812,        48.99%,     0.014620
+       CPQ,        yes,      yes,             Bvh_Volume,             AABB,       2,      590,        49.14%,     0.005485
+       CPQ,        yes,      yes,             Bvh_Volume,             AABB,       4,      654,        49.22%,     0.004232
+       CPQ,        yes,      yes,             Bvh_Volume,             AABB,       8,      812,        47.80%,     0.003059
+       CPQ,        yes,      yes,             Bvh_Volume,             AABB,      16,      812,        47.79%,     0.002602
+       RAY,         no,       no,  Bvh_LongestAxisCenter,             AABB,       1,       81,        27.52%,     0.000763
+       RAY,         no,       no,  Bvh_LongestAxisCenter,             AABB,       2,       69,        25.97%,     0.000445
+       RAY,         no,       no,  Bvh_LongestAxisCenter,             AABB,       4,       69,        25.89%,     0.000348
+       RAY,         no,       no,  Bvh_LongestAxisCenter,             AABB,       8,       81,        23.48%,     0.000546
+       RAY,         no,       no,  Bvh_LongestAxisCenter,             AABB,      16,       81,        27.49%,     0.001199
+       RAY,         no,       no, Bvh_OverlapSurfaceArea,             AABB,       1,       92,        21.10%,     0.001524
+       RAY,         no,       no, Bvh_OverlapSurfaceArea,             AABB,       2,       58,        21.51%,     0.000882
+       RAY,         no,       no, Bvh_OverlapSurfaceArea,             AABB,       4,       58,        27.06%,     0.001016
+       RAY,         no,       no, Bvh_OverlapSurfaceArea,             AABB,       8,       58,        22.92%,     0.000771
+       RAY,         no,       no, Bvh_OverlapSurfaceArea,             AABB,      16,       92,        28.03%,     0.001635
+       RAY,         no,       no,        Bvh_SurfaceArea,             AABB,       1,       67,        20.56%,     0.001630
+       RAY,         no,       no,        Bvh_SurfaceArea,             AABB,       2,       57,        22.36%,     0.000961
+       RAY,         no,       no,        Bvh_SurfaceArea,             AABB,       4,       57,        25.03%,     0.000632
+       RAY,         no,       no,        Bvh_SurfaceArea,             AABB,       8,       57,        22.22%,     0.000671
+       RAY,         no,       no,        Bvh_SurfaceArea,             AABB,      16,       67,        23.60%,     0.001556
+       RAY,         no,       no,      Bvh_OverlapVolume,             AABB,       1,       83,        21.52%,     0.001251
+       RAY,         no,       no,      Bvh_OverlapVolume,             AABB,       2,       56,        22.18%,     0.000835
+       RAY,         no,       no,      Bvh_OverlapVolume,             AABB,       4,       56,        20.16%,     0.000841
+       RAY,         no,       no,      Bvh_OverlapVolume,             AABB,       8,       56,        21.91%,     0.000730
+       RAY,         no,       no,      Bvh_OverlapVolume,             AABB,      16,       83,        23.16%,     0.002030
+       RAY,         no,       no,             Bvh_Volume,             AABB,       1,       80,        23.28%,     0.000939
+       RAY,         no,       no,             Bvh_Volume,             AABB,       2,       63,        24.17%,     0.000878
+       RAY,         no,       no,             Bvh_Volume,             AABB,       4,       63,        22.69%,     0.000621
+       RAY,         no,       no,             Bvh_Volume,             AABB,       8,       61,        24.80%,     0.000726
+       RAY,         no,       no,             Bvh_Volume,             AABB,      16,       80,        24.92%,     0.001405
+       RAY,         no,      yes,  Bvh_LongestAxisCenter,             AABB,       1,       81,        28.66%,     0.001685
+       RAY,         no,      yes,  Bvh_LongestAxisCenter,             AABB,       2,       69,        27.38%,     0.000996
+       RAY,         no,      yes,  Bvh_LongestAxisCenter,             AABB,       4,       69,        24.72%,     0.000663
+       RAY,         no,      yes,  Bvh_LongestAxisCenter,             AABB,       8,       69,        26.92%,     0.000860
+       RAY,         no,      yes,  Bvh_LongestAxisCenter,             AABB,      16,       69,        25.07%,     0.001978
+       RAY,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,       1,       92,        23.67%,     0.001523
+       RAY,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,       2,       92,        26.32%,     0.000918
+       RAY,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,       4,       92,        24.19%,     0.000633
+       RAY,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,       8,       92,        22.87%,     0.000797
+       RAY,         no,      yes, Bvh_OverlapSurfaceArea,             AABB,      16,       92,        23.15%,     0.002356
+       RAY,         no,      yes,        Bvh_SurfaceArea,             AABB,       1,       67,        21.83%,     0.001605
+       RAY,         no,      yes,        Bvh_SurfaceArea,             AABB,       2,       67,        24.08%,     0.001027
+       RAY,         no,      yes,        Bvh_SurfaceArea,             AABB,       4,       67,        23.63%,     0.000575
+       RAY,         no,      yes,        Bvh_SurfaceArea,             AABB,       8,       67,        24.69%,     0.000604
+       RAY,         no,      yes,        Bvh_SurfaceArea,             AABB,      16,       67,        25.04%,     0.001592
+       RAY,         no,      yes,      Bvh_OverlapVolume,             AABB,       1,       83,        21.30%,     0.001519
+       RAY,         no,      yes,      Bvh_OverlapVolume,             AABB,       2,       70,        23.68%,     0.000909
+       RAY,         no,      yes,      Bvh_OverlapVolume,             AABB,       4,       57,        20.68%,     0.000605
+       RAY,         no,      yes,      Bvh_OverlapVolume,             AABB,       8,       70,        25.29%,     0.000883
+       RAY,         no,      yes,      Bvh_OverlapVolume,             AABB,      16,       70,        23.10%,     0.001506
+       RAY,         no,      yes,             Bvh_Volume,             AABB,       1,       80,        21.54%,     0.001714
+       RAY,         no,      yes,             Bvh_Volume,             AABB,       2,       80,        25.95%,     0.001012
+       RAY,         no,      yes,             Bvh_Volume,             AABB,       4,       80,        25.47%,     0.000716
+       RAY,         no,      yes,             Bvh_Volume,             AABB,       8,       80,        23.53%,     0.000858
+       RAY,         no,      yes,             Bvh_Volume,             AABB,      16,       80,        21.23%,     0.001905
+       RAY,        yes,       no,  Bvh_LongestAxisCenter,             AABB,       1,       81,        26.00%,     0.001806
+       RAY,        yes,       no,  Bvh_LongestAxisCenter,             AABB,       2,       69,        25.15%,     0.001137
+       RAY,        yes,       no,  Bvh_LongestAxisCenter,             AABB,       4,       69,        26.79%,     0.000646
+       RAY,        yes,       no,  Bvh_LongestAxisCenter,             AABB,       8,       69,        22.72%,     0.000674
+       RAY,        yes,       no,  Bvh_LongestAxisCenter,             AABB,      16,       81,        24.23%,     0.001986
+       RAY,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,       1,       92,        23.84%,     0.001539
+       RAY,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,       2,       58,        20.61%,     0.000849
+       RAY,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,       4,       58,        22.34%,     0.000528
+       RAY,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,       8,       58,        21.23%,     0.000506
+       RAY,        yes,       no, Bvh_OverlapSurfaceArea,             AABB,      16,       64,        24.98%,     0.001492
+       RAY,        yes,       no,        Bvh_SurfaceArea,             AABB,       1,       67,        21.12%,     0.001517
+       RAY,        yes,       no,        Bvh_SurfaceArea,             AABB,       2,       57,        21.79%,     0.000825
+       RAY,        yes,       no,        Bvh_SurfaceArea,             AABB,       4,       57,        23.43%,     0.000737
+       RAY,        yes,       no,        Bvh_SurfaceArea,             AABB,       8,       57,        25.72%,     0.000594
+       RAY,        yes,       no,        Bvh_SurfaceArea,             AABB,      16,       59,        24.08%,     0.001351
+       RAY,        yes,       no,      Bvh_OverlapVolume,             AABB,       1,       83,        19.73%,     0.001581
+       RAY,        yes,       no,      Bvh_OverlapVolume,             AABB,       2,       56,        22.13%,     0.000910
+       RAY,        yes,       no,      Bvh_OverlapVolume,             AABB,       4,       56,        24.02%,     0.000552
+       RAY,        yes,       no,      Bvh_OverlapVolume,             AABB,       8,       60,        19.84%,     0.000565
+       RAY,        yes,       no,      Bvh_OverlapVolume,             AABB,      16,       70,        24.67%,     0.001190
+       RAY,        yes,       no,             Bvh_Volume,             AABB,       1,       80,        25.21%,     0.000752
+       RAY,        yes,       no,             Bvh_Volume,             AABB,       2,       63,        23.57%,     0.000848
+       RAY,        yes,       no,             Bvh_Volume,             AABB,       4,       63,        23.73%,     0.000506
+       RAY,        yes,       no,             Bvh_Volume,             AABB,       8,       63,        21.75%,     0.000636
+       RAY,        yes,       no,             Bvh_Volume,             AABB,      16,       80,        22.97%,     0.002083
+       RAY,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,       1,       81,        24.83%,     0.001616
+       RAY,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,       2,       69,        26.19%,     0.001110
+       RAY,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,       4,       64,        24.27%,     0.000595
+       RAY,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,       8,       69,        27.27%,     0.000665
+       RAY,        yes,      yes,  Bvh_LongestAxisCenter,             AABB,      16,       69,        24.53%,     0.001349
+       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,       1,       92,        21.86%,     0.001459
+       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,       2,       92,        23.74%,     0.000896
+       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,       4,       92,        25.75%,     0.000277
+       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,       8,       92,        30.69%,     0.000562
+       RAY,        yes,      yes, Bvh_OverlapSurfaceArea,             AABB,      16,       92,        24.81%,     0.001100
+       RAY,        yes,      yes,        Bvh_SurfaceArea,             AABB,       1,       67,        23.77%,     0.000654
+       RAY,        yes,      yes,        Bvh_SurfaceArea,             AABB,       2,       67,        26.31%,     0.000490
+       RAY,        yes,      yes,        Bvh_SurfaceArea,             AABB,       4,       67,        24.19%,     0.000441
+       RAY,        yes,      yes,        Bvh_SurfaceArea,             AABB,       8,       67,        25.33%,     0.000453
+       RAY,        yes,      yes,        Bvh_SurfaceArea,             AABB,      16,       67,        25.16%,     0.001172
+       RAY,        yes,      yes,      Bvh_OverlapVolume,             AABB,       1,       83,        22.63%,     0.000646
+       RAY,        yes,      yes,      Bvh_OverlapVolume,             AABB,       2,       70,        26.83%,     0.000449
+       RAY,        yes,      yes,      Bvh_OverlapVolume,             AABB,       4,       70,        22.82%,     0.000387
+       RAY,        yes,      yes,      Bvh_OverlapVolume,             AABB,       8,       70,        22.66%,     0.000429
+       RAY,        yes,      yes,      Bvh_OverlapVolume,             AABB,      16,       83,        23.29%,     0.001180
+       RAY,        yes,      yes,             Bvh_Volume,             AABB,       1,       80,        23.62%,     0.000722
+       RAY,        yes,      yes,             Bvh_Volume,             AABB,       2,       80,        26.31%,     0.000478
+       RAY,        yes,      yes,             Bvh_Volume,             AABB,       4,       80,        28.48%,     0.000389
+       RAY,        yes,      yes,             Bvh_Volume,             AABB,       8,       80,        25.42%,     0.000571
+       RAY,        yes,      yes,             Bvh_Volume,             AABB,      16,       80,        25.43%,     0.001247
