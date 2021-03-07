@@ -6,6 +6,9 @@
 
 namespace fcpw {
 
+template<typename T>
+struct Id { using type = T; };
+
 template<size_t DIM>
 class Primitive {
 public:
@@ -17,14 +20,13 @@ public:
 
 	// returns bounding box
 	template<typename BoundingType>
-	BoundingType boundingVol() const {}
-
-	template<>
-	BoundingBox<DIM> boundingVol<BoundingBox<DIM>>() const {
+	BoundingType boundingVol() const {
+		return boundingVolImp(Id<BoundingType>());
+	}
+	BoundingBox<DIM> boundingVolImp(Id<BoundingBox<DIM>>) const {
 		return boundingBox();
 	}
-	template<>
-	BoundingSphere<DIM> boundingVol<BoundingSphere<DIM>>() const {
+	BoundingSphere<DIM> boundingVolImp(Id<BoundingSphere<DIM>>) const {
 		return boundingSphere();
 	}
 

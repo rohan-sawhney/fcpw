@@ -279,7 +279,7 @@ inline void Sbvh<DIM, BoundingType, PrimitiveType>::build()
 	BoundingType boxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
-		referenceBoxes[i] = primitives[i]->boundingVol<BoundingType>();
+		referenceBoxes[i] = primitives[i]->template boundingVol<BoundingType>();
 		referenceCentroids[i] = primitives[i]->centroid();
 		boxRoot.expandToInclude(referenceBoxes[i]);
 	}
