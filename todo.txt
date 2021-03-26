@@ -1,7 +1,3 @@
 
 TODO (Max):
-    - make OBB actually work
-        - OBB member functions
-        - triangle/line seg OBB 
-    - RSS
-    - make mbvh compile/work again, possibly implement wide-sphere/OBB/RSS
+    - use OBB axis as BVH split axis 

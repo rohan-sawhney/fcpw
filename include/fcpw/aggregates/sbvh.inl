@@ -12,8 +12,7 @@ leafSize(leafSize_),
 nBuckets(nBuckets_),
 maxDepth(0),
 depthGuess((int)std::log2(primitives_.size())),
-buckets(nBuckets, std::make_pair(BoundingType(), 0)),
-rightBucketBoxes(nBuckets, std::make_pair(BoundingType(), 0)),
+buckets(nBuckets),
 primitives(primitives_),
 packLeaves(packLeaves_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
@@ -87,7 +86,7 @@ inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeSplitCost(const Boun
 template<size_t DIM, typename BoundingType, typename PrimitiveType>
 inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeObjectSplit(const BoundingType& nodeBoundingBox,
 														  const BoundingType& nodeCentroidBox,
-														  const std::vector<BoundingType>& referenceBoxes,
+														  const std::vector<std::vector<Vector<DIM>>>& referencePoints,
 														  const std::vector<Vector<DIM>>& referenceCentroids,
 														  int depth, int nodeStart, int nodeEnd, int& splitDim,
 														  float& splitCoord, BoundingType& boxIntersected)
@@ -110,43 +109,50 @@ inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeObjectSplit(const Bo
 			// bin references into buckets
 			float bucketWidth = extent[dim]/nBuckets;
 			for (int b = 0; b < nBuckets; b++) {
-				buckets[b].first = BoundingType();
-				buckets[b].second = 0;
+				buckets[b].clear();
 			}
 
 			for (int p = nodeStart; p < nodeEnd; p++) {
 				int bucketIndex = (int)((referenceCentroids[p][dim] - nodeBoundingBox.box().pMin[dim])/bucketWidth);
 				bucketIndex = clamp(bucketIndex, 0, nBuckets - 1);
-				buckets[bucketIndex].first.expandToInclude(referenceBoxes[p]);
-				buckets[bucketIndex].second += 1;
-			}
-
-			// sweep right to left to build right bucket bounding boxes
-			BoundingType boxRefRight;
-			for (int b = nBuckets - 1; b > 0; b--) {
-				boxRefRight.expandToInclude(buckets[b].first);
-				rightBucketBoxes[b].first = boxRefRight;
-				rightBucketBoxes[b].second = buckets[b].second;
-				if (b != nBuckets - 1) rightBucketBoxes[b].second += rightBucketBoxes[b + 1].second;
+				buckets[bucketIndex].push_back(p);
 			}
 
 			// evaluate bucket split costs
-			BoundingType boxRefLeft;
-			int nReferencesLeft = 0;
+			BoundingType boxRefLeft, boxRefRight;
 			for (int b = 1; b < nBuckets; b++) {
-				boxRefLeft.expandToInclude(buckets[b - 1].first);
-				nReferencesLeft += buckets[b - 1].second;
+				
+				// TODO(max): very b^2
+				int nReferencesLeft = 0, nReferencesRight = 0;
+				std::vector<std::vector<Vector<DIM>>> leftPoints, rightPoints;
+				
+				for(int l = 0; l < b; l++) {
+					for(int p : buckets[l]) {
+						leftPoints.push_back(referencePoints[p]);
+					}
+					nReferencesLeft += (int)buckets[l].size();
+				}
 
-				if (nReferencesLeft > 0 && rightBucketBoxes[b].second > 0) {
-					float cost = computeSplitCost(boxRefLeft, rightBucketBoxes[b].first,
+				for(int r = b; r < nBuckets; r++) {
+					for(int p : buckets[r]) {
+						rightPoints.push_back(referencePoints[p]);
+					}
+					nReferencesRight += (int)buckets[r].size();
+				}
+
+				boxRefLeft.fromPoints(leftPoints);
+				boxRefRight.fromPoints(rightPoints);
+
+				if (nReferencesLeft > 0 && nReferencesRight > 0) {
+					float cost = computeSplitCost(boxRefLeft, boxRefRight,
 												  surfaceArea, volume, nReferencesLeft,
-												  rightBucketBoxes[b].second, depth);
+												  nReferencesRight, depth);
 
 					if (cost < splitCost) {
 						splitCost = cost;
 						splitDim = (int)dim;
 						splitCoord = nodeBoundingBox.box().pMin[dim] + b*bucketWidth;
-						boxIntersected = boxRefLeft.intersect(rightBucketBoxes[b].first);
+						boxIntersected = boxRefLeft.intersect(boxRefRight);
 					}
 				}
 			}
@@ -167,14 +173,14 @@ inline float Sbvh<DIM, BoundingType, PrimitiveType>::computeObjectSplit(const Bo
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>
 inline int Sbvh<DIM, BoundingType, PrimitiveType>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
-														std::vector<BoundingType>& referenceBoxes,
+														std::vector<std::vector<Vector<DIM>>>& referencePoints,
 														std::vector<Vector<DIM>>& referenceCentroids)
 {
 	int mid = nodeStart;
 	for (int i = nodeStart; i < nodeEnd; i++) {
 		if (referenceCentroids[i][splitDim] < splitCoord) {
 			std::swap(primitives[i], primitives[mid]);
-			std::swap(referenceBoxes[i], referenceBoxes[mid]);
+			std::swap(referencePoints[i], referencePoints[mid]);
 			std::swap(referenceCentroids[i], referenceCentroids[mid]);
 			mid++;
 		}
@@ -195,7 +201,7 @@ inline int Sbvh<DIM, BoundingType, PrimitiveType>::performObjectSplit(int nodeSt
 }
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>
-inline void Sbvh<DIM, BoundingType, PrimitiveType>::buildRecursive(std::vector<BoundingType>& referenceBoxes,
+inline void Sbvh<DIM, BoundingType, PrimitiveType>::buildRecursive(std::vector<std::vector<Vector<DIM>>>& referencePoints,
 													 std::vector<Vector<DIM>>& referenceCentroids,
 													 std::vector<SbvhNode<BoundingType, DIM>>& buildNodes,
 													 int parent, int start, int end, int depth)
@@ -213,10 +219,14 @@ inline void Sbvh<DIM, BoundingType, PrimitiveType>::buildRecursive(std::vector<B
 
 	// calculate the bounding box for this node
 	BoundingType bb, bc;
-	for (int p = start; p < end; p++) {
-		bb.expandToInclude(referenceBoxes[p]);
-		bc.expandToInclude(referenceCentroids[p]);
+	std::vector<std::vector<Vector<DIM>>> refPoints;
+	std::vector<Vector<DIM>> refCenters;
+	for(int i = start; i < end; i++) {
+		refPoints.push_back(referencePoints[i]);
+		refCenters.push_back(referenceCentroids[i]);
 	}
+	bb.fromPoints(refPoints);
+	bc.fromPoints(refCenters);
 
 	node.box = bb;
 
@@ -226,7 +236,6 @@ inline void Sbvh<DIM, BoundingType, PrimitiveType>::buildRecursive(std::vector<B
 		node.referenceOffset = start;
 		node.nReferences = nReferences;
 		nLeafs++;
-
 	} else {
 		node.secondChildOffset = Untouched;
 		node.nReferences = 0;
@@ -253,16 +262,16 @@ inline void Sbvh<DIM, BoundingType, PrimitiveType>::buildRecursive(std::vector<B
 	int splitDim;
 	float splitCoord;
 	BoundingType boxIntersected;
-	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids, depth,
+	float splitCost = computeObjectSplit(bb, bc, referencePoints, referenceCentroids, depth,
 										 start, end, splitDim, splitCoord, boxIntersected);
 
 	// partition the list of references on split
 	int nReferencesAdded = 0;
-	int mid = performObjectSplit(start, end, splitDim, splitCoord, referenceBoxes, referenceCentroids);
+	int mid = performObjectSplit(start, end, splitDim, splitCoord, referencePoints, referenceCentroids);
 
 	// push left and right children
-	buildRecursive(referenceBoxes, referenceCentroids, buildNodes, currentNodeIndex, start, mid, depth + 1);
-	buildRecursive(referenceBoxes, referenceCentroids, buildNodes, currentNodeIndex, mid, end, depth + 1);
+	buildRecursive(referencePoints, referenceCentroids, buildNodes, currentNodeIndex, start, mid, depth + 1);
+	buildRecursive(referencePoints, referenceCentroids, buildNodes, currentNodeIndex, mid, end, depth + 1);
 }
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>
@@ -270,44 +279,37 @@ inline void Sbvh<DIM, BoundingType, PrimitiveType>::build()
 {
 	// precompute bounding boxes and centroids
 	int nReferences = (int)primitives.size();
-	std::vector<BoundingType> referenceBoxes;
+	std::vector<std::vector<Vector<DIM>>> referencePoints;
 	std::vector<Vector<DIM>> referenceCentroids;
 
-	referenceBoxes.resize(nReferences);
+	referencePoints.resize(nReferences);
 	referenceCentroids.resize(nReferences);
 	flatTree.reserve(nReferences*2);
 	BoundingType boxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
-		referenceBoxes[i] = primitives[i]->template boundingVol<BoundingType>();
+		referencePoints[i] = primitives[i]->points();
 		referenceCentroids[i] = primitives[i]->centroid();
-		boxRoot.expandToInclude(referenceBoxes[i]);
 	}
+	boxRoot.fromPoints(referencePoints);
 
 	// build tree recursively
-	buildRecursive(referenceBoxes, referenceCentroids, flatTree, 0xfffffffc, 0, nReferences, 0);
+	buildRecursive(referencePoints, referenceCentroids, flatTree, 0xfffffffc, 0, nReferences, 0);
 
 	// clear working set
 	buckets.clear();
-	rightBucketBoxes.clear();
 }
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>
 inline BoundingBox<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingBox() const
 {
-	return flatTree.size() > 0 ? *reinterpret_cast<const BoundingBox<DIM>*>(&flatTree[0].box) : BoundingBox<DIM>();
+	return flatTree.size() > 0 ? flatTree[0].box.box() : BoundingBox<DIM>{};
 }
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>
-inline OrientedBoundingBox<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingOBB() const
+inline std::vector<Vector<DIM>> Sbvh<DIM, BoundingType, PrimitiveType>::points() const
 {
-	return flatTree.size() > 0 ? *reinterpret_cast<const OrientedBoundingBox<DIM>*>(&flatTree[0].box) : OrientedBoundingBox<DIM>();
-}
-
-template<size_t DIM, typename BoundingType, typename PrimitiveType>
-inline BoundingSphere<DIM> Sbvh<DIM, BoundingType, PrimitiveType>::boundingSphere() const
-{
-	return flatTree.size() > 0 ? *reinterpret_cast<const BoundingSphere<DIM>*>(&flatTree[0].box) : BoundingSphere<DIM>();
+	return flatTree.size() > 0 ? flatTree[0].box.points() : std::vector<Vector<DIM>>{};
 }
 
 template<size_t DIM, typename BoundingType, typename PrimitiveType>

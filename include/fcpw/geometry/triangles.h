@@ -9,10 +9,9 @@ public:
 	// constructor
 	Triangle();
 
-	// returns bounding box
+	std::vector<Vector3> points() const;
+
 	BoundingBox<3> boundingBox() const;
-	OrientedBoundingBox<3> boundingOBB() const;
-	BoundingSphere<3> boundingSphere() const;
 
 	// returns centroid
 	Vector3 centroid() const;
@@ -39,8 +38,8 @@ public:
 	float angle(int vIndex) const;
 
 	// splits the triangle along the provided coordinate and axis
-	void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
-			   BoundingBox<3>& boxRight) const;
+	// void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
+	// 		   BoundingBox<3>& boxRight) const;
 
 	// intersects with ray
 	int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,

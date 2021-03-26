@@ -603,8 +603,7 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, cons
 
 			case BoundingVolumeType::OBB: {
 				
-				// using BoundingType = OrientedBoundingBox<3>;
-				using BoundingType = BoundingBox<3>;
+				using BoundingType = OrientedBoundingBox<3>;
 				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<BoundingType, 3>>&, std::vector<Triangle *>&)>;
 				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, BoundingType, Triangle>::sort,
 																std::placeholders::_1, std::placeholders::_2,

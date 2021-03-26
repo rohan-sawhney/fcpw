@@ -3,14 +3,39 @@ project(fcpw-tests)
 
 ################################################################################
 # build tests
-add_executable(aggregate_tests aggregate_tests.cpp)
-target_link_libraries(aggregate_tests fcpw)
 
-target_include_directories(aggregate_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
-if(FCPW_USE_ENOKI)
-	target_include_directories(aggregate_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
-endif()
+option(FCPW_TEST_AGG "Build Aggregate tests" ON)
+option(FCPW_TEST_OBB "Build OBB test" ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
-target_link_libraries(aggregate_tests Threads::Threads)
+
+if(FCPW_TEST_AGG) 
+	add_executable(aggregate_tests aggregate_tests.cpp)
+	target_link_libraries(aggregate_tests fcpw)
+
+	target_include_directories(aggregate_tests PUBLIC ${FCPW_EIGEN_INCLUDES})
+	if(FCPW_USE_ENOKI)
+		target_include_directories(aggregate_tests PUBLIC ${FCPW_ENOKI_INCLUDES})
+	endif()
+
+	target_link_libraries(aggregate_tests Threads::Threads)
+
+	if(MSVC) 
+		target_compile_options(aggregate_tests PRIVATE /bigobj)
+		endif()
+endif()		
+
+if(FCPW_TEST_OBB)
+	add_executable(obb_test obb_test.cpp)
+	target_link_libraries(obb_test fcpw polyscope)
+
+	target_include_directories(obb_test PUBLIC ${FCPW_EIGEN_INCLUDES})
+	if(FCPW_USE_ENOKI)
+	target_include_directories(obb_test PUBLIC ${FCPW_ENOKI_INCLUDES})
+	endif()
+
+	if(MSVC)
+		target_compile_options(obb_test PRIVATE /bigobj /wd4267)
+	endif()
+endif()

@@ -18,25 +18,11 @@ public:
 	// destructor
 	virtual ~Primitive() {}
 
-	// returns bounding box
-	template<typename BoundingType>
-	BoundingType boundingVol() const {
-		return boundingVolImp(Id<BoundingType>());
-	}
-
-	BoundingBox<DIM> boundingVolImp(Id<BoundingBox<DIM>>) const {
-		return boundingBox();
-	}
-	BoundingSphere<DIM> boundingVolImp(Id<BoundingSphere<DIM>>) const {
-		return boundingSphere();
-	}
-	OrientedBoundingBox<DIM> boundingVolImp(Id<OrientedBoundingBox<DIM>>) const {
-		return boundingOBB();
-	}
-
+	// returns a list of points whose convex hull encloses the primitive (could be the points of a triangle/line,
+	// or the 8 points representing the corners of a bounding box)
+	virtual std::vector<Vector<DIM>> points() const = 0; 
+	
 	virtual BoundingBox<DIM> boundingBox() const = 0;
-	virtual OrientedBoundingBox<DIM> boundingOBB() const = 0;
-	virtual BoundingSphere<DIM> boundingSphere() const = 0;
 
 	// returns centroid
 	virtual Vector<DIM> centroid() const = 0;
@@ -48,8 +34,8 @@ public:
 	virtual float signedVolume() const = 0;
 
 	// splits the primitive along the provided coordinate and axis
-	virtual void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
-					   BoundingBox<DIM>& boxRight) const = 0;
+	// virtual void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
+	// 				   BoundingBox<DIM>& boxRight) const = 0;
 
 	// intersects with ray
 	virtual int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
@@ -200,15 +186,14 @@ public:
 		this->computeNormals = false;
 	}
 
-	// returns bounding box
+	std::vector<Vector<DIM>> points() const {
+		auto inner = aggregate->points();
+		for(auto& v : inner) v = t*v;
+		return inner;
+	}
+
 	BoundingBox<DIM> boundingBox() const {
-		return aggregate->boundingBox().transform(t);
-	}
-	OrientedBoundingBox<DIM> boundingOBB() const {
-		return aggregate->boundingOBB().transform(t);
-	}
-	BoundingSphere<DIM> boundingSphere() const {
-		return aggregate->boundingSphere().transform(t);
+		return aggregate->boundingBox().transform(t);	
 	}
 
 	// returns centroid

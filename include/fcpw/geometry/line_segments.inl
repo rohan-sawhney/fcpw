@@ -10,37 +10,16 @@ pIndex(-1)
 
 inline BoundingBox<3> LineSegment::boundingBox() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-
-	BoundingBox<3> box(pa);
-	box.expandToInclude(pb);
-
+	BoundingBox<3> box;
+	box.fromPoints(points());
 	return box;
 }
 
-inline OrientedBoundingBox<3> LineSegment::boundingOBB() const
-{
+inline std::vector<Vector3> LineSegment::points() const {
+
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
-
-	OrientedBoundingBox<3> box(pa);
-	box.expandToInclude(pb);
-
-	return box;
-}
-
-inline BoundingSphere<3> LineSegment::boundingSphere() const
-{
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-
-	const Vector3 avg = 0.5f * (pa + pb);
-	BoundingSphere<3> box(avg, 0.0f);
-	box.expandToInclude(pa);
-	box.expandToInclude(pb);
-
-	return box;
+	return {pa, pb};
 }
 
 inline Vector3 LineSegment::centroid() const
@@ -104,45 +83,45 @@ inline Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 	return Vector2((p - pa).norm()/(pb - pa).norm(), 0.0f);
 }
 
-inline void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
-							   BoundingBox<3>& boxRight) const
-{
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+// inline void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
+// 							   BoundingBox<3>& boxRight) const
+// {
+// 	const Vector3& pa = soup->positions[indices[0]];
+// 	const Vector3& pb = soup->positions[indices[1]];
 
-	if (pa[dim] <= splitCoord) {
-		if (pb[dim] <= splitCoord) {
-			boxLeft = BoundingBox<3>(pa);
-			boxLeft.expandToInclude(pb);
-			boxRight = BoundingBox<3>();
+// 	if (pa[dim] <= splitCoord) {
+// 		if (pb[dim] <= splitCoord) {
+// 			boxLeft = BoundingBox<3>(pa);
+// 			boxLeft.expandToInclude(pb);
+// 			boxRight = BoundingBox<3>();
 
-		} else {
-			Vector3 u = pb - pa;
-			float t = clamp((splitCoord - pa[dim])/u[dim], 0.0f, 1.0f);
+// 		} else {
+// 			Vector3 u = pb - pa;
+// 			float t = clamp((splitCoord - pa[dim])/u[dim], 0.0f, 1.0f);
 
-			boxLeft = BoundingBox<3>(pa + u*t);
-			boxRight = boxLeft;
-			boxLeft.expandToInclude(pa);
-			boxRight.expandToInclude(pb);
-		}
+// 			boxLeft = BoundingBox<3>(pa + u*t);
+// 			boxRight = boxLeft;
+// 			boxLeft.expandToInclude(pa);
+// 			boxRight.expandToInclude(pb);
+// 		}
 
-	} else {
-		if (pb[dim] >= splitCoord) {
-			boxRight = BoundingBox<3>(pa);
-			boxRight.expandToInclude(pb);
-			boxLeft = BoundingBox<3>();
+// 	} else {
+// 		if (pb[dim] >= splitCoord) {
+// 			boxRight = BoundingBox<3>(pa);
+// 			boxRight.expandToInclude(pb);
+// 			boxLeft = BoundingBox<3>();
 
-		} else {
-			Vector3 u = pb - pa;
-			float t = clamp((splitCoord - pa[dim])/u[dim], 0.0f, 1.0f);
+// 		} else {
+// 			Vector3 u = pb - pa;
+// 			float t = clamp((splitCoord - pa[dim])/u[dim], 0.0f, 1.0f);
 
-			boxRight = BoundingBox<3>(pa + u*t);
-			boxLeft = boxRight;
-			boxRight.expandToInclude(pa);
-			boxLeft.expandToInclude(pb);
-		}
-	}
-}
+// 			boxRight = BoundingBox<3>(pa + u*t);
+// 			boxLeft = boxRight;
+// 			boxRight.expandToInclude(pa);
+// 			boxLeft.expandToInclude(pb);
+// 		}
+// 	}
+// }
 
 inline int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 								  bool checkForOcclusion, bool recordAllHits) const

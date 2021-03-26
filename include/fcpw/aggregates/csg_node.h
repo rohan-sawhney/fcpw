@@ -20,12 +20,12 @@ public:
 			const BooleanOperation& operation_);
 
 	// returns bounding box
-	BoundingBox<DIM> boundingBox() const;
-	OrientedBoundingBox<DIM> boundingOBB() const;
-	BoundingSphere<DIM> boundingSphere() const;
+	std::vector<Vector<DIM>> points() const;
 
 	// returns centroid
 	Vector<DIM> centroid() const;
+
+	BoundingBox<DIM> boundingBox() const;
 
 	// returns surface area
 	float surfaceArea() const;

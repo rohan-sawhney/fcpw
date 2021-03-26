@@ -76,5 +76,6 @@ endif()
 ################################################################################
 # build tests
 if(FCPW_BUILD_TESTS)
+	add_subdirectory(deps/polyscope)
 	add_subdirectory(tests)
 endif()

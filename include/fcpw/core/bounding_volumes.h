@@ -3,6 +3,9 @@
 #include <fcpw/core/core.h>
 #include <fcpw/core/ray.h>
 
+#include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
+
 namespace fcpw {
 
 template<size_t DIM>
@@ -28,6 +31,15 @@ struct BoundingSphere {
 		}
 
 		return BoundingSphere<DIM>(tc, tr2);
+	}
+
+	BoundingBox<DIM> box() const {
+		float r = std::sqrt(r2);
+		return BoundingBox<DIM>(c.array() - r, c.array() + r);
+	}
+	
+	std::vector<Vector<DIM>> points() const {
+		return box().points();
 	}
 
 	// checks for ray intersection
@@ -58,26 +70,6 @@ struct BoundingSphere {
 		return d2Min <= s.r2;
 	}
 
-	void expandToInclude(const Vector<DIM>& p) {
-		if(r2 < 0.0f) {
-			c = p;
-			r2 = 0.0f;
-		} else {
-			r2 = std::max(r2, (p - c).squaredNorm());
-		}
-	}
-
-	void expandToInclude(const BoundingSphere<DIM>& b)	{
-		if(r2 < 0.0f) {
-			*this = b;
-		} else {
-			float dist = (b.c - c).norm() + std::sqrt(b.r2);
-			r2 = std::max(r2, dist * dist);
-		}
-	}
-
-	BoundingBox<DIM> box() const;
-
 	static constexpr float PI_F = 3.1415926535897f;
 	
 	float surfaceArea() const {
@@ -91,6 +83,17 @@ struct BoundingSphere {
 		return r2 >= 0.0f;
 	}
 
+	void fromPoints(const std::vector<Vector<DIM>>& points) {
+		*this = BoundingSphere();
+		for(const auto& p : points) expandToInclude(p);
+	}
+	void fromPoints(const std::vector<std::vector<Vector<DIM>>>& points) {
+		*this = BoundingSphere();
+		for(const auto& l : points)
+			for(const auto& p : l) 
+				expandToInclude(p);
+	}
+
 	BoundingSphere<DIM> intersect(const BoundingSphere<DIM>& b) const {
 		float P = (b.c - c).squaredNorm();
 		float Q = (r2 - b.r2 + P) / (2.0f * P);
@@ -99,127 +102,179 @@ struct BoundingSphere {
 		return BoundingSphere(B, R);
 	}
 
-	// members
 	Vector<DIM> c;
 	float r2;
-};
 
+private:
+	void expandToInclude(const Vector<DIM>& p) {
+		if(r2 < 0.0f) {
+			c = p;
+			r2 = 0.0f;
+		} else {
+			r2 = std::max(r2, (p - c).squaredNorm());
+		}
+	}
+};
 
 template<size_t DIM>
 struct OrientedBoundingBox {
-	// constructor
-	OrientedBoundingBox(): pMin(Vector<DIM>::Constant(maxFloat)),
-				   pMax(Vector<DIM>::Constant(minFloat)) {}
+	
+	static_assert(DIM == 3);
 
-	// constructor
-	OrientedBoundingBox(const Vector<DIM>& p) {
-		Vector<DIM> epsilonVector = Vector<DIM>::Constant(epsilon);
-		pMin = p - epsilonVector;
-		pMax = p + epsilonVector;
-	}
+	OrientedBoundingBox() : e(Vector3::Constant(-1.0f)) {}
 
-	OrientedBoundingBox(const Vector<DIM>& pMin, const Vector<DIM>& pMax) : pMin(pMin), pMax(pMax) {}
-
-	BoundingBox<DIM> box() const;
-
-	// expands volume to include point
-	void expandToInclude(const Vector<DIM>& p) {
-		Vector<DIM> epsilonVector = Vector<DIM>::Constant(epsilon);
-		pMin = pMin.cwiseMin(p - epsilonVector);
-		pMax = pMax.cwiseMax(p + epsilonVector);
-	}
-
-	// expands volume to include box
-	void expandToInclude(const OrientedBoundingBox<DIM>& b)	{
-		pMin = pMin.cwiseMin(b.pMin);
-		pMax = pMax.cwiseMax(b.pMax);
-	}
-
-	// checks for overlap with sphere
-	bool overlap(const BoundingSphere<DIM>& s, float& d2Min, float& d2Max) const {
-		Vector<DIM> u = pMin - s.c;
-		Vector<DIM> v = s.c - pMax;
-		d2Min = u.cwiseMax(v).cwiseMax(0.0f).squaredNorm();
-		d2Max = u.cwiseMin(v).squaredNorm();
-		return d2Min <= s.r2;
-	}
-
-	Vector<DIM> extent() const {
-		return pMax - pMin;
-	}
-
-	// checks for overlap with bounding box
-	bool overlap(const OrientedBoundingBox<DIM>& b) const {
-		return (b.pMax.array() >= pMin.array()).all() &&
-			   (b.pMin.array() <= pMax.array()).all();
-	}
-
-	// checks for ray intersection
 	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
-		// slab test for ray box intersection
-		// source: http://www.jcgt.org/published/0007/03/04/paper-lowres.pdf
-		Vector<DIM> t0 = (pMin - r.o).cwiseProduct(r.invD);
-		Vector<DIM> t1 = (pMax - r.o).cwiseProduct(r.invD);
-		Vector<DIM> tNear = t0.cwiseMin(t1);
-		Vector<DIM> tFar = t0.cwiseMax(t1);
-
-		float tNearMax = std::max(0.0f, tNear.maxCoeff());
-		float tFarMin = std::min(r.tMax, tFar.minCoeff());
-		if (tNearMax > tFarMin) return false;
-
-		tMin = tNearMax;
-		tMax = tFarMin;
-		return true;
+		
+		BoundingBox<DIM> local = local_box();
+		Ray<DIM> rt = r.transform(T);
+		return local.intersect(rt, tMin, tMax);
 	}
 
-	// checks whether bounding box is valid
-	bool isValid() const {
-		return (pMax.array() >= pMin.array()).all();
+	bool overlap(const BoundingSphere<DIM>& s, float& d2Min, float& d2Max) const {
+
+		BoundingBox<DIM> local = local_box();
+		BoundingSphere<DIM> st = s.transform(T);
+		return local.overlap(st, d2Min, d2Max);
 	}
 
-	// returns surface area
-	float surfaceArea() const {
-		Vector<DIM> e = extent().cwiseMax(1e-5f); // the 1e-5 is to prevent division by zero
-		return 2.0f*Vector<DIM>::Constant(e.prod()).cwiseQuotient(e).sum();
-	}
-
-	// returns volume
-	float volume() const {
-		return extent().prod();
-	}
-
-	// computes transformed box
-	OrientedBoundingBox<DIM> transform(const Transform<DIM>& t) const {
-		OrientedBoundingBox<DIM> b;
-		int nCorners = 1 << DIM;
-
-		for (int i = 0; i < nCorners; i++) {
-			Vector<DIM> p = Vector<DIM>::Zero();
-			int temp = i;
-
-			for (size_t j = 0; j < DIM; j++) {
-				int idx = temp%2;
-				p[j] = idx == 0 ? pMin[j] : pMax[j];
-				temp /= 2;
-			}
-
-			b.expandToInclude(t*p);
-		}
-
-		return b;
-	}
-
-	// returns the intersection of two bounding boxes
 	OrientedBoundingBox<DIM> intersect(const OrientedBoundingBox<DIM>& b) const {
-		OrientedBoundingBox<DIM> bIntersect;
-		bIntersect.pMin = pMin.cwiseMax(b.pMin);
-		bIntersect.pMax = pMax.cwiseMin(b.pMax);
-
-		return bIntersect;
+		return OrientedBoundingBox();
 	}
 
-	// members
-	Vector<DIM> pMin, pMax;
+	// computes transformed sphere
+	OrientedBoundingBox<DIM> transform(const Transform<DIM>& t) const {
+		OrientedBoundingBox<DIM> ret;
+		
+		auto pt = points();
+		for(auto& p : pt) p = t * p;
+
+		ret.fromPoints(pt);
+		return ret;
+	}
+
+	BoundingBox<DIM> box() const {
+		auto pt = points();
+		BoundingBox<DIM> ret;
+		ret.fromPoints(pt);
+		return ret;
+	}
+
+	BoundingBox<DIM> local_box() const {
+		BoundingBox<DIM> ret;
+		ret.pMin = -e;
+		ret.pMax = e;
+		return ret;
+	}
+
+	Eigen::Matrix3f rot_mat() const {
+		return T.matrix().block<3,3>(0,0).transpose();
+	}
+
+	Vector<DIM> center() const {
+		return -T.matrix().block<3,1>(0,3);
+	}
+	
+	std::vector<Vector<DIM>> points() const {
+		
+		Vector<DIM> c = center();
+		Vector<DIM> min = c-e;
+		Vector<DIM> max = c+e;
+
+		std::vector<Vector<DIM>> v;
+		Eigen::Matrix3f u = rot_mat();
+		v.push_back(u * Vector<DIM>(min.x(), min.y(), min.z()));
+		v.push_back(u * Vector<DIM>(max.x(), min.y(), min.z()));
+		v.push_back(u * Vector<DIM>(min.x(), max.y(), min.z()));
+		v.push_back(u * Vector<DIM>(min.x(), min.y(), max.z()));
+		v.push_back(u * Vector<DIM>(max.x(), max.y(), min.z()));
+		v.push_back(u * Vector<DIM>(min.x(), max.y(), max.z()));
+		v.push_back(u * Vector<DIM>(max.x(), min.y(), max.z()));
+		v.push_back(u * Vector<DIM>(max.x(), max.y(), max.z()));
+
+		return v;
+	}
+
+	float surfaceArea() const {
+		Vector<DIM> ext = (2.0f * e).cwiseMax(1e-5f);
+		return 2.0f*Vector<DIM>::Constant(ext.prod()).cwiseQuotient(ext).sum();
+	}
+
+	float volume() const {
+		return (2.0f * e).prod();
+	}
+
+	bool isValid() const {
+		return (e.array() >= Vector3::Constant(0.0f).array()).all();
+	}
+
+	void fromPoints(const std::vector<Vector<DIM>>& points) {
+		*this = fitPCA(points);
+	}
+	void fromPoints(const std::vector<std::vector<Vector<DIM>>>& points) {
+		std::vector<Vector<DIM>> flat;
+		for(const auto& l : points) flat.insert(flat.end(), l.begin(), l.end());
+		*this = fitPCA(flat);
+	}
+
+	static OrientedBoundingBox<DIM> fitPCA(const std::vector<Vector3>& points) {
+		
+		Vector3 center;
+		center.setZero();
+		for(const auto& v : points) {
+			center += v;
+		}
+		center /= (float)points.size();
+		
+		// adjust for mean and compute covariance
+		Eigen::Matrix3f covariance;
+		covariance.setZero();
+		for(const auto& v : points) {
+			Vector3 pAdg = v - center;
+			covariance += pAdg * pAdg.transpose();
+		}
+		covariance /= (float)points.size();
+
+		// compute eigenvectors for the covariance matrix
+		Eigen::EigenSolver<Eigen::Matrix3f> solver(covariance);
+		Eigen::Matrix3f eigenVectors = solver.eigenvectors().real();
+
+		// project min and max points on each principal axis
+		float min1 = INFINITY, max1 = -INFINITY;
+		float min2 = INFINITY, max2 = -INFINITY;
+		float min3 = INFINITY, max3 = -INFINITY;
+		float d = 0.0;
+		eigenVectors.transposeInPlace();
+		for(const auto& v : points) {
+			d = eigenVectors.row(0).dot(v);
+			if (min1 > d) min1 = d;
+			if (max1 < d) max1 = d;
+			
+			d = eigenVectors.row(1).dot(v);
+			if (min2 > d) min2 = d;
+			if (max2 < d) max2 = d;
+			
+			d = eigenVectors.row(2).dot(v);
+			if (min3 > d) min3 = d;
+			if (max3 < d) max3 = d;
+		}
+		
+		OrientedBoundingBox<DIM> ret;
+
+		ret.e.x() = (max1 - min1) / 2.0f;
+		ret.e.y() = (max2 - min2) / 2.0f;
+		ret.e.z() = (max3 - min3) / 2.0f;
+
+		Vector<DIM> c = (Vector3(min1,min2,min3) + Vector3(max1,max2,max3)) / 2.0f;
+
+		Eigen::Matrix4f T = Eigen::Matrix4f::Identity();
+		T.block<3,3>(0,0) = eigenVectors;
+		T.block<3,1>(0,3) = -c;
+		ret.T.matrix() = T;
+		return ret;
+	}
+
+	Vector3 e;
+	Transform<3> T;
 };
 
 template<size_t DIM>
@@ -240,25 +295,16 @@ struct BoundingBox {
 	BoundingBox box() const {
 		return *this;
 	}
-	BoundingSphere<DIM> sphere() const {
-		Vector<DIM> avg = 0.5f * (pMin + pMax);
-		BoundingSphere<DIM> box(avg, 0.0f);
-		box.expandToInclude(pMin);
-		box.expandToInclude(pMax);
-		return box;
-	}
 
-	// expands volume to include point
-	void expandToInclude(const Vector<DIM>& p) {
-		Vector<DIM> epsilonVector = Vector<DIM>::Constant(epsilon);
-		pMin = pMin.cwiseMin(p - epsilonVector);
-		pMax = pMax.cwiseMax(p + epsilonVector);
+	void fromPoints(const std::vector<Vector<DIM>>& points) {
+		*this = BoundingBox();
+		for(const auto& p : points) expandToInclude(p);
 	}
-
-	// expands volume to include box
-	void expandToInclude(const BoundingBox<DIM>& b)	{
-		pMin = pMin.cwiseMin(b.pMin);
-		pMax = pMax.cwiseMax(b.pMax);
+	void fromPoints(const std::vector<std::vector<Vector<DIM>>>& points) {
+		*this = BoundingBox();
+		for(const auto& l : points)
+			for(const auto& p : l)
+				expandToInclude(p);
 	}
 
 	// returns box extent
@@ -320,7 +366,6 @@ struct BoundingBox {
 	int maxDimension() const {
 		int index;
 		float maxLength = (pMax - pMin).maxCoeff(&index);
-
 		return index;
 	}
 
@@ -361,6 +406,25 @@ struct BoundingBox {
 		return b;
 	}
 
+	std::vector<Vector<DIM>> points() const {
+
+		std::vector<Vector<DIM>> pts;
+		int nCorners = 1 << DIM;
+
+		for (int i = 0; i < nCorners; i++) {
+			Vector<DIM> p = Vector<DIM>::Zero();
+			int temp = i;
+			for (size_t j = 0; j < DIM; j++) {
+				int idx = temp%2;
+				p[j] = idx == 0 ? pMin[j] : pMax[j];
+				temp /= 2;
+			}
+			pts.push_back(p);
+		}
+
+		return pts;
+	}
+
 	// returns the intersection of two bounding boxes
 	BoundingBox<DIM> intersect(const BoundingBox<DIM>& b) const {
 		BoundingBox<DIM> bIntersect;
@@ -370,19 +434,15 @@ struct BoundingBox {
 		return bIntersect;
 	}
 
-	// members
 	Vector<DIM> pMin, pMax;
+
+private:
+	void expandToInclude(const Vector<DIM>& p) {
+		Vector<DIM> epsilonVector = Vector<DIM>::Constant(epsilon);
+		pMin = pMin.cwiseMin(p - epsilonVector);
+		pMax = pMax.cwiseMax(p + epsilonVector);
+	}
 };
 
-template<size_t DIM>
-BoundingBox<DIM> BoundingSphere<DIM>::box() const {
-	float r = std::sqrt(r2);
-	return BoundingBox<DIM>(c.array() - r, c.array() + r);
-}
-
-template<size_t DIM>
-BoundingBox<DIM> OrientedBoundingBox<DIM>::box() const {
-	return BoundingBox<DIM>(pMin, pMax);
-}
 
 } // namespace fcpw

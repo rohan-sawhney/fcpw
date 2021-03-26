@@ -11,43 +11,17 @@ pIndex(-1)
 
 inline BoundingBox<3> Triangle::boundingBox() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
-
-	BoundingBox<3> box(pa);
-	box.expandToInclude(pb);
-	box.expandToInclude(pc);
-
+	BoundingBox<3> box;
+	box.fromPoints(points());
 	return box;
 }
 
-inline OrientedBoundingBox<3> Triangle::boundingOBB() const
-{
+inline std::vector<Vector3> Triangle::points() const {
+
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
 	const Vector3& pc = soup->positions[indices[2]];
-
-	OrientedBoundingBox<3> box(pa);
-	box.expandToInclude(pb);
-	box.expandToInclude(pc);
-
-	return box;
-}
-
-inline BoundingSphere<3> Triangle::boundingSphere() const
-{
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
-	const Vector3& pc = soup->positions[indices[2]];
-
-	const Vector3 avg = (1.0f / 3.0f) * (pa + pb + pc);
-	BoundingSphere<3> box(avg, 0.0f);
-	box.expandToInclude(pa);
-	box.expandToInclude(pb);
-	box.expandToInclude(pc);
-
-	return box;
+	return {pa, pb, pc};
 }
 
 inline Vector3 Triangle::centroid() const
@@ -167,65 +141,65 @@ inline float Triangle::angle(int vIndex) const
 	return std::acos(std::max(-1.0f, std::min(1.0f, u.dot(v))));
 }
 
-inline void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
-							BoundingBox<3>& boxRight) const
-{
-	for (int i = 0; i < 3; i++) {
-		const Vector3& pa = soup->positions[indices[i]];
-		const Vector3& pb = soup->positions[indices[(i + 1)%3]];
+// inline void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
+// 							BoundingBox<3>& boxRight) const
+// {
+// 	for (int i = 0; i < 3; i++) {
+// 		const Vector3& pa = soup->positions[indices[i]];
+// 		const Vector3& pb = soup->positions[indices[(i + 1)%3]];
 
-		if (pa[dim] <= splitCoord && pb[dim] <= splitCoord) {
-			const Vector3& pc = soup->positions[indices[(i + 2)%3]];
+// 		if (pa[dim] <= splitCoord && pb[dim] <= splitCoord) {
+// 			const Vector3& pc = soup->positions[indices[(i + 2)%3]];
 
-			if (pc[dim] <= splitCoord) {
-				boxLeft = BoundingBox<3>(pa);
-				boxLeft.expandToInclude(pb);
-				boxLeft.expandToInclude(pc);
-				boxRight = BoundingBox<3>();
+// 			if (pc[dim] <= splitCoord) {
+// 				boxLeft = BoundingBox<3>(pa);
+// 				boxLeft.expandToInclude(pb);
+// 				boxLeft.expandToInclude(pc);
+// 				boxRight = BoundingBox<3>();
 
-			} else {
-				Vector3 u = pa - pc;
-				Vector3 v = pb - pc;
-				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
-				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
+// 			} else {
+// 				Vector3 u = pa - pc;
+// 				Vector3 v = pb - pc;
+// 				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
+// 				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
-				boxLeft = BoundingBox<3>(pc + u*t);
-				boxLeft.expandToInclude(pc + v*s);
-				boxRight = boxLeft;
-				boxLeft.expandToInclude(pa);
-				boxLeft.expandToInclude(pb);
-				boxRight.expandToInclude(pc);
-			}
+// 				boxLeft = BoundingBox<3>(pc + u*t);
+// 				boxLeft.expandToInclude(pc + v*s);
+// 				boxRight = boxLeft;
+// 				boxLeft.expandToInclude(pa);
+// 				boxLeft.expandToInclude(pb);
+// 				boxRight.expandToInclude(pc);
+// 			}
 
-			break;
+// 			break;
 
-		} else if (pa[dim] >= splitCoord && pb[dim] >= splitCoord) {
-			const Vector3& pc = soup->positions[indices[(i + 2)%3]];
+// 		} else if (pa[dim] >= splitCoord && pb[dim] >= splitCoord) {
+// 			const Vector3& pc = soup->positions[indices[(i + 2)%3]];
 
-			if (pc[dim] >= splitCoord) {
-				boxRight = BoundingBox<3>(pa);
-				boxRight.expandToInclude(pb);
-				boxRight.expandToInclude(pc);
-				boxLeft = BoundingBox<3>();
+// 			if (pc[dim] >= splitCoord) {
+// 				boxRight = BoundingBox<3>(pa);
+// 				boxRight.expandToInclude(pb);
+// 				boxRight.expandToInclude(pc);
+// 				boxLeft = BoundingBox<3>();
 
-			} else {
-				Vector3 u = pa - pc;
-				Vector3 v = pb - pc;
-				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
-				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
+// 			} else {
+// 				Vector3 u = pa - pc;
+// 				Vector3 v = pb - pc;
+// 				float t = clamp((splitCoord - pc[dim])/u[dim], 0.0f, 1.0f);
+// 				float s = clamp((splitCoord - pc[dim])/v[dim], 0.0f, 1.0f);
 
-				boxRight = BoundingBox<3>(pc + u*t);
-				boxRight.expandToInclude(pc + v*s);
-				boxLeft = boxRight;
-				boxRight.expandToInclude(pa);
-				boxRight.expandToInclude(pb);
-				boxLeft.expandToInclude(pc);
-			}
+// 				boxRight = BoundingBox<3>(pc + u*t);
+// 				boxRight.expandToInclude(pc + v*s);
+// 				boxLeft = boxRight;
+// 				boxRight.expandToInclude(pa);
+// 				boxRight.expandToInclude(pb);
+// 				boxLeft.expandToInclude(pc);
+// 			}
 
-			break;
-		}
-	}
-}
+// 			break;
+// 		}
+// 	}
+// }
 
 inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 							   bool checkForOcclusion, bool recordAllHits) const

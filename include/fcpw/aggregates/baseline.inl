@@ -10,35 +10,20 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 }
 
 template<size_t DIM, typename PrimitiveType>
-inline BoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingBox() const
-{
+inline std::vector<Vector<DIM>> Baseline<DIM, PrimitiveType>::points() const {
+	return boundingBox().points();
+}
+
+template<size_t DIM, typename PrimitiveType>
+inline BoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingBox() const {
+
+	std::vector<std::vector<Vector<DIM>>> pts;
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		pts.push_back(primitives[p]->points());
+	}
+
 	BoundingBox<DIM> bb;
-	for (int p = 0; p < (int)primitives.size(); p++) {
-		bb.expandToInclude(primitives[p]->boundingBox());
-	}
-
-	return bb;
-}
-
-template<size_t DIM, typename PrimitiveType>
-inline OrientedBoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingOBB() const
-{
-	OrientedBoundingBox<DIM> bb;
-	for (int p = 0; p < (int)primitives.size(); p++) {
-		bb.expandToInclude(primitives[p]->boundingOBB());
-	}
-
-	return bb;
-}
-
-template<size_t DIM, typename PrimitiveType>
-inline BoundingSphere<DIM> Baseline<DIM, PrimitiveType>::boundingSphere() const
-{
-	BoundingSphere<DIM> bb;
-	for (int p = 0; p < (int)primitives.size(); p++) {
-		bb.expandToInclude(primitives[p]->boundingSphere());
-	}
-
+	bb.fromPoints(pts);
 	return bb;
 }
 

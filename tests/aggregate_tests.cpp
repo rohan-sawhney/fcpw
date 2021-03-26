@@ -2,6 +2,7 @@
 #include <fcpw/utilities/scene_loader.h>
 #include <atomic>
 #include <thread>
+#include <mutex>
 #include "CLI11.hpp"
 
 using namespace fcpw;
@@ -227,7 +228,10 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::vector<Vector<DIM>>& queryPoints,
 							 const std::vector<int>& indices)
 {
+
 	std::atomic<bool> stopQueries(false);
+	std::mutex mut;
+
 	auto test = [&](int begin, int end) {
 		Interaction<DIM> cPrev;
 		Vector<DIM> queryPrev = Vector<DIM>::Zero();
@@ -251,6 +255,7 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 			bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0, aggregate2->index, Vector<DIM>::Zero(), nodesVisited);
 
 			if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
+				std::lock_guard<std::mutex> lock(mut);
 				std::cerr << "d1: " << c1.d << " d2: " << c2.d
 						  << "\np1: " << c1.p << " p2: " << c2.p
 						  << "\nClosest points do not match!" << std::endl;
@@ -259,6 +264,7 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 
 			if (found2) cPrev = c2;
 			else {
+				std::lock_guard<std::mutex> lock(mut);
 				std::cerr << "Closest points not found!" << std::endl;
 				stopQueries = true;
 			}
@@ -403,8 +409,11 @@ void run_checks() {
 		for(const auto& use_rays : Srays) {
 			for (const auto& vectorize : Svectorize) {
 				for (const auto& bvh_type : Stypes) {
+					
 					if(bvh_type == AggregateType::Baseline) continue;
+					
 					for (const auto& vol_type : Btypes) {
+
 						run_tests(use_rays, vol_type, bvh_type, vectorize);
 					}
 				}
@@ -448,7 +457,7 @@ void run()
 	//  - Thread count
 	//  - Vectorized or not (and width, but this is only varied at compile time)
 	//  - Coherent queries or not
-	//  - [WIP] bounding volume type
+	//  - bounding volume type
 
 	auto run_benchmark = [&](bool rays, BoundingVolumeType volume, AggregateType heuristic, bool vector, bool coherent, int threads) {
 			
@@ -492,10 +501,19 @@ void run()
 	if(opt_run_auto) {
 		for(const auto& use_rays : Srays) {
 			for (const auto& vectorize : Svectorize) {
+				if(vectorize == true) continue;
 				for (const auto& coherent : Scoherent) {
 					for (const auto& bvh_type : Stypes) {
+						
 						if(bvh_type == AggregateType::Baseline) continue;
+						// if(bvh_type == AggregateType::Bvh_OverlapSurfaceArea) continue;
+						// if(bvh_type == AggregateType::Bvh_OverlapVolume) continue;
+
 						for (const auto& vol_type : Btypes) {
+							
+							// if(vol_type == BoundingVolumeType::Sphere) continue;
+							// if(vol_type == BoundingVolumeType::RSS) continue;
+							
 							for (const auto& threads : Sthreads) {
 								if(threads > 2 * (int)std::thread::hardware_concurrency()) break;
 								run_benchmark(use_rays, vol_type, bvh_type, vectorize, coherent, threads);

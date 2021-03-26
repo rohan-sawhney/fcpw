@@ -24,44 +24,34 @@ inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeBounding
 		// use the child bounding box with the smaller extent; this is not the tightest fit box
 		BoundingBox<DIM> boxLeft = left->boundingBox();
 		BoundingBox<DIM> boxRight = right->boundingBox();
-		box.expandToInclude(boxLeft.extent().squaredNorm() <
+		box.fromPoints(boxLeft.extent().squaredNorm() <
 							boxRight.extent().squaredNorm() ?
-							boxLeft : boxRight);
+							left->points() : right->points());
 
 	} else if (operation == BooleanOperation::Difference) {
 		// use the bounding box of the left child (i.e., the object that is subtracted from);
 		// this is not the tightest fit box
-		box.expandToInclude(left->boundingBox());
+		box.fromPoints(left->points());
 
 	} else {
 		// this is the tightest fit box for the union and none operations
-		BoundingBox<DIM> boxLeft = left->boundingBox();
-		BoundingBox<DIM> boxRight = right->boundingBox();
-		box.expandToInclude(boxLeft);
-		box.expandToInclude(boxRight);
+		std::vector<std::vector<Vector<DIM>>> points;
+		points.push_back(left->points());
+		points.push_back(right->points());
+		box.fromPoints(points);
 	}
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline BoundingBox<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::boundingBox() const
 {
-	return box;
+	return box.box();
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
-inline OrientedBoundingBox<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::boundingOBB() const
-{	
-	std::cerr << "CSG::boundingOBB(): not currently a good idea!" << std::endl;
-	exit(EXIT_FAILURE);
-	return OrientedBoundingBox<DIM>();
-}
-
-template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
-inline BoundingSphere<DIM> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::boundingSphere() const
+inline std::vector<Vector<DIM>> CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::points() const
 {
-	std::cerr << "CSG::boundingSphere(): not currently a good idea!" << std::endl;
-	exit(EXIT_FAILURE);
-	return BoundingSphere<DIM>();
+	return box.points();
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>

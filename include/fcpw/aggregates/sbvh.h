@@ -49,10 +49,9 @@ public:
 		 SortPositionsFunc<DIM, BoundingType, PrimitiveType> sortPositions_={},
 		 bool printStats_=false, bool packLeaves_=false, int leafSize_=4, int nBuckets_=8);
 
-	// returns bounding box
+	std::vector<Vector<DIM>> points() const;
+
 	BoundingBox<DIM> boundingBox() const;
-	OrientedBoundingBox<DIM> boundingOBB() const;
-	BoundingSphere<DIM> boundingSphere() const;
 
 	// returns centroid
 	Vector<DIM> centroid() const;
@@ -93,18 +92,18 @@ protected:
 	// computes object split
 	float computeObjectSplit(const BoundingType& nodeBoundingBox,
 							 const BoundingType& nodeCentroidBox,
-							 const std::vector<BoundingType>& referenceBoxes,
+							 const std::vector<std::vector<Vector<DIM>>>& referencePoints,
 							 const std::vector<Vector<DIM>>& referenceCentroids,
 							 int depth, int nodeStart, int nodeEnd, int& splitDim,
 							 float& splitCoord, BoundingType& boxIntersected);
 
 	// performs object split
 	int performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
-						   std::vector<BoundingType>& referenceBoxes,
+						   std::vector<std::vector<Vector<DIM>>>& referencePoints,
 						   std::vector<Vector<DIM>>& referenceCentroids);
 
 	// helper function to build binary tree
-	void buildRecursive(std::vector<BoundingType>& referenceBoxes,
+	void buildRecursive(std::vector<std::vector<Vector<DIM>>>& referencePoints,
 						std::vector<Vector<DIM>>& referenceCentroids,
 						std::vector<SbvhNode<BoundingType, DIM>>& buildNodes,
 						int parent, int start, int end, int depth);
@@ -139,7 +138,7 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	int nNodes, nLeafs, leafSize, nBuckets, maxDepth, depthGuess;
-	std::vector<std::pair<BoundingType, int>> buckets, rightBucketBoxes;
+	std::vector<std::vector<int>> buckets;
 	std::vector<PrimitiveType *>& primitives;
 	std::vector<SbvhNode<BoundingType, DIM>> flatTree;
 	bool packLeaves, primitiveTypeIsAggregate;
