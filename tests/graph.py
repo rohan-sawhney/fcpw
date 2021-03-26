@@ -10,7 +10,7 @@ from collections import defaultdict
 x_axis_types = ['Type', 'Vectorized', 'Coherent', 'Heuristic', 'Volume', 'Threads']
 y_axis_types = ['Nodes', 'Primitives', 'Time']
 
-x_axis_values = [['CPQ','RAY'],['no','yes'],['no','yes'],['Bvh_LongestAxisCenter','Bvh_OverlapSurfaceArea','Bvh_SurfaceArea','Bvh_OverlapVolume','Bvh_Volume'],['AABB'],['1','2','4','8','16','32','64','128']]
+x_axis_values = [['CPQ','RAY'],['no','yes'],['no','yes'],['Bvh_LongestAxisCenter','Bvh_OverlapSurfaceArea','Bvh_SurfaceArea','Bvh_OverlapVolume','Bvh_Volume'],['AABB','Sphere','OBB'],['1','2','4','8','16','32','64','128']]
 
 parser = argparse.ArgumentParser(description='Graph FCPQ benchmark data.')
 

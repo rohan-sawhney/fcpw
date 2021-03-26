@@ -506,13 +506,16 @@ void run()
 					for (const auto& bvh_type : Stypes) {
 						
 						if(bvh_type == AggregateType::Baseline) continue;
-						// if(bvh_type == AggregateType::Bvh_OverlapSurfaceArea) continue;
-						// if(bvh_type == AggregateType::Bvh_OverlapVolume) continue;
 
 						for (const auto& vol_type : Btypes) {
 							
-							// if(vol_type == BoundingVolumeType::Sphere) continue;
-							// if(vol_type == BoundingVolumeType::RSS) continue;
+							// Not yet supported
+							if(vol_type == BoundingVolumeType::RSS) continue;
+							if(vol_type == BoundingVolumeType::OBB) {
+								// Not yet supported
+								if(bvh_type == AggregateType::Bvh_OverlapSurfaceArea) continue;
+								if(bvh_type == AggregateType::Bvh_OverlapVolume) continue;
+							}
 							
 							for (const auto& threads : Sthreads) {
 								if(threads > 2 * (int)std::thread::hardware_concurrency()) break;
