@@ -492,7 +492,7 @@ void run()
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};
 	std::vector<bool> Scoherent = {false, true};
-	std::vector<int> Sthreads = {8};
+	std::vector<int> Sthreads = {1, 2, 4, 8, 16, 32, 64, 128};
 	std::vector<bool> Srays = {false, true};
 
 	printf("\n");
@@ -500,9 +500,15 @@ void run()
 	printf("%10s, %10s, %8s, %22s, %16s, %7s, %8s, %13s, %12s\n", "CPQ/RAY", "Vectorized", "Coherent", "Build Heuristic", "Bounding Volume", "Threads", "Nodes", "% Primitive", "Time");
 	if(opt_run_auto) {
 		for(const auto& use_rays : Srays) {
+			
+			// TODO: not yet supported for SSRs
 			if(use_rays) continue;
+
 			for (const auto& vectorize : Svectorize) {
+				
+				// TODO: Not yet supported for non-AABB volumes
 				if(vectorize == true) continue;
+
 				for (const auto& coherent : Scoherent) {
 					for (const auto& bvh_type : Stypes) {
 						
@@ -512,7 +518,7 @@ void run()
 							
 							if(vol_type == BoundingVolumeType::Sphere) continue;
 							if(vol_type == BoundingVolumeType::SphereSweptRect || vol_type == BoundingVolumeType::OrientedBox) {
-								// Not yet supported
+								// TODO: not yet supported 
 								if(bvh_type == AggregateType::Bvh_OverlapSurfaceArea) continue;
 								if(bvh_type == AggregateType::Bvh_OverlapVolume) continue;
 							}
