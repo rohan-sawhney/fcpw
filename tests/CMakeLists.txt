@@ -5,7 +5,7 @@ project(fcpw-tests)
 # build tests
 
 option(FCPW_TEST_AGG "Build Aggregate tests" ON)
-option(FCPW_TEST_OBB "Build OBB test" ON)
+option(FCPW_TEST_BB "Build OBB test" ON)
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
@@ -26,16 +26,16 @@ if(FCPW_TEST_AGG)
 		endif()
 endif()		
 
-if(FCPW_TEST_OBB)
-	add_executable(obb_test obb_test.cpp)
-	target_link_libraries(obb_test fcpw polyscope)
+if(FCPW_TEST_BB)
+	add_executable(bb_test bb_test.cpp)
+	target_link_libraries(bb_test fcpw polyscope)
 
-	target_include_directories(obb_test PUBLIC ${FCPW_EIGEN_INCLUDES})
+	target_include_directories(bb_test PUBLIC ${FCPW_EIGEN_INCLUDES})
 	if(FCPW_USE_ENOKI)
-	target_include_directories(obb_test PUBLIC ${FCPW_ENOKI_INCLUDES})
+		target_include_directories(bb_test PUBLIC ${FCPW_ENOKI_INCLUDES})
 	endif()
 
 	if(MSVC)
-		target_compile_options(obb_test PRIVATE /bigobj /wd4267)
+		target_compile_options(bb_test PRIVATE /bigobj /wd4267)
 	endif()
 endif()

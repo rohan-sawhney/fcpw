@@ -10,20 +10,59 @@
 
 using namespace fcpw;
 
-void viz_obb(OrientedBoundingBox<3> obb, std::string name) {
+void viz_rss(SphereSweptRect<3> rss, std::string name) {
     
-    Eigen::Matrix3f u = obb.rot_mat();
-    Vector3 c = obb.center();
-    Vector3 min = c - obb.e;
-    Vector3 max = c + obb.e;
+    Vector3 c = rss.center();
     
     std::vector<Vector3> v;
     std::vector<std::array<size_t,2>> i;
 
     auto edge = [&](Vector3 a, Vector3 b) {
         i.push_back({v.size(), v.size() + 1});
-        v.push_back(u * a);
-        v.push_back(u * b);
+        v.push_back(a);
+        v.push_back(b);
+    };
+
+    Vector3 n = rss.e0.cross(rss.e1).normalized();
+
+    Vector3 mm = c - rss.e0 - rss.e1;
+    Vector3 pm = c + rss.e0 - rss.e1;
+    Vector3 mp = c - rss.e0 + rss.e1;
+    Vector3 pp = c + rss.e0 + rss.e1;
+
+    edge(mm, pm);
+    edge(pm, pp);
+    edge(pp, mp);
+    edge(mp, mm);
+
+    edge(c - n * rss.r, c + n * rss.r);
+
+    Vector3 to_mm = (mm - c).normalized();
+    Vector3 to_pp = (pp - c).normalized();
+    Vector3 to_mp = (mp - c).normalized();
+    Vector3 to_pm = (pm - c).normalized();
+    edge(mm, mm + to_mm * rss.r);
+    edge(pp, pp + to_pp * rss.r);
+    edge(mp, mp + to_mp * rss.r);
+    edge(pm, pm + to_pm * rss.r);
+
+    polyscope::registerCurveNetwork(name, v, i);
+}
+
+void viz_obb(OrientedBoundingBox<3> obb, std::string name) {
+    
+    Eigen::Matrix3f u = obb.rot_mat();
+    Vector3 c = obb.center();
+    Vector3 min = -obb.e;
+    Vector3 max = obb.e;
+    
+    std::vector<Vector3> v;
+    std::vector<std::array<size_t,2>> i;
+
+    auto edge = [&](Vector3 a, Vector3 b) {
+        i.push_back({v.size(), v.size() + 1});
+        v.push_back(u * a + c);
+        v.push_back(u * b + c);
     };
 
     edge(min, Vector3{max.x(), min.y(), min.z()});
@@ -80,13 +119,19 @@ void viz_object(const std::vector<Vector3>& points) {
     BoundingBox<3> bb;
     bb.fromPoints(points);
 
+    SphereSweptRect<3> rss;
+    rss.fromPoints(points);
+
     viz_bb(bb, "AABB");
-    viz_bb(obb.box(), "OBB->AABB");
     viz_obb(obb, "OBB");
+    viz_rss(rss, "RSS");
     
-    Transform<3> id = Transform<3>::Identity();
-    id.translate(Vector3{0.0f, 5.0f, 0.0f});
-    viz_obb(obb.transform(id), "OBB->T->OBB");
+    viz_bb(obb.box(), "OBB->AABB");
+    viz_bb(rss.box(), "RSS->AABB");
+    
+    // Transform<3> id = Transform<3>::Identity();
+    // id.translate(Vector3{0.0f, 5.0f, 0.0f});
+    // viz_obb(obb.transform(id), "OBB->T->OBB");
 }
 
 void viz()
@@ -94,11 +139,11 @@ void viz()
     Scene<3> scene;
 	SceneLoader<3> sceneLoader;
 	sceneLoader.loadFiles(scene, false);
-	scene.build(AggregateType::Baseline, BoundingVolumeType::AABB, false, false);
+	scene.build(AggregateType::Baseline, BoundingVolumeType::AxisAlignedBox, false, false);
 	SceneData<3> *sceneData = scene.getSceneData();
 
 	// set a few options
-	polyscope::options::programName = "OBB Test";
+	polyscope::options::programName = "BB Tests";
 	polyscope::options::verbosity = 0;
 	polyscope::options::usePrefsFile = false;
 	polyscope::options::autocenterStructures = false;
@@ -130,7 +175,7 @@ void viz()
 
 int main(int argc, const char *argv[]) {
 
-	CLI::App args{"FCPW OBB test"};
+	CLI::App args{"FCPW BB Tests"};
 	std::string file;
 
 	args.add_option("-s,--scene", file, "triangle soup file");

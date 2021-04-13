@@ -138,6 +138,7 @@ struct OrientedBoundingBox {
 	}
 
 	OrientedBoundingBox<DIM> intersect(const OrientedBoundingBox<DIM>& b) const {
+		// std::cerr << "Warning: OBBxOBB->OBB intersection not supported" << std::endl;
 		return OrientedBoundingBox();
 	}
 
@@ -167,11 +168,12 @@ struct OrientedBoundingBox {
 	}
 
 	Eigen::Matrix3f rot_mat() const {
-		return T.matrix().block<3,3>(0,0).transpose();
+		return (T.matrix().template block<3,3>(0,0)).transpose();
 	}
 
 	Vector<DIM> center() const {
-		return -T.matrix().block<3,1>(0,3);
+		Vector<DIM> v = T.matrix().template block<3,1>(0,3);
+		return rot_mat() * -v;
 	}
 	
 	std::vector<Vector<DIM>> points() const {
@@ -274,7 +276,138 @@ struct OrientedBoundingBox {
 	}
 
 	Vector3 e;
-	Transform<3> T;
+	Transform<DIM> T;
+};
+
+template<size_t DIM>
+struct SphereSweptRect {
+	
+	static_assert(DIM == 3);
+
+	SphereSweptRect() : r(-1.0f) {}
+
+	bool intersect(const Ray<DIM>& r, float& tMin, float& tMax) const {
+		return box().intersect(r, tMin, tMax);	
+	}
+
+	bool overlap(const BoundingSphere<DIM>& s, float& d2Min, float& d2Max) const {
+		
+		Vector3 p0 = c - e0 - e1;
+		Vector3 p1 = c + e0 - e1;
+		Vector3 p2 = c - e0 + e1;
+		Vector3 p3 = c + e0 + e1;
+		Vector3 d0, d1;
+		Vector2 t0, t1;
+		float c0 = findClosestPointTriangle(p0, p1, p2, s.c, d0, t0);
+		float c1 = findClosestPointTriangle(p1, p2, p3, s.c, d1, t1);
+		d2Min = std::min(c0, c1) - r - std::sqrt(s.r2);
+		d2Max = FLT_MAX;
+		return d2Min <= 0.0f;
+	}
+
+	SphereSweptRect<DIM> intersect(const SphereSweptRect<DIM>& b) const {
+		// std::cerr << "Warning: RSSxRSS->RSS intersection not supported" << std::endl;
+		return SphereSweptRect<DIM>();
+	}
+
+	// computes transformed sphere
+	SphereSweptRect<DIM> transform(const Transform<DIM>& t) const {
+		SphereSweptRect<DIM> ret;
+		ret.c = t * c;
+		ret.e0 = t * Vector<4>(e0, 0.0f);
+		ret.e1 = t * Vector<4>(e1, 0.0f);
+		auto v = Vector<4>(1.0f, 1.0f, 1.0f, 0.0f);
+		float scale = (t * v).norm() / v.norm();
+		ret.r = r * scale;
+		return ret;
+	}
+
+	BoundingBox<DIM> box() const {
+		BoundingBox<DIM> ret;
+		ret.expandToInclude(c - e0 - e1);
+		ret.expandToInclude(c - e0 + e1);
+		ret.expandToInclude(c + e0 - e1);
+		ret.expandToInclude(c + e0 + e1);
+		ret.expandToInclude(ret.pMin - Vector3::Constant(r));
+		ret.expandToInclude(ret.pMax + Vector3::Constant(r));
+		return ret;
+	}
+
+	Vector<DIM> center() const {
+		return c;
+	}
+	
+	std::vector<Vector<DIM>> points() const {
+		return box().points();
+	}
+
+	static constexpr float PI_F = 3.1415926535897f;
+
+	float surfaceArea() const {
+		float w = 2.0f * e0.norm();
+		float h = 2.0f * e1.norm();
+		return 2.0f*w*h + 2.0f*PI_F*r*w + 2.0f*PI_F*r*h + PI_F*r*r;
+	}
+
+	float volume() const {
+		float w = 2.0f * e0.norm();
+		float h = 2.0f * e1.norm();
+		return 2.0f*r*w*h + PI_F*r*r*w + PI_F*r*r*h + (4.0f/3.0f)*PI_F*r*r*r;
+	}
+
+	bool isValid() const {
+		return r >= 0.0f;
+	}
+
+	void fromPoints(const std::vector<Vector<DIM>>& points) {
+		*this = fit(points);
+	}
+	void fromPoints(const std::vector<std::vector<Vector<DIM>>>& points) {
+		std::vector<Vector<DIM>> flat;
+		for(const auto& l : points) flat.insert(flat.end(), l.begin(), l.end());
+		*this = fit(flat);
+	}
+
+	static SphereSweptRect<DIM> fit(const std::vector<Vector3>& points) {
+		
+		OrientedBoundingBox<DIM> obb = OrientedBoundingBox<DIM>::fitPCA(points);
+		SphereSweptRect<DIM> ret;
+
+		Eigen::Matrix3f u = obb.rot_mat();
+		Vector3 c = obb.center();
+		Vector3 e = obb.e;
+
+		int a0, a1;
+		e.maxCoeff(&a0);
+		e[a0] = -1.0f;
+		e.maxCoeff(&a1);
+
+		Vector3 e0 = Vector3::Zero();
+		Vector3 e1 = Vector3::Zero();
+		e0[a0] = obb.e[a0];
+		e1[a1] = obb.e[a1];
+
+		ret.c = c;
+		ret.e0 = u * e0;
+		ret.e1 = u * e1;
+
+		Vector3 norm = ret.e0.cross(ret.e1).normalized();
+		float d = norm.dot(ret.c);
+
+		ret.r = 0.0f;
+		
+		for(const auto& v : points) {
+			float pd = norm.dot(v) - d;
+			ret.r = std::max(ret.r, pd);
+		}
+
+		return ret;
+	}
+
+	Vector3 e0;
+	Vector3 e1;
+	Vector3 c;
+	float r;
 };
 
 template<size_t DIM>
@@ -436,7 +569,6 @@ struct BoundingBox {
 
 	Vector<DIM> pMin, pMax;
 
-private:
 	void expandToInclude(const Vector<DIM>& p) {
 		Vector<DIM> epsilonVector = Vector<DIM>::Constant(epsilon);
 		pMin = pMin.cwiseMin(p - epsilonVector);

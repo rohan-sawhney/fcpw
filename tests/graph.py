@@ -10,7 +10,7 @@ from collections import defaultdict
 x_axis_types = ['Type', 'Vectorized', 'Coherent', 'Heuristic', 'Volume', 'Threads']
 y_axis_types = ['Nodes', 'Primitives', 'Time']
 
-x_axis_values = [['CPQ','RAY'],['no','yes'],['no','yes'],['Bvh_LongestAxisCenter','Bvh_OverlapSurfaceArea','Bvh_SurfaceArea','Bvh_OverlapVolume','Bvh_Volume'],['AABB','Sphere','OBB'],['1','2','4','8','16','32','64','128']]
+x_axis_values = [['CPQ','RAY'],['no','yes'],['no','yes'],['Bvh_LongestAxisCenter','Bvh_OverlapSurfaceArea','Bvh_SurfaceArea','Bvh_OverlapVolume','Bvh_Volume'],['AxisAlignedBox','Sphere','OrientedBox','SphereSweptRect'],['1','2','4','8','16','32','64','128']]
 
 parser = argparse.ArgumentParser(description='Graph FCPQ benchmark data.')
 
@@ -80,6 +80,7 @@ def do_graph(x_idx, y_idx):
     y_name = y_axis_types[y_idx]
     labels = x_axis_values[x_idx]
     values = []
+    labels2 = []
     
     ranges = []
     if args.heuristic == 'avg' and x_name != 'Heuristic' and y_name != 'Heuristic':
@@ -95,8 +96,9 @@ def do_graph(x_idx, y_idx):
         acc = accumulate(key, y_idx, ranges)
         if acc != None:
             values.append(acc)
+            labels2.append(k)
 
-    labels = labels[0:len(values)]
+    labels = labels2
 
     plt.clf()
     if x_name == 'Threads':

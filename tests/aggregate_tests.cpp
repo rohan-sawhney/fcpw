@@ -23,7 +23,7 @@ static bool opt_check = false;
 const std::vector<std::string> bvh_type_names = 
 		{"Baseline", "Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea", "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"};
 const std::vector<std::string> vol_type_names = 
-		{"AABB", "Sphere", "OBB", "RSS"};
+		{"AxisAlignedBox", "Sphere", "OrientedBox", "SphereSweptRect"};
 
 template<size_t DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,
@@ -362,7 +362,7 @@ void run_checks() {
 	Scene<DIM> baseScene;
 	SceneLoader<DIM> sceneLoader;
 	sceneLoader.loadFiles(baseScene, false);
-	baseScene.build(AggregateType::Baseline, BoundingVolumeType::AABB, false, true);
+	baseScene.build(AggregateType::Baseline, BoundingVolumeType::AxisAlignedBox, false, true);
 	SceneData<DIM> *baseSceneData = baseScene.getSceneData();
 
 	// generate random points and rays used to visualize csg
@@ -399,7 +399,7 @@ void run_checks() {
 		}
 	};
 
-	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere, BoundingVolumeType::OBB, BoundingVolumeType::RSS};
+	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AxisAlignedBox, BoundingVolumeType::Sphere, BoundingVolumeType::OrientedBox, BoundingVolumeType::SphereSweptRect};
 	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};
@@ -430,7 +430,7 @@ void run()
 	Scene<DIM> scene;
 	SceneLoader<DIM> sceneLoader;
 	sceneLoader.loadFiles(scene, false);
-	scene.build(AggregateType::Baseline, BoundingVolumeType::AABB, false, true);
+	scene.build(AggregateType::Baseline, BoundingVolumeType::AxisAlignedBox, false, true);
 	SceneData<DIM> *sceneData = scene.getSceneData();
 
 	// generate random points and rays used to visualize csg
@@ -487,12 +487,12 @@ void run()
 			   bvh_type_names[(int)heuristic].c_str(), vol_type_names[(int)volume].c_str(), threads, max_nodes, prim_percent, time / 1e9);
 	};
 
-	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AABB, BoundingVolumeType::Sphere, BoundingVolumeType::OBB, BoundingVolumeType::RSS};
+	std::vector<BoundingVolumeType> Btypes = {BoundingVolumeType::AxisAlignedBox, BoundingVolumeType::Sphere, BoundingVolumeType::OrientedBox, BoundingVolumeType::SphereSweptRect};
 	std::vector<AggregateType> Stypes = {AggregateType::Baseline, AggregateType::Bvh_LongestAxisCenter, AggregateType::Bvh_OverlapSurfaceArea, 
 										 AggregateType::Bvh_SurfaceArea, AggregateType::Bvh_OverlapVolume, AggregateType::Bvh_Volume};
 	std::vector<bool> Svectorize = {false, true};
 	std::vector<bool> Scoherent = {false, true};
-	std::vector<int> Sthreads = {1, 2, 4, 8, 16, 32, 64, 128};
+	std::vector<int> Sthreads = {8};
 	std::vector<bool> Srays = {false, true};
 
 	printf("\n");
@@ -500,6 +500,7 @@ void run()
 	printf("%10s, %10s, %8s, %22s, %16s, %7s, %8s, %13s, %12s\n", "CPQ/RAY", "Vectorized", "Coherent", "Build Heuristic", "Bounding Volume", "Threads", "Nodes", "% Primitive", "Time");
 	if(opt_run_auto) {
 		for(const auto& use_rays : Srays) {
+			if(use_rays) continue;
 			for (const auto& vectorize : Svectorize) {
 				if(vectorize == true) continue;
 				for (const auto& coherent : Scoherent) {
@@ -509,16 +510,15 @@ void run()
 
 						for (const auto& vol_type : Btypes) {
 							
-							// Not yet supported
-							if(vol_type == BoundingVolumeType::RSS) continue;
-							if(vol_type == BoundingVolumeType::OBB) {
+							if(vol_type == BoundingVolumeType::Sphere) continue;
+							if(vol_type == BoundingVolumeType::SphereSweptRect || vol_type == BoundingVolumeType::OrientedBox) {
 								// Not yet supported
 								if(bvh_type == AggregateType::Bvh_OverlapSurfaceArea) continue;
 								if(bvh_type == AggregateType::Bvh_OverlapVolume) continue;
 							}
 							
 							for (const auto& threads : Sthreads) {
-								if(threads > 2 * (int)std::thread::hardware_concurrency()) break;
+								if(threads > (int)std::thread::hardware_concurrency()) break;
 								run_benchmark(use_rays, vol_type, bvh_type, vectorize, coherent, threads);
 							}
 						}
