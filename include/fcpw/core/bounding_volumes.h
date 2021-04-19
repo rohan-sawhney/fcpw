@@ -178,7 +178,7 @@ struct OrientedBoundingBox {
 	
 	std::vector<Vector<DIM>> points() const {
 		
-		Vector<DIM> c = center();
+		Vector<DIM> c = -T.matrix().template block<3,1>(0,3);
 		Vector<DIM> min = c-e;
 		Vector<DIM> max = c+e;
 

@@ -42,3 +42,4 @@ deps/tbb
 .vscode
 tests/large_input
 tests/output/graphs
+tests/_output*
