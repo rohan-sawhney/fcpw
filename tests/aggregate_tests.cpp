@@ -423,10 +423,7 @@ void run_checks() {
 			if(opt_print) {
 				std::ofstream fout("rpoints.txt");
 				for(auto& v : output) {
-					if(v.first)
-						fout << v.second.x() << " " << v.second.y() << " " << v.second.z() << std::endl;
-					else 
-						fout << FLT_MAX << " " << FLT_MAX << " " << FLT_MAX << std::endl;
+					fout << v.first << " " << v.second.x() << " " << v.second.y() << " " << v.second.z() << std::endl;
 				}
 			}
 		} else {
