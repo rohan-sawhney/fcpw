@@ -3,6 +3,7 @@
 #include <atomic>
 #include <thread>
 #include <mutex>
+#include <fstream>
 #include "CLI11.hpp"
 
 using namespace fcpw;
@@ -19,6 +20,7 @@ static bool opt_run_auto = false;
 static bool opt_time_rays = false;
 static bool opt_embree = false;
 static bool opt_check = false;
+static bool opt_print = false;
 
 const std::vector<std::string> bvh_type_names = 
 		{"Baseline", "Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea", "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"};
@@ -223,11 +225,12 @@ uint64_t timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregat
 
 
 template<size_t DIM>
-void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+std::vector<Vector<DIM>> testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::unique_ptr<Aggregate<DIM>>& aggregate2,
 							 const std::vector<Vector<DIM>>& queryPoints,
 							 const std::vector<int>& indices)
 {
+	std::vector<Vector<DIM>> output(queryPoints.size());
 
 	std::atomic<bool> stopQueries(false);
 	std::mutex mut;
@@ -269,12 +272,13 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 				stopQueries = true;
 			}
 
+			output[I] = c1.p;
 			queryPrev = queryPoints[I];
 		}
 	};
 
 	{
-		int n_threads = std::thread::hardware_concurrency();
+		int n_threads = opt_print ? 1 : std::thread::hardware_concurrency();
 
 		std::vector<std::thread> threads;
 		int grain = opt_queries / n_threads;
@@ -287,16 +291,20 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 		}
 		for(auto& t : threads) t.join();
 	}
+	
+	return output;
 }
 
 template<size_t DIM>
-void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+std::vector<std::pair<bool,Vector<DIM>>> testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 							 const std::unique_ptr<Aggregate<DIM>>& aggregate2,
 							 const std::vector<Vector<DIM>>& rayOrigins,
 							 const std::vector<Vector<DIM>>& rayDirections,
 							 const std::vector<int>& indices)
 {
 	std::atomic<bool> stopQueries(false);
+	std::vector<std::pair<bool,Vector<DIM>>> output(rayOrigins.size());
+
 	auto test = [&](int begin, int end) {
 		Interaction<DIM> cPrev;
 
@@ -320,6 +328,7 @@ void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 				stopQueries = true;
 			}
 
+			output[I] = {hit1, c1[0].p};
 			if (hit2) cPrev = c2[0];
 
 			std::vector<Interaction<DIM>> c3;
@@ -342,8 +351,7 @@ void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 	};
 
 	{
-		int n_threads = std::thread::hardware_concurrency();
-
+		int n_threads = opt_print ? 1 : std::thread::hardware_concurrency();
 		std::vector<std::thread> threads;
 		int grain = opt_queries / n_threads;
 		for(int i = 0; i < n_threads; i++) {
@@ -355,6 +363,7 @@ void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 		}
 		for(auto& t : threads) t.join();
 	}
+	return output;
 }
 
 void run_checks() {
@@ -386,6 +395,23 @@ void run_checks() {
 	Scene<DIM> testScene;
 	sceneLoader.loadFiles(testScene, false);
 
+	if(opt_print) {
+		if(!opt_time_rays) {
+			std::ofstream fout("queries.txt");
+			for(auto& v : queryPoints) {
+				fout << v.x() << " " << v.y() << " " << v.z() << std::endl;
+			}
+		} else {
+			std::ofstream fout("rqueries.txt");
+			for(size_t i = 0; i < queryPoints.size(); i++) {
+				Vector<DIM> o = queryPoints[i];
+				Vector<DIM> d = randomDirections[i];
+				fout << o.x() << " " << o.y() << " " << o.z() << std::endl;
+				fout << d.x() << " " << d.y() << " " << d.z() << std::endl;
+			}
+		}
+	}
+
 	auto run_tests = [&](bool rays, BoundingVolumeType volume, AggregateType heuristic, bool vector) {
 			
 		printf("CHECKING: %s, %s, %s, %s\n", rays ? "RAY" : "CPQ", vector ? "yes" : "no", bvh_type_names[(int)heuristic].c_str(), vol_type_names[(int)volume].c_str());
@@ -393,9 +419,24 @@ void run_checks() {
 		testScene.build(heuristic, volume, vector, true);
 		SceneData<DIM>* sceneData = testScene.getSceneData();
 		if (rays) {
-			testIntersectionQueries<DIM>(baseSceneData->aggregate, sceneData->aggregate, queryPoints, randomDirections, shuffledIndices);
+			auto output = testIntersectionQueries<DIM>(baseSceneData->aggregate, sceneData->aggregate, queryPoints, randomDirections, shuffledIndices);
+			if(opt_print) {
+				std::ofstream fout("rpoints.txt");
+				for(auto& v : output) {
+					if(v.first)
+						fout << v.second.x() << " " << v.second.y() << " " << v.second.z() << std::endl;
+					else 
+						fout << FLT_MAX << " " << FLT_MAX << " " << FLT_MAX << std::endl;
+				}
+			}
 		} else {
-			testClosestPointQueries<DIM>(baseSceneData->aggregate, sceneData->aggregate, queryPoints, shuffledIndices);
+			auto output = testClosestPointQueries<DIM>(baseSceneData->aggregate, sceneData->aggregate, queryPoints, indices);
+			if(opt_print) {
+				std::ofstream fout("points.txt");
+				for(auto& v : output) {
+					fout << v.x() << " " << v.y() << " " << v.z() << std::endl;
+				}
+			}
 		}
 	};
 
@@ -554,6 +595,8 @@ int main(int argc, const char *argv[]) {
 	args.add_flag("--vectorize", opt_vectorize, "use vectorized bvh");
 	args.add_flag("--coherent", opt_coherent, "use coherent queries");
 	args.add_flag("--embree", opt_coherent, "benchmark embree");
+
+	args.add_flag("--print", opt_print, "print queries/results");
 
 	args.add_flag("--check", opt_check, "run correctness checks");
 

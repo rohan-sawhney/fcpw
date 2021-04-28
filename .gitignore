@@ -43,3 +43,7 @@ deps/tbb
 tests/large_input
 tests/output/graphs
 tests/_output*
+tests/queries.txt
+tests/rqueries.txt
+tests/points.txt
+tests/rpoints.txt
