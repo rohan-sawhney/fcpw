@@ -509,6 +509,9 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 
 				bool found = false;
 				Interaction<DIM> c;
+				c.ignorePrimitiveIndex = i.ignorePrimitiveIndex;
+				c.ignoreObjectIndex = i.ignoreObjectIndex;
+
 				if (primitiveTypeIsAggregate) {
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 					found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
@@ -516,6 +519,11 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 
 				} else {
 					found = prim->findClosestPoint(s, c);
+					if (i.ignorePrimitiveIndex == c.primitiveIndex &&
+						i.ignoreObjectIndex == this->index) {
+						found = false;
+					}
+
 					c.nodeIndex = nodeIndex;
 					c.referenceIndex = referenceIndex;
 					c.objectIndex = this->index;
@@ -531,10 +539,14 @@ inline void Sbvh<DIM, PrimitiveType>::processSubtreeForClosestPoint(BoundingSphe
 
 		} else { // not a leaf
 			bool hit0 = flatTree[nodeIndex + 1].box.overlap(s, boxHits[0], boxHits[1]);
-			s.r2 = std::min(s.r2, boxHits[1]);
+			if (i.ignorePrimitiveIndex == -1 && i.ignoreObjectIndex == -1) {
+				s.r2 = std::min(s.r2, boxHits[1]);
+			}
 
 			bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.overlap(s, boxHits[2], boxHits[3]);
-			s.r2 = std::min(s.r2, boxHits[3]);
+			if (i.ignorePrimitiveIndex == -1 && i.ignoreObjectIndex == -1) {
+				s.r2 = std::min(s.r2, boxHits[3]);
+			}
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {

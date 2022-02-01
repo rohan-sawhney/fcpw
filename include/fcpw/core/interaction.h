@@ -13,8 +13,9 @@ template<size_t DIM>
 struct Interaction {
 	// constructor
 	Interaction(): d(maxFloat), sign(0), primitiveIndex(-1), nodeIndex(-1), referenceIndex(-1),
-				   objectIndex(-1), p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()),
-				   uv(Vector<DIM - 1>::Zero()), distanceInfo(DistanceInfo::Exact) {}
+				   objectIndex(-1), ignorePrimitiveIndex(-1), ignoreObjectIndex(-1),
+				   p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()), uv(Vector<DIM - 1>::Zero()),
+				   distanceInfo(DistanceInfo::Exact) {}
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
@@ -55,6 +56,8 @@ struct Interaction {
 	int nodeIndex; // index of aggregate node containing intersected or closest point
 	int referenceIndex; // reference index of primitive for internal library use
 	int objectIndex; // index of object containing the primitive
+	int ignorePrimitiveIndex; // index of primitive to ignore
+	int ignoreObjectIndex; // index of object containing the ignored primitive index
 	Vector<DIM> p, n;
 	Vector<DIM - 1> uv;
 	DistanceInfo distanceInfo;
