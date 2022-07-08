@@ -88,10 +88,10 @@ Expert comment: if you have multiple objects all containing the same primitive t
 
 # Benchmarks
 
-TODO
+See [report](https://thenumb.at/assets/projects/fcpw-report.pdf) by [Max Slater](https://thenumb.at).
 
 # Author
-[Rohan Sawhney](http://www.rohansawhney.io), with support from Ruihao Ye, [Keenan Crane](https://www.cs.cmu.edu/~kmcrane/) and Johann Korndoerfer.
+[Rohan Sawhney](http://www.rohansawhney.io), with support from [Max Slater](https://thenumb.at), Ruihao Ye, [Keenan Crane](https://www.cs.cmu.edu/~kmcrane/) and Johann Korndoerfer.
 
 # License
 
