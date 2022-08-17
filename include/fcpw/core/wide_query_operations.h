@@ -67,17 +67,17 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
 	FloatP<WIDTH> invDet = enoki::rcp(det);
 
 	Vector3P<WIDTH> s = ro - pa;
-	FloatP<WIDTH> u = enoki::dot(s, p)*invDet;
-	active &= u >= 0.0f && u <= 1.0f;
+	FloatP<WIDTH> v = enoki::dot(s, p)*invDet;
+	active &= v >= 0.0f && v <= 1.0f;
 
 	Vector3P<WIDTH> q = enoki::cross(s, v1);
-	FloatP<WIDTH> v = enoki::dot(rd, q)*invDet;
-	active &= v >= 0.0f && u + v <= 1.0f;
+	FloatP<WIDTH> w = enoki::dot(rd, q)*invDet;
+	active &= w >= 0.0f && v + w <= 1.0f;
 
 	d = enoki::dot(v2, q)*invDet;
 	active &= d >= 0.0f && d <= rtMax;
 	pt = ro + rd*Vector3P<WIDTH>(d);
-	t[0] = u;
+	t[0] = 1.0f - v - w;
 	t[1] = v;
 
 	return active;

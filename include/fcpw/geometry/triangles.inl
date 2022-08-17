@@ -218,19 +218,19 @@ inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	float invDet = 1.0f/det;
 
 	Vector3 s = r.o - pa;
-	float u = s.dot(p)*invDet;
-	if (u < 0 || u > 1) return 0;
+	float v = s.dot(p)*invDet;
+	if (v < 0 || v > 1) return 0;
 
 	Vector3 q = s.cross(v1);
-	float v = r.d.dot(q)*invDet;
-	if (v < 0 || u + v > 1) return 0;
+	float w = r.d.dot(q)*invDet;
+	if (w < 0 || v + w > 1) return 0;
 
 	float t = v2.dot(q)*invDet;
 	if (t >= 0.0f && t <= r.tMax) {
 		auto it = is.emplace(is.end(), Interaction<3>());
 		it->d = t;
 		it->p = r(t);
-		it->uv[0] = u;
+		it->uv[0] = 1.0f - v - w;
 		it->uv[1] = v;
 		it->primitiveIndex = pIndex;
 
