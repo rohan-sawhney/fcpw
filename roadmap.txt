@@ -15,14 +15,15 @@ Future Optimizations & Features:
 	  structure while querying that stores pointers to nodes in the tree based on
 	  positions and directions to boundary
 3. SNCH
----- update README
+---- properly handle unoriented and non-manifold meshes
+---- for closed domains, only use vertices in 2D and edges in 3D with negative dihedral angles as silhouette candidates
 ---- specialized construction heuristics for tighter normal cones such as the surface area orientation heuristic:
 ------- http://www.aconty.com/pdf/many-lights-hpg2018.pdf
 ------- https://link.springer.com/content/pdf/10.1007/978-1-4842-4427-2_18.pdf
 ---- stochastic intersection: perform deterministic traversal if sphere center is contained in node, otherwise switch to stochastic traversal (similar to algorithm 3 in the many lights paper)
 ---- more tightly packed silhouette leaf nodes in mbvh
 ---- faster traversal (tighter view cones, minimize sqrt, acos, asin, atan2 calls)
-4. GPU traversal (Enoki CUDA vs GLSL)
+4. GPU traversal (CUDA, GLSL)
 5. tree construction:
 ---- spatial split bvh
 ---- oriented bounding boxes + rectangular swept spheres (specify bounding volume via templates)
