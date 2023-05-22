@@ -1,7 +1,3 @@
-Priority:
-1. benchmark (https://github.com/jdumas/aabb_benchmark)
-2. README (how to leverage coherency in cpqs, benchmark results, explain file formats)
-
 Future Optimizations & Features:
 1. add support for more geometries:
 ---- spheres, thickened line segments & triangles, beziers, nurbs, subdivision surfaces
@@ -9,11 +5,8 @@ Future Optimizations & Features:
 ---- dfs strategy can visit lots of extra branches due to query points lying inside boxes higher up in the tree (-> no information on which branches should be prioritized); priority queue based traversal reduces the number of visited boxes but overhead is too high
 ---- quantize bounding boxes: https://www.embree.org/papers/2018-HPG-compressedleafbvh.pdf
 ---- implement "stackless" traversal: https://software.intel.com/content/dam/develop/external/us/en/documents/wide-bvh-traversal-with-a-short-stack-837099.pdf
----- sort nodes by direction for closest point queries (things can possibly go very
-	 wrong if guess is totally off for certain geometric distributions)
----- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data
-	  structure while querying that stores pointers to nodes in the tree based on
-	  positions and directions to boundary
+---- sort nodes by direction for closest point queries (things can possibly go very wrong if guess is totally off for certain geometric distributions)
+---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data structure while querying that stores pointers to nodes in the tree based on positions and directions to boundary
 3. SNCH
 ---- properly handle unoriented and non-manifold meshes
 ---- for closed domains, only use vertices in 2D and edges in 3D with negative dihedral angles as silhouette candidates
