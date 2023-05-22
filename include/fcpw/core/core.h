@@ -54,11 +54,15 @@ struct BoundingSphere;
 template<size_t DIM>
 struct BoundingBox;
 template<size_t DIM>
+struct BoundingCone;
+template<size_t DIM>
 struct Interaction;
 template<size_t DIM>
 class Primitive;
 template<size_t DIM>
 class GeometricPrimitive;
+template<size_t DIM>
+class SilhouettePrimitive;
 template<size_t DIM>
 class Aggregate;
 
@@ -75,6 +79,10 @@ inline T clamp(T val, U low, V high) {
 	else if (val > high) return high;
 
 	return val;
+}
+
+inline bool inRange(float val, float low, float high) {
+	return val >= low && val <= high;
 }
 
 inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)

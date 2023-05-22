@@ -1,11 +1,11 @@
 namespace fcpw {
 
 inline LineSegment::LineSegment():
-soup(nullptr),
-pIndex(-1)
+soup(nullptr)
 {
 	indices[0] = -1;
 	indices[1] = -1;
+	pIndex = -1;
 }
 
 inline BoundingBox<3> LineSegment::boundingBox() const
@@ -66,8 +66,8 @@ inline Vector3 LineSegment::normal(int vIndex) const
 inline Vector3 LineSegment::normal(const Vector2& uv) const
 {
 	int vIndex = -1;
-	if (uv[0] < epsilon) vIndex = 0;
-	else if (uv[0] > oneMinusEpsilon) vIndex = 1;
+	if (uv[0] <= epsilon) vIndex = 0;
+	else if (uv[0] >= oneMinusEpsilon) vIndex = 1;
 
 	return normal(vIndex);
 }
@@ -78,6 +78,20 @@ inline Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 	const Vector3& pb = soup->positions[indices[1]];
 
 	return Vector2((p - pa).norm()/(pb - pa).norm(), 0.0f);
+}
+
+inline float LineSegment::samplePoint(Vector2& uv, Vector3& p) const
+{
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+
+	Vector3 s = pb - pa;
+	float area = s.norm();
+	float u = uniformRealRandomNumber();
+	uv = Vector2(u, 0.0f);
+	p = pa + u*s;
+
+	return 1.0f/area;
 }
 
 inline void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
@@ -132,7 +146,7 @@ inline int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 
 	// return if line segment and ray are parallel
 	float dv = r.d.cross(v)[2];
-	if (std::fabs(dv) < epsilon) return 0;
+	if (std::fabs(dv) <= epsilon) return 0;
 
 	// solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
 	// s = (u x r.d)/(r.d x v)
@@ -147,7 +161,7 @@ inline int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 		if (t >= 0.0f && t <= r.tMax) {
 			auto it = is.emplace(is.end(), Interaction<3>());
 			it->d = t;
-			it->p = r(t);
+			it->p = pa + s*v;
 			it->uv[0] = s;
 			it->uv[1] = -1;
 			it->primitiveIndex = pIndex;
@@ -185,6 +199,34 @@ inline float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
 	pt = pa + u*t;
 
 	return (x - pt).norm();
+}
+
+inline int LineSegment::intersect(const BoundingSphere<3>& s,
+								  std::vector<Interaction<3>>& is, bool recordOneHit,
+								  const std::function<float(float)>& primitiveWeight) const
+{
+	is.clear();
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+
+	Interaction<3> i;
+	float d = findClosestPointLineSegment(pa, pb, s.c, i.p, i.uv[0]);
+
+	if (d*d <= s.r2) {
+		auto it = is.emplace(is.end(), Interaction<3>());
+		it->primitiveIndex = pIndex;
+		if (recordOneHit) {
+			it->d = surfaceArea();
+			if (primitiveWeight) it->d *= primitiveWeight(d*d);
+
+		} else {
+			it->d = 1.0f;
+		}
+
+		return 1;
+	}
+
+	return 0;
 }
 
 inline bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const

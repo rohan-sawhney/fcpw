@@ -16,8 +16,19 @@ enum class CostHeuristic {
 	OverlapVolume
 };
 
-template<size_t DIM>
+template<size_t DIM, bool CONEDATA>
 struct SbvhNode {
+	SbvhNode() {
+		std::cerr << "SbvhNode(): DIM: " << DIM << ", CONEDATA: " << CONEDATA << " not supported" << std::endl;
+		exit(EXIT_FAILURE);
+	}
+};
+
+template<size_t DIM>
+struct SbvhNode<DIM, false> {
+	// constructor
+	SbvhNode(): nReferences(0) {}
+
 	// members
 	BoundingBox<DIM> box;
 	union {
@@ -25,6 +36,23 @@ struct SbvhNode {
 		int secondChildOffset;
 	};
 	int nReferences;
+};
+
+template<size_t DIM>
+struct SbvhNode<DIM, true> {
+	// constructor
+	SbvhNode(): nReferences(0), nSilhouetteReferences(0) {}
+
+	// members
+	BoundingBox<DIM> box;
+	BoundingCone<DIM> cone;
+	union {
+		int referenceOffset;
+		int secondChildOffset;
+	};
+	int silhouetteReferenceOffset;
+	int nReferences;
+	int nSilhouetteReferences;
 };
 
 struct BvhTraversal {
@@ -37,16 +65,17 @@ struct BvhTraversal {
 	float distance; // minimum distance (parametric, squared, ...) to this node
 };
 
-template<size_t DIM, typename PrimitiveType>
-using SortPositionsFunc = std::function<void(const std::vector<SbvhNode<DIM>>&, std::vector<PrimitiveType *>&)>;
+template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+using SortPositionsFunc = std::function<void(const std::vector<SbvhNode<DIM, CONEDATA>>&, std::vector<PrimitiveType *>&, std::vector<SilhouetteType *>&)>;
 
-template<size_t DIM, typename PrimitiveType=Primitive<DIM>>
+template<size_t DIM, bool CONEDATA=false, typename PrimitiveType=Primitive<DIM>, typename SilhouetteType=SilhouettePrimitive<DIM>>
 class Sbvh: public Aggregate<DIM> {
 public:
 	// constructor
 	Sbvh(const CostHeuristic& costHeuristic_,
 		 std::vector<PrimitiveType *>& primitives_,
-		 SortPositionsFunc<DIM, PrimitiveType> sortPositions_={},
+		 std::vector<SilhouetteType *>& silhouettes_,
+		 SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions_={},
 		 bool printStats_=false, bool packLeaves_=false, int leafSize_=4, int nBuckets_=8);
 
 	// returns bounding box
@@ -67,10 +96,31 @@ public:
 						  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 						  bool checkForOcclusion=false, bool recordAllHits=false) const;
 
+	// intersects with sphere, starting the traversal at the specified node in an aggregate
+	// NOTE: interactions contain primitive index
+	int intersectFromNode(const BoundingSphere<DIM>& s,
+						  std::vector<Interaction<DIM>>& is,
+						  int nodeStartIndex, int aggregateIndex,
+						  int& nodesVisited, bool recordOneHit=false,
+						  const std::function<float(float)>& primitiveWeight={}) const;
+
+	// intersects with sphere, starting the traversal at the specified node in an aggregate
+	// NOTE: interactions contain primitive index
+	int intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+									int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+									const std::function<float(float)>& traversalWeight={},
+									const std::function<float(float)>& primitiveWeight={}) const;
+
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
 								  const Vector<DIM>& boundaryHint, int& nodesVisited) const;
+
+	// finds closest silhouette point to sphere center, starting the traversal at the specified node in an aggregate
+	bool findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+											int nodeStartIndex, int aggregateIndex,
+											int& nodesVisited, bool flipNormalOrientation=false,
+											float squaredMinRadius=0.0f, float precision=1e-3f) const;
 
 protected:
 	// computes split cost based on heuristic
@@ -96,7 +146,7 @@ protected:
 	// helper function to build binary tree
 	void buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
 						std::vector<Vector<DIM>>& referenceCentroids,
-						std::vector<SbvhNode<DIM>>& buildNodes,
+						std::vector<SbvhNode<DIM, CONEDATA>>& buildNodes,
 						int parent, int start, int end, int depth);
 
 	// builds binary tree
@@ -107,6 +157,19 @@ protected:
 									   int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
 									   bool recordAllHits, BvhTraversal *subtree,
 									   float *boxHits, int& hits, int& nodesVisited) const;
+
+	// processes subtree for intersection
+	float processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+									    int nodeStartIndex, int aggregateIndex, bool recordOneHit,
+									    const std::function<float(float)>& primitiveWeight,
+										BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const;
+
+	// processes subtree for intersection
+	void processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+									   int nodeStartIndex, int aggregateIndex,
+									   const std::function<float(float)>& traversalWeight,
+									   const std::function<float(float)>& primitiveWeight,
+									   BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const;
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
@@ -120,10 +183,12 @@ protected:
 	int nNodes, nLeafs, leafSize, nBuckets, maxDepth, depthGuess;
 	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes;
 	std::vector<PrimitiveType *>& primitives;
-	std::vector<SbvhNode<DIM>> flatTree;
+	std::vector<SilhouetteType *>& silhouettes;
+	std::vector<SilhouetteType *> silhouetteRefs;
+	std::vector<SbvhNode<DIM, CONEDATA>> flatTree;
 	bool packLeaves, primitiveTypeIsAggregate;
 
-	template<size_t U, size_t V, typename W>
+	template<size_t U, size_t V, bool W, typename X, typename Y>
 	friend class Mbvh;
 };
 

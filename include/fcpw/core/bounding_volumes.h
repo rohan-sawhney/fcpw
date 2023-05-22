@@ -80,6 +80,15 @@ struct BoundingBox {
 		return d2Min <= s.r2;
 	}
 
+	// checks for overlap with sphere
+	bool overlap(const BoundingSphere<DIM>& s, float& d2Min) const {
+		Vector<DIM> u = pMin - s.c;
+		Vector<DIM> v = s.c - pMax;
+		d2Min = u.cwiseMax(v).cwiseMax(0.0f).squaredNorm();
+
+		return d2Min <= s.r2;
+	}
+
 	// checks for overlap with bounding box
 	bool overlap(const BoundingBox<DIM>& b) const {
 		return (b.pMax.array() >= pMin.array()).all() &&
@@ -124,13 +133,21 @@ struct BoundingBox {
 
 	// returns surface area
 	float surfaceArea() const {
-		Vector<DIM> e = extent().cwiseMax(1e-5); // the 1e-5 is to prevent division by zero
+		Vector<DIM> e = extent().cwiseMax(1e-5f); // the 1e-5f is to prevent division by zero
 		return 2.0f*Vector<DIM>::Constant(e.prod()).cwiseQuotient(e).sum();
 	}
 
 	// returns volume
 	float volume() const {
 		return extent().prod();
+	}
+
+	// computes bounding sphere
+	BoundingSphere<DIM> boundingSphere() const {
+		Vector<DIM> c = centroid();
+		Vector<DIM> e = pMax - c;
+
+		return BoundingSphere<DIM>(c, e.squaredNorm());
 	}
 
 	// computes transformed box
@@ -165,6 +182,96 @@ struct BoundingBox {
 
 	// members
 	Vector<DIM> pMin, pMax;
+};
+
+inline void computeOrthonormalBasis(const Vector3& n, Vector3& b1, Vector3& b2)
+{
+	// source: https://graphics.pixar.com/library/OrthonormalB/paper.pdf
+	float sign = std::copysignf(1.0f, n[2]);
+	const float a = -1.0f/(sign + n[2]);
+	const float b = n[0]*n[1]*a;
+
+	b1 = Vector3(1.0f + sign*n[0]*n[0]*a, sign*b, -sign*n[0]);
+	b2 = Vector3(b, sign + n[1]*n[1]*a, -n[1]);
+}
+
+template<size_t DIM>
+inline float projectToPlane(const Vector<DIM>& n, const Vector<DIM>& e)
+{
+	std::cerr << "projectToPlane(): DIM: " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return 0.0f;
+}
+
+template<>
+inline float projectToPlane<3>(const Vector3& n, const Vector3& e)
+{
+	// compute orthonormal basis
+	Vector3 b1, b2;
+	computeOrthonormalBasis(n, b1, b2);
+
+	// compute maximal projection radius
+	float r1 = e.dot(b1.cwiseAbs());
+	float r2 = e.dot(b2.cwiseAbs());
+	return std::sqrt(r1*r1 + r2*r2);
+}
+
+template<size_t DIM>
+struct BoundingCone {
+	// constructor
+	BoundingCone(): axis(Vector<DIM>::Zero()), halfAngle(M_PI) {}
+
+	// constructor
+	BoundingCone(const Vector<DIM>& axis_, float halfAngle_): axis(axis_), halfAngle(halfAngle_) {}
+
+	// check for overlap between this cone and the "view" cone defined by the given
+	// point and bounding box; the two cones overlap when there exist two vectors,
+	// one in each cone, that are orthogonal to each other
+	bool overlap(const Vector<DIM>& o, const BoundingBox<DIM>& b, float distToBox) const {
+		// there's overlap if this cone's halfAngle is greater than 90 degrees, or
+		// if the box contains the view cone origin (since the view cone is invalid)
+		if (halfAngle >= M_PI_2 || distToBox < epsilon) return true;
+
+		// compute the view cone axis
+		Vector<DIM> c = b.centroid();
+		Vector<DIM> viewConeAxis = c - o;
+		float l = viewConeAxis.norm();
+		viewConeAxis /= l;
+
+		// check for overlap between the view cone axis and this cone
+		float dAxisAngle = std::acos(std::max(-1.0f, std::min(1.0f, axis.dot(viewConeAxis)))); // [0, 180]
+		if (inRange(M_PI_2, dAxisAngle - halfAngle, dAxisAngle + halfAngle)) return true;
+
+		// check if the view cone origin lies outside the box's bounding sphere;
+		// if it does, compute the view cone halfAngle and check for overlap
+		Vector<DIM> e = b.pMax - c;
+		float r2 = e.squaredNorm();
+		if (l*l > r2) {
+			float r = std::sqrt(r2);
+			float viewConeHalfAngle = std::asin(r/l);
+			float halfAngleSum = halfAngle + viewConeHalfAngle;
+			return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, dAxisAngle - halfAngleSum, dAxisAngle + halfAngleSum);
+		}
+
+		// the view cone origin lies inside the box's bounding sphere, so check if
+		// the plane defined by the view cone axis intersects the box; if it does, then
+		// there's overlap since the view cone has a halfAngle greater than 90 degrees
+		float d = e.dot(viewConeAxis.cwiseAbs()); // max projection length onto axis
+		float s = l - d;
+		if (s <= 0.0f) return true;
+
+		// compute the view cone halfAngle by projecting the max extents of the box
+		// onto the plane, and check for overlap
+		d = projectToPlane<DIM>(viewConeAxis, e);
+		float viewConeHalfAngle = std::atan2(d, s);
+		float halfAngleSum = halfAngle + viewConeHalfAngle;
+		return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, dAxisAngle - halfAngleSum, dAxisAngle + halfAngleSum);
+	}
+
+	// members
+	Vector<DIM> axis;
+	float halfAngle;
 };
 
 } // namespace fcpw

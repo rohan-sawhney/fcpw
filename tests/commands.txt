@@ -1,19 +1,19 @@
-./tests/aggregate_tests --dim=3 --tFile ../tests/input/bunny.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --vizScene
-./tests/aggregate_tests --dim=3 --tFile ../tests/input/armadillo.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --vizScene
-./tests/aggregate_tests --dim=3 --tFile ../tests/input/kitten.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --vizScene
+./tests/aggregate_tests --dim=3 --tFile ../tests/input/bunny.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --computeSilhouettes --vizScene
+./tests/aggregate_tests --dim=3 --tFile ../tests/input/armadillo.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --computeSilhouettes --vizScene
+./tests/aggregate_tests --dim=3 --tFile ../tests/input/kitten.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --computeSilhouettes --vizScene
 
-./tests/aggregate_tests --dim=3 --tFile ../tests/input/bunny.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene
-./tests/aggregate_tests --dim=3 --tFile ../tests/input/armadillo.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene
-./tests/aggregate_tests --dim=3 --tFile ../tests/input/kitten.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene
+./tests/aggregate_tests --dim=3 --tFile ../tests/input/bunny.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --computeSilhouettes --vizScene
+./tests/aggregate_tests --dim=3 --tFile ../tests/input/armadillo.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --computeSilhouettes --vizScene
+./tests/aggregate_tests --dim=3 --tFile ../tests/input/kitten.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --computeSilhouettes --vizScene
 
 ./tests/csg_tests --dim=3 --tFile ../tests/input/armadillo.obj --tFile ../tests/input/bunny.obj --tFile ../tests/input/kitten.obj --csgFile ../tests/input/csg.txt --instanceFile ../tests/input/instances3d.txt
 
-./tests/aggregate_tests --dim=3 --lFile ../tests/input/plus-shape.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --vizScene
-./tests/aggregate_tests --dim=3 --lFile ../tests/input/spiral.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --vizScene
-./tests/aggregate_tests --dim=3 --lFile ../tests/input/walker.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --vizScene
+./tests/aggregate_tests --dim=3 --lFile ../tests/input/plus-shape.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --computeSilhouettes --vizScene
+./tests/aggregate_tests --dim=3 --lFile ../tests/input/spiral.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --computeSilhouettes --vizScene
+./tests/aggregate_tests --dim=3 --lFile ../tests/input/walker.obj --nQueries=1000 --checkCorrectness --plotInteriorPoints --computeSilhouettes --vizScene
 
-./tests/aggregate_tests --dim=3 --lFile ../tests/input/plus-shape.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene
-./tests/aggregate_tests --dim=3 --lFile ../tests/input/spiral.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene
-./tests/aggregate_tests --dim=3 --lFile ../tests/input/walker.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --vizScene
+./tests/aggregate_tests --dim=3 --lFile ../tests/input/plus-shape.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --computeSilhouettes --vizScene
+./tests/aggregate_tests --dim=3 --lFile ../tests/input/spiral.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --computeSilhouettes --vizScene
+./tests/aggregate_tests --dim=3 --lFile ../tests/input/walker.obj --nQueries=1000000 --checkPerformance --plotInteriorPoints --computeSilhouettes --vizScene
 
 ./tests/csg_tests --dim=3 --lFile ../tests/input/spiral.obj --lFile ../tests/input/plus-shape.obj --lFile ../tests/input/walker.obj --csgFile ../tests/input/csg.txt --instanceFile ../tests/input/instances2d.txt

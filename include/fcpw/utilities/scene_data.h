@@ -3,6 +3,8 @@
 #include <fcpw/aggregates/csg_node.h>
 #include <fcpw/geometry/line_segments.h>
 #include <fcpw/geometry/triangles.h>
+#include <fcpw/geometry/vertex_silhouettes.h>
+#include <fcpw/geometry/edge_silhouettes.h>
 #include <unordered_map>
 
 namespace fcpw {
@@ -46,12 +48,17 @@ public:
 
 	std::vector<std::unique_ptr<std::vector<LineSegment>>> lineSegmentObjects;
 	std::vector<std::unique_ptr<std::vector<Triangle>>> triangleObjects;
+	std::vector<std::unique_ptr<std::vector<SilhouetteVertex>>> silhouetteVertexObjects;
+	std::vector<std::unique_ptr<std::vector<SilhouetteEdge>>> silhouetteEdgeObjects;
 	std::vector<std::vector<Transform<DIM>>> instanceTransforms;
 	std::unordered_map<int, CsgTreeNode> csgTree;
 
 	std::vector<std::vector<LineSegment *>> lineSegmentObjectPtrs;
 	std::vector<std::vector<Triangle *>> triangleObjectPtrs;
 	std::vector<std::vector<GeometricPrimitive<DIM> *>> mixedObjectPtrs;
+	std::vector<std::vector<SilhouetteVertex *>> silhouetteVertexObjectPtrs;
+	std::vector<std::vector<SilhouetteEdge *>> silhouetteEdgeObjectPtrs;
+	std::vector<SilhouettePrimitive<DIM> *> silhouetteObjectPtrStub;
 
 	std::vector<std::unique_ptr<Aggregate<DIM>>> aggregateInstances;
 	std::vector<Aggregate<DIM> *> aggregateInstancePtrs;

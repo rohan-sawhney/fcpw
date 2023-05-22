@@ -2,15 +2,50 @@
 
 namespace fcpw {
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, PrimitiveType> *sbvh,
-														 int sbvhNodeIndex, int parent, int depth)
+template<size_t DIM>
+inline void assignBoundingCone(const SbvhNode<DIM, false>& sbvhNode, MbvhNode<DIM, false>& mbvhNode, int index)
 {
-	const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+	// do nothing
+}
+
+template<size_t DIM>
+inline void assignBoundingCone(const SbvhNode<DIM, true>& sbvhNode, MbvhNode<DIM, true>& mbvhNode, int index)
+{
+	for (size_t j = 0; j < DIM; j++) {
+		mbvhNode.coneAxis[j][index] = sbvhNode.cone.axis[j];
+	}
+
+	mbvhNode.coneHalfAngle[index] = sbvhNode.cone.halfAngle;
+}
+
+template<size_t WIDTH, size_t DIM>
+inline void assignSilhouetteLeafRange(const SbvhNode<DIM, false>& sbvhNode, MbvhNode<DIM, false>& mbvhNode, int& nSilhouetteLeafs)
+{
+	// do nothing
+}
+
+template<size_t WIDTH, size_t DIM>
+inline void assignSilhouetteLeafRange(const SbvhNode<DIM, true>& sbvhNode, MbvhNode<DIM, true>& mbvhNode, int& nSilhouetteLeafs)
+{
+	if (sbvhNode.nSilhouetteReferences > 0) {
+		mbvhNode.silhouetteChild[0] = -(nSilhouetteLeafs + 1); // negative value indicates that node is a leaf
+		mbvhNode.silhouetteChild[1] = sbvhNode.nSilhouetteReferences/WIDTH;
+		if (sbvhNode.nSilhouetteReferences%WIDTH != 0) mbvhNode.silhouetteChild[1] += 1;
+		mbvhNode.silhouetteChild[2] = sbvhNode.silhouetteReferenceOffset;
+		mbvhNode.silhouetteChild[3] = sbvhNode.nSilhouetteReferences;
+		nSilhouetteLeafs += mbvhNode.silhouetteChild[1];
+	}
+}
+
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::collapseSbvh(const Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType> *sbvh,
+																				   int sbvhNodeIndex, int parent, int depth)
+{
+	const SbvhNode<DIM, CONEDATA>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 	maxDepth = std::max(depth, maxDepth);
 
 	// create mbvh node
-	MbvhNode<DIM> mbvhNode;
+	MbvhNode<DIM, CONEDATA> mbvhNode;
 	int mbvhNodeIndex = nNodes;
 
 	nNodes++;
@@ -18,13 +53,14 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 
 	if (sbvhNode.nReferences > 0) {
 		// sbvh node is a leaf node; assign mbvh node its reference indices
-		MbvhNode<DIM>& mbvhNode = flatTree[mbvhNodeIndex];
+		MbvhNode<DIM, CONEDATA>& mbvhNode = flatTree[mbvhNodeIndex];
 		mbvhNode.child[0] = -(nLeafs + 1); // negative value indicates that node is a leaf
 		mbvhNode.child[1] = sbvhNode.nReferences/WIDTH;
 		if (sbvhNode.nReferences%WIDTH != 0) mbvhNode.child[1] += 1;
 		mbvhNode.child[2] = sbvhNode.referenceOffset;
 		mbvhNode.child[3] = sbvhNode.nReferences;
 		nLeafs += mbvhNode.child[1];
+		assignSilhouetteLeafRange<WIDTH, DIM>(sbvhNode, mbvhNode, nSilhouetteLeafs);
 
 	} else {
 		// sbvh node is an inner node, flatten it
@@ -41,7 +77,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 
 			for (int i = 0; i < nNodesToCollapse; i++) {
 				int sbvhNodeIndex = nodesToCollapse[i];
-				const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+				const SbvhNode<DIM, CONEDATA>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 
 				if (sbvhNode.nReferences == 0) {
 					float surfaceArea = sbvhNode.box.surfaceArea();
@@ -60,7 +96,7 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 			} else {
 				// remove the selected node from the list, and add its two children
 				int sbvhNodeIndex = nodesToCollapse[maxIndex];
-				const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+				const SbvhNode<DIM, CONEDATA>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 
 				nodesToCollapse[maxIndex] = sbvhNodeIndex + sbvhNode.secondChildOffset;
 				nodesToCollapse[nNodesToCollapse] = sbvhNodeIndex + 1;
@@ -72,13 +108,16 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 		std::sort(nodesToCollapse, nodesToCollapse + nNodesToCollapse);
 		for (int i = 0; i < nNodesToCollapse; i++) {
 			int sbvhNodeIndex = nodesToCollapse[i];
-			const SbvhNode<DIM>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
+			const SbvhNode<DIM, CONEDATA>& sbvhNode = sbvh->flatTree[sbvhNodeIndex];
 
 			// assign mbvh node this sbvh node's bounding box and index
 			for (size_t j = 0; j < DIM; j++) {
 				flatTree[mbvhNodeIndex].boxMin[j][i] = sbvhNode.box.pMin[j];
 				flatTree[mbvhNodeIndex].boxMax[j][i] = sbvhNode.box.pMax[j];
 			}
+
+			// assign mbvh node this sbvh node's cone data
+			assignBoundingCone<DIM>(sbvhNode, flatTree[mbvhNodeIndex], i);
 
 			flatTree[mbvhNodeIndex].child[i] = collapseSbvh(sbvh, sbvhNodeIndex, mbvhNodeIndex, depth + 1);
 		}
@@ -87,22 +126,22 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::collapseSbvh(const Sbvh<DIM, Primiti
 	return mbvhNodeIndex;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline bool Mbvh<WIDTH, DIM, PrimitiveType>::isLeafNode(const MbvhNode<DIM>& node) const
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline bool Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::isLeafNode(const MbvhNode<DIM, CONEDATA>& node) const
 {
 	return node.child[0] < 0;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline void populateLeafNode(const MbvhNode<DIM>& node, const std::vector<PrimitiveType *>& primitives,
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType>
+inline void populateLeafNode(const MbvhNode<DIM, CONEDATA>& node, const std::vector<PrimitiveType *>& primitives,
 							 std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes)
 {
 	std::cerr << "populateLeafNode(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
 }
 
-template<size_t WIDTH>
-inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<LineSegment *>& primitives,
+template<size_t WIDTH, bool CONEDATA>
+inline void populateLeafNode(const MbvhNode<3, CONEDATA>& node, const std::vector<LineSegment *>& primitives,
 							 std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes)
 {
 	int leafOffset = -node.child[0] - 1;
@@ -127,8 +166,8 @@ inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<LineSegm
 	}
 }
 
-template<size_t WIDTH>
-inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<Triangle *>& primitives,
+template<size_t WIDTH, bool CONEDATA>
+inline void populateLeafNode(const MbvhNode<3, CONEDATA>& node, const std::vector<Triangle *>& primitives,
 							 std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes)
 {
 	int leafOffset = -node.child[0] - 1;
@@ -155,28 +194,149 @@ inline void populateLeafNode(const MbvhNode<3>& node, const std::vector<Triangle
 	}
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline void Mbvh<WIDTH, DIM, PrimitiveType>::populateLeafNodes()
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline void Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::populateLeafNodes()
 {
-	if (vectorizedLeafType == ObjectType::LineSegments ||
-		vectorizedLeafType == ObjectType::Triangles) {
+	if (std::is_same<PrimitiveType, LineSegment>::value ||
+		std::is_same<PrimitiveType, Triangle>::value) {
 		leafNodes.resize(nLeafs);
 
 		for (int i = 0; i < nNodes; i++) {
-			MbvhNode<DIM>& node = flatTree[i];
+			const MbvhNode<DIM, CONEDATA>& node = flatTree[i];
 			if (isLeafNode(node)) populateLeafNode(node, primitives, leafNodes);
 		}
 	}
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline Mbvh<WIDTH, DIM, PrimitiveType>::Mbvh(const Sbvh<DIM, PrimitiveType> *sbvh_, bool printStats_):
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename SilhouetteType>
+inline void populateSilhouetteLeafNode(const MbvhNode<DIM, CONEDATA>& node, const std::vector<SilhouetteType *>& silhouettes,
+									   std::vector<MbvhSilhouetteLeafNode<WIDTH, DIM, SilhouetteType>>& silhouetteLeafNodes)
+{
+	std::cerr << "populateSilhouetteLeafNode(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+}
+
+template<size_t WIDTH>
+inline void populateSilhouetteLeafNode(const MbvhNode<3, true>& node, const std::vector<SilhouetteVertex *>& silhouettes,
+									   std::vector<MbvhSilhouetteLeafNode<WIDTH, 3, SilhouetteVertex>>& silhouetteLeafNodes)
+{
+	int silhouetteLeafOffset = -node.silhouetteChild[0] - 1;
+	int silhouetteReferenceOffset = node.silhouetteChild[2];
+	int nSilhouetteReferences = node.silhouetteChild[3];
+
+	// populate silhouette leaf node with silhouette vertices
+	for (int p = 0; p < nSilhouetteReferences; p++) {
+		int referenceIndex = silhouetteReferenceOffset + p;
+		int leafIndex = silhouetteLeafOffset + p/WIDTH;
+		int w = p%WIDTH;
+
+		const SilhouetteVertex *silhouetteVertex = silhouettes[referenceIndex];
+		MbvhSilhouetteLeafNode<WIDTH, 3, SilhouetteVertex>& silhouetteLeafNode = silhouetteLeafNodes[leafIndex];
+		silhouetteLeafNode.primitiveIndex[w] = silhouetteVertex->pIndex;
+		silhouetteLeafNode.missingFace[w] = !silhouetteVertex->hasFace(0) || !silhouetteVertex->hasFace(1);
+
+		const Vector3& pb = silhouetteVertex->soup->positions[silhouetteVertex->indices[1]];
+		for (int i = 0; i < 3; i++) {
+			silhouetteLeafNode.positions[1][i][w] = pb[i];
+		}
+
+		if (silhouetteVertex->hasFace(0)) {
+			Vector3 n0 = silhouetteVertex->normal(0);
+			for (int i = 0; i < 3; i++) {
+				silhouetteLeafNode.positions[0][i][w] = n0[i];
+			}
+		}
+
+		if (silhouetteVertex->hasFace(1)) {
+			Vector3 n1 = silhouetteVertex->normal(1);
+			for (int i = 0; i < 3; i++) {
+				silhouetteLeafNode.positions[2][i][w] = n1[i];
+			}
+		}
+	}
+}
+
+template<size_t WIDTH>
+inline void populateSilhouetteLeafNode(const MbvhNode<3, true>& node, const std::vector<SilhouetteEdge *>& silhouettes,
+									   std::vector<MbvhSilhouetteLeafNode<WIDTH, 3, SilhouetteEdge>>& silhouetteLeafNodes)
+{
+	int silhouetteLeafOffset = -node.silhouetteChild[0] - 1;
+	int silhouetteReferenceOffset = node.silhouetteChild[2];
+	int nSilhouetteReferences = node.silhouetteChild[3];
+
+	// populate silhouette leaf node with silhouette edges
+	for (int p = 0; p < nSilhouetteReferences; p++) {
+		int referenceIndex = silhouetteReferenceOffset + p;
+		int leafIndex = silhouetteLeafOffset + p/WIDTH;
+		int w = p%WIDTH;
+
+		const SilhouetteEdge *silhouetteEdge = silhouettes[referenceIndex];
+		MbvhSilhouetteLeafNode<WIDTH, 3, SilhouetteEdge>& silhouetteLeafNode = silhouetteLeafNodes[leafIndex];
+		silhouetteLeafNode.primitiveIndex[w] = silhouetteEdge->pIndex;
+		silhouetteLeafNode.missingFace[w] = !silhouetteEdge->hasFace(0) || !silhouetteEdge->hasFace(1);
+
+		const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
+		const Vector3& pc = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
+		for (int i = 0; i < 3; i++) {
+			silhouetteLeafNode.positions[1][i][w] = pb[i];
+			silhouetteLeafNode.positions[2][i][w] = pc[i];
+		}
+
+		if (silhouetteEdge->hasFace(0)) {
+			Vector3 n0 = silhouetteEdge->normal(0);
+			for (int i = 0; i < 3; i++) {
+				silhouetteLeafNode.positions[0][i][w] = n0[i];
+			}
+		}
+
+		if (silhouetteEdge->hasFace(1)) {
+			Vector3 n1 = silhouetteEdge->normal(1);
+			for (int i = 0; i < 3; i++) {
+				silhouetteLeafNode.positions[3][i][w] = n1[i];
+			}
+		}
+	}
+}
+
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline void Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::populateSilhouetteLeafNodes()
+{
+	if (std::is_same<SilhouetteType, SilhouetteVertex>::value ||
+		std::is_same<SilhouetteType, SilhouetteEdge>::value) {
+		silhouetteLeafNodes.resize(nSilhouetteLeafs);
+
+		for (int i = 0; i < nNodes; i++) {
+			const MbvhNode<DIM, CONEDATA>& node = flatTree[i];
+			if (isLeafNode(node)) populateSilhouetteLeafNode(node, silhouetteRefs, silhouetteLeafNodes);
+		}
+	}
+}
+
+template<size_t WIDTH, size_t DIM>
+inline void updateSilhouetteLeafInfo(const MbvhNode<DIM, false>& mbvhNode, float& nSilhouetteLeafsNotFull)
+{
+	// do nothing
+}
+
+template<size_t WIDTH, size_t DIM>
+inline void updateSilhouetteLeafInfo(const MbvhNode<DIM, true>& mbvhNode, float& nSilhouetteLeafsNotFull)
+{
+	if (mbvhNode.silhouetteChild[3]%WIDTH != 0) {
+		nSilhouetteLeafsNotFull += 1.0f;
+	}
+}
+
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::Mbvh(const Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType> *sbvh_, bool printStats_):
 nNodes(0),
 nLeafs(0),
+nSilhouetteLeafs(0),
 maxDepth(0),
 area(0.0f),
 volume(0.0f),
 primitives(sbvh_->primitives),
+silhouettes(sbvh_->silhouettes),
+silhouetteRefs(sbvh_->silhouetteRefs),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value),
 range(enoki::arange<enoki::Array<int, DIM>>())
 {
@@ -189,13 +349,11 @@ range(enoki::arange<enoki::Array<int, DIM>>())
 	// collapse sbvh
 	collapseSbvh(sbvh_, 0, 0xfffffffc, 0);
 
-	// determine object type
-	vectorizedLeafType = std::is_same<PrimitiveType, LineSegment>::value ? ObjectType::LineSegments :
-						 std::is_same<PrimitiveType, Triangle>::value ? ObjectType::Triangles :
-						 ObjectType::Mixed;
-
 	// populate leaf nodes if primitive type is supported
 	populateLeafNodes();
+
+	// populate silhouette leaf nodes if primitive type is supported
+	populateSilhouetteLeafNodes();
 
 	// precompute surface area and signed volume
 	int nPrimitives = (int)primitives.size();
@@ -216,16 +374,19 @@ range(enoki::arange<enoki::Array<int, DIM>>())
 	if (printStats_) {
 		// count not-full nodes
 		float nLeafsNotFull = 0.0f;
+		float nSilhouetteLeafsNotFull = 0.0f;
 		float nNodesNotFull = 0.0f;
 		int nInnerNodes = 0;
 
 		for (int i = 0; i < nNodes; i++) {
-			MbvhNode<DIM>& node = flatTree[i];
+			MbvhNode<DIM, CONEDATA>& node = flatTree[i];
 
 			if (isLeafNode(node)) {
 				if (node.child[3]%WIDTH != 0) {
 					nLeafsNotFull += 1.0f;
 				}
+
+				updateSilhouetteLeafInfo<WIDTH, DIM>(node, nSilhouetteLeafsNotFull);
 
 			} else {
 				nInnerNodes++;
@@ -243,16 +404,17 @@ range(enoki::arange<enoki::Array<int, DIM>>())
 		std::cout << "Built " << FCPW_MBVH_BRANCHING_FACTOR << "-bvh with "
 				  << nNodes << " nodes, "
 				  << nLeafs << " leaves, "
-				  << (nNodesNotFull*100/nInnerNodes) << "% nodes & "
-				  << (nLeafsNotFull*100/nLeafs) << "% leaves not full, "
-				  << maxDepth << " max depth, "
-				  << primitives.size() << " primitives in "
+				  << nSilhouetteLeafs << " silhouette leaves, "
+				  << (nNodesNotFull*100/nInnerNodes) << "% nodes, "
+				  << (nLeafsNotFull*100/nLeafs) << "% leaves not full & "
+				  << (nSilhouetteLeafsNotFull*100/nSilhouetteLeafs) << "% silhouette leaves not full, "
+				  << maxDepth << " max depth in "
 				  << timeSpan.count() << " seconds" << std::endl;
 	}
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline BoundingBox<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::boundingBox() const
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline BoundingBox<DIM> Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::boundingBox() const
 {
 	BoundingBox<DIM> box;
 	if (flatTree.size() == 0) return box;
@@ -263,28 +425,28 @@ inline BoundingBox<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::boundingBox() const
 	return box;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline Vector<DIM> Mbvh<WIDTH, DIM, PrimitiveType>::centroid() const
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline Vector<DIM> Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::centroid() const
 {
 	return aggregateCentroid;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline float Mbvh<WIDTH, DIM, PrimitiveType>::surfaceArea() const
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline float Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::surfaceArea() const
 {
 	return area;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline float Mbvh<WIDTH, DIM, PrimitiveType>::signedVolume() const
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline float Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::signedVolume() const
 {
 	return volume;
 }
 
-template<size_t WIDTH, size_t DIM>
-inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<WIDTH>& tMin,
-						 const FloatP<WIDTH>& tMax, const MaskP<WIDTH>& mask,
-						 float minDist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
+template<size_t WIDTH, size_t DIM, bool CONEDATA>
+inline void enqueueNodes(const MbvhNode<DIM, CONEDATA>& node, const FloatP<WIDTH>& tMin,
+						 const FloatP<WIDTH>& tMax, const MaskP<WIDTH>& mask, float minDist,
+						 float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
 {
 	// enqueue nodes
 	int closestIndex = -1;
@@ -319,10 +481,10 @@ inline void sortOrder4(const FloatP<4>& t, int& a, int& b, int& c, int& d)
 	if (t[b] < t[c]) { tmp = b; b = c; c = tmp; }
 }
 
-template<size_t DIM>
-inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
-						 const FloatP<4>& tMax, const MaskP<4>& mask,
-						 float minDist, float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
+template<size_t DIM, bool CONEDATA>
+inline void enqueueNodes(const MbvhNode<DIM, CONEDATA>& node, const FloatP<4>& tMin,
+						 const FloatP<4>& tMax, const MaskP<4>& mask, float minDist,
+						 float& tMaxMin, int& stackPtr, BvhTraversal *subtree)
 {
 	// sort nodes
 	int order[4] = {0, 1, 2, 3};
@@ -341,23 +503,23 @@ inline void enqueueNodes(const MbvhNode<DIM>& node, const FloatP<4>& tMin,
 	}
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline int intersectPrimitives(const MbvhNode<DIM>& node,
-							   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
-							   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
-							   float& rtMax, std::vector<Interaction<DIM>>& is, bool recordAllHits)
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType>
+inline int intersectRayPrimitives(const MbvhNode<DIM, CONEDATA>& node,
+								  const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
+								  int nodeIndex, int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
+								  float& rtMax, std::vector<Interaction<DIM>>& is, bool recordAllHits)
 {
-	std::cerr << "intersectPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+	std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
 
 	return 0;
 }
 
-template<size_t WIDTH>
-inline int intersectPrimitives(const MbvhNode<3>& node,
-							   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
-							   int nodeIndex, int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-							   float& rtMax, std::vector<Interaction<3>>& is, bool recordAllHits)
+template<size_t WIDTH, bool CONEDATA>
+inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
+								  const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
+								  int nodeIndex, int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
+								  float& rtMax, std::vector<Interaction<3>>& is, bool recordAllHits)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -435,11 +597,11 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 	return hits;
 }
 
-template<size_t WIDTH>
-inline int intersectPrimitives(const MbvhNode<3>& node,
-							   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
-							   int nodeIndex, int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-							   float& rtMax, std::vector<Interaction<3>>& is, bool recordAllHits)
+template<size_t WIDTH, bool CONEDATA>
+inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
+								  const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
+								  int nodeIndex, int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
+								  float& rtMax, std::vector<Interaction<3>>& is, bool recordAllHits)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -518,10 +680,10 @@ inline int intersectPrimitives(const MbvhNode<3>& node,
 	return hits;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-															  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-															  bool checkForOcclusion, bool recordAllHits) const
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+																						int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+																						bool checkForOcclusion, bool recordAllHits) const
 {
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
@@ -540,18 +702,18 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
 		int nodeIndex = subtree[stackPtr].node;
-		float near = subtree[stackPtr].distance;
+		float currentDist = subtree[stackPtr].distance;
 		stackPtr--;
 
 		// if this node is further than the closest found intersection, continue
-		if (!recordAllHits && near > r.tMax) continue;
-		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
+		if (!recordAllHits && currentDist > r.tMax) continue;
+		const MbvhNode<DIM, CONEDATA>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (vectorizedLeafType == ObjectType::LineSegments ||
-				vectorizedLeafType == ObjectType::Triangles) {
+			if (std::is_same<PrimitiveType, LineSegment>::value ||
+				std::is_same<PrimitiveType, Triangle>::value) {
 				// perform vectorized intersection query
-				hits += intersectPrimitives(node, leafNodes, nodeIndex, this->index, ro, rd, r.tMax, is, recordAllHits);
+				hits += intersectRayPrimitives(node, leafNodes, nodeIndex, this->index, ro, rd, r.tMax, is, recordAllHits);
 				nodesVisited++;
 
 				if (hits > 0 && checkForOcclusion) {
@@ -614,8 +776,8 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 			nodesVisited++;
 			mask &= enoki::neq(node.child, maxInt);
 			if (enoki::any(mask)) {
-				float t = 0.0f;
-				enqueueNodes(node, tMin, tMax, mask, r.tMax, t, stackPtr, subtree);
+				float stub = 0.0f;
+				enqueueNodes(node, tMin, tMax, mask, r.tMax, stub, stackPtr, subtree);
 			}
 		}
 	}
@@ -644,8 +806,447 @@ inline int Mbvh<WIDTH, DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::
 	return 0;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline bool findClosestPointPrimitives(const MbvhNode<DIM>& node,
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType>
+inline int intersectSpherePrimitives(const MbvhNode<DIM, CONEDATA>& node,
+									 const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
+									 const std::function<float(float)>& primitiveWeight,
+									 int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
+									 std::vector<Interaction<DIM>>& is, float& totalPrimitiveWeight, bool recordOneHit)
+{
+	std::cerr << "intersectSpherePrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return 0;
+}
+
+template<size_t WIDTH, bool CONEDATA>
+inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
+									 const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
+									 const std::function<float(float)>& primitiveWeight,
+									 int nodeIndex, int aggregateIndex, const enokiVector3& sc, float sr2,
+									 std::vector<Interaction<3>>& is, float& totalPrimitiveWeight, bool recordOneHit)
+{
+	Vector3 queryPt(sc[0], sc[1], sc[2]);
+	int leafOffset = -node.child[0] - 1;
+	int nLeafs = node.child[1];
+	int referenceOffset = node.child[2];
+	int nReferences = node.child[3];
+	int startReference = 0;
+	int hits = 0;
+
+	for (int l = 0; l < nLeafs; l++) {
+		// perform vectorized closest point query
+		Vector3P<WIDTH> pt;
+		FloatP<WIDTH> t;
+		int leafIndex = leafOffset + l;
+		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
+		FloatP<WIDTH> surfaceArea = enoki::norm(pb - pa);
+		FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH>(pa, pb, sc, pt, t);
+		FloatP<WIDTH> d2 = d*d;
+
+		// record interactions
+		int endReference = startReference + WIDTH;
+		if (endReference > nReferences) endReference = nReferences;
+
+		for (int p = startReference; p < endReference; p++) {
+			int w = p - startReference;
+
+			if (d2[w] <= sr2) {
+				hits++;
+
+				if (recordOneHit) {
+					Vector3 closestPt(pt[0][w], pt[1][w], pt[2][w]);
+					float weight = surfaceArea[w];
+					if (primitiveWeight) weight *= primitiveWeight((queryPt - closestPt).squaredNorm());
+					totalPrimitiveWeight += weight;
+
+					if (uniformRealRandomNumber()*totalPrimitiveWeight < weight) {
+						is[0].d = weight;
+						is[0].primitiveIndex = primitiveIndex[w];
+						is[0].nodeIndex = nodeIndex;
+						is[0].referenceIndex = referenceOffset + p;
+						is[0].objectIndex = aggregateIndex;
+					}
+
+				} else {
+					auto it = is.emplace(is.end(), Interaction<3>());
+					it->d = 1.0f;
+					it->primitiveIndex = primitiveIndex[w];
+					it->nodeIndex = nodeIndex;
+					it->referenceIndex = referenceOffset + p;
+					it->objectIndex = aggregateIndex;
+				}
+			}
+		}
+
+		startReference += WIDTH;
+	}
+
+	return hits;
+}
+
+template<size_t WIDTH, bool CONEDATA>
+inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
+									 const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
+									 const std::function<float(float)>& primitiveWeight,
+									 int nodeIndex, int aggregateIndex, const enokiVector3& sc, float sr2,
+									 std::vector<Interaction<3>>& is, float& totalPrimitiveWeight, bool recordOneHit)
+{
+	Vector3 queryPt(sc[0], sc[1], sc[2]);
+	int leafOffset = -node.child[0] - 1;
+	int nLeafs = node.child[1];
+	int referenceOffset = node.child[2];
+	int nReferences = node.child[3];
+	int startReference = 0;
+	int hits = 0;
+
+	for (int l = 0; l < nLeafs; l++) {
+		// perform vectorized closest point query
+		Vector3P<WIDTH> pt;
+		Vector2P<WIDTH> t;
+		int leafIndex = leafOffset + l;
+		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+		const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
+		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
+		FloatP<WIDTH> surfaceArea = 0.5f*enoki::norm(enoki::cross(pb - pa, pc - pa));
+		FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(pa, pb, pc, sc, pt, t);
+		FloatP<WIDTH> d2 = d*d;
+
+		// record interactions
+		int endReference = startReference + WIDTH;
+		if (endReference > nReferences) endReference = nReferences;
+
+		for (int p = startReference; p < endReference; p++) {
+			int w = p - startReference;
+
+			if (d2[w] <= sr2) {
+				hits++;
+
+				if (recordOneHit) {
+					Vector3 closestPt(pt[0][w], pt[1][w], pt[2][w]);
+					float weight = surfaceArea[w];
+					if (primitiveWeight) weight *= primitiveWeight((queryPt - closestPt).squaredNorm());
+					totalPrimitiveWeight += weight;
+
+					if (uniformRealRandomNumber()*totalPrimitiveWeight < weight) {
+						is[0].d = weight;
+						is[0].primitiveIndex = primitiveIndex[w];
+						is[0].nodeIndex = nodeIndex;
+						is[0].referenceIndex = referenceOffset + p;
+						is[0].objectIndex = aggregateIndex;
+					}
+
+				} else {
+					auto it = is.emplace(is.end(), Interaction<3>());
+					it->d = 1.0f;
+					it->primitiveIndex = primitiveIndex[w];
+					it->nodeIndex = nodeIndex;
+					it->referenceIndex = referenceOffset + p;
+					it->objectIndex = aggregateIndex;
+				}
+			}
+		}
+
+		startReference += WIDTH;
+	}
+
+	return hits;
+}
+
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s,
+																						std::vector<Interaction<DIM>>& is,
+																						int nodeStartIndex, int aggregateIndex,
+																						int& nodesVisited, bool recordOneHit,
+																						const std::function<float(float)>& primitiveWeight) const
+{
+	int hits = 0;
+	float totalPrimitiveWeight = 0.0f;
+	if (recordOneHit && !primitiveTypeIsAggregate) is.resize(1);
+	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
+	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
+
+	// push root node
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	subtree[0].node = rootIndex;
+	subtree[0].distance = s.r2;
+	int stackPtr = 0;
+
+	while (stackPtr >= 0) {
+		// pop off the next node to work on
+		int nodeIndex = subtree[stackPtr].node;
+		const MbvhNode<DIM, CONEDATA>& node(flatTree[nodeIndex]);
+		stackPtr--;
+
+		if (isLeafNode(node)) {
+			if (std::is_same<PrimitiveType, LineSegment>::value ||
+				std::is_same<PrimitiveType, Triangle>::value) {
+				// perform vectorized intersection query
+				hits += intersectSpherePrimitives(node, leafNodes, primitiveWeight, nodeIndex, this->index,
+												  sc, s.r2, is, totalPrimitiveWeight, recordOneHit);
+				nodesVisited++;
+
+			} else {
+				// primitive type does not support vectorized intersection query,
+				// perform query to each primitive one by one
+				int referenceOffset = node.child[2];
+				int nReferences = node.child[3];
+
+				for (int p = 0; p < nReferences; p++) {
+					int referenceIndex = referenceOffset + p;
+					const PrimitiveType *prim = primitives[referenceIndex];
+					nodesVisited++;
+
+					int hit = 0;
+					std::vector<Interaction<DIM>> cs;
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+						hit = aggregate->intersectFromNode(s, cs, nodeStartIndex, aggregateIndex,
+														   nodesVisited, recordOneHit, primitiveWeight);
+
+					} else {
+						hit = prim->intersect(s, cs, recordOneHit, primitiveWeight);
+						for (int i = 0; i < (int)cs.size(); i++) {
+							cs[i].nodeIndex = nodeIndex;
+							cs[i].referenceIndex = referenceIndex;
+							cs[i].objectIndex = this->index;
+						}
+					}
+
+					if (hit > 0) {
+						hits += hit;
+						if (recordOneHit && !primitiveTypeIsAggregate) {
+							totalPrimitiveWeight += cs[0].d;
+							if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
+								is[0] = cs[0];
+							}
+
+						} else {
+							is.insert(is.end(), cs.begin(), cs.end());
+						}
+					}
+				}
+			}
+
+		} else {
+			// overlap sphere with boxes
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+																node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
+
+			// enqueue overlapping boxes
+			nodesVisited++;
+			mask &= enoki::neq(node.child, maxInt);
+			if (enoki::any(mask)) {
+				for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+					if (mask[w]) {
+						stackPtr++;
+						subtree[stackPtr].node = node.child[w];
+					}
+				}
+			}
+		}
+	}
+
+	if (hits > 0) {
+		if (recordOneHit && !primitiveTypeIsAggregate) {
+			if (is[0].primitiveIndex == -1) {
+				hits = 0;
+				is.clear();
+
+			} else if (totalPrimitiveWeight > 0.0f) {
+				is[0].d /= totalPrimitiveWeight;
+			}
+		}
+
+		return hits;
+	}
+
+	return 0;
+}
+
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+																								  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+																								  const std::function<float(float)>& traversalWeight,
+																								  const std::function<float(float)>& primitiveWeight) const
+{
+	int hits = 0;
+	if (!primitiveTypeIsAggregate) is.resize(1);
+	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max, weight;
+	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
+
+	// push root node
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	subtree[0].node = rootIndex;
+	subtree[0].distance = 1.0f;
+	int stackPtr = 0;
+
+	while (stackPtr >= 0) {
+		// pop off the next node to work on
+		int nodeIndex = subtree[stackPtr].node;
+		float traversalPdf = subtree[stackPtr].distance;
+		const MbvhNode<DIM, CONEDATA>& node(flatTree[nodeIndex]);
+		stackPtr--;
+
+		if (isLeafNode(node)) {
+			float totalPrimitiveWeight = 0.0f;
+			if (std::is_same<PrimitiveType, LineSegment>::value ||
+				std::is_same<PrimitiveType, Triangle>::value) {
+				// perform vectorized intersection query
+				int nInteractions = (int)is.size();
+				int hit = intersectSpherePrimitives(node, leafNodes, primitiveWeight, nodeIndex, this->index,
+													sc, s.r2, is, totalPrimitiveWeight, true);
+				nodesVisited++;
+
+				if (hit > 0) {
+					hits += hit;
+					if (!primitiveTypeIsAggregate) {
+						is[0].d *= traversalPdf;
+
+					} else {
+						for (int i = nInteractions; i < (int)is.size(); i++) {
+							is[i].d *= traversalPdf;
+						}
+					}
+				}
+
+			} else {
+				// primitive type does not support vectorized intersection query,
+				// perform query to each primitive one by one
+				int referenceOffset = node.child[2];
+				int nReferences = node.child[3];
+
+				for (int p = 0; p < nReferences; p++) {
+					int referenceIndex = referenceOffset + p;
+					const PrimitiveType *prim = primitives[referenceIndex];
+					nodesVisited++;
+
+					int hit = 0;
+					std::vector<Interaction<DIM>> cs;
+					if (primitiveTypeIsAggregate) {
+						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+						hit = aggregate->intersectStochasticFromNode(s, cs, nodeStartIndex, aggregateIndex, nodesVisited,
+																	 traversalWeight, primitiveWeight);
+
+					} else {
+						hit = prim->intersect(s, cs, true, primitiveWeight);
+						for (int i = 0; i < (int)cs.size(); i++) {
+							cs[i].nodeIndex = nodeIndex;
+							cs[i].referenceIndex = referenceIndex;
+							cs[i].objectIndex = this->index;
+						}
+					}
+
+					if (hit > 0) {
+						hits += hit;
+						if (!primitiveTypeIsAggregate) {
+							totalPrimitiveWeight += cs[0].d;
+							if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
+								is[0] = cs[0];
+								is[0].d *= traversalPdf;
+							}
+
+						} else {
+							int nInteractions = (int)is.size();
+							is.insert(is.end(), cs.begin(), cs.end());
+							for (int i = nInteractions; i < (int)is.size(); i++) {
+								is[i].d *= traversalPdf;
+							}
+						}
+					}
+				}
+			}
+
+			if (!primitiveTypeIsAggregate) {
+				if (totalPrimitiveWeight > 0.0f) {
+					is[0].d /= totalPrimitiveWeight;
+				}
+			}
+
+		} else {
+			// overlap sphere with boxes
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+																node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
+
+			// enqueue overlapping boxes
+			nodesVisited++;
+			mask &= enoki::neq(node.child, maxInt);
+			if (enoki::any(mask)) {
+				float totalTraversalWeight = 0.0f;
+				if (traversalWeight) {
+					VectorP<FCPW_MBVH_BRANCHING_FACTOR, DIM> boxCenter = (node.boxMin + node.boxMax)*0.5f;
+					FloatP<FCPW_MBVH_BRANCHING_FACTOR> r2 = enoki::squared_norm(sc - boxCenter);
+
+					for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+						if (mask[w]) {
+							weight[w] = traversalWeight(r2[w]);
+							totalTraversalWeight += weight[w];
+
+						} else {
+							weight[w] = 0.0f;
+						}
+					}
+
+				} else {
+					enoki::masked(weight, mask) = 1.0f;
+					enoki::masked(weight, ~mask) = 0.0f;
+					totalTraversalWeight = enoki::hsum(weight);
+				}
+
+				if (totalTraversalWeight > 0.0f) {
+					float sumWeight = 0.0f;
+					float u = uniformRealRandomNumber();
+
+					for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+						float rangeStart = sumWeight/totalTraversalWeight;
+						float rangeEnd = (sumWeight + weight[w])/totalTraversalWeight;
+
+						if (u >= rangeStart && u < rangeEnd) {
+							stackPtr++;
+							subtree[stackPtr].node = node.child[w];
+							subtree[stackPtr].distance = traversalPdf*weight[w]/totalTraversalWeight;
+							break;
+						}
+
+						sumWeight += weight[w];
+					}
+				}
+			}
+		}
+	}
+
+	if (hits > 0) {
+		if (!primitiveTypeIsAggregate) {
+			if (is[0].primitiveIndex == -1) {
+				hits = 0;
+				is.clear();
+
+			} else {
+				// sample a point on the selected geometric primitive
+				const PrimitiveType *prim = primitives[is[0].referenceIndex];
+				float pdf = is[0].samplePoint(prim);
+				is[0].d *= pdf;
+
+				// compute normal
+				if (this->computeNormals) {
+					is[0].computeNormal(prim);
+				}
+			}
+		}
+
+		return hits;
+	}
+
+	return 0;
+}
+
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType>
+inline bool findClosestPointPrimitives(const MbvhNode<DIM, CONEDATA>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
 									   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc, float& sr2,
 									   Interaction<DIM>& i)
@@ -656,8 +1257,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<DIM>& node,
 	return false;
 }
 
-template<size_t WIDTH>
-inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
+template<size_t WIDTH, bool CONEDATA>
+inline bool findClosestPointPrimitives(const MbvhNode<3, CONEDATA>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
 									   int nodeIndex, int aggregateIndex, const enokiVector3& sc, float& sr2,
 									   Interaction<3>& i)
@@ -712,8 +1313,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 	return found;
 }
 
-template<size_t WIDTH>
-inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
+template<size_t WIDTH, bool CONEDATA>
+inline bool findClosestPointPrimitives(const MbvhNode<3, CONEDATA>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
 									   int nodeIndex, int aggregateIndex, const enokiVector3& sc, float& sr2,
 									   Interaction<3>& i)
@@ -769,10 +1370,10 @@ inline bool findClosestPointPrimitives(const MbvhNode<3>& node,
 	return found;
 }
 
-template<size_t WIDTH, size_t DIM, typename PrimitiveType>
-inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-																	  int nodeStartIndex, int aggregateIndex,
-																	  const Vector<DIM>& boundaryHint, int& nodesVisited) const
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline bool Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																								int nodeStartIndex, int aggregateIndex,
+																								const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
 	// TODO: use direction to boundary guess
 	bool notFound = true;
@@ -789,17 +1390,17 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
 		int nodeIndex = subtree[stackPtr].node;
-		float near = subtree[stackPtr].distance;
+		float currentDist = subtree[stackPtr].distance;
 		stackPtr--;
 
 		// if this node is further than the closest found primitive, continue
-		if (near > s.r2) continue;
-		const MbvhNode<DIM>& node(flatTree[nodeIndex]);
+		if (currentDist > s.r2) continue;
+		const MbvhNode<DIM, CONEDATA>& node(flatTree[nodeIndex]);
 
 		if (isLeafNode(node)) {
-			if (vectorizedLeafType == ObjectType::LineSegments ||
-				vectorizedLeafType == ObjectType::Triangles) {
-				// perform vectorized closest point query to triangle
+			if (std::is_same<PrimitiveType, LineSegment>::value ||
+				std::is_same<PrimitiveType, Triangle>::value) {
+				// perform vectorized closest point query
 				bool found = findClosestPointPrimitives(node, leafNodes, nodeIndex, this->index, sc, s.r2, i);
 				if (found) notFound = false;
 				nodesVisited++;
@@ -817,6 +1418,7 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 
 					bool found = false;
 					Interaction<DIM> c;
+
 					if (primitiveTypeIsAggregate) {
 						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
@@ -856,6 +1458,308 @@ inline bool Mbvh<WIDTH, DIM, PrimitiveType>::findClosestPointFromNode(BoundingSp
 		// compute normal
 		if (this->computeNormals && !primitiveTypeIsAggregate) {
 			i.computeNormal(primitives[i.referenceIndex]);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+template<size_t WIDTH, size_t DIM, typename SilhouetteType>
+inline bool findClosestSilhouettes(const MbvhNode<DIM, true>& node,
+								   const std::vector<MbvhSilhouetteLeafNode<WIDTH, DIM, SilhouetteType>>& silhouetteLeafNodes,
+								   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc, float& sr2,
+								   Interaction<DIM>& i, bool flipNormalOrientation, float squaredMinRadius, float precision)
+{
+	std::cerr << "findClosestSilhouettes(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return false;
+}
+
+template<size_t WIDTH>
+inline bool findClosestSilhouettes(const MbvhNode<3, true>& node,
+								   const std::vector<MbvhSilhouetteLeafNode<WIDTH, 3, SilhouetteVertex>>& silhouetteLeafNodes,
+								   int nodeIndex, int aggregateIndex, const enokiVector3& sc, float& sr2,
+								   Interaction<3>& i, bool flipNormalOrientation, float squaredMinRadius, float precision)
+{
+	if (squaredMinRadius >= sr2) return false;
+
+	int silhouetteLeafOffset = -node.silhouetteChild[0] - 1;
+	int nSilhouetteLeafs = node.silhouetteChild[1];
+	int silhouetteReferenceOffset = node.silhouetteChild[2];
+	int nSilhouetteReferences = node.silhouetteChild[3];
+	int startReference = 0;
+	bool found = false;
+
+	for (int l = 0; l < nSilhouetteLeafs; l++) {
+		// perform vectorized closest silhouette query
+		int leafIndex = silhouetteLeafOffset + l;
+		const Vector3P<WIDTH>& pb = silhouetteLeafNodes[leafIndex].positions[1];
+		const Vector3P<WIDTH>& n0 = silhouetteLeafNodes[leafIndex].positions[0];
+		const Vector3P<WIDTH>& n1 = silhouetteLeafNodes[leafIndex].positions[2];
+		const IntP<WIDTH>& primitiveIndex = silhouetteLeafNodes[leafIndex].primitiveIndex;
+		const MaskP<WIDTH>& missingFace = silhouetteLeafNodes[leafIndex].missingFace;
+		Vector3P<WIDTH> viewDir = sc - pb;
+		FloatP<WIDTH> d = enoki::norm(viewDir);
+		FloatP<WIDTH> d2 = d*d;
+		if (enoki::all(d2 > sr2)) continue;
+		MaskP<WIDTH> isSilhouette = missingFace;
+		enoki::masked(isSilhouette, ~missingFace) = isWideSilhouetteVertex(n0, n1, viewDir, d, flipNormalOrientation, precision);
+
+		// determine closest index
+		int closestIndex = -1;
+		int W = std::min((int)WIDTH, nSilhouetteReferences - startReference);
+
+		for (int w = 0; w < W; w++) {
+			if (isSilhouette[w] && d2[w] <= sr2) {
+				closestIndex = w;
+				sr2 = d2[w];
+			}
+		}
+
+		// update interaction
+		if (closestIndex != -1) {
+			i.d = d[closestIndex];
+			i.p[0] = pb[0][closestIndex];
+			i.p[1] = pb[1][closestIndex];
+			i.p[2] = pb[2][closestIndex];
+			i.uv[0] = -1;
+			i.uv[1] = -1;
+			i.primitiveIndex = primitiveIndex[closestIndex];
+			i.nodeIndex = nodeIndex;
+			i.referenceIndex = silhouetteReferenceOffset + startReference + closestIndex;
+			i.objectIndex = aggregateIndex;
+			found = true;
+		}
+
+		startReference += WIDTH;
+	}
+
+	return found;
+}
+
+template<size_t WIDTH>
+inline bool findClosestSilhouettes(const MbvhNode<3, true>& node,
+								   const std::vector<MbvhSilhouetteLeafNode<WIDTH, 3, SilhouetteEdge>>& silhouetteLeafNodes,
+								   int nodeIndex, int aggregateIndex, const enokiVector3& sc, float& sr2,
+								   Interaction<3>& i, bool flipNormalOrientation, float squaredMinRadius, float precision)
+{
+	if (squaredMinRadius >= sr2) return false;
+
+	int silhouetteLeafOffset = -node.silhouetteChild[0] - 1;
+	int nSilhouetteLeafs = node.silhouetteChild[1];
+	int silhouetteReferenceOffset = node.silhouetteChild[2];
+	int nSilhouetteReferences = node.silhouetteChild[3];
+	int startReference = 0;
+	bool found = false;
+
+	for (int l = 0; l < nSilhouetteLeafs; l++) {
+		// perform vectorized closest silhouette query
+		Vector3P<WIDTH> pt;
+		FloatP<WIDTH> t;
+		int leafIndex = silhouetteLeafOffset + l;
+		const Vector3P<WIDTH>& pb = silhouetteLeafNodes[leafIndex].positions[1];
+		const Vector3P<WIDTH>& pc = silhouetteLeafNodes[leafIndex].positions[2];
+		const Vector3P<WIDTH>& n0 = silhouetteLeafNodes[leafIndex].positions[0];
+		const Vector3P<WIDTH>& n1 = silhouetteLeafNodes[leafIndex].positions[3];
+		const IntP<WIDTH>& primitiveIndex = silhouetteLeafNodes[leafIndex].primitiveIndex;
+		const MaskP<WIDTH>& missingFace = silhouetteLeafNodes[leafIndex].missingFace;
+		FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH>(pb, pc, sc, pt, t);
+		FloatP<WIDTH> d2 = d*d;
+		if (enoki::all(d2 > sr2)) continue;
+		Vector3P<WIDTH> viewDir = sc - pt;
+		MaskP<WIDTH> isSilhouette = missingFace;
+		enoki::masked(isSilhouette, ~missingFace) = isWideSilhouetteEdge(pb, pc, n0, n1, viewDir, d, flipNormalOrientation, precision);
+
+		// determine closest index
+		int closestIndex = -1;
+		int W = std::min((int)WIDTH, nSilhouetteReferences - startReference);
+
+		for (int w = 0; w < W; w++) {
+			if (isSilhouette[w] && d2[w] <= sr2) {
+				closestIndex = w;
+				sr2 = d2[w];
+			}
+		}
+
+		// update interaction
+		if (closestIndex != -1) {
+			i.d = d[closestIndex];
+			i.p[0] = pt[0][closestIndex];
+			i.p[1] = pt[1][closestIndex];
+			i.p[2] = pt[2][closestIndex];
+			i.uv[0] = t[closestIndex];
+			i.uv[1] = -1;
+			i.primitiveIndex = primitiveIndex[closestIndex];
+			i.nodeIndex = nodeIndex;
+			i.referenceIndex = silhouetteReferenceOffset + startReference + closestIndex;
+			i.objectIndex = aggregateIndex;
+			found = true;
+		}
+
+		startReference += WIDTH;
+	}
+
+	return found;
+}
+
+template<size_t WIDTH, size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline void processSubtreeForClosestSilhouettePoint(const std::vector<MbvhNode<DIM, false>>& flatTree,
+													const std::vector<PrimitiveType *>& primitives,
+													const std::vector<SilhouetteType *>& silhouetteRefs,
+													const std::vector<MbvhSilhouetteLeafNode<WIDTH, DIM, SilhouetteType>>& silhouetteLeafNodes,
+													const enokiVector<DIM>& sc,
+													BoundingSphere<DIM>& s, Interaction<DIM>& i,
+													int nodeStartIndex, int aggregateIndex, int objectIndex,
+													bool primitiveTypeIsAggregate, bool flipNormalOrientation,
+													float squaredMinRadius, float precision, BvhTraversal *subtree,
+													FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min, bool& notFound, int& nodesVisited)
+{
+	std::cerr << "Mbvh::processSubtreeForClosestSilhouettePoint() not supported without cone data" << std::endl;
+	exit(EXIT_FAILURE);
+}
+
+template<size_t WIDTH, size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline void processSubtreeForClosestSilhouettePoint(const std::vector<MbvhNode<DIM, true>>& flatTree,
+													const std::vector<PrimitiveType *>& primitives,
+													const std::vector<SilhouetteType *>& silhouetteRefs,
+													const std::vector<MbvhSilhouetteLeafNode<WIDTH, DIM, SilhouetteType>>& silhouetteLeafNodes,
+													const enokiVector<DIM>& sc,
+													BoundingSphere<DIM>& s, Interaction<DIM>& i,
+													int nodeStartIndex, int aggregateIndex, int objectIndex,
+													bool primitiveTypeIsAggregate, bool flipNormalOrientation,
+													float squaredMinRadius, float precision, BvhTraversal *subtree,
+													FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min, bool& notFound, int& nodesVisited)
+{
+	int stackPtr = 0;
+	while (stackPtr >= 0) {
+		// pop off the next node to work on
+		int nodeIndex = subtree[stackPtr].node;
+		float currentDist = subtree[stackPtr].distance;
+		stackPtr--;
+
+		// if this node is further than the closest found primitive, continue
+		if (currentDist > s.r2) continue;
+		const MbvhNode<DIM, true>& node(flatTree[nodeIndex]);
+
+		if (node.child[0] < 0) { // is leaf
+			if (primitiveTypeIsAggregate) {
+				int referenceOffset = node.child[2];
+				int nReferences = node.child[3];
+
+				for (int p = 0; p < nReferences; p++) {
+					int referenceIndex = referenceOffset + p;
+					const PrimitiveType *prim = primitives[referenceIndex];
+					nodesVisited++;
+
+					Interaction<DIM> c;
+					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+					bool found = aggregate->findClosestSilhouettePointFromNode(s, c, nodeStartIndex, aggregateIndex,
+																			   nodesVisited, flipNormalOrientation,
+																			   squaredMinRadius, precision);
+
+					// keep the closest silhouette point
+					if (found) {
+						notFound = false;
+						s.r2 = std::min(s.r2, c.d*c.d);
+						i = c;
+
+						if (squaredMinRadius >= s.r2) {
+							break;
+						}
+					}
+				}
+
+			} else {
+				if (std::is_same<SilhouetteType, SilhouetteVertex>::value ||
+					std::is_same<SilhouetteType, SilhouetteEdge>::value) {
+					// perform vectorized closest silhouette query
+					nodesVisited++;
+					bool found = findClosestSilhouettes(node, silhouetteLeafNodes, nodeIndex, objectIndex, sc, s.r2,
+														i, flipNormalOrientation, squaredMinRadius, precision);
+					if (found) {
+						notFound = false;
+						if (squaredMinRadius >= s.r2) break;
+					}
+
+				} else {
+					// silhouette type does not support vectorized closest silhouette
+					// query, perform query to each silhouette one by one
+					int silhouetteReferenceOffset = node.silhouetteChild[2];
+					int nSilhouetteReferences = node.silhouetteChild[3];
+
+					for (int p = 0; p < nSilhouetteReferences; p++) {
+						int referenceIndex = silhouetteReferenceOffset + p;
+						const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
+
+						// skip query if silhouette index is the same as i.primitiveIndex (and object indices match)
+						int primitiveIndex = static_cast<const SilhouettePrimitive<DIM> *>(silhouette)->pIndex;
+						if (primitiveIndex == i.primitiveIndex && objectIndex == i.objectIndex) continue;
+						nodesVisited++;
+
+						Interaction<DIM> c;
+						bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius, precision);
+
+						// keep the closest silhouette point
+						if (found) {
+							notFound = false;
+							s.r2 = std::min(s.r2, c.d*c.d);
+							i = c;
+							i.nodeIndex = nodeIndex;
+							i.referenceIndex = referenceIndex;
+							i.objectIndex = objectIndex;
+
+							if (squaredMinRadius >= s.r2) {
+								break;
+							}
+						}
+					}
+				}
+			}
+
+		} else { // not a leaf
+			// overlap sphere with boxes, and normal and view cones
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = enoki::neq(node.child, maxInt);
+			mask &= overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(node.boxMin, node.boxMax, sc, s.r2, d2Min);
+			overlapWideCone<FCPW_MBVH_BRANCHING_FACTOR, DIM>(node.coneAxis, node.coneHalfAngle, sc, node.boxMin, node.boxMax, d2Min, mask);
+
+			// enqueue overlapping boxes in sorted order
+			nodesVisited++;
+			if (enoki::any(mask)) {
+				float stub = 0.0f;
+				enqueueNodes(node, d2Min, 0.0f, mask, s.r2, stub, stackPtr, subtree);
+			}
+		}
+	}
+}
+
+template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline bool Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																										  int nodeStartIndex, int aggregateIndex,
+																										  int& nodesVisited, bool flipNormalOrientation,
+																										  float squaredMinRadius, float precision) const
+{
+	if (squaredMinRadius >= s.r2) return false;
+
+	bool notFound = true;
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min;
+	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
+	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
+	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	subtree[0].node = rootIndex;
+	subtree[0].distance = minFloat;
+
+	processSubtreeForClosestSilhouettePoint<WIDTH, DIM, PrimitiveType, SilhouetteType>(flatTree, primitives, silhouetteRefs, silhouetteLeafNodes,
+																					   sc, s, i, nodeStartIndex, aggregateIndex, this->index,
+																					   primitiveTypeIsAggregate, flipNormalOrientation,
+																					   squaredMinRadius, precision, subtree, d2Min, notFound, nodesVisited);
+
+	if (!notFound) {
+		// compute normal
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			i.computeSilhouetteNormal(silhouetteRefs[i.referenceIndex]);
 		}
 
 		return true;

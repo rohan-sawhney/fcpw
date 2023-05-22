@@ -35,8 +35,18 @@ public:
 	virtual int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 						  bool checkForOcclusion=false, bool recordAllHits=false) const = 0;
 
+	// intersects with sphere
+	virtual int intersect(const BoundingSphere<DIM>& s,
+						  std::vector<Interaction<DIM>>& is, bool recordOneHit=false,
+						  const std::function<float(float)>& primitiveWeight={}) const = 0;
+
 	// finds closest point to sphere center
 	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const = 0;
+
+	// finds closest silhouette point to sphere center
+	virtual bool findClosestSilhouettePoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+											bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
+											float precision=1e-3f) const = 0;
 };
 
 template<size_t DIM>
@@ -50,6 +60,76 @@ public:
 
 	// returns barycentric coordinates
 	virtual Vector<DIM - 1> barycentricCoordinates(const Vector<DIM>& p) const = 0;
+
+	// samples a random point on the geometric primitive and returns sampling pdf
+	virtual float samplePoint(Vector<DIM - 1>& uv, Vector<DIM>& p) const = 0;
+
+	// finds closest silhouette point to sphere center
+	bool findClosestSilhouettePoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+									bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
+									float precision=1e-3f) const {
+		std::cerr << "GeometricPrimitive::findClosestSilhouettePoint() not supported" << std::endl;
+		exit(EXIT_FAILURE);
+
+		return false;
+	}
+
+	// member
+	int pIndex;
+};
+
+template<size_t DIM>
+class SilhouettePrimitive: public Primitive<DIM> {
+public:
+	// checks whether silhouette has adjacent face
+	virtual bool hasFace(int fIndex) const = 0;
+
+	// returns normal of adjacent face
+	virtual Vector<DIM> normal(int fIndex, bool normalize=true) const = 0;
+
+	// returns normalized silhouette normal
+	virtual Vector<DIM> normal() const = 0;
+
+	// returns signed volume
+	float signedVolume() const {
+		return 0.0f;
+	}
+
+	// splits the primitive along the provided coordinate and axis
+	void split(int dim, float splitCoord, BoundingBox<DIM>& boxLeft,
+			   BoundingBox<DIM>& boxRight) const {
+		// do nothing
+	}
+
+	// intersects with ray
+	int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+				  bool checkForOcclusion=false, bool recordAllHits=false) const {
+		std::cerr << "SilhouettePrimitive::intersect(Ray<DIM>&) not supported" << std::endl;
+		exit(EXIT_FAILURE);
+
+		return 0;
+	}
+
+	// intersects with sphere
+	int intersect(const BoundingSphere<DIM>& s,
+				  std::vector<Interaction<DIM>>& is, bool recordOneHit=false,
+				  const std::function<float(float)>& primitiveWeight={}) const {
+		std::cerr << "SilhouettePrimitive::intersect(const BoundingSphere<DIM>&) not supported" << std::endl;
+		exit(EXIT_FAILURE);
+
+		return 0;
+	}
+
+	// finds closest point to sphere center
+	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
+		std::cerr << "SilhouettePrimitive::findClosestPoint() not supported" << std::endl;
+		exit(EXIT_FAILURE);
+
+		return false;
+	}
+
+	// member
+	int pIndex;
 };
 
 template<size_t DIM>
@@ -78,10 +158,37 @@ public:
 		return this->intersectFromNode(r, is, 0, this->index, nodesVisited, checkForOcclusion, recordAllHits);
 	}
 
+	// intersects with sphere
+	int intersect(const BoundingSphere<DIM>& s,
+				  std::vector<Interaction<DIM>>& is, bool recordOneHit=false,
+				  const std::function<float(float)>& primitiveWeight={}) const {
+		int nodesVisited = 0;
+		return this->intersectFromNode(s, is, 0, this->index, nodesVisited, recordOneHit, primitiveWeight);
+	}
+
+	// intersects with sphere
+	int intersectStochastic(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+							const std::function<float(float)>& traversalWeight={},
+							const std::function<float(float)>& primitiveWeight={}) const {
+		int nodesVisited = 0;
+		return this->intersectStochasticFromNode(s, is, 0, this->index, nodesVisited,
+												 traversalWeight, primitiveWeight);
+	}
+
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
 		int nodesVisited = 0;
 		return this->findClosestPointFromNode(s, i, 0, this->index, Vector<DIM>::Zero(), nodesVisited);
+	}
+
+	// finds closest silhouette point to sphere center
+	bool findClosestSilhouettePoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+									bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
+									float precision=1e-3f) const {
+		int nodesVisited = 0;
+		return this->findClosestSilhouettePointFromNode(s, i, 0, this->index, nodesVisited,
+														flipNormalOrientation, squaredMinRadius,
+														precision);
 	}
 
 	// performs inside outside test for x
@@ -151,10 +258,31 @@ public:
 								  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 								  bool checkForOcclusion=false, bool recordAllHits=false) const = 0;
 
+	// intersects with sphere, starting the traversal at the specified node in an aggregate
+	// NOTE: interactions contain primitive index
+	virtual int intersectFromNode(const BoundingSphere<DIM>& s,
+								  std::vector<Interaction<DIM>>& is,
+								  int nodeStartIndex, int aggregateIndex,
+								  int& nodesVisited, bool recordOneHit=false,
+								  const std::function<float(float)>& primitiveWeight={}) const = 0;
+
+	// intersects with sphere, starting the traversal at the specified node in an aggregate
+	// NOTE: interactions contain primitive index
+	virtual int intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+											int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+											const std::function<float(float)>& traversalWeight={},
+											const std::function<float(float)>& primitiveWeight={}) const = 0;
+
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 										  int nodeStartIndex, int aggregateIndex,
 										  const Vector<DIM>& boundaryHint, int& nodesVisited) const = 0;
+
+	// finds closest silhouette point to sphere center, starting the traversal at the specified node in an aggregate
+	virtual bool findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+													int nodeStartIndex, int aggregateIndex,
+													int& nodesVisited, bool flipNormalOrientation=false,
+													float squaredMinRadius=0.0f, float precision=1e-3f) const = 0;
 
 	// members
 	int index;
@@ -217,6 +345,39 @@ public:
 		return hits;
 	}
 
+	// intersects with sphere, starting the traversal at the specified node in an aggregate
+	int intersectFromNode(const BoundingSphere<DIM>& s,
+						  std::vector<Interaction<DIM>>& is,
+						  int nodeStartIndex, int aggregateIndex,
+						  int& nodesVisited, bool recordOneHit=false,
+						  const std::function<float(float)>& primitiveWeight={}) const {
+		// apply inverse transform to sphere
+		BoundingSphere<DIM> sInv = s.transform(tInv);
+
+		// intersect
+		int hits = aggregate->intersectFromNode(sInv, is, nodeStartIndex, aggregateIndex,
+												nodesVisited, recordOneHit, primitiveWeight);
+
+		nodesVisited++;
+		return hits;
+	}
+
+	// intersects with sphere, starting the traversal at the specified node in an aggregate
+	int intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+									int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+									const std::function<float(float)>& traversalWeight={},
+									const std::function<float(float)>& primitiveWeight={}) const {
+		// apply inverse transform to sphere
+		BoundingSphere<DIM> sInv = s.transform(tInv);
+
+		// intersect
+		int hits = aggregate->intersectStochasticFromNode(sInv, is, nodeStartIndex, aggregateIndex,
+														  nodesVisited, traversalWeight, primitiveWeight);
+
+		nodesVisited++;
+		return hits;
+	}
+
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
@@ -235,6 +396,29 @@ public:
 		// find closest point
 		bool found = aggregate->findClosestPointFromNode(sInv, i, nodeStartIndex, aggregateIndex,
 														 boundaryHintInv, nodesVisited);
+
+		// apply transform to sphere and interaction
+		s.r2 = sInv.transform(t).r2;
+		if (found) i.applyTransform(t, tInv, s.c);
+
+		nodesVisited++;
+		return found;
+	}
+
+	// finds closest silhouette point to sphere center, starting the traversal at the specified node in an aggregate
+	bool findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+											int nodeStartIndex, int aggregateIndex,
+											int& nodesVisited, bool flipNormalOrientation=false,
+											float squaredMinRadius=0.0f, float precision=1e-3f) const {
+		// apply inverse transform to sphere
+		BoundingSphere<DIM> sInv = s.transform(tInv);
+		BoundingSphere<DIM> sMin(s.c, squaredMinRadius);
+		BoundingSphere<DIM> sMinInv = sMin.transform(tInv);
+
+		// find closest silhouette point
+		bool found = aggregate->findClosestSilhouettePointFromNode(sInv, i, nodeStartIndex, aggregateIndex,
+																   nodesVisited, flipNormalOrientation,
+																   sMinInv.r2, precision);
 
 		// apply transform to sphere and interaction
 		s.r2 = sInv.transform(t).r2;

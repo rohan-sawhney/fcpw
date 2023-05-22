@@ -1,12 +1,12 @@
 namespace fcpw {
 
 inline Triangle::Triangle():
-soup(nullptr),
-pIndex(-1)
+soup(nullptr)
 {
 	indices[0] = -1;
 	indices[1] = -1;
 	indices[2] = -1;
+	pIndex = -1;
 }
 
 inline BoundingBox<3> Triangle::boundingBox() const
@@ -74,15 +74,15 @@ inline Vector3 Triangle::normal(int vIndex, int eIndex) const
 inline Vector3 Triangle::normal(const Vector2& uv) const
 {
 	int vIndex = -1;
-	if (uv[0] > oneMinusEpsilon && uv[1] < epsilon) vIndex = 0; // (1, 0, 0)
-	else if (uv[0] < epsilon && uv[1] > oneMinusEpsilon) vIndex = 1; // (0, 1, 0)
-	else if (uv[0] < epsilon && uv[1] < epsilon) vIndex = 2; // (0, 0, 1)
+	if (uv[0] >= oneMinusEpsilon && uv[1] <= epsilon) vIndex = 0; // (1, 0, 0)
+	else if (uv[0] <= epsilon && uv[1] >= oneMinusEpsilon) vIndex = 1; // (0, 1, 0)
+	else if (uv[0] <= epsilon && uv[1] <= epsilon) vIndex = 2; // (0, 0, 1)
 
 	int eIndex = -1;
 	if (vIndex == -1) {
-		if (uv[0] < epsilon) eIndex = 1; // (0, 1 - w, w)
-		else if (uv[1] < epsilon) eIndex = 2; // (1 - w, 0, w)
-		else if (uv[0] + uv[1] > oneMinusEpsilon) eIndex = 0; // (1 - v, v, 0)
+		if (uv[0] <= epsilon) eIndex = 1; // (0, 1 - w, w)
+		else if (uv[1] <= epsilon) eIndex = 2; // (1 - w, 0, w)
+		else if (uv[0] + uv[1] >= oneMinusEpsilon) eIndex = 0; // (1 - v, v, 0)
 	}
 
 	return normal(vIndex, eIndex);
@@ -108,6 +108,24 @@ inline Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 	float w = (d11*d32 - d12*d31)/denom;
 
 	return Vector2(1.0f - v - w, v);
+}
+
+inline float Triangle::samplePoint(Vector2& uv, Vector3& p) const
+{
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
+
+	float area = 0.5f*(pb - pa).cross(pc - pa).norm();
+	float u1 = std::sqrt(uniformRealRandomNumber());
+	float u2 = uniformRealRandomNumber();
+	float u = 1.0f - u1;
+	float v = u2*u1;
+	float w = 1.0f - u - v;
+	uv = Vector2(u, v);
+	p = pa*u + pb*v + pc*w;
+
+	return 1.0f/area;
 }
 
 inline Vector2 Triangle::textureCoordinates(const Vector2& uv) const
@@ -214,7 +232,7 @@ inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	float det = v1.dot(p);
 
 	// ray and triangle are parallel if det is close to 0
-	if (std::fabs(det) < epsilon) return 0;
+	if (std::fabs(det) <= epsilon) return 0;
 	float invDet = 1.0f/det;
 
 	Vector3 s = r.o - pa;
@@ -229,7 +247,7 @@ inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 	if (t >= 0.0f && t <= r.tMax) {
 		auto it = is.emplace(is.end(), Interaction<3>());
 		it->d = t;
-		it->p = r(t);
+		it->p = pa + v1*v + v2*w;
 		it->uv[0] = 1.0f - v - w;
 		it->uv[1] = v;
 		it->primitiveIndex = pIndex;
@@ -324,6 +342,35 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
 
 	pt = pa + ab*v + ac*w; //= u*a + v*b + w*c, u = va*denom = 1.0f - v - w
 	return (x - pt).norm();
+}
+
+inline int Triangle::intersect(const BoundingSphere<3>& s,
+							   std::vector<Interaction<3>>& is, bool recordOneHit,
+							   const std::function<float(float)>& primitiveWeight) const
+{
+	is.clear();
+	const Vector3& pa = soup->positions[indices[0]];
+	const Vector3& pb = soup->positions[indices[1]];
+	const Vector3& pc = soup->positions[indices[2]];
+
+	Interaction<3> i;
+	float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv);
+
+	if (d*d <= s.r2) {
+		auto it = is.emplace(is.end(), Interaction<3>());
+		it->primitiveIndex = pIndex;
+		if (recordOneHit) {
+			it->d = surfaceArea();
+			if (primitiveWeight) it->d *= primitiveWeight(d*d);
+
+		} else {
+			it->d = 1.0f;
+		}
+
+		return 1;
+	}
+
+	return 0;
 }
 
 inline bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const

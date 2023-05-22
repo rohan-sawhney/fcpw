@@ -37,10 +37,31 @@ public:
 						  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 						  bool checkForOcclusion=false, bool recordAllHits=false) const;
 
+	// intersects with sphere, starting the traversal at the specified node in an aggregate
+	// NOTE: interactions contain primitive index
+	int intersectFromNode(const BoundingSphere<DIM>& s,
+						  std::vector<Interaction<DIM>>& is,
+						  int nodeStartIndex, int aggregateIndex,
+						  int& nodesVisited, bool recordOneHit=false,
+						  const std::function<float(float)>& primitiveWeight={}) const;
+
+	// intersects with sphere, starting the traversal at the specified node in an aggregate
+	// NOTE: interactions contain primitive index
+	int intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+									int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+									const std::function<float(float)>& traversalWeight={},
+									const std::function<float(float)>& primitiveWeight={}) const;
+
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
 								  const Vector<DIM>& boundaryHint, int& nodesVisited) const;
+
+	// finds closest silhouette point to sphere center, starting the traversal at the specified node in an aggregate
+	bool findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+									   		int nodeStartIndex, int aggregateIndex,
+									   		int& nodesVisited, bool flipNormalOrientation=false,
+											float squaredMinRadius=0.0f, float precision=1e-3f) const;
 
 private:
 	// computes bounding box in world sparce

@@ -14,6 +14,8 @@ inline void SceneData<DIM>::clearObjectData()
 	soupToObjectsMap.clear();
 	lineSegmentObjects.clear();
 	triangleObjects.clear();
+	silhouetteVertexObjects.clear();
+	silhouetteEdgeObjects.clear();
 	instanceTransforms.clear();
 	csgTree.clear();
 }
@@ -24,6 +26,9 @@ inline void SceneData<DIM>::clearAggregateData()
 	lineSegmentObjectPtrs.clear();
 	triangleObjectPtrs.clear();
 	mixedObjectPtrs.clear();
+	silhouetteVertexObjectPtrs.clear();
+	silhouetteEdgeObjectPtrs.clear();
+	silhouetteObjectPtrStub.clear();
 	aggregateInstancePtrs.clear();
 	aggregateInstances.clear();
 	aggregate = nullptr;

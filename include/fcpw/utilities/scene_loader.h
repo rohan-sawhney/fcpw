@@ -17,7 +17,7 @@ template<size_t DIM>
 class SceneLoader {
 public:
 	// loads files; NOTE: this method does not build the scene aggregate/accelerator,
-	// it just populates its geometry
+	// it just populates its geometry (but not the silhouettes)
 	void loadFiles(Scene<DIM>& scene, bool computeNormals);
 };
 

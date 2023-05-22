@@ -20,6 +20,7 @@ static bool vizScene = false;
 static bool plotInteriorPoints = false;
 static bool checkCorrectness = false;
 static bool checkPerformance = false;
+static bool computeSilhouettes = false;
 static int nQueries = 10000;
 
 template<size_t DIM>
@@ -46,6 +47,7 @@ void splitBoxRecursive(BoundingBox<DIM> boundingBox,
 template<size_t DIM>
 void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 									std::vector<Vector<DIM>>& randomDirections,
+									std::vector<float>& randomSquaredRadii,
 									const BoundingBox<DIM>& boundingBox)
 {
 	// parition the scene bounding box into boxes
@@ -62,6 +64,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 		for (int j = 0; j < nQueriesPerBox; j++) {
 			Vector<DIM> o = boxes[i].pMin + e.cwiseProduct(uniformRealRandomVector<DIM>());
 			Vector<DIM> d = uniformRealRandomVector<DIM>(-1.0f, 1.0f);
+			float r2 = 0.1f*uniformRealRandomNumber()*e.norm();
 			if (std::fabs(e[DIM - 1]) < 5*epsilon) {
 				o[DIM - 1] = 0.0f;
 				d[DIM - 1] = 0.0f;
@@ -70,12 +73,45 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
 
 			scatteredPoints.emplace_back(o);
 			randomDirections.emplace_back(d);
+			randomSquaredRadii.emplace_back(r2);
 		}
 	}
 
 	// resize if required
 	scatteredPoints.resize(nQueries);
 	randomDirections.resize(nQueries);
+	randomSquaredRadii.resize(nQueries);
+}
+
+template<size_t DIM>
+void tagInteriorPoints(const std::unique_ptr<Aggregate<DIM>>& aggregate,
+					   const std::vector<Vector<DIM>>& queryPoints,
+				   	   std::vector<bool>& isInterior)
+{
+	isInterior.resize(nQueries, false);
+	auto run = [&](const tbb::blocked_range<int>& range) {
+		for (int i = range.begin(); i < range.end(); ++i) {
+			if (aggregate->contains(queryPoints[i])) {
+				isInterior[i] = true;
+			}
+		}
+	};
+
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, run);
+}
+
+template<size_t DIM>
+void isolateInteriorPoints(const std::unique_ptr<Aggregate<DIM>>& aggregate,
+						   const std::vector<Vector<DIM>>& queryPoints,
+						   std::vector<Vector<DIM>>& interiorPoints)
+{
+	std::vector<bool> isInterior;
+	tagInteriorPoints<DIM>(aggregate, queryPoints, isInterior);
+
+	for (int i = 0; i < nQueries; i++) {
+		if (isInterior[i]) interiorPoints.emplace_back(queryPoints[i]);
+	}
 }
 
 #ifdef FCPW_TESTS_BENCHMARK_EMBREE
@@ -126,12 +162,12 @@ inline bool buildEmbreeAggregate<3>(SceneData<3> *sceneData, bool printStats)
 #endif
 
 template<size_t DIM>
-void timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
-							 const std::vector<Vector<DIM>>& rayOrigins,
-							 const std::vector<Vector<DIM>>& rayDirections,
-							 const std::vector<int>& indices,
-							 const std::string& aggregateType,
-							 bool queriesCoherent=false)
+void timeRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
+							 	const std::vector<Vector<DIM>>& rayOrigins,
+							 	const std::vector<Vector<DIM>>& rayDirections,
+							 	const std::vector<int>& indices,
+							 	const std::string& aggregateType,
+							 	bool queriesCoherent=false)
 {
 	std::atomic<int> totalNodesVisited(0);
 	std::atomic<int> maxNodesVisited(0);
@@ -166,8 +202,53 @@ void timeIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 
 	high_resolution_clock::time_point t2 = high_resolution_clock::now();
 	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-	std::cout << rayOrigins.size() << " intersection queries"
+	std::cout << rayOrigins.size() << " ray intersection queries"
 			  << (queriesCoherent ? " with backtracking search" : "")
+			  << " took " << timeSpan.count() << " seconds with "
+			  << aggregateType << "; "
+			  << (totalNodesVisited/nQueries) << " nodes visited on avg and max "
+			  << maxNodesVisited << " nodes visited"
+			  << std::endl;
+}
+
+template<size_t DIM>
+void timeSphereIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
+							 	   const std::vector<Vector<DIM>>& sphereCenters,
+							 	   const std::vector<float>& sphereSquaredRadii,
+							 	   const std::vector<int>& indices,
+							 	   const std::string& aggregateType)
+{
+	std::atomic<int> totalNodesVisited(0);
+	std::atomic<int> maxNodesVisited(0);
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+	auto time = [&](const tbb::blocked_range<int>& range) {
+		int nodesVisitedByThread = 0;
+		int maxNodesVisitedByThread = 0;
+
+		for (int i = range.begin(); i < range.end(); ++i) {
+			int I = indices[i];
+
+			int nodesVisited = 0;
+			std::vector<Interaction<DIM>> cs;
+			BoundingSphere<DIM> s(sphereCenters[I], sphereSquaredRadii[I]);
+			int hit = aggregate->intersectFromNode(s, cs, 0, aggregate->index, nodesVisited);
+			nodesVisitedByThread += nodesVisited;
+			maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
+		}
+
+		totalNodesVisited += nodesVisitedByThread;
+		if (maxNodesVisited < maxNodesVisitedByThread) {
+			maxNodesVisited = maxNodesVisitedByThread; // not thread-safe, but ok for test
+		}
+	};
+
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, time);
+
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+	std::cout << sphereCenters.size() << " sphere intersection queries"
 			  << " took " << timeSpan.count() << " seconds with "
 			  << aggregateType << "; "
 			  << (totalNodesVisited/nQueries) << " nodes visited on avg and max "
@@ -236,11 +317,61 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 }
 
 template<size_t DIM>
-void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
-							 const std::unique_ptr<Aggregate<DIM>>& aggregate2,
-							 const std::vector<Vector<DIM>>& rayOrigins,
-							 const std::vector<Vector<DIM>>& rayDirections,
-							 const std::vector<int>& indices)
+void timeClosestSilhouettePointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
+									   const std::vector<Vector<DIM>>& sphereCenters,
+									   const std::vector<int>& indices,
+									   const std::string& aggregateType)
+{
+	if (!computeSilhouettes) return;
+	std::atomic<int> totalNodesVisited(0);
+	std::atomic<int> maxNodesVisited(0);
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+	std::vector<bool> isInterior;
+	tagInteriorPoints<DIM>(aggregate, sphereCenters, isInterior);
+
+	auto time = [&](const tbb::blocked_range<int>& range) {
+		int nodesVisitedByThread = 0;
+		int maxNodesVisitedByThread = 0;
+
+		for (int i = range.begin(); i < range.end(); ++i) {
+			int I = indices[i];
+
+			int nodesVisited = 0;
+			Interaction<DIM> c;
+			bool flipNormalOrientation = !isInterior[I];
+			BoundingSphere<DIM> s(sphereCenters[I], maxFloat);
+			bool found = aggregate->findClosestSilhouettePointFromNode(s, c, 0, aggregate->index, nodesVisited,
+																	   flipNormalOrientation, 1e-6f, 1e-3f);
+			nodesVisitedByThread += nodesVisited;
+			maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
+		}
+
+		totalNodesVisited += nodesVisitedByThread;
+		if (maxNodesVisited < maxNodesVisitedByThread) {
+			maxNodesVisited = maxNodesVisitedByThread; // not thread-safe, but ok for test
+		}
+	};
+
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, time);
+
+	high_resolution_clock::time_point t2 = high_resolution_clock::now();
+	duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+	std::cout << sphereCenters.size() << " closest silhouette point queries"
+			  << " took " << timeSpan.count() << " seconds with "
+			  << aggregateType << "; "
+			  << (totalNodesVisited/nQueries) << " nodes visited on avg and max "
+			  << maxNodesVisited << " nodes visited"
+			  << std::endl;
+}
+
+template<size_t DIM>
+void testRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+							 	const std::unique_ptr<Aggregate<DIM>>& aggregate2,
+							 	const std::vector<Vector<DIM>>& rayOrigins,
+							 	const std::vector<Vector<DIM>>& rayDirections,
+							 	const std::vector<int>& indices)
 {
 	std::atomic<bool> stopQueries(false);
 	auto test = [&](const tbb::blocked_range<int>& range) {
@@ -282,6 +413,81 @@ void testIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 						  << " hits1: " << hit3
 						  << " hits2: " << hit4
 						  << std::endl;
+				stopQueries = true;
+			}
+		}
+	};
+
+	tbb::blocked_range<int> range(0, nQueries);
+	tbb::parallel_for(range, test);
+}
+
+template<size_t DIM>
+void testSphereIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+							 	   const std::unique_ptr<Aggregate<DIM>>& aggregate2,
+							 	   const std::vector<Vector<DIM>>& sphereCenters,
+							 	   const std::vector<float>& sphereSquaredRadii,
+							 	   const std::vector<int>& indices)
+{
+	std::atomic<bool> stopQueries(false);
+	std::function<float(float)> primitiveWeight = [](float r2) -> float {
+		return 1.0f;
+	};
+
+	auto test = [&](const tbb::blocked_range<int>& range) {
+		for (int i = range.begin(); i < range.end(); ++i) {
+			if (stopQueries) break;
+			int I = indices[i];
+
+			BoundingSphere<DIM> s(sphereCenters[I], sphereSquaredRadii[I]);
+			std::vector<Interaction<DIM>> c1;
+			int hit1 = aggregate1->intersect(s, c1);
+
+			int nodesVisited = 0;
+			std::vector<Interaction<DIM>> c2;
+			int hit2 = aggregate2->intersectFromNode(s, c2, 0, aggregate2->index, nodesVisited);
+
+			if ((hit1 != hit2) || (hit1 && hit2 && c1.size() != c2.size())) {
+				std::cerr << "Number of intersections do not match!"
+						  << " hit1: " << hit1
+						  << " hit2: " << hit2
+						  << std::endl;
+				for (int j = 0; j < (int)c1.size(); j++) {
+					std::cerr << "c1 pdf: " << c1[j].d
+							  << " pIndex: " << c1[j].primitiveIndex
+							  << std::endl;
+				}
+				for (int j = 0; j < (int)c2.size(); j++) {
+					std::cerr << "c2 pdf: " << c2[j].d
+							  << " pIndex: " << c2[j].primitiveIndex
+							  << std::endl;
+				}
+				stopQueries = true;
+			}
+
+			std::vector<Interaction<DIM>> c3;
+			int hit3 = aggregate1->intersect(s, c3, true, primitiveWeight);
+
+			nodesVisited = 0;
+			std::vector<Interaction<DIM>> c4;
+			int hit4 = aggregate2->intersectFromNode(s, c4, 0, aggregate2->index,
+													 nodesVisited, true, primitiveWeight);
+
+			if ((hit3 != hit4) || (hit3 && hit4 && c3.size() != c4.size())) {
+				std::cerr << "Number of intersections do not match!"
+						  << " hit1: " << hit3
+						  << " hit2: " << hit4
+						  << std::endl;
+				for (int j = 0; j < (int)c3.size(); j++) {
+					std::cerr << "c3 pdf: " << c3[j].d
+							  << " pIndex: " << c3[j].primitiveIndex
+							  << std::endl;
+				}
+				for (int j = 0; j < (int)c4.size(); j++) {
+					std::cerr << "c4 pdf: " << c4[j].d
+							  << " pIndex: " << c4[j].primitiveIndex
+							  << std::endl;
+				}
 				stopQueries = true;
 			}
 		}
@@ -340,31 +546,51 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 }
 
 template<size_t DIM>
-void isolateInteriorPoints(const std::unique_ptr<Aggregate<DIM>>& aggregate,
-						   const std::vector<Vector<DIM>>& queryPoints,
-						   std::vector<Vector<DIM>>& interiorPoints)
+void testClosestSilhouettePointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+									   const std::unique_ptr<Aggregate<DIM>>& aggregate2,
+									   const std::vector<Vector<DIM>>& sphereCenters,
+									   const std::vector<int>& indices)
 {
-	std::vector<bool> isInterior(nQueries, false);
-	auto setInterior = [&](const tbb::blocked_range<int>& range) {
+	if (!computeSilhouettes) return;
+	std::atomic<bool> stopQueries(false);
+	std::vector<bool> isInterior;
+	tagInteriorPoints<DIM>(aggregate2, sphereCenters, isInterior);
+
+	auto test = [&](const tbb::blocked_range<int>& range) {
 		for (int i = range.begin(); i < range.end(); ++i) {
-			if (aggregate->contains(queryPoints[i])) {
-				isInterior[i] = true;
+			if (stopQueries) break;
+			int I = indices[i];
+			bool flipNormalOrientation = !isInterior[I];
+
+			Interaction<DIM> c1;
+			BoundingSphere<DIM> s1(sphereCenters[I], maxFloat);
+			bool found1 = aggregate1->findClosestSilhouettePoint(s1, c1, flipNormalOrientation, 1e-6f, 1e-3f);
+
+			int nodesVisited = 0;
+			Interaction<DIM> c2;
+			BoundingSphere<DIM> s2(sphereCenters[I], maxFloat);
+			bool found2 = aggregate2->findClosestSilhouettePointFromNode(s2, c2, 0, aggregate2->index, nodesVisited,
+																		 flipNormalOrientation, 1e-6f, 1e-3f);
+
+			if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-3f) {
+				std::cerr << "d1: " << c1.d << " d2: " << c2.d
+						  << "\np1: " << c1.p << " p2: " << c2.p
+						  << "\npIndex1: " << c1.primitiveIndex << " pIndex2: " << c2.primitiveIndex
+						  << "\nClosest silhouette points do not match!" << std::endl;
+				stopQueries = true;
 			}
 		}
 	};
 
 	tbb::blocked_range<int> range(0, nQueries);
-	tbb::parallel_for(range, setInterior);
-
-	for (int i = 0; i < nQueries; i++) {
-		if (isInterior[i]) interiorPoints.emplace_back(queryPoints[i]);
-	}
+	tbb::parallel_for(range, test);
 }
 
 template<size_t DIM>
 void visualizeScene(SceneData<DIM> *sceneData,
 					const std::vector<Vector<DIM>>& queryPoints,
 					const std::vector<Vector<DIM>>& randomDirections,
+					const std::vector<float>& randomSquaredRadii,
 					const std::vector<Vector<DIM>>& interiorPoints)
 {
 	// set a few options
@@ -412,6 +638,8 @@ void visualizeScene(SceneData<DIM> *sceneData,
 
 		// add direction vectors
 		polyscope::getPointCloud("Query_Points")->addVectorQuantity("Random_Directions", randomDirections);
+		polyscope::getPointCloud("Query_Points")->addScalarQuantity("Random_Squared_Radii", randomSquaredRadii);
+		polyscope::getPointCloud("Query_Points")->setPointRadiusQuantity("Random_Squared_Radii");
 	}
 
 	// give control to polyscope gui
@@ -425,13 +653,15 @@ void run()
 	Scene<DIM> scene;
 	SceneLoader<DIM> sceneLoader;
 	sceneLoader.loadFiles(scene, false);
+	if (computeSilhouettes) scene.computeSilhouettes();
 	scene.build(AggregateType::Baseline, false, true);
 	SceneData<DIM> *sceneData = scene.getSceneData();
 
 	// generate random points and rays used to visualize csg
 	BoundingBox<DIM> boundingBox = sceneData->aggregate->boundingBox();
 	std::vector<Vector<DIM>> queryPoints, randomDirections;
-	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, boundingBox);
+	std::vector<float> randomSquaredRadii;
+	generateScatteredPointsAndRays<DIM>(queryPoints, randomDirections, randomSquaredRadii, boundingBox);
 
 	// generate indices
 	std::vector<int> indices, shuffledIndices;
@@ -450,10 +680,14 @@ void run()
 		std::cout << "Running performance tests..." << std::endl;
 
 		// benchmark baseline queries
-		//timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
-		//							   shuffledIndices, "Baseline");
+		//timeRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
+		//								shuffledIndices, "Baseline");
+		//timeSphereIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomSquaredRadii,
+		//								   shuffledIndices, "Baseline");
 		//timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
-		//							   shuffledIndices, "Baseline");
+		//							 shuffledIndices, "Baseline");
+		//timeClosestSilhouettePointQueries<DIM>(sceneData->aggregate, queryPoints,
+		//									   shuffledIndices, "Baseline");
 
 		// build bvh aggregates and benchmark queries
 		for (int bvh = 1; bvh < 6; bvh++) {
@@ -461,14 +695,18 @@ void run()
 				scene.build(static_cast<AggregateType>(bvh), vec == 1, true);
 				sceneData = scene.getSceneData();
 
-				timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
-											 shuffledIndices, bvhTypes[bvh - 1]);
-				timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
-											 indices, bvhTypes[bvh - 1], true);
+				timeRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
+											 	shuffledIndices, bvhTypes[bvh - 1]);
+				timeRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
+											 	indices, bvhTypes[bvh - 1], true);
+				timeSphereIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomSquaredRadii,
+											 	   shuffledIndices, bvhTypes[bvh - 1]);
 				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 											 shuffledIndices, bvhTypes[bvh - 1]);
 				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 											 indices, bvhTypes[bvh - 1], true);
+				timeClosestSilhouettePointQueries<DIM>(sceneData->aggregate, queryPoints,
+													   shuffledIndices, bvhTypes[bvh - 1]);
 
 #ifndef FCPW_USE_ENOKI
 				break;
@@ -481,8 +719,8 @@ void run()
 #ifdef FCPW_TESTS_BENCHMARK_EMBREE
 		// build embree bvh aggregate & benchmark queries
 		if (buildEmbreeAggregate<DIM>(sceneData, true)) {
-			timeIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
-										 indices, "Embree Bvh");
+			timeRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
+										 	indices, "Embree Bvh");
 			timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 										 indices, "Embree Bvh");
 		}
@@ -499,6 +737,7 @@ void run()
 		// build bvh aggregates and compare results with baseline
 		Scene<DIM> bvhScene;
 		sceneLoader.loadFiles(bvhScene, false);
+		if (computeSilhouettes) bvhScene.computeSilhouettes();
 
 		for (int bvh = 1; bvh < 6; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
@@ -507,14 +746,18 @@ void run()
 				bvhScene.build(static_cast<AggregateType>(bvh), vec == 1, true);
 				SceneData<DIM> *bvhSceneData = bvhScene.getSceneData();
 
-				testIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
-											 queryPoints, randomDirections, shuffledIndices);
-				testIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
-											 queryPoints, randomDirections, indices);
+				testRayIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+											 	queryPoints, randomDirections, shuffledIndices);
+				testRayIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+											 	queryPoints, randomDirections, indices);
+				testSphereIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+											 	   queryPoints, randomSquaredRadii, shuffledIndices);
 				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, shuffledIndices);
 				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, indices);
+				testClosestSilhouettePointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+													   queryPoints, shuffledIndices);
 
 #ifndef FCPW_USE_ENOKI
 				break;
@@ -529,11 +772,12 @@ void run()
 		std::cout << "Testing Embree Bvh results against Baseline" << std::endl;
 		Scene<DIM> embreeBvhScene;
 		sceneLoader.loadFiles(embreeBvhScene, false);
+		if (computeSilhouettes) embreeBvhScene.computeSilhouettes();
 		SceneData<DIM> *embreeBvhSceneData = embreeBvhScene.getSceneData();
 
 		if (buildEmbreeAggregate<DIM>(embreeBvhSceneData, true)) {
-			testIntersectionQueries<DIM>(sceneData->aggregate, embreeBvhSceneData->aggregate,
-										 queryPoints, randomDirections, indices);
+			testRayIntersectionQueries<DIM>(sceneData->aggregate, embreeBvhSceneData->aggregate,
+										 	queryPoints, randomDirections, indices);
 			testClosestPointQueries<DIM>(sceneData->aggregate, embreeBvhSceneData->aggregate,
 										 queryPoints, indices);
 		}
@@ -550,7 +794,7 @@ void run()
 		if (plotInteriorPoints) isolateInteriorPoints<DIM>(sceneData->aggregate, queryPoints, interiorPoints);
 
 		// visualize scene
-		visualizeScene<DIM>(sceneData, queryPoints, randomDirections, interiorPoints);
+		visualizeScene<DIM>(sceneData, queryPoints, randomDirections, randomSquaredRadii, interiorPoints);
 	}
 }
 
@@ -562,6 +806,7 @@ int main(int argc, const char *argv[]) {
 	args::Flag plotInteriorPoints(group, "bool", "plot interior points", {"plotInteriorPoints"});
 	args::Flag checkCorrectness(group, "bool", "check aggregate correctness", {"checkCorrectness"});
 	args::Flag checkPerformance(group, "bool", "check aggregate performance", {"checkPerformance"});
+	args::Flag computeSilhouettes(group, "bool", "compute silhouettes", {"computeSilhouettes"});
 	args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
 	args::ValueFlag<int> nQueries(parser, "integer", "number of queries", {"nQueries"});
 	args::ValueFlagList<std::string> lineSegmentFilenames(parser, "string", "line segment soup filenames", {"lFile"});
@@ -603,6 +848,7 @@ int main(int argc, const char *argv[]) {
 	if (plotInteriorPoints) ::plotInteriorPoints = args::get(plotInteriorPoints);
 	if (checkCorrectness) ::checkCorrectness = args::get(checkCorrectness);
 	if (checkPerformance) ::checkPerformance = args::get(checkPerformance);
+	if (computeSilhouettes) ::computeSilhouettes = args::get(computeSilhouettes);
 	if (nQueries) ::nQueries = args::get(nQueries);
 	if (lineSegmentFilenames) {
 		for (const auto lsf: args::get(lineSegmentFilenames)) {

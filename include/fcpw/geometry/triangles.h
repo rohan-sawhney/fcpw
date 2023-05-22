@@ -30,6 +30,9 @@ public:
 	// returns barycentric coordinates
 	Vector2 barycentricCoordinates(const Vector3& p) const;
 
+	// samples a random point on the geometric primitive and returns sampling pdf
+	float samplePoint(Vector2& uv, Vector3& p) const;
+
 	// returns texture coordinates
 	Vector2 textureCoordinates(const Vector2& uv) const;
 
@@ -44,13 +47,17 @@ public:
 	int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 				  bool checkForOcclusion=false, bool recordAllHits=false) const;
 
+	// intersects with sphere
+	int intersect(const BoundingSphere<3>& s,
+				  std::vector<Interaction<3>>& is, bool recordOneHit=false,
+				  const std::function<float(float)>& primitiveWeight={}) const;
+
 	// finds closest point to sphere center
 	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;
 
 	// members
 	const PolygonSoup<3> *soup;
 	int indices[3];
-	int pIndex; // index of primitive in polygon soup
 
 private:
 	// returns normalized vertex or edge normal if available;

@@ -231,6 +231,31 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(const BoundingSphere<DIM>& s,
+																				  std::vector<Interaction<DIM>>& is,
+																				  int nodeStartIndex, int aggregateIndex,
+																				  int& nodesVisited, bool recordOneHit,
+																				  const std::function<float(float)>& primitiveWeight) const
+{
+	std::cerr << "CsgNode::intersectFromNode(const BoundingSphere<DIM>&) not implemented" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return 0;
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+																							int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+																							const std::function<float(float)>& traversalWeight,
+																							const std::function<float(float)>& primitiveWeight) const
+{
+	std::cerr << "CsgNode::intersectStochasticFromNode(const BoundingSphere<DIM>&) not implemented" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return 0;
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																						  int nodeStartIndex, int aggregateIndex,
 																						  const Vector<DIM>& boundaryHint, int& nodesVisited) const
@@ -340,6 +365,18 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 	}
 
 	return !notFound;
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																									int nodeStartIndex, int aggregateIndex,
+																									int& nodesVisited, bool flipNormalOrientation,
+																									float squaredMinRadius, float precision) const
+{
+	std::cerr << "CsgNode::findClosestSilhouettePointFromNode() not implemented" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return false;
 }
 
 } // namespace fcpw

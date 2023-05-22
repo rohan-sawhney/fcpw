@@ -197,41 +197,12 @@ inline void Scene<DIM>::setCsgTreeNode(const CsgTreeNode& csgTreeNode, int nodeI
 	sceneData->csgTree[nodeIndex] = csgTreeNode;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline void computeWeightedNormals(const std::vector<PrimitiveType>& primitives, PolygonSoup<DIM>& soup)
+inline int assignEdgeIndices(const std::vector<Triangle>& triangles, PolygonSoup<3>& soup)
 {
-	// do nothing
-}
-
-template<>
-inline void computeWeightedNormals<3, LineSegment>(const std::vector<LineSegment>& lineSegments,
-												   PolygonSoup<3>& soup)
-{
-	int N = (int)lineSegments.size();
-	int V = (int)soup.positions.size();
-	soup.vNormals.resize(V, Vector<3>::Zero());
-
-	for (int i = 0; i < N; i++) {
-		Vector3 n = lineSegments[i].normal(true);
-		float a = lineSegments[i].surfaceArea();
-
-		soup.vNormals[lineSegments[i].indices[0]] += a*n;
-		soup.vNormals[lineSegments[i].indices[1]] += a*n;
-	}
-
-	for (int i = 0; i < V; i++) {
-		soup.vNormals[i].normalize();
-	}
-}
-
-template<>
-inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& triangles,
-												PolygonSoup<3>& soup)
-{
-	// set edge indices
 	int E = 0;
 	int N = (int)triangles.size();
 	std::map<std::pair<int, int>, int> indexMap;
+	soup.eIndices.clear();
 
 	for (int i = 0; i < N; i++) {
 		for (int j = 0; j < 3; j++) {
@@ -246,19 +217,133 @@ inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& tri
 		}
 	}
 
-	// compute normals
+	return E;
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::computeSilhouettes()
+{
+	int nLineSegmentObjects = (int)sceneData->lineSegmentObjects.size();
+	int nTriangleObjects = (int)sceneData->triangleObjects.size();
+	sceneData->silhouetteVertexObjects.resize(nLineSegmentObjects);
+	sceneData->silhouetteEdgeObjects.resize(nTriangleObjects);
+
+	for (auto& kv: sceneData->soupToObjectsMap) {
+		int objectIndex = kv.first;
+		const std::vector<std::pair<ObjectType, int>>& objectsMap = kv.second;
+		PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+
+		if (objectsMap[0].first == ObjectType::LineSegments) {
+			// allocate silhouette vertices
+			int lineSegmentObjectIndex = objectsMap[0].second;
+			int nLineSegments = (int)soup.indices.size()/2;
+			int nSilhouetteVertices = (int)soup.positions.size();
+			sceneData->silhouetteVertexObjects[lineSegmentObjectIndex] =
+				std::unique_ptr<std::vector<SilhouetteVertex>>(new std::vector<SilhouetteVertex>(nSilhouetteVertices));
+
+			// assign soup and indices to silhouette vertices
+			for (int i = 0; i < nLineSegments; i++) {
+				const LineSegment& lineSegment = (*sceneData->lineSegmentObjects[lineSegmentObjectIndex])[i];
+
+				SilhouetteVertex& silhouetteVertex1 = (*sceneData->silhouetteVertexObjects[lineSegmentObjectIndex])[lineSegment.indices[0]];
+				silhouetteVertex1.soup = &soup;
+				silhouetteVertex1.indices[1] = lineSegment.indices[0];
+				silhouetteVertex1.indices[2] = lineSegment.indices[1];
+				silhouetteVertex1.pIndex = lineSegment.indices[0];
+
+				SilhouetteVertex& silhouetteVertex2 = (*sceneData->silhouetteVertexObjects[lineSegmentObjectIndex])[lineSegment.indices[1]];
+				silhouetteVertex2.soup = &soup;
+				silhouetteVertex2.indices[0] = lineSegment.indices[0];
+				silhouetteVertex2.indices[1] = lineSegment.indices[1];
+				silhouetteVertex2.pIndex = lineSegment.indices[1];
+			}
+
+		} else if (objectsMap[0].first == ObjectType::Triangles) {
+			// allocate silhouette edges
+			int triangleObjectIndex = objectsMap[0].second;
+			int nTriangles = (int)soup.indices.size()/3;
+			int nSilhouetteEdges = assignEdgeIndices(*sceneData->triangleObjects[triangleObjectIndex], soup);
+			sceneData->silhouetteEdgeObjects[triangleObjectIndex] =
+				std::unique_ptr<std::vector<SilhouetteEdge>>(new std::vector<SilhouetteEdge>(nSilhouetteEdges));
+
+			// assign soup and indices to silhouette edges
+			for (int i = 0; i < nTriangles; i++) {
+				const Triangle& triangle = (*sceneData->triangleObjects[triangleObjectIndex])[i];
+
+				for (int j = 0; j < 3; j++) {
+					int I = j - 1 < 0 ? 2 : j - 1;
+					int J = j + 0;
+					int K = j + 1 > 2 ? 0 : j + 1;
+					int eIndex = soup.eIndices[3*triangle.pIndex + j];
+
+					float orientation = 1;
+					if (triangle.indices[J] > triangle.indices[K]) {
+						std::swap(J, K);
+						orientation *= -1;
+					}
+
+					SilhouetteEdge& silhouetteEdge = (*sceneData->silhouetteEdgeObjects[triangleObjectIndex])[eIndex];
+					silhouetteEdge.soup = &soup;
+					silhouetteEdge.indices[orientation == 1 ? 0 : 3] = triangle.indices[I];
+					silhouetteEdge.indices[1] = triangle.indices[J];
+					silhouetteEdge.indices[2] = triangle.indices[K];
+					silhouetteEdge.pIndex = eIndex;
+				}
+			}
+		}
+	}
+}
+
+template<size_t DIM, typename PrimitiveType>
+inline void computeNormals(const std::vector<PrimitiveType>& primitives,
+						   PolygonSoup<DIM>& soup, bool computeWeighted)
+{
+	// do nothing
+}
+
+template<>
+inline void computeNormals<3, LineSegment>(const std::vector<LineSegment>& lineSegments,
+										   PolygonSoup<3>& soup, bool computeWeighted)
+{
+	int N = (int)lineSegments.size();
 	int V = (int)soup.positions.size();
+	soup.vNormals.clear();
+	soup.vNormals.resize(V, Vector<3>::Zero());
+
+	for (int i = 0; i < N; i++) {
+		Vector3 n = lineSegments[i].normal(true);
+		float a = computeWeighted ? lineSegments[i].surfaceArea() : 1.0f;
+
+		soup.vNormals[lineSegments[i].indices[0]] += a*n;
+		soup.vNormals[lineSegments[i].indices[1]] += a*n;
+	}
+
+	for (int i = 0; i < V; i++) {
+		soup.vNormals[i].normalize();
+	}
+}
+
+template<>
+inline void computeNormals<3, Triangle>(const std::vector<Triangle>& triangles,
+										PolygonSoup<3>& soup, bool computeWeighted)
+{
+	int N = (int)triangles.size();
+	int V = (int)soup.positions.size();
+	int E = assignEdgeIndices(triangles, soup);
+	soup.vNormals.clear();
+	soup.eNormals.clear();
 	soup.vNormals.resize(V, Vector<3>::Zero());
 	soup.eNormals.resize(E, Vector<3>::Zero());
 
 	for (int i = 0; i < N; i++) {
 		Vector3 n = triangles[i].normal(true);
+		float area = triangles[i].surfaceArea();
 
 		for (int j = 0; j < 3; j++) {
-			float a = triangles[i].angle(j);
+			float angle = computeWeighted ? triangles[i].angle(j) : 1.0f;
 
-			soup.vNormals[triangles[i].indices[j]] += a*n;
-			soup.eNormals[soup.eIndices[3*triangles[i].pIndex + j]] += n;
+			soup.vNormals[triangles[i].indices[j]] += angle*n;
+			soup.eNormals[soup.eIndices[3*triangles[i].pIndex + j]] += area*n;
 		}
 	}
 
@@ -267,42 +352,36 @@ inline void computeWeightedNormals<3, Triangle>(const std::vector<Triangle>& tri
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::computeObjectNormals(int objectIndex)
+inline void Scene<DIM>::computeObjectNormals(int objectIndex, bool computeWeighted)
 {
 	const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
 	PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
 
 	if (objectsMap[0].first == ObjectType::LineSegments) {
 		int lineSegmentObjectIndex = objectsMap[0].second;
-		computeWeightedNormals<DIM, LineSegment>(*sceneData->lineSegmentObjects[lineSegmentObjectIndex], soup);
+		computeNormals<DIM, LineSegment>(*sceneData->lineSegmentObjects[lineSegmentObjectIndex],
+										 soup, computeWeighted);
 
 	} else if (objectsMap[0].first == ObjectType::Triangles) {
 		int triangleObjectIndex = objectsMap[0].second;
-		computeWeightedNormals<DIM, Triangle>(*sceneData->triangleObjects[triangleObjectIndex], soup);
+		computeNormals<DIM, Triangle>(*sceneData->triangleObjects[triangleObjectIndex],
+									  soup, computeWeighted);
 	}
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline void sortSoupPositions(const std::vector<SbvhNode<DIM>>& flatTree,
-							  std::vector<PrimitiveType *>& primitives,
-							  PolygonSoup<DIM>& soup)
-{
-	// do nothing
-}
-
-template<>
-inline void sortSoupPositions<3, LineSegment>(const std::vector<SbvhNode<3>>& flatTree,
-											  std::vector<LineSegment *>& lineSegments,
-											  PolygonSoup<3>& soup)
+template<bool CONEDATA>
+inline void sortLineSegmentSoupPositions(const std::vector<SbvhNode<3, CONEDATA>>& flatTree,
+										 std::vector<LineSegment *>& lineSegments,
+										 PolygonSoup<3>& soup, std::vector<int>& indexMap)
 {
 	int V = (int)soup.positions.size();
 	std::vector<Vector<3>> sortedPositions(V), sortedVertexNormals(V);
-	std::vector<int> indexMap(V, -1);
+	indexMap.resize(V, -1);
 	int v = 0;
 
 	// collect sorted positions, updating line segment and soup indices
 	for (int i = 0; i < (int)flatTree.size(); i++) {
-		const SbvhNode<3>& node(flatTree[i]);
+		const SbvhNode<3, CONEDATA>& node(flatTree[i]);
 
 		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
 			int referenceIndex = node.referenceOffset + j;
@@ -328,19 +407,19 @@ inline void sortSoupPositions<3, LineSegment>(const std::vector<SbvhNode<3>>& fl
 	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
 }
 
-template<>
-inline void sortSoupPositions<3, Triangle>(const std::vector<SbvhNode<3>>& flatTree,
-										   std::vector<Triangle *>& triangles,
-										   PolygonSoup<3>& soup)
+template<bool CONEDATA>
+inline void sortTriangleSoupPositions(const std::vector<SbvhNode<3, CONEDATA>>& flatTree,
+									  std::vector<Triangle *>& triangles,
+									  PolygonSoup<3>& soup, std::vector<int>& indexMap)
 {
 	int V = (int)soup.positions.size();
 	std::vector<Vector<3>> sortedPositions(V), sortedVertexNormals(V);
-	std::vector<int> indexMap(V, -1);
+	indexMap.resize(V, -1);
 	int v = 0;
 
 	// collect sorted positions, updating triangle and soup indices
 	for (int i = 0; i < (int)flatTree.size(); i++) {
-		const SbvhNode<3>& node(flatTree[i]);
+		const SbvhNode<3, CONEDATA>& node(flatTree[i]);
 
 		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
 			int referenceIndex = node.referenceOffset + j;
@@ -366,13 +445,87 @@ inline void sortSoupPositions<3, Triangle>(const std::vector<SbvhNode<3>>& flatT
 	if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
 }
 
-template<size_t DIM, typename PrimitiveType>
+template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline void sortSoupPositions(const std::vector<SbvhNode<DIM, CONEDATA>>& flatTree,
+							  std::vector<PrimitiveType *>& primitives,
+							  std::vector<SilhouetteType *>& silhouettes,
+							  PolygonSoup<DIM>& soup)
+{
+	// do nothing
+}
+
+template<>
+inline void sortSoupPositions<3, false, LineSegment, SilhouettePrimitive<3>>(const std::vector<SbvhNode<3, false>>& flatTree,
+																			 std::vector<LineSegment *>& lineSegments,
+																			 std::vector<SilhouettePrimitive<3> *>& silhouettes,
+																			 PolygonSoup<3>& soup)
+{
+	std::vector<int> indexMap;
+	sortLineSegmentSoupPositions<false>(flatTree, lineSegments, soup, indexMap);
+}
+
+template<>
+inline void sortSoupPositions<3, true, LineSegment, SilhouetteVertex>(const std::vector<SbvhNode<3, true>>& flatTree,
+																	  std::vector<LineSegment *>& lineSegments,
+																	  std::vector<SilhouetteVertex *>& silhouetteVertices,
+																	  PolygonSoup<3>& soup)
+{
+	std::vector<int> indexMap;
+	sortLineSegmentSoupPositions<true>(flatTree, lineSegments, soup, indexMap);
+
+	for (int i = 0; i < (int)lineSegments.size(); i++) {
+		int index1 = lineSegments[i]->indices[0];
+		int index2 = lineSegments[i]->indices[1];
+
+		SilhouetteVertex *silhouetteVertex1 = silhouetteVertices[index1];
+		silhouetteVertex1->indices[1] = index1;
+		silhouetteVertex1->indices[2] = index2;
+		silhouetteVertex1->pIndex = index1;
+
+		SilhouetteVertex *silhouetteVertex2 = silhouetteVertices[index2];
+		silhouetteVertex2->indices[0] = index1;
+		silhouetteVertex2->indices[1] = index2;
+		silhouetteVertex2->pIndex = index2;
+	}
+}
+
+template<>
+inline void sortSoupPositions<3, false, Triangle, SilhouettePrimitive<3>>(const std::vector<SbvhNode<3, false>>& flatTree,
+																		  std::vector<Triangle *>& triangles,
+																		  std::vector<SilhouettePrimitive<3> *>& silhouettes,
+																		  PolygonSoup<3>& soup)
+{
+	std::vector<int> indexMap;
+	sortTriangleSoupPositions<false>(flatTree, triangles, soup, indexMap);
+}
+
+template<>
+inline void sortSoupPositions<3, true, Triangle, SilhouetteEdge>(const std::vector<SbvhNode<3, true>>& flatTree,
+																 std::vector<Triangle *>& triangles,
+																 std::vector<SilhouetteEdge *>& silhouetteEdges,
+																 PolygonSoup<3>& soup)
+{
+	std::vector<int> indexMap;
+	sortTriangleSoupPositions<true>(flatTree, triangles, soup, indexMap);
+
+	for (int i = 0; i < silhouetteEdges.size(); i++) {
+		SilhouetteEdge *silhouetteEdge = silhouetteEdges[i];
+
+		for (int j = 0; j < 4; j++) {
+			int vIndex = silhouetteEdge->indices[j];
+			if (vIndex != -1) silhouetteEdge->indices[j] = indexMap[vIndex];
+		}
+	}
+}
+
+template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggregateType,
 													 std::vector<PrimitiveType *>& primitives,
+													 std::vector<SilhouetteType *>& silhouettes,
 													 bool vectorize, bool printStats,
-													 SortPositionsFunc<DIM, PrimitiveType> sortPositions={})
+													 SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions={})
 {
-	std::unique_ptr<Sbvh<DIM, PrimitiveType>> sbvh = nullptr;
+	std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>> sbvh = nullptr;
 	bool packLeaves = false;
 	int leafSize = 4;
 
@@ -384,33 +537,34 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 #endif
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
-		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
-				CostHeuristic::LongestAxisCenter, primitives, sortPositions, printStats, false, leafSize));
+		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
+				CostHeuristic::LongestAxisCenter, primitives, silhouettes, sortPositions, printStats, false, leafSize));
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
-		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
-				CostHeuristic::SurfaceArea, primitives, sortPositions, printStats, packLeaves, leafSize));
+		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
+				CostHeuristic::SurfaceArea, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
-		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
-				CostHeuristic::OverlapSurfaceArea, primitives, sortPositions, printStats, packLeaves, leafSize));
+		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
+				CostHeuristic::OverlapSurfaceArea, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
-		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
-				CostHeuristic::Volume, primitives, sortPositions, printStats, packLeaves, leafSize));
+		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
+				CostHeuristic::Volume, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
-		sbvh = std::unique_ptr<Sbvh<DIM, PrimitiveType>>(new Sbvh<DIM, PrimitiveType>(
-				CostHeuristic::OverlapVolume, primitives, sortPositions, printStats, packLeaves, leafSize));
+		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
+				CostHeuristic::OverlapVolume, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
 
 	} else {
-		return std::unique_ptr<Baseline<DIM, PrimitiveType>>(new Baseline<DIM, PrimitiveType>(primitives));
+		return std::unique_ptr<Baseline<DIM, PrimitiveType, SilhouetteType>>(
+				new Baseline<DIM, PrimitiveType, SilhouetteType>(primitives, silhouettes));
 	}
 
 #ifdef FCPW_USE_ENOKI
 	if (vectorize) {
-		return std::unique_ptr<Mbvh<FCPW_SIMD_WIDTH, DIM, PrimitiveType>>(
-				new Mbvh<FCPW_SIMD_WIDTH, DIM, PrimitiveType>(sbvh.get(), printStats));
+		return std::unique_ptr<Mbvh<FCPW_SIMD_WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>>(
+				new Mbvh<FCPW_SIMD_WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>(sbvh.get(), printStats));
 	}
 #endif
 
@@ -449,14 +603,14 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 	sceneData->lineSegmentObjectPtrs.resize(nLineSegmentObjectPtrs);
 	sceneData->triangleObjectPtrs.resize(nTriangleObjectPtrs);
 	sceneData->mixedObjectPtrs.resize(nMixedObjectPtrs);
+	sceneData->silhouetteVertexObjectPtrs.resize(nLineSegmentObjectPtrs);
+	sceneData->silhouetteEdgeObjectPtrs.resize(nTriangleObjectPtrs);
 
 	// populate the object ptrs and make their aggregates
 	int nAggregates = 0;
 	nLineSegmentObjectPtrs = 0;
 	nTriangleObjectPtrs = 0;
 	nMixedObjectPtrs = 0;
-	using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<LineSegment *>&)>;
-	using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3>>&, std::vector<Triangle *>&)>;
 
 	for (int i = 0; i < nObjects; i++) {
 		const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
@@ -484,8 +638,9 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 				}
 			}
 
-			objectAggregates[i] = makeAggregate<3, GeometricPrimitive<3>>(aggregateType, mixedObjectPtr,
-																		  vectorize, printStats);
+			objectAggregates[i] = makeAggregate<3, false, GeometricPrimitive<3>, SilhouettePrimitive<3>>(aggregateType, mixedObjectPtr,
+																										 sceneData->silhouetteObjectPtrStub,
+																										 vectorize, printStats);
 			nMixedObjectPtrs++;
 
 		} else if (objectsMap[0].first == ObjectType::LineSegments) {
@@ -498,12 +653,33 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 				lineSegmentObjectPtr.emplace_back(&lineSegmentObject[j]);
 			}
 
-			// make aggregate
-			SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, LineSegment>,
-																	std::placeholders::_1, std::placeholders::_2,
-																	std::ref(sceneData->soups[i]));
-			objectAggregates[i] = makeAggregate<3, LineSegment>(aggregateType, lineSegmentObjectPtr, vectorize,
-																printStats, sortLineSegmentPositions);
+			if (sceneData->silhouetteVertexObjects.size() > 0) {
+				// soup contains silhouette vertices, set silhouette vertex object ptrs
+				std::vector<SilhouetteVertex>& silhouetteVertexObject = *sceneData->silhouetteVertexObjects[lineSegmentObjectIndex];
+				std::vector<SilhouetteVertex *>& silhouetteVertexObjectPtr = sceneData->silhouetteVertexObjectPtrs[nLineSegmentObjectPtrs];
+
+				for (int j = 0; j < (int)silhouetteVertexObject.size(); j++) {
+					silhouetteVertexObjectPtr.emplace_back(&silhouetteVertexObject[j]);
+				}
+
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&, std::vector<LineSegment *>&, std::vector<SilhouetteVertex *>&)>;
+				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, true, LineSegment, SilhouetteVertex>,
+																				  std::placeholders::_1, std::placeholders::_2,
+																				  std::placeholders::_3, std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, true, LineSegment, SilhouetteVertex>(aggregateType, lineSegmentObjectPtr,
+																							silhouetteVertexObjectPtr, vectorize,
+																							printStats, sortLineSegmentPositions);
+
+			} else {
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&, std::vector<LineSegment *>&, std::vector<SilhouettePrimitive<3> *>&)>;
+				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, false, LineSegment, SilhouettePrimitive<3>>,
+																				  std::placeholders::_1, std::placeholders::_2,
+																				  std::placeholders::_3, std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, false, LineSegment, SilhouettePrimitive<3>>(aggregateType, lineSegmentObjectPtr,
+																								   sceneData->silhouetteObjectPtrStub, vectorize,
+																								   printStats, sortLineSegmentPositions);
+			}
+
 			nLineSegmentObjectPtrs++;
 
 		} else if (objectsMap[0].first == ObjectType::Triangles) {
@@ -516,12 +692,33 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 				triangleObjectPtr.emplace_back(&triangleObject[j]);
 			}
 
-			// make aggregate
-			SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, Triangle>,
-															  std::placeholders::_1, std::placeholders::_2,
-															  std::ref(sceneData->soups[i]));
-			objectAggregates[i] = makeAggregate<3, Triangle>(aggregateType, triangleObjectPtr, vectorize,
-															 printStats, sortTrianglePositions);
+			if (sceneData->silhouetteEdgeObjects.size() > 0) {
+				// soup contains silhouette edges, set silhouette edge object ptrs
+				std::vector<SilhouetteEdge>& silhouetteEdgeObject = *sceneData->silhouetteEdgeObjects[triangleObjectIndex];
+				std::vector<SilhouetteEdge *>& silhouetteEdgeObjectPtr = sceneData->silhouetteEdgeObjectPtrs[nTriangleObjectPtrs];
+
+				for (int j = 0; j < (int)silhouetteEdgeObject.size(); j++) {
+					silhouetteEdgeObjectPtr.emplace_back(&silhouetteEdgeObject[j]);
+				}
+
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&, std::vector<Triangle *>&, std::vector<SilhouetteEdge *>&)>;
+				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, true, Triangle, SilhouetteEdge>,
+																			std::placeholders::_1, std::placeholders::_2,
+																			std::placeholders::_3, std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, true, Triangle, SilhouetteEdge>(aggregateType, triangleObjectPtr,
+																					   silhouetteEdgeObjectPtr, vectorize,
+																					   printStats, sortTrianglePositions);
+
+			} else {
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&, std::vector<Triangle *>&, std::vector<SilhouettePrimitive<3> *>&)>;
+				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, false, Triangle, SilhouettePrimitive<3>>,
+																			std::placeholders::_1, std::placeholders::_2,
+																			std::placeholders::_3, std::ref(sceneData->soups[i]));
+				objectAggregates[i] = makeAggregate<3, false, Triangle, SilhouettePrimitive<3>>(aggregateType, triangleObjectPtr,
+																								sceneData->silhouetteObjectPtrStub, vectorize,
+																								printStats, sortTrianglePositions);
+			}
+
 			nTriangleObjectPtrs++;
 		}
 
@@ -610,8 +807,15 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
 
 	} else {
 		// make aggregate of aggregates
-		sceneData->aggregate = makeAggregate<DIM, Aggregate<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
-																  false, printStats);
+		if (sceneData->silhouetteVertexObjects.size() > 0 || sceneData->silhouetteEdgeObjects.size() > 0) {
+			sceneData->aggregate = makeAggregate<DIM, true, Aggregate<DIM>, SilhouettePrimitive<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
+																									  sceneData->silhouetteObjectPtrStub, false, printStats);
+
+		} else {
+			sceneData->aggregate = makeAggregate<DIM, false, Aggregate<DIM>, SilhouettePrimitive<DIM>>(aggregateType, sceneData->aggregateInstancePtrs,
+																									   sceneData->silhouetteObjectPtrStub, false, printStats);
+		}
+
 		sceneData->aggregate->index = nAggregates++;
 	}
 
@@ -639,6 +843,22 @@ inline int Scene<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
 }
 
 template<size_t DIM>
+inline int Scene<DIM>::intersect(const BoundingSphere<DIM>& s,
+								 std::vector<Interaction<DIM>>& is, bool recordOneHit,
+								 const std::function<float(float)>& primitiveWeight) const
+{
+	return sceneData->aggregate->intersect(s, is, recordOneHit, primitiveWeight);
+}
+
+template<size_t DIM>
+inline int Scene<DIM>::intersectStochastic(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+										   const std::function<float(float)>& traversalWeight,
+										   const std::function<float(float)>& primitiveWeight) const
+{
+	return sceneData->aggregate->intersectStochastic(s, is, traversalWeight, primitiveWeight);
+}
+
+template<size_t DIM>
 inline bool Scene<DIM>::contains(const Vector<DIM>& x) const
 {
 	return sceneData->aggregate->contains(x);
@@ -655,6 +875,15 @@ inline bool Scene<DIM>::findClosestPoint(const Vector<DIM>& x, Interaction<DIM>&
 {
 	BoundingSphere<DIM> s(x, squaredRadius);
 	return sceneData->aggregate->findClosestPoint(s, i);
+}
+
+template<size_t DIM>
+inline bool Scene<DIM>::findClosestSilhouettePoint(const Vector<DIM>& x, Interaction<DIM>& i,
+												   bool flipNormalOrientation, float squaredMinRadius,
+												   float squaredMaxRadius, float precision) const
+{
+	BoundingSphere<DIM> s(x, squaredMaxRadius);
+	return sceneData->aggregate->findClosestSilhouettePoint(s, i, flipNormalOrientation, squaredMinRadius, precision);
 }
 
 template<size_t DIM>

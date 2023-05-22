@@ -13,16 +13,15 @@ template<size_t DIM>
 struct Interaction {
 	// constructor
 	Interaction(): d(maxFloat), sign(0), primitiveIndex(-1), nodeIndex(-1), referenceIndex(-1),
-				   objectIndex(-1), ignorePrimitiveIndex(-1), ignoreObjectIndex(-1),
-				   p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()), uv(Vector<DIM - 1>::Zero()),
-				   distanceInfo(DistanceInfo::Exact) {}
+				   objectIndex(-1), p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()), 
+				   uv(Vector<DIM - 1>::Zero()), distanceInfo(DistanceInfo::Exact) {}
 
 	// comparison operators
 	bool operator==(const Interaction<DIM>& i) const {
-		bool distancesMatch = std::fabs(d - i.d) < 1e-6;
+		bool distancesMatch = std::fabs(d - i.d) < 1e-6f;
 		if (distanceInfo == DistanceInfo::Bounded) return distancesMatch;
 
-		return distancesMatch && (p - i.p).squaredNorm() < 1e-6;
+		return distancesMatch && (p - i.p).squaredNorm() < 1e-6f;
 	}
 
 	bool operator!=(const Interaction<DIM>& i) const {
@@ -34,9 +33,19 @@ struct Interaction {
 		return sign == 0 ? ((x - p).dot(n) > 0.0f ? 1.0f : -1.0f)*d : sign*d;
 	}
 
+	// samples a random point on geometric primitive and returns sampling pdf
+	float samplePoint(const Primitive<DIM> *primitive) {
+		return static_cast<const GeometricPrimitive<DIM> *>(primitive)->samplePoint(uv, p);
+	}
+
 	// computes normal from geometric primitive if unspecified
 	void computeNormal(const Primitive<DIM> *primitive) {
 		n = static_cast<const GeometricPrimitive<DIM> *>(primitive)->normal(uv);
+	}
+
+	// computes silhouette normal
+	void computeSilhouetteNormal(const SilhouettePrimitive<DIM> *silhouette) {
+		n = silhouette->normal();
 	}
 
 	// applies transform
@@ -56,8 +65,6 @@ struct Interaction {
 	int nodeIndex; // index of aggregate node containing intersected or closest point
 	int referenceIndex; // reference index of primitive for internal library use
 	int objectIndex; // index of object containing the primitive
-	int ignorePrimitiveIndex; // index of primitive to ignore
-	int ignoreObjectIndex; // index of object containing the ignored primitive index
 	Vector<DIM> p, n;
 	Vector<DIM - 1> uv;
 	DistanceInfo distanceInfo;

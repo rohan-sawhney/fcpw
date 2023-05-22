@@ -1,16 +1,18 @@
 namespace fcpw {
 
-template<size_t DIM, typename PrimitiveType>
-inline Baseline<DIM, PrimitiveType>::Baseline(const std::vector<PrimitiveType *>& primitives_):
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline Baseline<DIM, PrimitiveType, SilhouetteType>::Baseline(const std::vector<PrimitiveType *>& primitives_,
+															  const std::vector<SilhouetteType *>& silhouettes_):
 primitives(primitives_),
+silhouettes(silhouettes_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
 	// don't compute normals by default
 	this->computeNormals = false;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline BoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingBox() const
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline BoundingBox<DIM> Baseline<DIM, PrimitiveType, SilhouetteType>::boundingBox() const
 {
 	BoundingBox<DIM> bb;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -20,8 +22,8 @@ inline BoundingBox<DIM> Baseline<DIM, PrimitiveType>::boundingBox() const
 	return bb;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline Vector<DIM> Baseline<DIM, PrimitiveType>::centroid() const
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline Vector<DIM> Baseline<DIM, PrimitiveType, SilhouetteType>::centroid() const
 {
 	Vector<DIM> c = Vector<DIM>::Zero();
 	int nPrimitives = (int)primitives.size();
@@ -33,8 +35,8 @@ inline Vector<DIM> Baseline<DIM, PrimitiveType>::centroid() const
 	return c/nPrimitives;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline float Baseline<DIM, PrimitiveType>::surfaceArea() const
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline float Baseline<DIM, PrimitiveType, SilhouetteType>::surfaceArea() const
 {
 	float area = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -44,8 +46,8 @@ inline float Baseline<DIM, PrimitiveType>::surfaceArea() const
 	return area;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline float Baseline<DIM, PrimitiveType>::signedVolume() const
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline float Baseline<DIM, PrimitiveType, SilhouetteType>::signedVolume() const
 {
 	float volume = 0.0f;
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -55,10 +57,10 @@ inline float Baseline<DIM, PrimitiveType>::signedVolume() const
 	return volume;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-														   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-														   bool checkForOcclusion, bool recordAllHits) const
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+																		   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+																		   bool checkForOcclusion, bool recordAllHits) const
 {
 	int hits = 0;
 	if (!recordAllHits) is.resize(1);
@@ -123,10 +125,97 @@ inline int Baseline<DIM, PrimitiveType>::intersectFromNode(Ray<DIM>& r, std::vec
 	return 0;
 }
 
-template<size_t DIM, typename PrimitiveType>
-inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-																   int nodeStartIndex, int aggregateIndex,
-																   const Vector<DIM>& boundaryHint, int& nodesVisited) const
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s,
+																		   std::vector<Interaction<DIM>>& is,
+																		   int nodeStartIndex, int aggregateIndex,
+																		   int& nodesVisited, bool recordOneHit,
+																		   const std::function<float(float)>& primitiveWeight) const
+{
+	int hits = 0;
+	float totalPrimitiveWeight = 0.0f;
+	if (recordOneHit && !primitiveTypeIsAggregate) is.resize(1);
+
+	for (int p = 0; p < (int)primitives.size(); p++) {
+		nodesVisited++;
+
+		int hit = 0;
+		std::vector<Interaction<DIM>> cs;
+		if (primitiveTypeIsAggregate) {
+			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
+			hit = aggregate->intersectFromNode(s, cs, nodeStartIndex, aggregateIndex,
+											   nodesVisited, recordOneHit, primitiveWeight);
+
+		} else {
+			hit = primitives[p]->intersect(s, cs, recordOneHit, primitiveWeight);
+			for (int i = 0; i < (int)cs.size(); i++) {
+				cs[i].referenceIndex = p;
+				cs[i].objectIndex = this->index;
+			}
+		}
+
+		if (hit > 0) {
+			hits += hit;
+			if (recordOneHit && !primitiveTypeIsAggregate) {
+				totalPrimitiveWeight += cs[0].d;
+				if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
+					is[0] = cs[0];
+				}
+
+			} else {
+				is.insert(is.end(), cs.begin(), cs.end());
+			}
+		}
+	}
+
+	if (hits > 0) {
+		if (recordOneHit && !primitiveTypeIsAggregate) {
+			if (is[0].primitiveIndex == -1) {
+				hits = 0;
+				is.clear();
+
+			} else if (totalPrimitiveWeight > 0.0f) {
+				is[0].d /= totalPrimitiveWeight;
+			}
+		}
+
+		return hits;
+	}
+
+	return 0;
+}
+
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+																					 int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+																					 const std::function<float(float)>& traversalWeight,
+																					 const std::function<float(float)>& primitiveWeight) const
+{
+	int hits = this->intersectFromNode(s, is, nodeStartIndex, aggregateIndex,
+									   nodesVisited, true, primitiveWeight);
+	if (hits > 0) {
+		if (!primitiveTypeIsAggregate) {
+			// sample a point on the selected geometric primitive
+			const PrimitiveType *prim = primitives[is[0].referenceIndex];
+			float pdf = is[0].samplePoint(prim);
+			is[0].d *= pdf;
+
+			// compute normal
+			if (this->computeNormals) {
+				is[0].computeNormal(prim);
+			}
+		}
+
+		return hits;
+	}
+
+	return 0;
+}
+
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																				   int nodeStartIndex, int aggregateIndex,
+																				   const Vector<DIM>& boundaryHint, int& nodesVisited) const
 {
 	// find closest point
 	bool notFound = true;
@@ -158,6 +247,69 @@ inline bool Baseline<DIM, PrimitiveType>::findClosestPointFromNode(BoundingSpher
 		// compute normal
 		if (this->computeNormals && !primitiveTypeIsAggregate) {
 			i.computeNormal(primitives[i.referenceIndex]);
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+																							 int nodeStartIndex, int aggregateIndex,
+																							 int& nodesVisited, bool flipNormalOrientation,
+																							 float squaredMinRadius, float precision) const
+{
+	if (squaredMinRadius >= s.r2) return false;
+
+	bool notFound = true;
+	if (primitiveTypeIsAggregate) {
+		for (int p = 0; p < (int)primitives.size(); p++) {
+			nodesVisited++;
+			Interaction<DIM> c;
+			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
+			bool found = aggregate->findClosestSilhouettePointFromNode(s, c, nodeStartIndex, aggregateIndex,
+																	   nodesVisited, flipNormalOrientation,
+																	   squaredMinRadius, precision);
+
+			// keep the closest silhouette point
+			if (found) {
+				notFound = false;
+				s.r2 = std::min(s.r2, c.d*c.d);
+				i = c;
+
+				if (squaredMinRadius >= s.r2) {
+					break;
+				}
+			}
+		}
+
+	} else {
+		for (int p = 0; p < (int)silhouettes.size(); p++) {
+			nodesVisited++;
+			Interaction<DIM> c;
+			bool found = silhouettes[p]->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius, precision);
+
+			// keep the closest silhouette point
+			if (found) {
+				notFound = false;
+				s.r2 = std::min(s.r2, c.d*c.d);
+				i = c;
+				i.referenceIndex = p;
+				i.objectIndex = this->index;
+
+				if (squaredMinRadius >= s.r2) {
+					break;
+				}
+			}
+		}
+	}
+
+	if (!notFound) {
+		// compute normal
+		if (this->computeNormals && !primitiveTypeIsAggregate) {
+			i.computeSilhouetteNormal(silhouettes[i.referenceIndex]);
 		}
 
 		return true;

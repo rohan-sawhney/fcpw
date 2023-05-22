@@ -33,7 +33,7 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Vector3P<WIDTH>& pa, const Ve
 
 	// track non-parallel line segments and rays
 	FloatP<WIDTH> dv = enoki::cross(rd, v)[2];
-	MaskP<WIDTH> active = enoki::abs(dv) >= epsilon;
+	MaskP<WIDTH> active = enoki::abs(dv) > epsilon;
 	FloatP<WIDTH> invDv = enoki::rcp(dv);
 
 	// solve r.o + s*r.d = pa + t*(pb - pa) for s >= 0 && 0 <= t <= 1
@@ -46,7 +46,7 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Vector3P<WIDTH>& pa, const Ve
 	FloatP<WIDTH> uv = enoki::cross(u, v)[2];
 	d = uv*invDv;
 	active &= d >= 0.0f && d <= rtMax;
-	pt = ro + rd*Vector3P<WIDTH>(d);
+	pt = pa + t*v;
 
 	return active;
 }
@@ -63,7 +63,7 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
 	Vector3P<WIDTH> p = enoki::cross(rd, v2);
 	FloatP<WIDTH> det = enoki::dot(v1, p);
 
-	MaskP<WIDTH> active = enoki::abs(det) >= epsilon;
+	MaskP<WIDTH> active = enoki::abs(det) > epsilon;
 	FloatP<WIDTH> invDet = enoki::rcp(det);
 
 	Vector3P<WIDTH> s = ro - pa;
@@ -76,7 +76,7 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
 
 	d = enoki::dot(v2, q)*invDet;
 	active &= d >= 0.0f && d <= rtMax;
-	pt = ro + rd*Vector3P<WIDTH>(d);
+	pt = pa + v1*v + v2*w;
 	t[0] = 1.0f - v - w;
 	t[1] = v;
 
@@ -93,6 +93,18 @@ inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const Vector
 	VectorP<WIDTH, DIM> v = sc - bMax;
 	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
 	d2Max = enoki::squared_norm(enoki::min(u, v));
+
+	return d2Min <= sr2;
+}
+
+// performs wide version of sphere box overlap test
+template<size_t WIDTH, size_t DIM>
+inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+								   const enokiVector<DIM>& sc, float sr2, FloatP<WIDTH>& d2Min)
+{
+	VectorP<WIDTH, DIM> u = bMin - sc;
+	VectorP<WIDTH, DIM> v = sc - bMax;
+	d2Min = enoki::squared_norm(enoki::max(enoki::max(u, v), 0.0f));
 
 	return d2Min <= sr2;
 }
@@ -212,6 +224,167 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& pa, con
 	enoki::masked(t[0], active7) = 1.0f - v - w;
 	enoki::masked(t[1], active7) = v;
 	return enoki::norm(x - pt);
+}
+
+// computes orthonormal basis for direction in 3d
+template<size_t WIDTH>
+inline void computeWideOrthonormalBasis(const Vector3P<WIDTH>& n, Vector3P<WIDTH>& b1, Vector3P<WIDTH>& b2)
+{
+	// source: https://graphics.pixar.com/library/OrthonormalB/paper.pdf
+	FloatP<WIDTH> sign = enoki::copysign(1.0f, n[2]);
+	const FloatP<WIDTH> a = -1.0f*enoki::rcp(sign + n[2]);
+	const FloatP<WIDTH> b = n[0]*n[1]*a;
+
+	b1[0] = 1.0f + sign*n[0]*n[0]*a;
+	b1[1] = sign*b;
+	b1[2] = -sign*n[0];
+	b2[0] = b;
+	b2[1] = sign + n[1]*n[1]*a;
+	b2[2] = -n[1];
+}
+
+// projects vector onto plane defined by n
+template<size_t WIDTH, size_t DIM>
+inline FloatP<WIDTH> projectToWidePlane(const VectorP<WIDTH, DIM>& n, const VectorP<WIDTH, DIM>& e)
+{
+	std::cerr << "projectToWidePlane(): WIDTH: " << WIDTH << " DIM: " << DIM << " not supported" << std::endl;
+	exit(EXIT_FAILURE);
+
+	return 0.0f;
+}
+
+// // projects vector onto plane defined by n in 3d
+template<size_t WIDTH>
+inline FloatP<WIDTH> projectToWidePlane(const Vector3P<WIDTH>& n, const Vector3P<WIDTH>& e)
+{
+	// compute orthonormal basis
+	Vector3P<WIDTH> b1, b2;
+	computeWideOrthonormalBasis<WIDTH>(n, b1, b2);
+
+	// compute maximal projection radius
+	FloatP<WIDTH> r1 = enoki::dot(e, enoki::abs(b1));
+	FloatP<WIDTH> r2 = enoki::dot(e, enoki::abs(b2));
+	return enoki::sqrt(r1*r1 + r2*r2);
+}
+
+// performs wide version of cone cone overlap test
+template<size_t WIDTH, size_t DIM>
+inline void overlapWideCone(const VectorP<WIDTH, DIM>& normalConeAxis, const FloatP<WIDTH>& normalConeHalfAngle,
+							const enokiVector3& co, const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+							const FloatP<WIDTH>& distToBox, MaskP<WIDTH>& overlap)
+{
+	MaskP<WIDTH> activeQuery = overlap && normalConeHalfAngle < M_PI_2 && distToBox > epsilon;
+	if (enoki::any(activeQuery)) {
+		// compute the view cone axis
+		VectorP<WIDTH, DIM> bc = 0.5f*(bMin + bMax);
+		VectorP<WIDTH, DIM> viewConeAxis = bc - co;
+		FloatP<WIDTH> l = enoki::norm(viewConeAxis);
+		FloatP<WIDTH> lInv = enoki::rcp(l);
+		viewConeAxis *= lInv;
+
+		// compute the angle between the view and normal cone axes
+		FloatP<WIDTH> dAxisAngle = enoki::acos(enoki::max(-1.0f, enoki::min(1.0f, enoki::dot(normalConeAxis, viewConeAxis)))); // [0, 180]
+
+		// check if the view cone origin lies outside the box's bounding sphere;
+		// if it does, compute the view cone halfAngle and check for overlap
+		VectorP<WIDTH, DIM> be = bMax - bc;
+		FloatP<WIDTH> r = enoki::norm(be);
+		MaskP<WIDTH> outsideSphere = l > r;
+		MaskP<WIDTH> activeQueryOutsideSphere = activeQuery && outsideSphere;
+		FloatP<WIDTH> viewConeHalfAngle = enoki::asin(r*lInv);
+		FloatP<WIDTH> halfAngleSum = normalConeHalfAngle + viewConeHalfAngle;
+		MaskP<WIDTH> angleInRange = M_PI_2 >= dAxisAngle - halfAngleSum && M_PI_2 <= dAxisAngle + halfAngleSum;
+		enoki::masked(overlap, activeQueryOutsideSphere) = halfAngleSum >= M_PI_2 || angleInRange;
+		if (enoki::all(activeQuery == activeQueryOutsideSphere)) return; // try to early out since the next two cases are less common
+
+		// the view cone origin lies inside the box's bounding sphere, so check if
+		// the plane defined by the view cone axis intersects the box; if it does, then
+		// there's overlap since the view cone has a halfAngle greater than 90 degrees
+		FloatP<WIDTH> d = enoki::dot(be, enoki::abs(viewConeAxis));
+		FloatP<WIDTH> s = l - d;
+		MaskP<WIDTH> intersectPlane = s <= 0.0f;
+		MaskP<WIDTH> activeQueryInsideSphere = activeQuery && ~outsideSphere;
+
+		// compute the view cone halfAngle by projecting the max extents of the box
+		// onto the plane, and check for overlap
+		d = projectToWidePlane(viewConeAxis, be);
+		viewConeHalfAngle = enoki::atan2(d, s);
+		halfAngleSum = normalConeHalfAngle + viewConeHalfAngle;
+		angleInRange = M_PI_2 >= dAxisAngle - halfAngleSum && M_PI_2 <= dAxisAngle + halfAngleSum;
+		enoki::masked(overlap, activeQueryInsideSphere && ~intersectPlane) = halfAngleSum >= M_PI_2 || angleInRange;
+	}
+}
+
+// checks whether vertex is a silhouette
+template<size_t WIDTH>
+inline MaskP<WIDTH> isWideSilhouetteVertex(const Vector3P<WIDTH>& n0, const Vector3P<WIDTH>& n1,
+										   const Vector3P<WIDTH>& viewDir, const FloatP<WIDTH>& d,
+										   bool flipNormalOrientation, float precision)
+{
+	float sign = flipNormalOrientation ? 1.0f : -1.0f;
+
+	// vertex is a silhouette point if it concave and the query point lies on the vertex
+	FloatP<WIDTH> det = enoki::cross(n0, n1)[2];
+	MaskP<WIDTH> isSilhouette = false;
+	MaskP<WIDTH> active = d > precision;
+	enoki::masked(isSilhouette, ~active) = sign*det > precision;
+
+	// vertex is a silhouette point if the query point lies on the halfplane
+	// defined by an adjacent line segment and the other segment is backfacing
+	FloatP<WIDTH> invD = enoki::rcp(d);
+	Vector3P<WIDTH> viewDirUnit = viewDir*invD;
+	FloatP<WIDTH> dot0 = enoki::dot(viewDirUnit, n0);
+	FloatP<WIDTH> dot1 = enoki::dot(viewDirUnit, n1);
+	MaskP<WIDTH> isZeroDot0 = enoki::abs(dot0) <= precision;
+	enoki::masked(isSilhouette, active && isZeroDot0) = sign*dot1 > precision;
+
+	active &= ~isZeroDot0;
+	MaskP<WIDTH> isZeroDot1 = enoki::abs(dot1) <= precision;
+	enoki::masked(isSilhouette, active && isZeroDot1) = sign*dot0 > precision;
+
+	// vertex is a silhouette point if an adjacent line segment is frontfacing
+	// w.r.t. the query point and the other segment is backfacing
+	active &= ~isZeroDot1;
+	enoki::masked(isSilhouette, active) = dot0*dot1 < 0.0f;
+
+	return isSilhouette;
+}
+
+// checks whether edge is a silhouette
+template<size_t WIDTH>
+inline MaskP<WIDTH> isWideSilhouetteEdge(const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+										 const Vector3P<WIDTH>& n0, const Vector3P<WIDTH>& n1,
+										 const Vector3P<WIDTH>& viewDir, const FloatP<WIDTH>& d,
+										 bool flipNormalOrientation, float precision)
+{
+	float sign = flipNormalOrientation ? 1.0f : -1.0f;
+
+	// edge is a silhouette if it concave and the query point lies on the edge
+	Vector3P<WIDTH> edgeDir = enoki::normalize(pc - pb);
+	FloatP<WIDTH> signedDihedralAngle = enoki::atan2(enoki::dot(edgeDir, enoki::cross(n0, n1)), enoki::dot(n0, n1));
+	MaskP<WIDTH> isSilhouette = false;
+	MaskP<WIDTH> active = d > precision;
+	enoki::masked(isSilhouette, ~active) = sign*signedDihedralAngle > precision;
+
+	// edge is a silhouette if the query point lies on the halfplane defined
+	// by an adjacent triangle and the other triangle is backfacing
+	FloatP<WIDTH> invD = enoki::rcp(d);
+	Vector3P<WIDTH> viewDirUnit = viewDir*invD;
+	FloatP<WIDTH> dot0 = enoki::dot(viewDirUnit, n0);
+	FloatP<WIDTH> dot1 = enoki::dot(viewDirUnit, n1);
+	MaskP<WIDTH> isZeroDot0 = enoki::abs(dot0) <= precision;
+	enoki::masked(isSilhouette, active && isZeroDot0) = sign*dot1 > precision;
+
+	active &= ~isZeroDot0;
+	MaskP<WIDTH> isZeroDot1 = enoki::abs(dot1) <= precision;
+	enoki::masked(isSilhouette, active && isZeroDot1) = sign*dot0 > precision;
+
+	// edge is a silhouette if an adjacent triangle is frontfacing w.r.t. the
+	// query point and the other triangle is backfacing
+	active &= ~isZeroDot1;
+	enoki::masked(isSilhouette, active) = dot0*dot1 < 0.0f;
+
+	return isSilhouette;
 }
 
 } // namespace fcpw
