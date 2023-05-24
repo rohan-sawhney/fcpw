@@ -3,6 +3,7 @@ namespace fcpw {
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline void assignSilhouettesToNodes(const std::vector<PrimitiveType *>& primitives,
 									 const std::vector<SilhouetteType *>& silhouettes,
+									 const std::function<bool(float, int)>& ignoreSilhouetteTest,
 									 std::vector<SbvhNode<DIM, CONEDATA>>& flatTree,
 									 std::vector<SilhouetteType *>& silhouetteRefs)
 {
@@ -12,6 +13,7 @@ inline void assignSilhouettesToNodes(const std::vector<PrimitiveType *>& primiti
 template<>
 inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(const std::vector<LineSegment *>& lineSegments,
 																			 const std::vector<SilhouetteVertex *>& silhouetteVertices,
+																			 const std::function<bool(float, int)>& ignoreSilhouetteTest,
 																			 std::vector<SbvhNode<3, true>>& flatTree,
 																			 std::vector<SilhouetteVertex *>& silhouetteVertexRefs)
 {
@@ -26,10 +28,20 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 
 			for (int k = 0; k < 2; k++) {
 				int vIndex = lineSegment->indices[k];
+				SilhouetteVertex *silhouetteVertex = silhouetteVertices[vIndex];
 
-				if (seenVertex.find(vIndex) == seenVertex.end()) {
+				bool ignore = false;
+				if (ignoreSilhouetteTest && silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1)) {
+					Vector3 n0 = silhouetteVertex->normal(0);
+					Vector3 n1 = silhouetteVertex->normal(1);
+					float det = n0.x()*n1.y() - n1.x()*n0.y();
+
+					ignore = ignoreSilhouetteTest(det, lineSegment->pIndex);
+				}
+
+				if (!ignore && seenVertex.find(vIndex) == seenVertex.end()) {
 					seenVertex[vIndex] = true;
-					silhouetteVertexRefs.emplace_back(silhouetteVertices[vIndex]);
+					silhouetteVertexRefs.emplace_back(silhouetteVertex);
 				}
 			}
 		}
@@ -43,6 +55,7 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 template<>
 inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const std::vector<Triangle *>& triangles,
 																		const std::vector<SilhouetteEdge *>& silhouetteEdges,
+																		const std::function<bool(float, int)>& ignoreSilhouetteTest,
 																		std::vector<SbvhNode<3, true>>& flatTree,
 																		std::vector<SilhouetteEdge *>& silhouetteEdgeRefs)
 {
@@ -57,10 +70,23 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 
 			for (int k = 0; k < 3; k++) {
 				int eIndex = triangle->soup->eIndices[3*triangle->pIndex + k];
+				SilhouetteEdge *silhouetteEdge = silhouetteEdges[eIndex];
 
-				if (seenEdge.find(eIndex) == seenEdge.end()) {
+				bool ignore = false;
+				if (ignoreSilhouetteTest && silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1)) {
+					const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
+					const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
+					Vector3 edgeDir = (pb - pa).normalized();
+					Vector3 n0 = silhouetteEdge->normal(0);
+					Vector3 n1 = silhouetteEdge->normal(1);
+					float dihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));
+
+					ignore = ignoreSilhouetteTest(dihedralAngle, triangle->pIndex);
+				}
+
+				if (!ignore && seenEdge.find(eIndex) == seenEdge.end()) {
 					seenEdge[eIndex] = true;
-					silhouetteEdgeRefs.emplace_back(silhouetteEdges[eIndex]);
+					silhouetteEdgeRefs.emplace_back(silhouetteEdge);
 				}
 			}
 		}
@@ -80,40 +106,47 @@ inline void computeBoundingConesRecursive(const std::vector<Vector<DIM>>& silhou
 	SbvhNode<DIM, true>& node(flatTree[start]);
 
 	// compute bounding cone axis
+	bool anySilhouetteRefs = false;
 	for (int i = start; i < end; i++) {
 		SbvhNode<DIM, true>& childNode(flatTree[i]);
 
 		for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
 			int referenceIndex = childNode.silhouetteReferenceOffset + j;
 			cone.axis += silhouetteNormals[referenceIndex];
+			anySilhouetteRefs = true;
 		}
 	}
 
 	// compute bounding cone angle
-	float axisNorm = cone.axis.norm();
-	if (axisNorm > epsilon) {
-		cone.axis /= axisNorm;
-		cone.halfAngle = 0.0f;
+	if (!anySilhouetteRefs) {
+		node.cone.halfAngle = -M_PI;
 
-		for (int i = start; i < end; i++) {
-			SbvhNode<DIM, true>& childNode(flatTree[i]);
+	} else {
+		float axisNorm = cone.axis.norm();
+		if (axisNorm > epsilon) {
+			cone.axis /= axisNorm;
+			cone.halfAngle = 0.0f;
 
-			for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
-				int referenceIndex = childNode.silhouetteReferenceOffset + j;
+			for (int i = start; i < end; i++) {
+				SbvhNode<DIM, true>& childNode(flatTree[i]);
 
-				for (int k = 0; k < 2; k++) {
-					const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
-					float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
-					cone.halfAngle = std::max(cone.halfAngle, angle);
+				for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
+					int referenceIndex = childNode.silhouetteReferenceOffset + j;
+
+					for (int k = 0; k < 2; k++) {
+						const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
+						float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
+						cone.halfAngle = std::max(cone.halfAngle, angle);
+					}
 				}
 			}
-		}
 
-		node.cone = cone;
+			node.cone = cone;
+		}
 	}
 
 	// recurse on children
-	if (node.nSilhouetteReferences == 0) { // not a leaf
+	if (node.nReferences == 0) { // not a leaf
 		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + 1, start + node.secondChildOffset);
 		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + node.secondChildOffset, end);
 	}
@@ -150,6 +183,7 @@ inline Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::Sbvh(const CostHeuris
 																std::vector<PrimitiveType *>& primitives_,
 																std::vector<SilhouetteType *>& silhouettes_,
 																SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions_,
+																const std::function<bool(float, int)>& ignoreSilhouetteTest_,
 																bool printStats_, bool packLeaves_, int leafSize_, int nBuckets_):
 costHeuristic(costHeuristic_),
 nNodes(0),
@@ -177,10 +211,11 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	}
 
 	// assign silhouettes to nodes
-	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, flatTree, silhouetteRefs);
+	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, ignoreSilhouetteTest_,
+																		   flatTree, silhouetteRefs);
 
 	// compute bounding cones for nodes
-	computeBoundingCones(silhouetteRefs, flatTree);
+	if (!primitiveTypeIsAggregate) computeBoundingCones(silhouetteRefs, flatTree);
 
 	// don't compute normals by default
 	this->computeNormals = false;
@@ -1111,10 +1146,12 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<SbvhNode<D
 
 		} else { // not a leaf
 			const SbvhNode<DIM, true>& node0(flatTree[nodeIndex + 1]);
-			bool hit0 = node0.box.overlap(s, boxHits[0]) && node0.cone.overlap(s.c, node0.box, boxHits[0]);
+			bool hit0 = node0.cone.isValid() && node0.box.overlap(s, boxHits[0]) &&
+						node0.cone.overlap(s.c, node0.box, boxHits[0]);
 
 			const SbvhNode<DIM, true>& node1(flatTree[nodeIndex + node.secondChildOffset]);
-			bool hit1 = node1.box.overlap(s, boxHits[1]) && node1.cone.overlap(s.c, node1.box, boxHits[1]);
+			bool hit1 = node1.cone.isValid() && node1.box.overlap(s, boxHits[1]) &&
+						node1.cone.overlap(s.c, node1.box, boxHits[1]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {

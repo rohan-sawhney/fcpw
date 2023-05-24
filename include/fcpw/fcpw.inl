@@ -523,7 +523,8 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 													 std::vector<PrimitiveType *>& primitives,
 													 std::vector<SilhouetteType *>& silhouettes,
 													 bool vectorize, bool printStats,
-													 SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions={})
+													 SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions={},
+													 const std::function<bool(float, int)>& ignoreSilhouetteTest={})
 {
 	std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>> sbvh = nullptr;
 	bool packLeaves = false;
@@ -538,23 +539,23 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 
 	if (aggregateType == AggregateType::Bvh_LongestAxisCenter) {
 		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
-				CostHeuristic::LongestAxisCenter, primitives, silhouettes, sortPositions, printStats, false, leafSize));
+				CostHeuristic::LongestAxisCenter, primitives, silhouettes, sortPositions, ignoreSilhouetteTest, printStats, false, leafSize));
 
 	} else if (aggregateType == AggregateType::Bvh_SurfaceArea) {
 		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
-				CostHeuristic::SurfaceArea, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
+				CostHeuristic::SurfaceArea, primitives, silhouettes, sortPositions, ignoreSilhouetteTest, printStats, packLeaves, leafSize));
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapSurfaceArea) {
 		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
-				CostHeuristic::OverlapSurfaceArea, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
+				CostHeuristic::OverlapSurfaceArea, primitives, silhouettes, sortPositions, ignoreSilhouetteTest, printStats, packLeaves, leafSize));
 
 	} else if (aggregateType == AggregateType::Bvh_Volume) {
 		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
-				CostHeuristic::Volume, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
+				CostHeuristic::Volume, primitives, silhouettes, sortPositions, ignoreSilhouetteTest, printStats, packLeaves, leafSize));
 
 	} else if (aggregateType == AggregateType::Bvh_OverlapVolume) {
 		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
-				CostHeuristic::OverlapVolume, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
+				CostHeuristic::OverlapVolume, primitives, silhouettes, sortPositions, ignoreSilhouetteTest, printStats, packLeaves, leafSize));
 
 	} else {
 		return std::unique_ptr<Baseline<DIM, PrimitiveType, SilhouetteType>>(
@@ -572,8 +573,9 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 }
 
 template<size_t DIM>
-inline void buildGeometricAggregates(const AggregateType& aggregateType, bool vectorize,
-									 bool printStats, std::unique_ptr<SceneData<DIM>>& sceneData,
+inline void buildGeometricAggregates(const AggregateType& aggregateType, bool vectorize, bool printStats,
+									 const std::function<bool(float, int)>& ignoreSilhouetteTest,
+									 std::unique_ptr<SceneData<DIM>>& sceneData,
 									 std::vector<std::unique_ptr<Aggregate<DIM>>>& objectAggregates)
 {
 	std::cerr << "buildGeometricAggregates(): DIM: " << DIM << std::endl;
@@ -581,8 +583,9 @@ inline void buildGeometricAggregates(const AggregateType& aggregateType, bool ve
 }
 
 template<>
-inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool vectorize,
-										bool printStats, std::unique_ptr<SceneData<3>>& sceneData,
+inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool vectorize, bool printStats,
+										const std::function<bool(float, int)>& ignoreSilhouetteTest,
+										std::unique_ptr<SceneData<3>>& sceneData,
 										std::vector<std::unique_ptr<Aggregate<3>>>& objectAggregates)
 {
 	// allocate space for line segment, triangle & mixed object ptrs
@@ -662,16 +665,21 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 					silhouetteVertexObjectPtr.emplace_back(&silhouetteVertexObject[j]);
 				}
 
-				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&, std::vector<LineSegment *>&, std::vector<SilhouetteVertex *>&)>;
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&,
+																		std::vector<LineSegment *>&,
+																		std::vector<SilhouetteVertex *>&)>;
 				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, true, LineSegment, SilhouetteVertex>,
 																				  std::placeholders::_1, std::placeholders::_2,
 																				  std::placeholders::_3, std::ref(sceneData->soups[i]));
 				objectAggregates[i] = makeAggregate<3, true, LineSegment, SilhouetteVertex>(aggregateType, lineSegmentObjectPtr,
 																							silhouetteVertexObjectPtr, vectorize,
-																							printStats, sortLineSegmentPositions);
+																							printStats, sortLineSegmentPositions,
+																							ignoreSilhouetteTest);
 
 			} else {
-				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&, std::vector<LineSegment *>&, std::vector<SilhouettePrimitive<3> *>&)>;
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&,
+																		std::vector<LineSegment *>&,
+																		std::vector<SilhouettePrimitive<3> *>&)>;
 				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, false, LineSegment, SilhouettePrimitive<3>>,
 																				  std::placeholders::_1, std::placeholders::_2,
 																				  std::placeholders::_3, std::ref(sceneData->soups[i]));
@@ -701,16 +709,21 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 					silhouetteEdgeObjectPtr.emplace_back(&silhouetteEdgeObject[j]);
 				}
 
-				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&, std::vector<Triangle *>&, std::vector<SilhouetteEdge *>&)>;
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&,
+																	 std::vector<Triangle *>&,
+																	 std::vector<SilhouetteEdge *>&)>;
 				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, true, Triangle, SilhouetteEdge>,
 																			std::placeholders::_1, std::placeholders::_2,
 																			std::placeholders::_3, std::ref(sceneData->soups[i]));
 				objectAggregates[i] = makeAggregate<3, true, Triangle, SilhouetteEdge>(aggregateType, triangleObjectPtr,
 																					   silhouetteEdgeObjectPtr, vectorize,
-																					   printStats, sortTrianglePositions);
+																					   printStats, sortTrianglePositions,
+																					   ignoreSilhouetteTest);
 
 			} else {
-				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&, std::vector<Triangle *>&, std::vector<SilhouettePrimitive<3> *>&)>;
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&,
+																	 std::vector<Triangle *>&,
+																	 std::vector<SilhouettePrimitive<3> *>&)>;
 				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, false, Triangle, SilhouettePrimitive<3>>,
 																			std::placeholders::_1, std::placeholders::_2,
 																			std::placeholders::_3, std::ref(sceneData->soups[i]));
@@ -759,14 +772,16 @@ inline std::unique_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 
 template<size_t DIM>
 inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize,
-							  bool printStats, bool reduceMemoryFootprint)
+							  bool printStats, bool reduceMemoryFootprint,
+							  const std::function<bool(float, int)>& ignoreSilhouetteTest)
 {
 	// clear old aggregate data
 	sceneData->clearAggregateData();
 
 	// build geometric aggregates
 	std::vector<std::unique_ptr<Aggregate<DIM>>> objectAggregates;
-	buildGeometricAggregates<DIM>(aggregateType, vectorize, printStats, sceneData, objectAggregates);
+	buildGeometricAggregates<DIM>(aggregateType, vectorize, printStats, ignoreSilhouetteTest,
+								  sceneData, objectAggregates);
 	int nAggregates = (int)objectAggregates.size();
 
 	// build aggregate instances and instance ptrs
