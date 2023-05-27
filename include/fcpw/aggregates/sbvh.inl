@@ -428,12 +428,10 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::build()
 	referenceBoxes.resize(nReferences);
 	referenceCentroids.resize(nReferences);
 	flatTree.reserve(nReferences*2);
-	BoundingBox<DIM> boxRoot;
 
 	for (int i = 0; i < nReferences; i++) {
 		referenceBoxes[i] = primitives[i]->boundingBox();
 		referenceCentroids[i] = primitives[i]->centroid();
-		boxRoot.expandToInclude(referenceBoxes[i]);
 	}
 
 	// build tree recursively

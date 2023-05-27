@@ -227,7 +227,9 @@ struct BoundingCone {
 
 	// check for overlap between this cone and the "view" cone defined by the given
 	// point and bounding box; the two cones overlap when there exist two vectors,
-	// one in each cone, that are orthogonal to each other
+	// one in each cone, that are orthogonal to each other.
+	// NOTE: Tighter view cone construction is available in Falcor, but doesn't seem to help:
+	// https://github.com/NVIDIAGameWorks/Falcor/blob/master/Source/Falcor/Utils/Geometry/GeometryHelpers.slang
 	bool overlap(const Vector<DIM>& o, const BoundingBox<DIM>& b, float distToBox) const {
 		// there's overlap if this cone's halfAngle is greater than 90 degrees, or
 		// if the box contains the view cone origin (since the view cone is invalid)
