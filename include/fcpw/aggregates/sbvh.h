@@ -135,8 +135,8 @@ protected:
 							 const BoundingBox<DIM>& nodeCentroidBox,
 							 const std::vector<BoundingBox<DIM>>& referenceBoxes,
 							 const std::vector<Vector<DIM>>& referenceCentroids,
-							 int depth, int nodeStart, int nodeEnd, int& splitDim,
-							 float& splitCoord, BoundingBox<DIM>& boxIntersected);
+							 int depth, int nodeStart, int nodeEnd,
+							 int& splitDim, float& splitCoord);
 
 	// performs object split
 	int performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,

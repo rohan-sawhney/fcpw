@@ -244,13 +244,12 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 																					const BoundingBox<DIM>& nodeCentroidBox,
 																					const std::vector<BoundingBox<DIM>>& referenceBoxes,
 																					const std::vector<Vector<DIM>>& referenceCentroids,
-																					int depth, int nodeStart, int nodeEnd, int& splitDim,
-																					float& splitCoord, BoundingBox<DIM>& boxIntersected)
+																					int depth, int nodeStart, int nodeEnd,
+																					int& splitDim, float& splitCoord)
 {
 	float splitCost = maxFloat;
 	splitDim = -1;
 	splitCoord = 0.0f;
-	boxIntersected = BoundingBox<DIM>();
 
 	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
 		Vector<DIM> extent = nodeBoundingBox.extent();
@@ -301,7 +300,6 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 						splitCost = cost;
 						splitDim = dim;
 						splitCoord = nodeBoundingBox.pMin[dim] + b*bucketWidth;
-						boxIntersected = boxRefLeft.intersect(rightBucketBoxes[b].first);
 					}
 				}
 			}
@@ -407,9 +405,8 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::buildRecursive(s
 	// compute object split
 	int splitDim;
 	float splitCoord;
-	BoundingBox<DIM> boxIntersected;
-	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids, depth,
-										 start, end, splitDim, splitCoord, boxIntersected);
+	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
+										 depth, start, end, splitDim, splitCoord);
 
 	// partition the list of references on split
 	int nReferencesAdded = 0;
