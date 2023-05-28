@@ -3,7 +3,6 @@ namespace fcpw {
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
 																				  const BoundingBox<DIM>& boxRight,
-																				  float parentSurfaceArea, float parentVolume,
 																				  int nReferencesLeft, int nReferencesRight,
 																				  int depth) const
 {
@@ -14,8 +13,7 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeSplitCos
 	}
 
 	if (costHeuristic == CostHeuristic::SurfaceArea) {
-		cost = (nReferencesLeft*boxLeft.surfaceArea() +
-				nReferencesRight*boxRight.surfaceArea())/parentSurfaceArea;
+		cost = nReferencesLeft*boxLeft.surfaceArea() + nReferencesRight*boxRight.surfaceArea();
 
 	} else if (costHeuristic == CostHeuristic::OverlapSurfaceArea) {
 		// set the cost to be negative if the left and right boxes don't overlap at all
@@ -25,8 +23,7 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeSplitCos
 		if (!boxIntersected.isValid()) cost *= -1;
 
 	} else if (costHeuristic == CostHeuristic::Volume) {
-		cost = (nReferencesLeft*boxLeft.volume() +
-				nReferencesRight*boxRight.volume())/parentVolume;
+		cost = nReferencesLeft*boxLeft.volume() + nReferencesRight*boxRight.volume();
 
 	} else if (costHeuristic == CostHeuristic::OverlapVolume) {
 		// set the cost to be negative if the left and right boxes don't overlap at all
@@ -53,8 +50,6 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 
 	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
 		Vector<DIM> extent = nodeBoundingBox.extent();
-		float surfaceArea = nodeBoundingBox.surfaceArea();
-		float volume = nodeBoundingBox.volume();
 
 		// find the best split across all dimensions
 		for (size_t dim = 0; dim < DIM; dim++) {
@@ -93,8 +88,8 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 
 				if (nReferencesLeft > 0 && rightBuckets[b].second > 0) {
 					float cost = computeSplitCost(boxRefLeft, rightBuckets[b].first,
-												  surfaceArea, volume, nReferencesLeft,
-												  rightBuckets[b].second, depth);
+												  nReferencesLeft, rightBuckets[b].second,
+												  depth);
 
 					if (cost < splitCost) {
 						splitCost = cost;

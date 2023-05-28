@@ -126,7 +126,6 @@ protected:
 	// computes split cost based on heuristic
 	float computeSplitCost(const BoundingBox<DIM>& boxLeft,
 						   const BoundingBox<DIM>& boxRight,
-						   float parentSurfaceArea, float parentVolume,
 						   int nReferencesLeft, int nReferencesRight,
 						   int depth) const;
 
