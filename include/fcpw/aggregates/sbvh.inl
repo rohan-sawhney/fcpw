@@ -1,206 +1,6 @@
 namespace fcpw {
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
-inline void assignSilhouettesToNodes(const std::vector<PrimitiveType *>& primitives,
-									 const std::vector<SilhouetteType *>& silhouettes,
-									 std::vector<SbvhNode<DIM, CONEDATA>>& flatTree,
-									 std::vector<SilhouetteType *>& silhouetteRefs)
-{
-	// do nothing
-}
-
-template<>
-inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(const std::vector<LineSegment *>& lineSegments,
-																			 const std::vector<SilhouetteVertex *>& silhouetteVertices,
-																			 std::vector<SbvhNode<3, true>>& flatTree,
-																			 std::vector<SilhouetteVertex *>& silhouetteVertexRefs)
-{
-	for (int i = 0; i < (int)flatTree.size(); i++) {
-		SbvhNode<3, true>& node(flatTree[i]);
-		std::unordered_map<int, bool> seenVertex;
-		int start = (int)silhouetteVertexRefs.size();
-
-		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
-			int referenceIndex = node.referenceOffset + j;
-			LineSegment *lineSegment = lineSegments[referenceIndex];
-
-			for (int k = 0; k < 2; k++) {
-				int vIndex = lineSegment->indices[k];
-
-				if (seenVertex.find(vIndex) == seenVertex.end()) {
-					seenVertex[vIndex] = true;
-					silhouetteVertexRefs.emplace_back(silhouetteVertices[vIndex]);
-				}
-			}
-		}
-
-		int end = (int)silhouetteVertexRefs.size();
-		node.silhouetteReferenceOffset = start;
-		node.nSilhouetteReferences = end - start;
-	}
-}
-
-template<>
-inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const std::vector<Triangle *>& triangles,
-																		const std::vector<SilhouetteEdge *>& silhouetteEdges,
-																		std::vector<SbvhNode<3, true>>& flatTree,
-																		std::vector<SilhouetteEdge *>& silhouetteEdgeRefs)
-{
-	for (int i = 0; i < (int)flatTree.size(); i++) {
-		SbvhNode<3, true>& node(flatTree[i]);
-		std::unordered_map<int, bool> seenEdge;
-		int start = (int)silhouetteEdgeRefs.size();
-
-		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
-			int referenceIndex = node.referenceOffset + j;
-			Triangle *triangle = triangles[referenceIndex];
-
-			for (int k = 0; k < 3; k++) {
-				int eIndex = triangle->soup->eIndices[3*triangle->pIndex + k];
-
-				if (seenEdge.find(eIndex) == seenEdge.end()) {
-					seenEdge[eIndex] = true;
-					silhouetteEdgeRefs.emplace_back(silhouetteEdges[eIndex]);
-				}
-			}
-		}
-
-		int end = (int)silhouetteEdgeRefs.size();
-		node.silhouetteReferenceOffset = start;
-		node.nSilhouetteReferences = end - start;
-	}
-}
-
-template<size_t DIM>
-inline void computeBoundingConesRecursive(const std::vector<Vector<DIM>>& silhouetteNormals,
-										  const std::vector<Vector<DIM>>& silhouetteFaceNormals,
-										  std::vector<SbvhNode<DIM, true>>& flatTree, int start, int end)
-{
-	BoundingCone<DIM> cone;
-	SbvhNode<DIM, true>& node(flatTree[start]);
-
-	// compute bounding cone axis
-	for (int i = start; i < end; i++) {
-		SbvhNode<DIM, true>& childNode(flatTree[i]);
-
-		for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
-			int referenceIndex = childNode.silhouetteReferenceOffset + j;
-			cone.axis += silhouetteNormals[referenceIndex];
-		}
-	}
-
-	// compute bounding cone angle
-	float axisNorm = cone.axis.norm();
-	if (axisNorm > epsilon) {
-		cone.axis /= axisNorm;
-		cone.halfAngle = 0.0f;
-
-		for (int i = start; i < end; i++) {
-			SbvhNode<DIM, true>& childNode(flatTree[i]);
-
-			for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
-				int referenceIndex = childNode.silhouetteReferenceOffset + j;
-
-				for (int k = 0; k < 2; k++) {
-					const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
-					float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
-					cone.halfAngle = std::max(cone.halfAngle, angle);
-				}
-			}
-		}
-
-		node.cone = cone;
-	}
-
-	// recurse on children
-	if (node.nSilhouetteReferences == 0) { // not a leaf
-		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + 1, start + node.secondChildOffset);
-		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + node.secondChildOffset, end);
-	}
-}
-
-template<size_t DIM, bool CONEDATA, typename SilhouetteType>
-inline void computeBoundingCones(const std::vector<SilhouetteType *>& silhouetteRefs,
-								 std::vector<SbvhNode<DIM, CONEDATA>>& flatTree)
-{
-	// do nothing
-}
-
-template<size_t DIM, typename SilhouetteType>
-inline void computeBoundingCones(const std::vector<SilhouetteType *>& silhouetteRefs,
-								 std::vector<SbvhNode<DIM, true>>& flatTree)
-{
-	// compute silhouette normals
-	int nSilhouetteRefs = (int)silhouetteRefs.size();
-	std::vector<Vector<DIM>> normals(nSilhouetteRefs, Vector<DIM>::Zero());
-	std::vector<Vector<DIM>> faceNormals(2*nSilhouetteRefs, Vector<DIM>::Zero());
-
-	for (int i = 0; i < nSilhouetteRefs; i++) {
-		normals[i] = silhouetteRefs[i]->normal();
-		if (silhouetteRefs[i]->hasFace(0)) faceNormals[2*i + 0] = silhouetteRefs[i]->normal(0, true);
-		if (silhouetteRefs[i]->hasFace(1)) faceNormals[2*i + 1] = silhouetteRefs[i]->normal(1, true);
-	}
-
-	// compute bounding cones recursively
-	computeBoundingConesRecursive<DIM>(normals, faceNormals, flatTree, 0, (int)flatTree.size());
-}
-
-template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
-inline Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::Sbvh(const CostHeuristic& costHeuristic_,
-																std::vector<PrimitiveType *>& primitives_,
-																std::vector<SilhouetteType *>& silhouettes_,
-																SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions_,
-																bool printStats_, bool packLeaves_, int leafSize_, int nBuckets_):
-costHeuristic(costHeuristic_),
-nNodes(0),
-nLeafs(0),
-leafSize(leafSize_),
-nBuckets(nBuckets_),
-maxDepth(0),
-depthGuess(std::log2(primitives_.size())),
-buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
-rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
-primitives(primitives_),
-silhouettes(silhouettes_),
-packLeaves(packLeaves_),
-primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
-{
-	using namespace std::chrono;
-	high_resolution_clock::time_point t1 = high_resolution_clock::now();
-
-	// build sbvh
-	build();
-
-	// sort positions
-	if (sortPositions_) {
-		sortPositions_(flatTree, primitives, silhouettes);
-	}
-
-	// assign silhouettes to nodes
-	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, flatTree, silhouetteRefs);
-
-	// compute bounding cones for nodes
-	computeBoundingCones(silhouetteRefs, flatTree);
-
-	// don't compute normals by default
-	this->computeNormals = false;
-
-	// print stats
-	if (printStats_) {
-		high_resolution_clock::time_point t2 = high_resolution_clock::now();
-		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
-		std::cout << "Built bvh with "
-				  << nNodes << " nodes, "
-				  << nLeafs << " leaves, "
-				  << maxDepth << " max depth, "
-				  << primitives.size() << " primitives, "
-				  << silhouettes.size() << " silhouettes and "
-				  << silhouetteRefs.size() << " silhouetteRefs in "
-				  << timeSpan.count() << " seconds" << std::endl;
-	}
-}
-
-template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
 																				  const BoundingBox<DIM>& boxRight,
 																				  float parentSurfaceArea, float parentVolume,
@@ -440,6 +240,206 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::build()
 	// clear working set
 	buckets.clear();
 	rightBucketBoxes.clear();
+}
+
+template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline void assignSilhouettesToNodes(const std::vector<PrimitiveType *>& primitives,
+									 const std::vector<SilhouetteType *>& silhouettes,
+									 std::vector<SbvhNode<DIM, CONEDATA>>& flatTree,
+									 std::vector<SilhouetteType *>& silhouetteRefs)
+{
+	// do nothing
+}
+
+template<>
+inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(const std::vector<LineSegment *>& lineSegments,
+																			 const std::vector<SilhouetteVertex *>& silhouetteVertices,
+																			 std::vector<SbvhNode<3, true>>& flatTree,
+																			 std::vector<SilhouetteVertex *>& silhouetteVertexRefs)
+{
+	for (int i = 0; i < (int)flatTree.size(); i++) {
+		SbvhNode<3, true>& node(flatTree[i]);
+		std::unordered_map<int, bool> seenVertex;
+		int start = (int)silhouetteVertexRefs.size();
+
+		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
+			int referenceIndex = node.referenceOffset + j;
+			LineSegment *lineSegment = lineSegments[referenceIndex];
+
+			for (int k = 0; k < 2; k++) {
+				int vIndex = lineSegment->indices[k];
+
+				if (seenVertex.find(vIndex) == seenVertex.end()) {
+					seenVertex[vIndex] = true;
+					silhouetteVertexRefs.emplace_back(silhouetteVertices[vIndex]);
+				}
+			}
+		}
+
+		int end = (int)silhouetteVertexRefs.size();
+		node.silhouetteReferenceOffset = start;
+		node.nSilhouetteReferences = end - start;
+	}
+}
+
+template<>
+inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const std::vector<Triangle *>& triangles,
+																		const std::vector<SilhouetteEdge *>& silhouetteEdges,
+																		std::vector<SbvhNode<3, true>>& flatTree,
+																		std::vector<SilhouetteEdge *>& silhouetteEdgeRefs)
+{
+	for (int i = 0; i < (int)flatTree.size(); i++) {
+		SbvhNode<3, true>& node(flatTree[i]);
+		std::unordered_map<int, bool> seenEdge;
+		int start = (int)silhouetteEdgeRefs.size();
+
+		for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
+			int referenceIndex = node.referenceOffset + j;
+			Triangle *triangle = triangles[referenceIndex];
+
+			for (int k = 0; k < 3; k++) {
+				int eIndex = triangle->soup->eIndices[3*triangle->pIndex + k];
+
+				if (seenEdge.find(eIndex) == seenEdge.end()) {
+					seenEdge[eIndex] = true;
+					silhouetteEdgeRefs.emplace_back(silhouetteEdges[eIndex]);
+				}
+			}
+		}
+
+		int end = (int)silhouetteEdgeRefs.size();
+		node.silhouetteReferenceOffset = start;
+		node.nSilhouetteReferences = end - start;
+	}
+}
+
+template<size_t DIM>
+inline void computeBoundingConesRecursive(const std::vector<Vector<DIM>>& silhouetteNormals,
+										  const std::vector<Vector<DIM>>& silhouetteFaceNormals,
+										  std::vector<SbvhNode<DIM, true>>& flatTree, int start, int end)
+{
+	BoundingCone<DIM> cone;
+	SbvhNode<DIM, true>& node(flatTree[start]);
+
+	// compute bounding cone axis
+	for (int i = start; i < end; i++) {
+		SbvhNode<DIM, true>& childNode(flatTree[i]);
+
+		for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
+			int referenceIndex = childNode.silhouetteReferenceOffset + j;
+			cone.axis += silhouetteNormals[referenceIndex];
+		}
+	}
+
+	// compute bounding cone angle
+	float axisNorm = cone.axis.norm();
+	if (axisNorm > epsilon) {
+		cone.axis /= axisNorm;
+		cone.halfAngle = 0.0f;
+
+		for (int i = start; i < end; i++) {
+			SbvhNode<DIM, true>& childNode(flatTree[i]);
+
+			for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
+				int referenceIndex = childNode.silhouetteReferenceOffset + j;
+
+				for (int k = 0; k < 2; k++) {
+					const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
+					float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
+					cone.halfAngle = std::max(cone.halfAngle, angle);
+				}
+			}
+		}
+
+		node.cone = cone;
+	}
+
+	// recurse on children
+	if (node.nSilhouetteReferences == 0) { // not a leaf
+		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + 1, start + node.secondChildOffset);
+		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + node.secondChildOffset, end);
+	}
+}
+
+template<size_t DIM, bool CONEDATA, typename SilhouetteType>
+inline void computeBoundingCones(const std::vector<SilhouetteType *>& silhouetteRefs,
+								 std::vector<SbvhNode<DIM, CONEDATA>>& flatTree)
+{
+	// do nothing
+}
+
+template<size_t DIM, typename SilhouetteType>
+inline void computeBoundingCones(const std::vector<SilhouetteType *>& silhouetteRefs,
+								 std::vector<SbvhNode<DIM, true>>& flatTree)
+{
+	// compute silhouette normals
+	int nSilhouetteRefs = (int)silhouetteRefs.size();
+	std::vector<Vector<DIM>> normals(nSilhouetteRefs, Vector<DIM>::Zero());
+	std::vector<Vector<DIM>> faceNormals(2*nSilhouetteRefs, Vector<DIM>::Zero());
+
+	for (int i = 0; i < nSilhouetteRefs; i++) {
+		normals[i] = silhouetteRefs[i]->normal();
+		if (silhouetteRefs[i]->hasFace(0)) faceNormals[2*i + 0] = silhouetteRefs[i]->normal(0, true);
+		if (silhouetteRefs[i]->hasFace(1)) faceNormals[2*i + 1] = silhouetteRefs[i]->normal(1, true);
+	}
+
+	// compute bounding cones recursively
+	computeBoundingConesRecursive<DIM>(normals, faceNormals, flatTree, 0, (int)flatTree.size());
+}
+
+template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
+inline Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::Sbvh(const CostHeuristic& costHeuristic_,
+																std::vector<PrimitiveType *>& primitives_,
+																std::vector<SilhouetteType *>& silhouettes_,
+																SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions_,
+																bool printStats_, bool packLeaves_, int leafSize_, int nBuckets_):
+costHeuristic(costHeuristic_),
+nNodes(0),
+nLeafs(0),
+leafSize(leafSize_),
+nBuckets(nBuckets_),
+maxDepth(0),
+depthGuess(std::log2(primitives_.size())),
+buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+primitives(primitives_),
+silhouettes(silhouettes_),
+packLeaves(packLeaves_),
+primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
+{
+	using namespace std::chrono;
+	high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+	// build sbvh
+	build();
+
+	// sort positions
+	if (sortPositions_) {
+		sortPositions_(flatTree, primitives, silhouettes);
+	}
+
+	// assign silhouettes to nodes
+	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, flatTree, silhouetteRefs);
+
+	// compute bounding cones for nodes
+	computeBoundingCones(silhouetteRefs, flatTree);
+
+	// don't compute normals by default
+	this->computeNormals = false;
+
+	// print stats
+	if (printStats_) {
+		high_resolution_clock::time_point t2 = high_resolution_clock::now();
+		duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+		std::cout << "Built bvh with "
+				  << nNodes << " nodes, "
+				  << nLeafs << " leaves, "
+				  << maxDepth << " max depth, "
+				  << primitives.size() << " primitives, "
+				  << silhouettes.size() << " silhouettes and "
+				  << silhouetteRefs.size() << " silhouetteRefs in "
+				  << timeSpan.count() << " seconds" << std::endl;
+	}
 }
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
