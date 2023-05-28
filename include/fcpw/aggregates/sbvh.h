@@ -181,7 +181,7 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	int nNodes, nLeafs, leafSize, nBuckets, maxDepth, depthGuess;
-	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBucketBoxes;
+	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBuckets;
 	std::vector<PrimitiveType *>& primitives;
 	std::vector<SilhouetteType *>& silhouettes;
 	std::vector<SilhouetteType *> silhouetteRefs;

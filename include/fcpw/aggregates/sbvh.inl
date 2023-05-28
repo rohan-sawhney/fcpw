@@ -79,9 +79,9 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 			BoundingBox<DIM> boxRefRight;
 			for (int b = nBuckets - 1; b > 0; b--) {
 				boxRefRight.expandToInclude(buckets[b].first);
-				rightBucketBoxes[b].first = boxRefRight;
-				rightBucketBoxes[b].second = buckets[b].second;
-				if (b != nBuckets - 1) rightBucketBoxes[b].second += rightBucketBoxes[b + 1].second;
+				rightBuckets[b].first = boxRefRight;
+				rightBuckets[b].second = buckets[b].second;
+				if (b != nBuckets - 1) rightBuckets[b].second += rightBuckets[b + 1].second;
 			}
 
 			// evaluate bucket split costs
@@ -91,10 +91,10 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 				boxRefLeft.expandToInclude(buckets[b - 1].first);
 				nReferencesLeft += buckets[b - 1].second;
 
-				if (nReferencesLeft > 0 && rightBucketBoxes[b].second > 0) {
-					float cost = computeSplitCost(boxRefLeft, rightBucketBoxes[b].first,
+				if (nReferencesLeft > 0 && rightBuckets[b].second > 0) {
+					float cost = computeSplitCost(boxRefLeft, rightBuckets[b].first,
 												  surfaceArea, volume, nReferencesLeft,
-												  rightBucketBoxes[b].second, depth);
+												  rightBuckets[b].second, depth);
 
 					if (cost < splitCost) {
 						splitCost = cost;
@@ -209,7 +209,6 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::buildRecursive(s
 										 depth, start, end, splitDim, splitCoord);
 
 	// partition the list of references on split
-	int nReferencesAdded = 0;
 	int mid = performObjectSplit(start, end, splitDim, splitCoord, referenceBoxes, referenceCentroids);
 
 	// push left and right children
@@ -239,7 +238,7 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::build()
 
 	// clear working set
 	buckets.clear();
-	rightBucketBoxes.clear();
+	rightBuckets.clear();
 }
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
@@ -401,7 +400,7 @@ nBuckets(nBuckets_),
 maxDepth(0),
 depthGuess(std::log2(primitives_.size())),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
-rightBucketBoxes(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+rightBuckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 primitives(primitives_),
 silhouettes(silhouettes_),
 packLeaves(packLeaves_),
