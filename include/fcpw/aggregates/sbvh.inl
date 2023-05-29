@@ -99,9 +99,6 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 				}
 			}
 		}
-
-		// set split dim to max dimension when packing leaves
-		if (packLeaves && splitDim == -1) splitDim = nodeCentroidBox.maxDimension();
 	}
 
 	// if no split dimension was chosen, fallback to LongestAxisCenter heuristic
