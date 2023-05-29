@@ -313,11 +313,7 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 {
 	// collect silhouette references
 	Vector3 zero = Vector3::Zero();
-	int nVertices = (int)silhouetteVertices.size();
-	std::unordered_map<int, bool> seenCacheVertex;
 	std::vector<Vector3> silhouetteRefNormals, silhouetteRefFaceNormals;
-	std::vector<Vector3> silhouetteNormalsCache(nVertices);
-	std::vector<Vector3> silhouetteFaceNormalsCache(2*nVertices);
 
 	for (int i = 0; i < (int)flatTree.size(); i++) {
 		SbvhNode<3, true>& node(flatTree[i]);
@@ -332,31 +328,24 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 				int vIndex = lineSegment->indices[k];
 				SilhouetteVertex *silhouetteVertex = silhouetteVertices[vIndex];
 
-				if (seenCacheVertex.find(vIndex) == seenCacheVertex.end()) {
-					seenCacheVertex[vIndex] = true;
-					silhouetteNormalsCache[vIndex] = silhouetteVertex->normal();
-					silhouetteFaceNormalsCache[2*vIndex + 0] = silhouetteVertex->hasFace(0) ? silhouetteVertex->normal(0, true) : zero;
-					silhouetteFaceNormalsCache[2*vIndex + 1] = silhouetteVertex->hasFace(1) ? silhouetteVertex->normal(1, true) : zero;
-				}
-
 				if (seenVertex.find(vIndex) == seenVertex.end()) {
+					seenVertex[vIndex] = true;
+					const Vector3& n = silhouetteVertex->normal();
+					const Vector3& n0 = silhouetteVertex->hasFace(0) ? silhouetteVertex->normal(0, true) : zero;
+					const Vector3& n1 = silhouetteVertex->hasFace(1) ? silhouetteVertex->normal(1, true) : zero;
+
 					bool ignore = false;
 	 				if (ignoreSilhouetteTest && silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1)) {
-						const Vector3& n = silhouetteNormalsCache[vIndex];
-						const Vector3& n0 = silhouetteFaceNormalsCache[2*vIndex + 0];
-						const Vector3& n1 = silhouetteFaceNormalsCache[2*vIndex + 1];
 						float det = n0.x()*n1.y() - n1.x()*n0.y();
 						ignore = ignoreSilhouetteTest(det, lineSegment->pIndex);
 					}
 
 					if (!ignore) {
 						silhouetteVertexRefs.emplace_back(silhouetteVertex);
-						silhouetteRefNormals.emplace_back(silhouetteNormalsCache[vIndex]);
-						silhouetteRefFaceNormals.emplace_back(silhouetteFaceNormalsCache[2*vIndex + 0]);
-						silhouetteRefFaceNormals.emplace_back(silhouetteFaceNormalsCache[2*vIndex + 1]);
+						silhouetteRefNormals.emplace_back(n);
+						silhouetteRefFaceNormals.emplace_back(n0);
+						silhouetteRefFaceNormals.emplace_back(n1);
 					}
-
-					seenVertex[vIndex] = true;
 				}
 			}
 		}
@@ -381,11 +370,7 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 {
 	// collect silhouette references
 	Vector3 zero = Vector3::Zero();
-	int nEdges = (int)silhouetteEdges.size();
-	std::unordered_map<int, bool> seenCacheEdge;
 	std::vector<Vector3> silhouetteRefNormals, silhouetteRefFaceNormals;
-	std::vector<Vector3> silhouetteNormalsCache(nEdges);
-	std::vector<Vector3> silhouetteFaceNormalsCache(2*nEdges);
 
 	for (int i = 0; i < (int)flatTree.size(); i++) {
 		SbvhNode<3, true>& node(flatTree[i]);
@@ -400,19 +385,14 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 				int eIndex = triangle->soup->eIndices[3*triangle->pIndex + k];
 				SilhouetteEdge *silhouetteEdge = silhouetteEdges[eIndex];
 
-				if (seenCacheEdge.find(eIndex) == seenCacheEdge.end()) {
-					seenCacheEdge[eIndex] = true;
-					silhouetteNormalsCache[eIndex] = silhouetteEdge->normal();
-					silhouetteFaceNormalsCache[2*eIndex + 0] = silhouetteEdge->hasFace(0) ? silhouetteEdge->normal(0, true) : zero;
-					silhouetteFaceNormalsCache[2*eIndex + 1] = silhouetteEdge->hasFace(1) ? silhouetteEdge->normal(1, true) : zero;
-				}
-
 				if (seenEdge.find(eIndex) == seenEdge.end()) {
+					seenEdge[eIndex] = true;
+					const Vector3& n = silhouetteEdge->normal();
+					const Vector3& n0 = silhouetteEdge->hasFace(0) ? silhouetteEdge->normal(0, true) : zero;
+					const Vector3& n1 = silhouetteEdge->hasFace(1) ? silhouetteEdge->normal(1, true) : zero;
+
 					bool ignore = false;
 	 				if (ignoreSilhouetteTest && silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1)) {
-						const Vector3& n = silhouetteNormalsCache[eIndex];
-						const Vector3& n0 = silhouetteFaceNormalsCache[2*eIndex + 0];
-						const Vector3& n1 = silhouetteFaceNormalsCache[2*eIndex + 1];
 						const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
 	 					const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
 	 					Vector3 edgeDir = (pb - pa).normalized();
@@ -422,12 +402,10 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 
 					if (!ignore) {
 						silhouetteEdgeRefs.emplace_back(silhouetteEdge);
-						silhouetteRefNormals.emplace_back(silhouetteNormalsCache[eIndex]);
-						silhouetteRefFaceNormals.emplace_back(silhouetteFaceNormalsCache[2*eIndex + 0]);
-						silhouetteRefFaceNormals.emplace_back(silhouetteFaceNormalsCache[2*eIndex + 1]);
+						silhouetteRefNormals.emplace_back(n);
+						silhouetteRefFaceNormals.emplace_back(n0);
+						silhouetteRefFaceNormals.emplace_back(n1);
 					}
-
-					seenEdge[eIndex] = true;
 				}
 			}
 		}
@@ -439,7 +417,7 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 
 	// compute bounding cones recursively
 	computeBoundingConesRecursive<3, SilhouetteEdge>(silhouetteEdgeRefs, silhouetteRefNormals,
-													 silhouetteFaceNormalsCache, flatTree,
+													 silhouetteRefFaceNormals, flatTree,
 													 0, (int)flatTree.size());
 }
 
