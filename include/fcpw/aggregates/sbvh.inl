@@ -304,8 +304,9 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 	}
 }
 
-template<size_t DIM>
-inline void computeBoundingConesRecursive(const std::vector<Vector<DIM>>& silhouetteNormals,
+template<size_t DIM, typename SilhouetteType>
+inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& silhouetteRefs,
+										  const std::vector<Vector<DIM>>& silhouetteNormals,
 										  const std::vector<Vector<DIM>>& silhouetteFaceNormals,
 										  std::vector<SbvhNode<DIM, true>>& flatTree, int start, int end)
 {
@@ -333,11 +334,14 @@ inline void computeBoundingConesRecursive(const std::vector<Vector<DIM>>& silhou
 
 			for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
 				int referenceIndex = childNode.silhouetteReferenceOffset + j;
+				const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
 
 				for (int k = 0; k < 2; k++) {
-					const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
-					float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
-					cone.halfAngle = std::max(cone.halfAngle, angle);
+					if (silhouette->hasFace(k)) {
+						const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
+						float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
+						cone.halfAngle = std::max(cone.halfAngle, angle);
+					}
 				}
 			}
 		}
@@ -347,8 +351,10 @@ inline void computeBoundingConesRecursive(const std::vector<Vector<DIM>>& silhou
 
 	// recurse on children
 	if (node.nReferences == 0) { // not a leaf
-		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + 1, start + node.secondChildOffset);
-		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + node.secondChildOffset, end);
+		computeBoundingConesRecursive<DIM, SilhouetteType>(silhouetteRefs, silhouetteNormals, silhouetteFaceNormals,
+														   flatTree, start + 1, start + node.secondChildOffset);
+		computeBoundingConesRecursive<DIM, SilhouetteType>(silhouetteRefs, silhouetteNormals, silhouetteFaceNormals,
+														   flatTree, start + node.secondChildOffset, end);
 	}
 }
 
@@ -375,7 +381,7 @@ inline void computeBoundingCones(const std::vector<SilhouetteType *>& silhouette
 	}
 
 	// compute bounding cones recursively
-	computeBoundingConesRecursive<DIM>(normals, faceNormals, flatTree, 0, (int)flatTree.size());
+	computeBoundingConesRecursive<DIM, SilhouetteType>(silhouetteRefs, normals, faceNormals, flatTree, 0, (int)flatTree.size());
 }
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
