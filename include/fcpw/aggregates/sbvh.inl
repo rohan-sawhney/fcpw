@@ -330,9 +330,9 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 
 				if (seenVertex.find(vIndex) == seenVertex.end()) {
 					seenVertex[vIndex] = true;
-					const Vector3& n = silhouetteVertex->normal();
-					const Vector3& n0 = silhouetteVertex->hasFace(0) ? silhouetteVertex->normal(0, true) : zero;
-					const Vector3& n1 = silhouetteVertex->hasFace(1) ? silhouetteVertex->normal(1, true) : zero;
+					Vector3 n = silhouetteVertex->normal();
+					Vector3 n0 = silhouetteVertex->hasFace(0) ? silhouetteVertex->normal(0, true) : zero;
+					Vector3 n1 = silhouetteVertex->hasFace(1) ? silhouetteVertex->normal(1, true) : zero;
 
 					bool ignore = false;
 	 				if (ignoreSilhouetteTest && silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1)) {
@@ -387,9 +387,9 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 
 				if (seenEdge.find(eIndex) == seenEdge.end()) {
 					seenEdge[eIndex] = true;
-					const Vector3& n = silhouetteEdge->normal();
-					const Vector3& n0 = silhouetteEdge->hasFace(0) ? silhouetteEdge->normal(0, true) : zero;
-					const Vector3& n1 = silhouetteEdge->hasFace(1) ? silhouetteEdge->normal(1, true) : zero;
+					Vector3 n = silhouetteEdge->normal();
+					Vector3 n0 = silhouetteEdge->hasFace(0) ? silhouetteEdge->normal(0, true) : zero;
+					Vector3 n1 = silhouetteEdge->hasFace(1) ? silhouetteEdge->normal(1, true) : zero;
 
 					bool ignore = false;
 	 				if (ignoreSilhouetteTest && silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1)) {
