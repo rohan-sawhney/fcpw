@@ -271,6 +271,11 @@ struct BoundingCone {
 		return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, dAxisAngle - halfAngleSum, dAxisAngle + halfAngleSum);
 	}
 
+	// returns whether cone is valid
+	bool isValid() const {
+		return halfAngle >= 0.0f;
+	}
+
 	// members
 	Vector<DIM> axis;
 	float halfAngle;

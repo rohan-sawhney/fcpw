@@ -34,6 +34,12 @@ inline void assignSilhouetteLeafRange(const SbvhNode<DIM, true>& sbvhNode, MbvhN
 		mbvhNode.silhouetteChild[2] = sbvhNode.silhouetteReferenceOffset;
 		mbvhNode.silhouetteChild[3] = sbvhNode.nSilhouetteReferences;
 		nSilhouetteLeafs += mbvhNode.silhouetteChild[1];
+
+	} else {
+		mbvhNode.silhouetteChild[0] = 0;
+		mbvhNode.silhouetteChild[1] = 0;
+		mbvhNode.silhouetteChild[2] = 0;
+		mbvhNode.silhouetteChild[3] = 0;
 	}
 }
 
@@ -1721,7 +1727,7 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<MbvhNode<D
 
 		} else { // not a leaf
 			// overlap sphere with boxes, and normal and view cones
-			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = enoki::neq(node.child, maxInt);
+			MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = enoki::neq(node.child, maxInt) && node.coneHalfAngle >= 0.0f;
 			mask &= overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(node.boxMin, node.boxMax, sc, s.r2, d2Min);
 			overlapWideCone<FCPW_MBVH_BRANCHING_FACTOR, DIM>(node.coneAxis, node.coneHalfAngle, sc, node.boxMin, node.boxMax, d2Min, mask);
 

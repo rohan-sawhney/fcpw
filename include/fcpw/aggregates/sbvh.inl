@@ -243,39 +243,46 @@ inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& s
 	SbvhNode<DIM, true>& node(flatTree[start]);
 
 	// compute bounding cone axis
+	bool anySilhouetteRefs = false;
 	for (int i = start; i < end; i++) {
 		SbvhNode<DIM, true>& childNode(flatTree[i]);
 
 		for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
 			int referenceIndex = childNode.silhouetteReferenceOffset + j;
 			cone.axis += silhouetteNormals[referenceIndex];
+			anySilhouetteRefs = true;
 		}
 	}
 
 	// compute bounding cone angle
-	float axisNorm = cone.axis.norm();
-	if (axisNorm > epsilon) {
-		cone.axis /= axisNorm;
-		cone.halfAngle = 0.0f;
+	if (!anySilhouetteRefs) {
+ 		node.cone.halfAngle = -M_PI;
 
-		for (int i = start; i < end; i++) {
-			SbvhNode<DIM, true>& childNode(flatTree[i]);
+	} else {
+		float axisNorm = cone.axis.norm();
+		if (axisNorm > epsilon) {
+			cone.axis /= axisNorm;
+			cone.halfAngle = 0.0f;
 
-			for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
-				int referenceIndex = childNode.silhouetteReferenceOffset + j;
-				const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
+			for (int i = start; i < end; i++) {
+				SbvhNode<DIM, true>& childNode(flatTree[i]);
 
-				for (int k = 0; k < 2; k++) {
-					if (silhouette->hasFace(k)) {
-						const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
-						float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
-						cone.halfAngle = std::max(cone.halfAngle, angle);
+				for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
+					int referenceIndex = childNode.silhouetteReferenceOffset + j;
+					const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
+
+					for (int k = 0; k < 2; k++) {
+						if (silhouette->hasFace(k)) {
+							const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
+							float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
+							cone.halfAngle = std::max(cone.halfAngle, angle);
+						}
 					}
 				}
 			}
-		}
 
-		node.cone = cone;
+			node.cone = cone;
+		}
 	}
 
 	// recurse on children
@@ -290,6 +297,7 @@ inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& s
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline void assignSilhouettesToNodes(const std::vector<PrimitiveType *>& primitives,
 									 const std::vector<SilhouetteType *>& silhouettes,
+									 const std::function<bool(float, int)>& ignoreSilhouetteTest,
 									 std::vector<SbvhNode<DIM, CONEDATA>>& flatTree,
 									 std::vector<SilhouetteType *>& silhouetteRefs)
 {
@@ -299,12 +307,18 @@ inline void assignSilhouettesToNodes(const std::vector<PrimitiveType *>& primiti
 template<>
 inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(const std::vector<LineSegment *>& lineSegments,
 																			 const std::vector<SilhouetteVertex *>& silhouetteVertices,
+																			 const std::function<bool(float, int)>& ignoreSilhouetteTest,
 																			 std::vector<SbvhNode<3, true>>& flatTree,
 																			 std::vector<SilhouetteVertex *>& silhouetteVertexRefs)
 {
 	// collect silhouette references
 	Vector3 zero = Vector3::Zero();
-	std::vector<Vector3> silhouetteNormals, silhouetteFaceNormals;
+	int nVertices = (int)silhouetteVertices.size();
+	std::unordered_map<int, bool> seenCacheVertex;
+	std::vector<Vector3> silhouetteRefNormals, silhouetteRefFaceNormals;
+	std::vector<Vector3> silhouetteNormalsCache(nVertices);
+	std::vector<Vector3> silhouetteFaceNormalsCache(2*nVertices);
+
 	for (int i = 0; i < (int)flatTree.size(); i++) {
 		SbvhNode<3, true>& node(flatTree[i]);
 		std::unordered_map<int, bool> seenVertex;
@@ -318,12 +332,31 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 				int vIndex = lineSegment->indices[k];
 				SilhouetteVertex *silhouetteVertex = silhouetteVertices[vIndex];
 
+				if (seenCacheVertex.find(vIndex) == seenCacheVertex.end()) {
+					seenCacheVertex[vIndex] = true;
+					silhouetteNormalsCache[vIndex] = silhouetteVertex->normal();
+					silhouetteFaceNormalsCache[2*vIndex + 0] = silhouetteVertex->hasFace(0) ? silhouetteVertex->normal(0, true) : zero;
+					silhouetteFaceNormalsCache[2*vIndex + 1] = silhouetteVertex->hasFace(1) ? silhouetteVertex->normal(1, true) : zero;
+				}
+
 				if (seenVertex.find(vIndex) == seenVertex.end()) {
+					bool ignore = false;
+	 				if (ignoreSilhouetteTest && silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1)) {
+						const Vector3& n = silhouetteNormalsCache[vIndex];
+						const Vector3& n0 = silhouetteFaceNormalsCache[2*vIndex + 0];
+						const Vector3& n1 = silhouetteFaceNormalsCache[2*vIndex + 1];
+						float det = n0.x()*n1.y() - n1.x()*n0.y();
+						ignore = ignoreSilhouetteTest(det, lineSegment->pIndex);
+					}
+
+					if (!ignore) {
+						silhouetteVertexRefs.emplace_back(silhouetteVertex);
+						silhouetteRefNormals.emplace_back(silhouetteNormalsCache[vIndex]);
+						silhouetteRefFaceNormals.emplace_back(silhouetteFaceNormalsCache[2*vIndex + 0]);
+						silhouetteRefFaceNormals.emplace_back(silhouetteFaceNormalsCache[2*vIndex + 1]);
+					}
+
 					seenVertex[vIndex] = true;
-					silhouetteVertexRefs.emplace_back(silhouetteVertex);
-					silhouetteNormals.emplace_back(silhouetteVertex->normal());
-					silhouetteFaceNormals.emplace_back(silhouetteVertex->hasFace(0) ? silhouetteVertex->normal(0, true) : zero);
-					silhouetteFaceNormals.emplace_back(silhouetteVertex->hasFace(1) ? silhouetteVertex->normal(1, true) : zero);
 				}
 			}
 		}
@@ -334,19 +367,26 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 	}
 
 	// compute bounding cones recursively
-	computeBoundingConesRecursive<3, SilhouetteVertex>(silhouetteVertexRefs, silhouetteNormals, silhouetteFaceNormals,
-													   flatTree, 0, (int)flatTree.size());
+	computeBoundingConesRecursive<3, SilhouetteVertex>(silhouetteVertexRefs, silhouetteRefNormals,
+													   silhouetteRefFaceNormals, flatTree,
+													   0, (int)flatTree.size());
 }
 
 template<>
 inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const std::vector<Triangle *>& triangles,
 																		const std::vector<SilhouetteEdge *>& silhouetteEdges,
+																		const std::function<bool(float, int)>& ignoreSilhouetteTest,
 																		std::vector<SbvhNode<3, true>>& flatTree,
 																		std::vector<SilhouetteEdge *>& silhouetteEdgeRefs)
 {
 	// collect silhouette references
 	Vector3 zero = Vector3::Zero();
-	std::vector<Vector3> silhouetteNormals, silhouetteFaceNormals;
+	int nEdges = (int)silhouetteEdges.size();
+	std::unordered_map<int, bool> seenCacheEdge;
+	std::vector<Vector3> silhouetteRefNormals, silhouetteRefFaceNormals;
+	std::vector<Vector3> silhouetteNormalsCache(nEdges);
+	std::vector<Vector3> silhouetteFaceNormalsCache(2*nEdges);
+
 	for (int i = 0; i < (int)flatTree.size(); i++) {
 		SbvhNode<3, true>& node(flatTree[i]);
 		std::unordered_map<int, bool> seenEdge;
@@ -360,12 +400,34 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 				int eIndex = triangle->soup->eIndices[3*triangle->pIndex + k];
 				SilhouetteEdge *silhouetteEdge = silhouetteEdges[eIndex];
 
+				if (seenCacheEdge.find(eIndex) == seenCacheEdge.end()) {
+					seenCacheEdge[eIndex] = true;
+					silhouetteNormalsCache[eIndex] = silhouetteEdge->normal();
+					silhouetteFaceNormalsCache[2*eIndex + 0] = silhouetteEdge->hasFace(0) ? silhouetteEdge->normal(0, true) : zero;
+					silhouetteFaceNormalsCache[2*eIndex + 1] = silhouetteEdge->hasFace(1) ? silhouetteEdge->normal(1, true) : zero;
+				}
+
 				if (seenEdge.find(eIndex) == seenEdge.end()) {
+					bool ignore = false;
+	 				if (ignoreSilhouetteTest && silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1)) {
+						const Vector3& n = silhouetteNormalsCache[eIndex];
+						const Vector3& n0 = silhouetteFaceNormalsCache[2*eIndex + 0];
+						const Vector3& n1 = silhouetteFaceNormalsCache[2*eIndex + 1];
+						const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
+	 					const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
+	 					Vector3 edgeDir = (pb - pa).normalized();
+						float dihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));
+						ignore = ignoreSilhouetteTest(dihedralAngle, triangle->pIndex);
+					}
+
+					if (!ignore) {
+						silhouetteEdgeRefs.emplace_back(silhouetteEdge);
+						silhouetteRefNormals.emplace_back(silhouetteNormalsCache[eIndex]);
+						silhouetteRefFaceNormals.emplace_back(silhouetteFaceNormalsCache[2*eIndex + 0]);
+						silhouetteRefFaceNormals.emplace_back(silhouetteFaceNormalsCache[2*eIndex + 1]);
+					}
+
 					seenEdge[eIndex] = true;
-					silhouetteEdgeRefs.emplace_back(silhouetteEdge);
-					silhouetteNormals.emplace_back(silhouetteEdge->normal());
-					silhouetteFaceNormals.emplace_back(silhouetteEdge->hasFace(0) ? silhouetteEdge->normal(0, true) : zero);
-					silhouetteFaceNormals.emplace_back(silhouetteEdge->hasFace(1) ? silhouetteEdge->normal(1, true) : zero);
 				}
 			}
 		}
@@ -376,8 +438,9 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 	}
 
 	// compute bounding cones recursively
-	computeBoundingConesRecursive<3, SilhouetteEdge>(silhouetteEdgeRefs, silhouetteNormals, silhouetteFaceNormals,
-													 flatTree, 0, (int)flatTree.size());
+	computeBoundingConesRecursive<3, SilhouetteEdge>(silhouetteEdgeRefs, silhouetteRefNormals,
+													 silhouetteFaceNormalsCache, flatTree,
+													 0, (int)flatTree.size());
 }
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
@@ -385,6 +448,7 @@ inline Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::Sbvh(const CostHeuris
 																std::vector<PrimitiveType *>& primitives_,
 																std::vector<SilhouetteType *>& silhouettes_,
 																SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions_,
+																const std::function<bool(float, int)>& ignoreSilhouetteTest_,
 																bool printStats_, bool packLeaves_, int leafSize_, int nBuckets_):
 costHeuristic(costHeuristic_),
 nNodes(0),
@@ -412,7 +476,8 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	}
 
 	// assign silhouettes to nodes
-	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, flatTree, silhouetteRefs);
+	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, ignoreSilhouetteTest_,
+																		   flatTree, silhouetteRefs);
 
 	// don't compute normals by default
 	this->computeNormals = false;
@@ -1096,10 +1161,12 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<SbvhNode<D
 
 		} else { // not a leaf
 			const SbvhNode<DIM, true>& node0(flatTree[nodeIndex + 1]);
-			bool hit0 = node0.box.overlap(s, boxHits[0]) && node0.cone.overlap(s.c, node0.box, boxHits[0]);
+			bool hit0 = node0.cone.isValid() && node0.box.overlap(s, boxHits[0]) &&
+						node0.cone.overlap(s.c, node0.box, boxHits[0]);
 
 			const SbvhNode<DIM, true>& node1(flatTree[nodeIndex + node.secondChildOffset]);
-			bool hit1 = node1.box.overlap(s, boxHits[1]) && node1.cone.overlap(s.c, node1.box, boxHits[1]);
+			bool hit1 = node1.cone.isValid() && node1.box.overlap(s, boxHits[1]) &&
+						node1.cone.overlap(s.c, node1.box, boxHits[1]);
 
 			// is there overlap with both nodes?
 			if (hit0 && hit1) {
