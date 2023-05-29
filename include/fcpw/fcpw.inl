@@ -662,7 +662,9 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 					silhouetteVertexObjectPtr.emplace_back(&silhouetteVertexObject[j]);
 				}
 
-				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&, std::vector<LineSegment *>&, std::vector<SilhouetteVertex *>&)>;
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&,
+																		std::vector<LineSegment *>&,
+																		std::vector<SilhouetteVertex *>&)>;
 				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, true, LineSegment, SilhouetteVertex>,
 																				  std::placeholders::_1, std::placeholders::_2,
 																				  std::placeholders::_3, std::ref(sceneData->soups[i]));
@@ -671,7 +673,9 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 																							printStats, sortLineSegmentPositions);
 
 			} else {
-				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&, std::vector<LineSegment *>&, std::vector<SilhouettePrimitive<3> *>&)>;
+				using SortLineSegmentPositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&,
+																		std::vector<LineSegment *>&,
+																		std::vector<SilhouettePrimitive<3> *>&)>;
 				SortLineSegmentPositionsFunc sortLineSegmentPositions = std::bind(&sortSoupPositions<3, false, LineSegment, SilhouettePrimitive<3>>,
 																				  std::placeholders::_1, std::placeholders::_2,
 																				  std::placeholders::_3, std::ref(sceneData->soups[i]));
@@ -701,7 +705,9 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 					silhouetteEdgeObjectPtr.emplace_back(&silhouetteEdgeObject[j]);
 				}
 
-				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&, std::vector<Triangle *>&, std::vector<SilhouetteEdge *>&)>;
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, true>>&,
+																	 std::vector<Triangle *>&,
+																	 std::vector<SilhouetteEdge *>&)>;
 				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, true, Triangle, SilhouetteEdge>,
 																			std::placeholders::_1, std::placeholders::_2,
 																			std::placeholders::_3, std::ref(sceneData->soups[i]));
@@ -710,7 +716,9 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 																					   printStats, sortTrianglePositions);
 
 			} else {
-				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&, std::vector<Triangle *>&, std::vector<SilhouettePrimitive<3> *>&)>;
+				using SortTrianglePositionsFunc = std::function<void(const std::vector<SbvhNode<3, false>>&,
+																	 std::vector<Triangle *>&,
+																	 std::vector<SilhouettePrimitive<3> *>&)>;
 				SortTrianglePositionsFunc sortTrianglePositions = std::bind(&sortSoupPositions<3, false, Triangle, SilhouettePrimitive<3>>,
 																			std::placeholders::_1, std::placeholders::_2,
 																			std::placeholders::_3, std::ref(sceneData->soups[i]));

@@ -346,7 +346,7 @@ inline void computeBoundingConesRecursive(const std::vector<Vector<DIM>>& silhou
 	}
 
 	// recurse on children
-	if (node.nSilhouetteReferences == 0) { // not a leaf
+	if (node.nReferences == 0) { // not a leaf
 		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + 1, start + node.secondChildOffset);
 		computeBoundingConesRecursive<DIM>(silhouetteNormals, silhouetteFaceNormals, flatTree, start + node.secondChildOffset, end);
 	}
@@ -413,7 +413,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, flatTree, silhouetteRefs);
 
 	// compute bounding cones for nodes
-	computeBoundingCones(silhouetteRefs, flatTree);
+	if (!primitiveTypeIsAggregate) computeBoundingCones(silhouetteRefs, flatTree);
 
 	// don't compute normals by default
 	this->computeNormals = false;
