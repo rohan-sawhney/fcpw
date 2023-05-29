@@ -3,6 +3,8 @@ namespace fcpw {
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
 																				  const BoundingBox<DIM>& boxRight,
+																				  const BoundingCone<DIM>& coneLeft,
+																				  const BoundingCone<DIM>& coneRight,
 																				  int nReferencesLeft, int nReferencesRight,
 																				  int depth) const
 {
@@ -31,6 +33,17 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeSplitCos
 		cost = (nReferencesLeft/boxRight.volume() +
 				nReferencesRight/boxLeft.volume())*std::fabs(boxIntersected.volume());
 		if (!boxIntersected.isValid()) cost *= -1;
+
+	} else if (costHeuristic == CostHeuristic::SurfaceAreaOrientation) {
+		float orientationLeft = 1.0f;
+		float orientationRight = 1.0f;
+		if (CONEDATA == true && !primitiveTypeIsAggregate) {
+			orientationLeft = 1.0f - std::cos(coneLeft.halfAngle);
+			orientationRight = 1.0f - std::cos(coneRight.halfAngle);
+		}
+
+		cost = nReferencesLeft*orientationLeft*boxLeft.surfaceArea() +
+			   nReferencesRight*orientationRight*boxRight.surfaceArea();
 	}
 
 	return cost;
@@ -40,13 +53,17 @@ template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteT
 inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
 																					const BoundingBox<DIM>& nodeCentroidBox,
 																					const std::vector<BoundingBox<DIM>>& referenceBoxes,
+																					const std::vector<BoundingCone<DIM>>& referenceCones,
 																					const std::vector<Vector<DIM>>& referenceCentroids,
 																					int depth, int nodeStart, int nodeEnd,
 																					int& splitDim, float& splitCoord)
 {
-	float splitCost = maxFloat;
 	splitDim = -1;
 	splitCoord = 0.0f;
+	float splitCost = maxFloat;
+	int maxDim = nodeCentroidBox.maxDimension();
+	bool computeConeData = CONEDATA == true && !primitiveTypeIsAggregate &&
+						   costHeuristic == CostHeuristic::SurfaceAreaOrientation;
 
 	if (costHeuristic != CostHeuristic::LongestAxisCenter) {
 		Vector<DIM> extent = nodeBoundingBox.extent();
@@ -59,37 +76,72 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 			// bin references into buckets
 			float bucketWidth = extent[dim]/nBuckets;
 			for (int b = 0; b < nBuckets; b++) {
-				buckets[b].first = BoundingBox<DIM>();
-				buckets[b].second = 0;
+				std::get<0>(buckets[b]) = BoundingBox<DIM>();
+				std::get<2>(buckets[b]) = 0;
+				if (computeConeData) std::get<1>(buckets[b]) = BoundingCone<DIM>(Vector<DIM>::Zero(), -M_PI);
 			}
 
 			for (int p = nodeStart; p < nodeEnd; p++) {
 				int bucketIndex = (int)((referenceCentroids[p][dim] - nodeBoundingBox.pMin[dim])/bucketWidth);
 				bucketIndex = clamp(bucketIndex, 0, nBuckets - 1);
-				buckets[bucketIndex].first.expandToInclude(referenceBoxes[p]);
-				buckets[bucketIndex].second += 1;
+				std::get<0>(buckets[bucketIndex]).expandToInclude(referenceBoxes[p]);
+				std::get<2>(buckets[bucketIndex]) += 1;
+				if (computeConeData) std::get<1>(buckets[bucketIndex]).axis += referenceCones[p].axis;
+			}
+
+			if (computeConeData) {
+				// normalize bucket cones
+				for (int b = 0; b < nBuckets; b++) {
+					float axisNorm = std::get<1>(buckets[b]).axis.norm();
+					if (axisNorm > epsilon) {
+						std::get<1>(buckets[b]).axis /= axisNorm;
+						std::get<1>(buckets[b]).halfAngle = 0.0f;
+					}
+				}
+
+				// compute bucket cone angles
+				for (int p = nodeStart; p < nodeEnd; p++) {
+					int bucketIndex = (int)((referenceCentroids[p][dim] - nodeBoundingBox.pMin[dim])/bucketWidth);
+					bucketIndex = clamp(bucketIndex, 0, nBuckets - 1);
+					BoundingCone<DIM>& cone = std::get<1>(buckets[bucketIndex]);
+
+					if (cone.isValid()) {
+						float theta = cone.axis.dot(referenceCones[p].axis);
+						float angle = std::acos(std::max(-1.0f, std::min(1.0f, theta)));
+						cone.halfAngle = std::max(cone.halfAngle, angle);
+					}
+				}
 			}
 
 			// sweep right to left to build right bucket bounding boxes
 			BoundingBox<DIM> boxRefRight;
+			BoundingCone<DIM> coneRefRight(Vector<DIM>::Zero(), -M_PI);
 			for (int b = nBuckets - 1; b > 0; b--) {
-				boxRefRight.expandToInclude(buckets[b].first);
-				rightBuckets[b].first = boxRefRight;
-				rightBuckets[b].second = buckets[b].second;
-				if (b != nBuckets - 1) rightBuckets[b].second += rightBuckets[b + 1].second;
+				boxRefRight.expandToInclude(std::get<0>(buckets[b]));
+				std::get<0>(rightBuckets[b]) = boxRefRight;
+				std::get<2>(rightBuckets[b]) = std::get<2>(buckets[b]);
+				if (b != nBuckets - 1) std::get<2>(rightBuckets[b]) += std::get<2>(rightBuckets[b + 1]);
+				if (computeConeData) {
+					coneRefRight.expandToInclude(std::get<1>(buckets[b]));
+					std::get<1>(rightBuckets[b]) = coneRefRight;
+				}
 			}
 
 			// evaluate bucket split costs
 			BoundingBox<DIM> boxRefLeft;
+			BoundingCone<DIM> coneRefLeft(Vector<DIM>::Zero(), -M_PI);
 			int nReferencesLeft = 0;
 			for (int b = 1; b < nBuckets; b++) {
-				boxRefLeft.expandToInclude(buckets[b - 1].first);
-				nReferencesLeft += buckets[b - 1].second;
+				boxRefLeft.expandToInclude(std::get<0>(buckets[b - 1]));
+				nReferencesLeft += std::get<2>(buckets[b - 1]);
+				if (computeConeData) coneRefLeft.expandToInclude(std::get<1>(buckets[b - 1]));
 
-				if (nReferencesLeft > 0 && rightBuckets[b].second > 0) {
-					float cost = computeSplitCost(boxRefLeft, rightBuckets[b].first,
-												  nReferencesLeft, rightBuckets[b].second,
+				if (nReferencesLeft > 0 && std::get<2>(rightBuckets[b]) > 0) {
+					float cost = computeSplitCost(boxRefLeft, std::get<0>(rightBuckets[b]),
+												  coneRefLeft, std::get<1>(rightBuckets[b]),
+												  nReferencesLeft, std::get<2>(rightBuckets[b]),
 												  depth);
+					if (computeConeData) cost *= extent[maxDim]/extent[dim];
 
 					if (cost < splitCost) {
 						splitCost = cost;
@@ -103,7 +155,7 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 
 	// if no split dimension was chosen, fallback to LongestAxisCenter heuristic
 	if (splitDim == -1) {
-		splitDim = nodeCentroidBox.maxDimension();
+		splitDim = maxDim;
 		splitCoord = (nodeCentroidBox.pMin[splitDim] + nodeCentroidBox.pMax[splitDim])*0.5f;
 	}
 
@@ -113,6 +165,7 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::computeObjectSp
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
 																				  std::vector<BoundingBox<DIM>>& referenceBoxes,
+																				  std::vector<BoundingCone<DIM>>& referenceCones,
 																				  std::vector<Vector<DIM>>& referenceCentroids)
 {
 	int mid = nodeStart;
@@ -120,6 +173,7 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::performObjectSpli
 		if (referenceCentroids[i][splitDim] < splitCoord) {
 			std::swap(primitives[i], primitives[mid]);
 			std::swap(referenceBoxes[i], referenceBoxes[mid]);
+			std::swap(referenceCones[i], referenceCones[mid]);
 			std::swap(referenceCentroids[i], referenceCentroids[mid]);
 			mid++;
 		}
@@ -141,6 +195,7 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::performObjectSpli
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+																			   std::vector<BoundingCone<DIM>>& referenceCones,
 																			   std::vector<Vector<DIM>>& referenceCentroids,
 																			   std::vector<SbvhNode<DIM, CONEDATA>>& buildNodes,
 																			   int parent, int start, int end, int depth)
@@ -197,36 +252,44 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::buildRecursive(s
 	// compute object split
 	int splitDim;
 	float splitCoord;
-	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCentroids,
+	float splitCost = computeObjectSplit(bb, bc, referenceBoxes, referenceCones, referenceCentroids,
 										 depth, start, end, splitDim, splitCoord);
 
 	// partition the list of references on split
-	int mid = performObjectSplit(start, end, splitDim, splitCoord, referenceBoxes, referenceCentroids);
+	int mid = performObjectSplit(start, end, splitDim, splitCoord, referenceBoxes, referenceCones, referenceCentroids);
 
 	// push left and right children
-	buildRecursive(referenceBoxes, referenceCentroids, buildNodes, currentNodeIndex, start, mid, depth + 1);
-	buildRecursive(referenceBoxes, referenceCentroids, buildNodes, currentNodeIndex, mid, end, depth + 1);
+	buildRecursive(referenceBoxes, referenceCones, referenceCentroids, buildNodes, currentNodeIndex, start, mid, depth + 1);
+	buildRecursive(referenceBoxes, referenceCones, referenceCentroids, buildNodes, currentNodeIndex, mid, end, depth + 1);
 }
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::build()
 {
-	// precompute bounding boxes and centroids
+	// precompute bounding boxes, cones and centroids
 	int nReferences = (int)primitives.size();
 	std::vector<BoundingBox<DIM>> referenceBoxes;
+	std::vector<BoundingCone<DIM>> referenceCones;
 	std::vector<Vector<DIM>> referenceCentroids;
+	bool computeConeData = CONEDATA == true && !primitiveTypeIsAggregate &&
+						   costHeuristic == CostHeuristic::SurfaceAreaOrientation;
 
 	referenceBoxes.resize(nReferences);
+	referenceCones.resize(nReferences);
 	referenceCentroids.resize(nReferences);
 	flatTree.reserve(nReferences*2);
 
 	for (int i = 0; i < nReferences; i++) {
 		referenceBoxes[i] = primitives[i]->boundingBox();
 		referenceCentroids[i] = primitives[i]->centroid();
+		if (computeConeData) {
+			Vector<DIM> n = reinterpret_cast<const GeometricPrimitive<DIM> *>(primitives[i])->normal(true);
+			referenceCones[i] = BoundingCone<DIM>(n, 0.0f);
+		}
 	}
 
 	// build tree recursively
-	buildRecursive(referenceBoxes, referenceCentroids, flatTree, 0xfffffffc, 0, nReferences, 0);
+	buildRecursive(referenceBoxes, referenceCones, referenceCentroids, flatTree, 0xfffffffc, 0, nReferences, 0);
 
 	// clear working set
 	buckets.clear();
@@ -391,8 +454,8 @@ leafSize(leafSize_),
 nBuckets(nBuckets_),
 maxDepth(0),
 depthGuess(std::log2(primitives_.size())),
-buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
-rightBuckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
+buckets(nBuckets, std::make_tuple(BoundingBox<DIM>(), BoundingCone<DIM>(), 0)),
+rightBuckets(nBuckets, std::make_tuple(BoundingBox<DIM>(), BoundingCone<DIM>(), 0)),
 primitives(primitives_),
 silhouettes(silhouettes_),
 packLeaves(packLeaves_),

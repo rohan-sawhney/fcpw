@@ -56,11 +56,11 @@ public:
 	// sets the data for a node in the csg tree; NOTE: the root node of the csg tree must have index 0
 	void setCsgTreeNode(const CsgTreeNode& csgTreeNode, int nodeIndex);
 
-	// computes silhouette information for all objects in the scene to perform closest silhouette 
+	// computes silhouette information for all objects in the scene to perform closest silhouette
 	// point queries; NOTE: does not currently support mixed PrimitiveTypes or non-manifold geometry
 	void computeSilhouettes();
 
-	// enables normal computation for an object with a single PrimitiveType; if normals are required 
+	// enables normal computation for an object with a single PrimitiveType; if normals are required
 	// for objects with mixed primitive types, they can be computed outside of fcpw after performing
 	// the query by using the "primitiveIndex" member in the "Interaction" class. NOTE: enabling normal
 	// computation for non-planar line segments produces gargabe results since normals are not well defined

@@ -674,7 +674,8 @@ void run()
 	std::shuffle(shuffledIndices.begin(), shuffledIndices.end(), std::default_random_engine(seed));
 
 	std::vector<std::string> bvhTypes({"Bvh_LongestAxisCenter", "Bvh_OverlapSurfaceArea",
-									   "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume"});
+									   "Bvh_SurfaceArea", "Bvh_OverlapVolume", "Bvh_Volume",
+									   "Bvh_SurfaceAreaOrientation"});
 
 	if (checkPerformance) {
 		std::cout << "Running performance tests..." << std::endl;
@@ -690,7 +691,7 @@ void run()
 		//									   shuffledIndices, "Baseline");
 
 		// build bvh aggregates and benchmark queries
-		for (int bvh = 1; bvh < 6; bvh++) {
+		for (int bvh = 1; bvh < 7; bvh++) {
 			for (int vec = 0; vec < 2; vec++) {
 				scene.build(static_cast<AggregateType>(bvh), vec == 1, true);
 				sceneData = scene.getSceneData();
@@ -739,7 +740,7 @@ void run()
 		sceneLoader.loadFiles(bvhScene, false);
 		if (computeSilhouettes) bvhScene.computeSilhouettes();
 
-		for (int bvh = 1; bvh < 6; bvh++) {
+		for (int bvh = 1; bvh < 7; bvh++) {
 			std::cout << "Testing " << bvhTypes[bvh - 1] << " results against Baseline" << std::endl;
 
 			for (int vec = 0; vec < 2; vec++) {

@@ -225,6 +225,36 @@ struct BoundingCone {
 	// constructor
 	BoundingCone(const Vector<DIM>& axis_, float halfAngle_): axis(axis_), halfAngle(halfAngle_) {}
 
+	// expands volume to include cone; TODO: optimize
+	void expandToInclude(const BoundingCone<DIM>& c) {
+		if (isValid() && c.isValid()) {
+			// compute axis
+			Vector<DIM> newAxis = axis + c.axis;
+			newAxis.normalize();
+
+			// compute angle between new axis and input axes
+			float theta1 = std::acos(std::max(-1.0f, std::min(1.0f, newAxis.dot(axis)))) + halfAngle;
+			float theta2 = std::acos(std::max(-1.0f, std::min(1.0f, newAxis.dot(c.axis)))) + c.halfAngle;
+			float newHalfAngle = std::min(float(M_PI), std::min(theta1, theta2));
+
+			// update cone
+			axis = newAxis;
+			halfAngle = newHalfAngle;
+
+		} else if (c.isValid()) {
+			axis = c.axis;
+			halfAngle = c.halfAngle;
+
+		} else if (isValid()) {
+			// do nothing
+
+		} else {
+			// both cones are invalid => expanded cone is invalid
+			axis = Vector<DIM>::Zero();
+			halfAngle = -M_PI;
+		}
+	}
+
 	// check for overlap between this cone and the "view" cone defined by the given
 	// point and bounding box; the two cones overlap when there exist two vectors,
 	// one in each cone, that are orthogonal to each other.
@@ -269,6 +299,11 @@ struct BoundingCone {
 		float viewConeHalfAngle = std::atan2(d, s);
 		float halfAngleSum = halfAngle + viewConeHalfAngle;
 		return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, dAxisAngle - halfAngleSum, dAxisAngle + halfAngleSum);
+	}
+
+	// checks whether cone is valid
+	bool isValid() const {
+		return halfAngle >= 0.0f;
 	}
 
 	// members

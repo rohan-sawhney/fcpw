@@ -556,6 +556,10 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
 				CostHeuristic::OverlapVolume, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
 
+	} else if (aggregateType == AggregateType::Bvh_SurfaceAreaOrientation) {
+		sbvh = std::unique_ptr<Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>>(new Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>(
+				CostHeuristic::SurfaceAreaOrientation, primitives, silhouettes, sortPositions, printStats, packLeaves, leafSize));
+
 	} else {
 		return std::unique_ptr<Baseline<DIM, PrimitiveType, SilhouetteType>>(
 				new Baseline<DIM, PrimitiveType, SilhouetteType>(primitives, silhouettes));

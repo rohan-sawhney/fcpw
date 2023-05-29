@@ -13,7 +13,8 @@ enum class CostHeuristic {
 	SurfaceArea,
 	OverlapSurfaceArea,
 	Volume,
-	OverlapVolume
+	OverlapVolume,
+	SurfaceAreaOrientation
 };
 
 template<size_t DIM, bool CONEDATA>
@@ -126,6 +127,8 @@ protected:
 	// computes split cost based on heuristic
 	float computeSplitCost(const BoundingBox<DIM>& boxLeft,
 						   const BoundingBox<DIM>& boxRight,
+						   const BoundingCone<DIM>& coneLeft,
+						   const BoundingCone<DIM>& coneRight,
 						   int nReferencesLeft, int nReferencesRight,
 						   int depth) const;
 
@@ -133,6 +136,7 @@ protected:
 	float computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
 							 const BoundingBox<DIM>& nodeCentroidBox,
 							 const std::vector<BoundingBox<DIM>>& referenceBoxes,
+							 const std::vector<BoundingCone<DIM>>& referenceCones,
 							 const std::vector<Vector<DIM>>& referenceCentroids,
 							 int depth, int nodeStart, int nodeEnd,
 							 int& splitDim, float& splitCoord);
@@ -140,10 +144,12 @@ protected:
 	// performs object split
 	int performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
 						   std::vector<BoundingBox<DIM>>& referenceBoxes,
+						   std::vector<BoundingCone<DIM>>& referenceCones,
 						   std::vector<Vector<DIM>>& referenceCentroids);
 
 	// helper function to build binary tree
 	void buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+						std::vector<BoundingCone<DIM>>& referenceCones,
 						std::vector<Vector<DIM>>& referenceCentroids,
 						std::vector<SbvhNode<DIM, CONEDATA>>& buildNodes,
 						int parent, int start, int end, int depth);
@@ -180,7 +186,7 @@ protected:
 	// members
 	CostHeuristic costHeuristic;
 	int nNodes, nLeafs, leafSize, nBuckets, maxDepth, depthGuess;
-	std::vector<std::pair<BoundingBox<DIM>, int>> buckets, rightBuckets;
+	std::vector<std::tuple<BoundingBox<DIM>, BoundingCone<DIM>, int>> buckets, rightBuckets;
 	std::vector<PrimitiveType *>& primitives;
 	std::vector<SilhouetteType *>& silhouettes;
 	std::vector<SilhouetteType *> silhouetteRefs;
