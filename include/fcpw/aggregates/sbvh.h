@@ -76,8 +76,9 @@ public:
 		 std::vector<PrimitiveType *>& primitives_,
 		 std::vector<SilhouetteType *>& silhouettes_,
 		 SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions_={},
-		 const std::function<bool(float, int)>& ignoreSilhouetteTest_={},
-		 bool printStats_=false, bool packLeaves_=false, int leafSize_=4, int nBuckets_=8);
+		 const std::function<bool(float, int)>& ignoreSilhouette_={},
+		 bool printStats_=false, bool packLeaves_=false,
+		 int leafSize_=4, int nBuckets_=8);
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const;

@@ -297,7 +297,7 @@ inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& s
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline void assignSilhouettesToNodes(const std::vector<PrimitiveType *>& primitives,
 									 const std::vector<SilhouetteType *>& silhouettes,
-									 const std::function<bool(float, int)>& ignoreSilhouetteTest,
+									 const std::function<bool(float, int)>& ignoreSilhouette,
 									 std::vector<SbvhNode<DIM, CONEDATA>>& flatTree,
 									 std::vector<SilhouetteType *>& silhouetteRefs)
 {
@@ -307,7 +307,7 @@ inline void assignSilhouettesToNodes(const std::vector<PrimitiveType *>& primiti
 template<>
 inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(const std::vector<LineSegment *>& lineSegments,
 																			 const std::vector<SilhouetteVertex *>& silhouetteVertices,
-																			 const std::function<bool(float, int)>& ignoreSilhouetteTest,
+																			 const std::function<bool(float, int)>& ignoreSilhouette,
 																			 std::vector<SbvhNode<3, true>>& flatTree,
 																			 std::vector<SilhouetteVertex *>& silhouetteVertexRefs)
 {
@@ -335,9 +335,9 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 					Vector3 n1 = silhouetteVertex->hasFace(1) ? silhouetteVertex->normal(1, true) : zero;
 
 					bool ignore = false;
-	 				if (ignoreSilhouetteTest && silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1)) {
+	 				if (ignoreSilhouette && silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1)) {
 						float det = n0.x()*n1.y() - n1.x()*n0.y();
-						ignore = ignoreSilhouetteTest(det, lineSegment->pIndex);
+						ignore = ignoreSilhouette(det, lineSegment->pIndex);
 					}
 
 					if (!ignore) {
@@ -364,7 +364,7 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 template<>
 inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const std::vector<Triangle *>& triangles,
 																		const std::vector<SilhouetteEdge *>& silhouetteEdges,
-																		const std::function<bool(float, int)>& ignoreSilhouetteTest,
+																		const std::function<bool(float, int)>& ignoreSilhouette,
 																		std::vector<SbvhNode<3, true>>& flatTree,
 																		std::vector<SilhouetteEdge *>& silhouetteEdgeRefs)
 {
@@ -392,12 +392,12 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 					Vector3 n1 = silhouetteEdge->hasFace(1) ? silhouetteEdge->normal(1, true) : zero;
 
 					bool ignore = false;
-	 				if (ignoreSilhouetteTest && silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1)) {
+	 				if (ignoreSilhouette && silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1)) {
 						const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
 	 					const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
 	 					Vector3 edgeDir = (pb - pa).normalized();
 						float dihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));
-						ignore = ignoreSilhouetteTest(dihedralAngle, triangle->pIndex);
+						ignore = ignoreSilhouette(dihedralAngle, triangle->pIndex);
 					}
 
 					if (!ignore) {
@@ -426,7 +426,7 @@ inline Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::Sbvh(const CostHeuris
 																std::vector<PrimitiveType *>& primitives_,
 																std::vector<SilhouetteType *>& silhouettes_,
 																SortPositionsFunc<DIM, CONEDATA, PrimitiveType, SilhouetteType> sortPositions_,
-																const std::function<bool(float, int)>& ignoreSilhouetteTest_,
+																const std::function<bool(float, int)>& ignoreSilhouette_,
 																bool printStats_, bool packLeaves_, int leafSize_, int nBuckets_):
 costHeuristic(costHeuristic_),
 nNodes(0),
@@ -454,7 +454,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	}
 
 	// assign silhouettes to nodes
-	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, ignoreSilhouetteTest_,
+	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, ignoreSilhouette_,
 																		   flatTree, silhouetteRefs);
 
 	// don't compute normals by default

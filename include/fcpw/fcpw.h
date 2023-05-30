@@ -56,12 +56,12 @@ public:
 	// sets the data for a node in the csg tree; NOTE: the root node of the csg tree must have index 0
 	void setCsgTreeNode(const CsgTreeNode& csgTreeNode, int nodeIndex);
 
-	// computes silhouette information for all objects in the scene to perform closest silhouette
-	// point queries; the optional ignoreSilhouetteTest callback allows the user to specify which
+	// computes silhouette information for all primitives in the scene to perform closest silhouette
+	// point queries; the optional ignoreSilhouette callback allows the user to specify which
 	// interior vertices/edges in the line segment/triangle geometry to ignore for silhouette tests
 	// (arguments: vertex/edge dihedral angle, index of an adjacent line segment/triangle)
 	// NOTE: does not currently support mixed PrimitiveTypes or non-manifold geometry
-	void computeSilhouettes(const std::function<bool(float, int)>& ignoreSilhouetteTest={});
+	void computeSilhouettes(const std::function<bool(float, int)>& ignoreSilhouette={});
 
 	// enables normal computation for an object with a single PrimitiveType; if normals are required
 	// for objects with mixed primitive types, they can be computed outside of fcpw after performing

@@ -64,7 +64,7 @@ public:
 	std::vector<Aggregate<DIM> *> aggregateInstancePtrs;
 	std::unique_ptr<Aggregate<DIM>> aggregate;
 
-	std::function<bool(float, int)> ignoreSilhouetteTest;
+	std::function<bool(float, int)> ignoreSilhouette;
 
 	template<size_t U>
 	friend class Scene;
