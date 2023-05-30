@@ -2,7 +2,8 @@ namespace fcpw {
 
 template<size_t DIM>
 inline SceneData<DIM>::SceneData():
-aggregate(nullptr)
+aggregate(nullptr),
+ignoreSilhouetteTest({})
 {
 
 }
@@ -18,6 +19,7 @@ inline void SceneData<DIM>::clearObjectData()
 	silhouetteEdgeObjects.clear();
 	instanceTransforms.clear();
 	csgTree.clear();
+	ignoreSilhouetteTest = {};
 }
 
 template<size_t DIM>

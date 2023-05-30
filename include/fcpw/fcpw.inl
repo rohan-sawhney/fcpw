@@ -221,12 +221,13 @@ inline int assignEdgeIndices(const std::vector<Triangle>& triangles, PolygonSoup
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::computeSilhouettes()
+inline void Scene<DIM>::computeSilhouettes(const std::function<bool(float, int)>& ignoreSilhouetteTest)
 {
 	int nLineSegmentObjects = (int)sceneData->lineSegmentObjects.size();
 	int nTriangleObjects = (int)sceneData->triangleObjects.size();
 	sceneData->silhouetteVertexObjects.resize(nLineSegmentObjects);
 	sceneData->silhouetteEdgeObjects.resize(nTriangleObjects);
+	sceneData->ignoreSilhouetteTest = ignoreSilhouetteTest;
 
 	for (auto& kv: sceneData->soupToObjectsMap) {
 		int objectIndex = kv.first;
@@ -772,15 +773,15 @@ inline std::unique_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 
 template<size_t DIM>
 inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize,
-							  bool printStats, bool reduceMemoryFootprint,
-							  const std::function<bool(float, int)>& ignoreSilhouetteTest)
+							  bool printStats, bool reduceMemoryFootprint)
 {
 	// clear old aggregate data
 	sceneData->clearAggregateData();
 
 	// build geometric aggregates
 	std::vector<std::unique_ptr<Aggregate<DIM>>> objectAggregates;
-	buildGeometricAggregates<DIM>(aggregateType, vectorize, printStats, ignoreSilhouetteTest,
+	buildGeometricAggregates<DIM>(aggregateType, vectorize, printStats,
+								  sceneData->ignoreSilhouetteTest,
 								  sceneData, objectAggregates);
 	int nAggregates = (int)objectAggregates.size();
 
