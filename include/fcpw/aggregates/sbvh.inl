@@ -782,6 +782,7 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 																							  BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
+	float d2NodeMax = boxHits[1];
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
 		int nodeIndex = subtree[stackPtr].node;
@@ -805,7 +806,20 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 																 traversalWeight, primitiveWeight);
 
 				} else {
-					hit = prim->intersect(s, cs, true, primitiveWeight);
+					if (d2NodeMax <= s.r2) {
+						hit = 1;
+						auto it = cs.emplace(cs.end(), Interaction<3>());
+						it->primitiveIndex = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim)->pIndex;
+						it->d = prim->surfaceArea();
+						if (primitiveWeight) {
+							float d2 = (s.c - prim->centroid()).squaredNorm();
+							it->d *= primitiveWeight(d2);
+						}
+
+					} else {
+						hit = prim->intersect(s, cs, true, primitiveWeight);
+					}
+
 					for (int i = 0; i < (int)cs.size(); i++) {
 						cs[i].nodeIndex = nodeIndex;
 						cs[i].referenceIndex = referenceIndex;
@@ -858,10 +872,12 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 				if (uniformRealRandomNumber() < traversalProb0) {
 					subtree[stackPtr].node = nodeIndex + 1;
 					subtree[stackPtr].distance = traversalPdf*traversalProb0;
+					d2NodeMax = boxHits[1];
 
 				} else {
 					subtree[stackPtr].node = nodeIndex + node.secondChildOffset;
 					subtree[stackPtr].distance = traversalPdf*(1.0f - traversalProb0);
+					d2NodeMax = boxHits[3];
 				}
 			}
 

@@ -817,7 +817,8 @@ inline int intersectSpherePrimitives(const MbvhNode<DIM, CONEDATA>& node,
 									 const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
 									 const std::function<float(float)>& primitiveWeight,
 									 int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
-									 std::vector<Interaction<DIM>>& is, float& totalPrimitiveWeight, bool recordOneHit)
+									 std::vector<Interaction<DIM>>& is, float& totalPrimitiveWeight,
+									 bool recordOneHit, bool isNodeInsideSphere=false)
 {
 	std::cerr << "intersectSpherePrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -830,7 +831,8 @@ inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
 									 const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
 									 const std::function<float(float)>& primitiveWeight,
 									 int nodeIndex, int aggregateIndex, const enokiVector3& sc, float sr2,
-									 std::vector<Interaction<3>>& is, float& totalPrimitiveWeight, bool recordOneHit)
+									 std::vector<Interaction<3>>& is, float& totalPrimitiveWeight,
+									 bool recordOneHit, bool isNodeInsideSphere=false)
 {
 	Vector3 queryPt(sc[0], sc[1], sc[2]);
 	int leafOffset = -node.child[0] - 1;
@@ -849,7 +851,7 @@ inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
 		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
 		FloatP<WIDTH> surfaceArea = enoki::norm(pb - pa);
-		FloatP<WIDTH> d = findClosestPointWideLineSegment<WIDTH>(pa, pb, sc, pt, t);
+		FloatP<WIDTH> d = isNodeInsideSphere ? 0.0f : findClosestPointWideLineSegment<WIDTH>(pa, pb, sc, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
 		// record interactions
@@ -898,7 +900,8 @@ inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
 									 const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
 									 const std::function<float(float)>& primitiveWeight,
 									 int nodeIndex, int aggregateIndex, const enokiVector3& sc, float sr2,
-									 std::vector<Interaction<3>>& is, float& totalPrimitiveWeight, bool recordOneHit)
+									 std::vector<Interaction<3>>& is, float& totalPrimitiveWeight,
+									 bool recordOneHit, bool isNodeInsideSphere=false)
 {
 	Vector3 queryPt(sc[0], sc[1], sc[2]);
 	int leafOffset = -node.child[0] - 1;
@@ -918,7 +921,7 @@ inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
 		const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
 		FloatP<WIDTH> surfaceArea = 0.5f*enoki::norm(enoki::cross(pb - pa, pc - pa));
-		FloatP<WIDTH> d = findClosestPointWideTriangle<WIDTH>(pa, pb, pc, sc, pt, t);
+		FloatP<WIDTH> d = isNodeInsideSphere ? 0.0f : findClosestPointWideTriangle<WIDTH>(pa, pb, pc, sc, pt, t);
 		FloatP<WIDTH> d2 = d*d;
 
 		// record interactions
@@ -1084,6 +1087,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 	if (!primitiveTypeIsAggregate) is.resize(1);
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max, weight;
+	float d2NodeMax = maxFloat;
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
 	// push root node
@@ -1106,7 +1110,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 				// perform vectorized intersection query
 				int nInteractions = (int)is.size();
 				int hit = intersectSpherePrimitives(node, leafNodes, primitiveWeight, nodeIndex, this->index,
-													sc, s.r2, is, totalPrimitiveWeight, true);
+													sc, s.r2, is, totalPrimitiveWeight, true, d2NodeMax <= s.r2);
 				nodesVisited++;
 
 				if (hit > 0) {
@@ -1140,7 +1144,20 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 																	 traversalWeight, primitiveWeight);
 
 					} else {
-						hit = prim->intersect(s, cs, true, primitiveWeight);
+						if (d2NodeMax <= s.r2) {
+							hit = 1;
+							auto it = cs.emplace(cs.end(), Interaction<3>());
+							it->primitiveIndex = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim)->pIndex;
+							it->d = prim->surfaceArea();
+							if (primitiveWeight) {
+								float d2 = (s.c - prim->centroid()).squaredNorm();
+								it->d *= primitiveWeight(d2);
+							}
+
+						} else {
+							hit = prim->intersect(s, cs, true, primitiveWeight);
+						}
+
 						for (int i = 0; i < (int)cs.size(); i++) {
 							cs[i].nodeIndex = nodeIndex;
 							cs[i].referenceIndex = referenceIndex;
@@ -1216,6 +1233,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 							stackPtr++;
 							subtree[stackPtr].node = node.child[w];
 							subtree[stackPtr].distance = traversalPdf*weight[w]/totalTraversalWeight;
+							d2NodeMax = d2Max[w];
 							break;
 						}
 
