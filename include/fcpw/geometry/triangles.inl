@@ -110,13 +110,14 @@ inline Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 	return Vector2(1.0f - v - w, v);
 }
 
-inline float Triangle::samplePoint(Vector2& uv, Vector3& p) const
+inline float Triangle::samplePoint(Vector2& uv, Vector3& p, Vector3& n) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
 	const Vector3& pc = soup->positions[indices[2]];
 
-	float area = 0.5f*(pb - pa).cross(pc - pa).norm();
+	n = (pb - pa).cross(pc - pa);
+	float area = n.norm();
 	float u1 = std::sqrt(uniformRealRandomNumber());
 	float u2 = uniformRealRandomNumber();
 	float u = 1.0f - u1;
@@ -124,8 +125,9 @@ inline float Triangle::samplePoint(Vector2& uv, Vector3& p) const
 	float w = 1.0f - u - v;
 	uv = Vector2(u, v);
 	p = pa*u + pb*v + pc*w;
+	n /= area;
 
-	return 1.0f/area;
+	return 2.0f/area;
 }
 
 inline Vector2 Triangle::textureCoordinates(const Vector2& uv) const

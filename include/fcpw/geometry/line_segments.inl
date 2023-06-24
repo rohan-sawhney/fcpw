@@ -80,7 +80,7 @@ inline Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
 	return Vector2((p - pa).norm()/(pb - pa).norm(), 0.0f);
 }
 
-inline float LineSegment::samplePoint(Vector2& uv, Vector3& p) const
+inline float LineSegment::samplePoint(Vector2& uv, Vector3& p, Vector3& n) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -90,6 +90,10 @@ inline float LineSegment::samplePoint(Vector2& uv, Vector3& p) const
 	float u = uniformRealRandomNumber();
 	uv = Vector2(u, 0.0f);
 	p = pa + u*s;
+	n[0] = s[1];
+	n[1] = -s[0];
+	n[2] = 0.0f;
+	n /= area;
 
 	return 1.0f/area;
 }

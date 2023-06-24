@@ -13,7 +13,7 @@ template<size_t DIM>
 struct Interaction {
 	// constructor
 	Interaction(): d(maxFloat), sign(0), primitiveIndex(-1), nodeIndex(-1), referenceIndex(-1),
-				   objectIndex(-1), p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()), 
+				   objectIndex(-1), p(Vector<DIM>::Zero()), n(Vector<DIM>::Zero()),
 				   uv(Vector<DIM - 1>::Zero()), distanceInfo(DistanceInfo::Exact) {}
 
 	// comparison operators
@@ -35,7 +35,7 @@ struct Interaction {
 
 	// samples a random point on geometric primitive and returns sampling pdf
 	float samplePoint(const Primitive<DIM> *primitive) {
-		return static_cast<const GeometricPrimitive<DIM> *>(primitive)->samplePoint(uv, p);
+		return static_cast<const GeometricPrimitive<DIM> *>(primitive)->samplePoint(uv, p, n);
 	}
 
 	// computes normal from geometric primitive if unspecified

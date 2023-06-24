@@ -199,11 +199,6 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectStochasticFrom
 			const PrimitiveType *prim = primitives[is[0].referenceIndex];
 			float pdf = is[0].samplePoint(prim);
 			is[0].d *= pdf;
-
-			// compute normal
-			if (this->computeNormals) {
-				is[0].computeNormal(prim);
-			}
 		}
 
 		return hits;
