@@ -816,9 +816,10 @@ template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType>
 inline int intersectSpherePrimitives(const MbvhNode<DIM, CONEDATA>& node,
 									 const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
 									 const std::function<float(float)>& primitiveWeight,
-									 int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
-									 std::vector<Interaction<DIM>>& is, float& totalPrimitiveWeight,
-									 bool recordOneHit, bool isNodeInsideSphere=false)
+									 int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
+									 float sr2, float u, std::vector<Interaction<DIM>>& is,
+									 float& totalPrimitiveWeight, bool recordOneHit,
+									 bool isNodeInsideSphere=false)
 {
 	std::cerr << "intersectSpherePrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -830,9 +831,10 @@ template<size_t WIDTH, bool CONEDATA>
 inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
 									 const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
 									 const std::function<float(float)>& primitiveWeight,
-									 int nodeIndex, int aggregateIndex, const enokiVector3& sc, float sr2,
-									 std::vector<Interaction<3>>& is, float& totalPrimitiveWeight,
-									 bool recordOneHit, bool isNodeInsideSphere=false)
+									 int nodeIndex, int aggregateIndex, const enokiVector3& sc,
+									 float sr2, float u, std::vector<Interaction<3>>& is,
+									 float& totalPrimitiveWeight, bool recordOneHit,
+									 bool isNodeInsideSphere=false)
 {
 	Vector3 queryPt(sc[0], sc[1], sc[2]);
 	int leafOffset = -node.child[0] - 1;
@@ -869,13 +871,18 @@ inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
 					float weight = surfaceArea[w];
 					if (primitiveWeight) weight *= primitiveWeight((queryPt - closestPt).squaredNorm());
 					totalPrimitiveWeight += weight;
+					float selectionProb = weight/totalPrimitiveWeight;
 
-					if (uniformRealRandomNumber()*totalPrimitiveWeight < weight) {
+					if (u < selectionProb) {
+						u = u/selectionProb; // rescale to [0,1)
 						is[0].d = weight;
 						is[0].primitiveIndex = primitiveIndex[w];
 						is[0].nodeIndex = nodeIndex;
 						is[0].referenceIndex = referenceOffset + p;
 						is[0].objectIndex = aggregateIndex;
+
+					} else {
+						u = (u - selectionProb)/(1.0f - selectionProb);
 					}
 
 				} else {
@@ -899,9 +906,10 @@ template<size_t WIDTH, bool CONEDATA>
 inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
 									 const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
 									 const std::function<float(float)>& primitiveWeight,
-									 int nodeIndex, int aggregateIndex, const enokiVector3& sc, float sr2,
-									 std::vector<Interaction<3>>& is, float& totalPrimitiveWeight,
-									 bool recordOneHit, bool isNodeInsideSphere=false)
+									 int nodeIndex, int aggregateIndex, const enokiVector3& sc,
+									 float sr2, float u, std::vector<Interaction<3>>& is,
+									 float& totalPrimitiveWeight, bool recordOneHit,
+									 bool isNodeInsideSphere=false)
 {
 	Vector3 queryPt(sc[0], sc[1], sc[2]);
 	int leafOffset = -node.child[0] - 1;
@@ -939,13 +947,18 @@ inline int intersectSpherePrimitives(const MbvhNode<3, CONEDATA>& node,
 					float weight = surfaceArea[w];
 					if (primitiveWeight) weight *= primitiveWeight((queryPt - closestPt).squaredNorm());
 					totalPrimitiveWeight += weight;
+					float selectionProb = weight/totalPrimitiveWeight;
 
-					if (uniformRealRandomNumber()*totalPrimitiveWeight < weight) {
+					if (u < selectionProb) {
+						u = u/selectionProb; // rescale to [0,1)
 						is[0].d = weight;
 						is[0].primitiveIndex = primitiveIndex[w];
 						is[0].nodeIndex = nodeIndex;
 						is[0].referenceIndex = referenceOffset + p;
 						is[0].objectIndex = aggregateIndex;
+
+					} else {
+						u = (u - selectionProb)/(1.0f - selectionProb);
 					}
 
 				} else {
@@ -995,8 +1008,9 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 			if (std::is_same<PrimitiveType, LineSegment>::value ||
 				std::is_same<PrimitiveType, Triangle>::value) {
 				// perform vectorized intersection query
+				float u = uniformRealRandomNumber();
 				hits += intersectSpherePrimitives(node, leafNodes, primitiveWeight, nodeIndex, this->index,
-												  sc, s.r2, is, totalPrimitiveWeight, recordOneHit);
+												  sc, s.r2, u, is, totalPrimitiveWeight, recordOneHit);
 				nodesVisited++;
 
 			} else {
@@ -1086,7 +1100,8 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 	int hits = 0;
 	if (!primitiveTypeIsAggregate) is.resize(1);
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
-	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max, weight;
+	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
+	float u = uniformRealRandomNumber();
 	float d2NodeMax = maxFloat;
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
@@ -1110,7 +1125,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 				// perform vectorized intersection query
 				int nInteractions = (int)is.size();
 				int hit = intersectSpherePrimitives(node, leafNodes, primitiveWeight, nodeIndex, this->index,
-													sc, s.r2, is, totalPrimitiveWeight, true, d2NodeMax <= s.r2);
+													sc, s.r2, u, is, totalPrimitiveWeight, true, d2NodeMax <= s.r2);
 				nodesVisited++;
 
 				if (hit > 0) {
@@ -1169,9 +1184,15 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 						hits += hit;
 						if (!primitiveTypeIsAggregate) {
 							totalPrimitiveWeight += cs[0].d;
-							if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
+							float selectionProb = cs[0].d/totalPrimitiveWeight;
+
+							if (u < selectionProb) {
+								u = u/selectionProb; // rescale to [0,1)
 								is[0] = cs[0];
 								is[0].d *= traversalPdf;
+
+							} else {
+								u = (u - selectionProb)/(1.0f - selectionProb);
 							}
 
 						} else {
@@ -1200,45 +1221,37 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 			nodesVisited++;
 			mask &= enoki::neq(node.child, maxInt);
 			if (enoki::any(mask)) {
+				int selectedIndex = -1;
+				float selectedWeight = 0.0f;
 				float totalTraversalWeight = 0.0f;
+				FloatP<FCPW_MBVH_BRANCHING_FACTOR> r2;
 				if (traversalWeight) {
 					VectorP<FCPW_MBVH_BRANCHING_FACTOR, DIM> boxCenter = (node.boxMin + node.boxMax)*0.5f;
-					FloatP<FCPW_MBVH_BRANCHING_FACTOR> r2 = enoki::squared_norm(sc - boxCenter);
-
-					for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
-						if (mask[w]) {
-							weight[w] = traversalWeight(r2[w]);
-							totalTraversalWeight += weight[w];
-
-						} else {
-							weight[w] = 0.0f;
-						}
-					}
-
-				} else {
-					enoki::masked(weight, mask) = 1.0f;
-					enoki::masked(weight, ~mask) = 0.0f;
-					totalTraversalWeight = enoki::hsum(weight);
+					r2 = enoki::squared_norm(sc - boxCenter);
 				}
 
-				if (totalTraversalWeight > 0.0f) {
-					float sumWeight = 0.0f;
-					float u = uniformRealRandomNumber();
+				for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+					if (mask[w]) {
+						float weight = traversalWeight ? traversalWeight(r2[w]) : 1.0f;
+						totalTraversalWeight += weight;
+						float prob = weight/totalTraversalWeight;
 
-					for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
-						float rangeStart = sumWeight/totalTraversalWeight;
-						float rangeEnd = (sumWeight + weight[w])/totalTraversalWeight;
+						if (u < prob) {
+							selectedIndex = w;
+							selectedWeight = weight;
+							u = u/prob;
 
-						if (u >= rangeStart && u < rangeEnd) {
-							stackPtr++;
-							subtree[stackPtr].node = node.child[w];
-							subtree[stackPtr].distance = traversalPdf*weight[w]/totalTraversalWeight;
-							d2NodeMax = d2Max[w];
-							break;
+						} else {
+							u = (u - prob)/(1.0f - prob);
 						}
-
-						sumWeight += weight[w];
 					}
+				}
+
+				if (selectedIndex != -1) {
+					stackPtr++;
+					subtree[stackPtr].node = node.child[selectedIndex];
+					subtree[stackPtr].distance = traversalPdf*selectedWeight/totalTraversalWeight;
+					d2NodeMax = d2Max[selectedIndex];
 				}
 			}
 		}
