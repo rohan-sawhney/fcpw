@@ -247,9 +247,11 @@ inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 
 	float t = v2.dot(q)*invDet;
 	if (t >= 0.0f && t <= r.tMax) {
+		if (checkForOcclusion) return 1;
 		auto it = is.emplace(is.end(), Interaction<3>());
 		it->d = t;
 		it->p = pa + v1*v + v2*w;
+		it->n = v1.cross(v2).normalized();
 		it->uv[0] = 1.0f - v - w;
 		it->uv[1] = v;
 		it->primitiveIndex = pIndex;

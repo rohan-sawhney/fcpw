@@ -513,7 +513,7 @@ template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType>
 inline int intersectRayPrimitives(const MbvhNode<DIM, CONEDATA>& node,
 								  const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
 								  int nodeIndex, int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
-								  float& rtMax, std::vector<Interaction<DIM>>& is, bool recordAllHits)
+								  float& rtMax, std::vector<Interaction<DIM>>& is, bool checkForOcclusion, bool recordAllHits)
 {
 	std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -525,7 +525,7 @@ template<size_t WIDTH, bool CONEDATA>
 inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 								  const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
 								  int nodeIndex, int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-								  float& rtMax, std::vector<Interaction<3>>& is, bool recordAllHits)
+								  float& rtMax, std::vector<Interaction<3>>& is, bool checkForOcclusion, bool recordAllHits)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -537,13 +537,14 @@ inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 	for (int l = 0; l < nLeafs; l++) {
 		// perform vectorized intersection query
 		FloatP<WIDTH> d;
-		Vector3P<WIDTH> pt;
+		Vector3P<WIDTH> pt, n;
 		FloatP<WIDTH> t;
 		int leafIndex = leafOffset + l;
 		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
 		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMax, d, pt, t);
+		MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMax, d,
+															pt, n, t, checkForOcclusion);
 
 		if (recordAllHits) {
 			// record interactions
@@ -560,6 +561,9 @@ inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 					it->p[0] = pt[0][w];
 					it->p[1] = pt[1][w];
 					it->p[2] = pt[2][w];
+					it->n[0] = n[0][w];
+					it->n[1] = n[1][w];
+					it->n[2] = n[2][w];
 					it->uv[0] = t[w];
 					it->uv[1] = -1;
 					it->primitiveIndex = primitiveIndex[w];
@@ -576,6 +580,7 @@ inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 
 			for (int w = 0; w < W; w++) {
 				if (mask[w] && d[w] <= rtMax) {
+					if (checkForOcclusion) return 1;
 					closestIndex = w;
 					rtMax = d[w];
 				}
@@ -588,6 +593,9 @@ inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 				is[0].p[0] = pt[0][closestIndex];
 				is[0].p[1] = pt[1][closestIndex];
 				is[0].p[2] = pt[2][closestIndex];
+				is[0].n[0] = n[0][closestIndex];
+				is[0].n[1] = n[1][closestIndex];
+				is[0].n[2] = n[2][closestIndex];
 				is[0].uv[0] = t[closestIndex];
 				is[0].uv[1] = -1;
 				is[0].primitiveIndex = primitiveIndex[closestIndex];
@@ -607,7 +615,7 @@ template<size_t WIDTH, bool CONEDATA>
 inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 								  const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
 								  int nodeIndex, int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-								  float& rtMax, std::vector<Interaction<3>>& is, bool recordAllHits)
+								  float& rtMax, std::vector<Interaction<3>>& is, bool checkForOcclusion, bool recordAllHits)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -619,14 +627,15 @@ inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 	for (int l = 0; l < nLeafs; l++) {
 		// perform vectorized intersection query
 		FloatP<WIDTH> d;
-		Vector3P<WIDTH> pt;
+		Vector3P<WIDTH> pt, n;
 		Vector2P<WIDTH> t;
 		int leafIndex = leafOffset + l;
 		const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
 		const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
 		const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
 		const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-		MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMax, d, pt, t);
+		MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMax, d,
+														 pt, n, t, checkForOcclusion);
 
 		if (recordAllHits) {
 			// record interactions
@@ -643,6 +652,9 @@ inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 					it->p[0] = pt[0][w];
 					it->p[1] = pt[1][w];
 					it->p[2] = pt[2][w];
+					it->n[0] = n[0][w];
+					it->n[1] = n[1][w];
+					it->n[2] = n[2][w];
 					it->uv[0] = t[0][w];
 					it->uv[1] = t[1][w];
 					it->primitiveIndex = primitiveIndex[w];
@@ -659,6 +671,7 @@ inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 
 			for (int w = 0; w < W; w++) {
 				if (mask[w] && d[w] <= rtMax) {
+					if (checkForOcclusion) return 1;
 					closestIndex = w;
 					rtMax = d[w];
 				}
@@ -671,6 +684,9 @@ inline int intersectRayPrimitives(const MbvhNode<3, CONEDATA>& node,
 				is[0].p[0] = pt[0][closestIndex];
 				is[0].p[1] = pt[1][closestIndex];
 				is[0].p[2] = pt[2][closestIndex];
+				is[0].n[0] = n[0][closestIndex];
+				is[0].n[1] = n[1][closestIndex];
+				is[0].n[2] = n[2][closestIndex];
 				is[0].uv[0] = t[0][closestIndex];
 				is[0].uv[1] = t[1][closestIndex];
 				is[0].primitiveIndex = primitiveIndex[closestIndex];
@@ -719,11 +735,11 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 			if (std::is_same<PrimitiveType, LineSegment>::value ||
 				std::is_same<PrimitiveType, Triangle>::value) {
 				// perform vectorized intersection query
-				hits += intersectRayPrimitives(node, leafNodes, nodeIndex, this->index, ro, rd, r.tMax, is, recordAllHits);
+				hits += intersectRayPrimitives(node, leafNodes, nodeIndex, this->index, ro, rd,
+											   r.tMax, is, checkForOcclusion, recordAllHits);
 				nodesVisited++;
 
 				if (hits > 0 && checkForOcclusion) {
-					is.clear();
 					return 1;
 				}
 
@@ -757,7 +773,6 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 					// keep the closest intersection only
 					if (hit > 0) {
 						if (checkForOcclusion) {
-							is.clear();
 							return 1;
 						}
 
@@ -797,13 +812,6 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 
 		} else {
 			hits = 1;
-		}
-
-		// compute normals
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
-			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal(primitives[is[i].referenceIndex]);
-			}
 		}
 
 		return hits;

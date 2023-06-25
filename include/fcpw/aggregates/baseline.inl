@@ -86,7 +86,6 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<D
 
 		if (hit > 0) {
 			if (checkForOcclusion) {
-				is.clear();
 				return 1;
 			}
 
@@ -110,13 +109,6 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<D
 
 		} else {
 			hits = 1;
-		}
-
-		// compute normals
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
-			for (int i = 0; i < (int)is.size(); i++) {
-				is[i].computeNormal(primitives[is[i].referenceIndex]);
-			}
 		}
 
 		return hits;

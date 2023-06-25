@@ -151,13 +151,6 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 
 		} else {
 			hitsLeft = left->intersect(rLeft, isLeft, false, true);
-
-			// compute normals
-			if (this->computeNormals && hitsLeft > 0) {
-				for (int i = 0; i < (int)isLeft.size(); i++) {
-					isLeft[i].computeNormal(left.get());
-				}
-			}
 		}
 
 		// return if no intersections for the left child were found and
@@ -176,13 +169,6 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 
 		} else {
 			hitsRight = right->intersect(rRight, isRight, false, true);
-
-			// compute normals
-			if (this->computeNormals && hitsRight > 0) {
-				for (int i = 0; i < (int)isRight.size(); i++) {
-					isRight[i].computeNormal(right.get());
-				}
-			}
 		}
 
 		// return if no intersections were found for both children

@@ -163,9 +163,11 @@ inline int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 		float t = uv/dv;
 
 		if (t >= 0.0f && t <= r.tMax) {
+			if (checkForOcclusion) return 1;
 			auto it = is.emplace(is.end(), Interaction<3>());
 			it->d = t;
 			it->p = pa + s*v;
+			it->n = Vector3(v[1], -v[0], 0).normalized();
 			it->uv[0] = s;
 			it->uv[1] = -1;
 			it->primitiveIndex = pIndex;

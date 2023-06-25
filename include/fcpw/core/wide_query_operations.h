@@ -26,7 +26,8 @@ inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const Vect
 template<size_t WIDTH>
 inline MaskP<WIDTH> intersectWideLineSegment(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb,
 											 const enokiVector3& ro, const enokiVector3& rd, float rtMax,
-											 FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, FloatP<WIDTH>& t)
+											 FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, Vector3P<WIDTH>& n,
+											 FloatP<WIDTH>& t, bool checkForOcclusion)
 {
 	Vector3P<WIDTH> u = pa - ro;
 	Vector3P<WIDTH> v = pb - pa;
@@ -46,7 +47,12 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Vector3P<WIDTH>& pa, const Ve
 	FloatP<WIDTH> uv = enoki::cross(u, v)[2];
 	d = uv*invDv;
 	active &= d >= 0.0f && d <= rtMax;
+	if (checkForOcclusion) return active;
 	pt = pa + t*v;
+	n[0] = v[1];
+	n[1] = -v[0];
+	n[2] = 0.0f;
+	n = enoki::normalize(n);
 
 	return active;
 }
@@ -54,8 +60,8 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Vector3P<WIDTH>& pa, const Ve
 // performs wide version of ray triangle intersection test
 template<size_t WIDTH>
 inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-										  const enokiVector3& ro, const enokiVector3& rd, float rtMax,
-										  FloatP<WIDTH>& d, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
+										  const enokiVector3& ro, const enokiVector3& rd, float rtMax, FloatP<WIDTH>& d,
+										  Vector3P<WIDTH>& pt, Vector3P<WIDTH>& n, Vector2P<WIDTH>& t, bool checkForOcclusion)
 {
 	// vectorized Möller–Trumbore intersection algorithm
 	Vector3P<WIDTH> v1 = pb - pa;
@@ -76,7 +82,9 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
 
 	d = enoki::dot(v2, q)*invDet;
 	active &= d >= 0.0f && d <= rtMax;
+	if (checkForOcclusion) return active;
 	pt = pa + v1*v + v2*w;
+	n = enoki::normalize(enoki::cross(v1, v2));
 	t[0] = 1.0f - v - w;
 	t[1] = v;
 
