@@ -203,9 +203,6 @@ Baseline<3, Triangle>(triangles_)
 	// commit scene
 	rtcCommitScene(scene);
 
-	// don't compute normals by default
-	this->computeNormals = false;
-
 	// print stats
 	if (printStats_) {
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
@@ -302,7 +299,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 
 	// compute normals and set aggregate index
 	for (int i = 0; i < (int)is.size(); i++) {
-		if (this->computeNormals) is[i].computeNormal(this->primitives[is[i].primitiveIndex]);
+		is[i].computeNormal(this->primitives[is[i].primitiveIndex]);
 		is[i].objectIndex = this->index;
 	}
 
@@ -311,7 +308,7 @@ inline int EmbreeBvh::intersectFromNode(Ray<3>& r, std::vector<Interaction<3>>& 
 
 inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
 												int nodeStartIndex, int aggregateIndex,
-												const Vector3& boundaryHint, int& nodesVisited) const
+												int& nodesVisited, bool recordNormal) const
 {
 	// initialize closest point context
 	RTCPointQueryContext context;
@@ -338,7 +335,7 @@ inline bool EmbreeBvh::findClosestPointFromNode(BoundingSphere<3>& s, Interactio
 		i.d = (i.p - s.c).norm();
 		const Triangle *triangle = this->primitives[result.primID];
 		i.uv = triangle->barycentricCoordinates(i.p);
-		if (this->computeNormals) i.computeNormal(triangle);
+		if (recordNormal) i.computeNormal(triangle);
 		i.primitiveIndex = result.primID;
 		i.objectIndex = this->index;
 		s.r2 = i.d*i.d;

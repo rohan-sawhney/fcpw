@@ -41,12 +41,12 @@ public:
 						  const std::function<float(float)>& primitiveWeight={}) const = 0;
 
 	// finds closest point to sphere center
-	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const = 0;
+	virtual bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, bool recordNormal=false) const = 0;
 
 	// finds closest silhouette point to sphere center
 	virtual bool findClosestSilhouettePoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 											bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
-											float precision=1e-3f) const = 0;
+											float precision=1e-3f, bool recordNormal=false) const = 0;
 };
 
 template<size_t DIM>
@@ -67,7 +67,7 @@ public:
 	// finds closest silhouette point to sphere center
 	bool findClosestSilhouettePoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 									bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
-									float precision=1e-3f) const {
+									float precision=1e-3f, bool recordNormal=false) const {
 		std::cerr << "GeometricPrimitive::findClosestSilhouettePoint() not supported" << std::endl;
 		exit(EXIT_FAILURE);
 
@@ -121,7 +121,7 @@ public:
 	}
 
 	// finds closest point to sphere center
-	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
+	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, bool recordNormal=false) const {
 		std::cerr << "SilhouettePrimitive::findClosestPoint() not supported" << std::endl;
 		exit(EXIT_FAILURE);
 
@@ -176,19 +176,19 @@ public:
 	}
 
 	// finds closest point to sphere center
-	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i) const {
+	bool findClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i, bool recordNormal=false) const {
 		int nodesVisited = 0;
-		return this->findClosestPointFromNode(s, i, 0, this->index, Vector<DIM>::Zero(), nodesVisited);
+		return this->findClosestPointFromNode(s, i, 0, this->index, nodesVisited, recordNormal);
 	}
 
 	// finds closest silhouette point to sphere center
 	bool findClosestSilhouettePoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 									bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
-									float precision=1e-3f) const {
+									float precision=1e-3f, bool recordNormal=false) const {
 		int nodesVisited = 0;
 		return this->findClosestSilhouettePointFromNode(s, i, 0, this->index, nodesVisited,
 														flipNormalOrientation, squaredMinRadius,
-														precision);
+														precision, recordNormal);
 	}
 
 	// performs inside outside test for x
@@ -214,7 +214,7 @@ public:
 
 		Interaction<DIM> i;
 		BoundingSphere<DIM> s(x, maxFloat);
-		bool found = this->findClosestPoint(s, i);
+		bool found = this->findClosestPoint(s, i, true);
 
 		return i.signedDistance(x) < 0;
 	}
@@ -276,17 +276,17 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	virtual bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 										  int nodeStartIndex, int aggregateIndex,
-										  const Vector<DIM>& boundaryHint, int& nodesVisited) const = 0;
+										  int& nodesVisited, bool recordNormal=false) const = 0;
 
 	// finds closest silhouette point to sphere center, starting the traversal at the specified node in an aggregate
 	virtual bool findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													int nodeStartIndex, int aggregateIndex,
 													int& nodesVisited, bool flipNormalOrientation=false,
-													float squaredMinRadius=0.0f, float precision=1e-3f) const = 0;
+													float squaredMinRadius=0.0f, float precision=1e-3f,
+													bool recordNormal=false) const = 0;
 
 	// members
 	int index;
-	bool computeNormals;
 };
 
 template<size_t DIM>
@@ -296,9 +296,7 @@ public:
 	TransformedAggregate(const std::shared_ptr<Aggregate<DIM>>& aggregate_,
 						 const Transform<DIM>& transform_):
 						 aggregate(aggregate_), t(transform_), tInv(t.inverse()),
-						 det(t.matrix().determinant()), sqrtDet(std::sqrt(det)) {
-		this->computeNormals = false;
-	}
+						 det(t.matrix().determinant()), sqrtDet(std::sqrt(det)) {}
 
 	// returns bounding box
 	BoundingBox<DIM> boundingBox() const {
@@ -381,21 +379,13 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
-								  const Vector<DIM>& boundaryHint, int& nodesVisited) const {
+								  int& nodesVisited, bool recordNormal=false) const {
 		// apply inverse transform to sphere
 		BoundingSphere<DIM> sInv = s.transform(tInv);
 
-		// apply inverse transform to direction guess
-		Vector<DIM> boundaryHintInv = boundaryHint;
-		if (boundaryHint.squaredNorm() > 0.0f) {
-			boundaryHintInv = tInv*(s.c + boundaryHint) - sInv.c;
-			float hintNorm = boundaryHintInv.norm();
-			boundaryHintInv /= hintNorm;
-		}
-
 		// find closest point
 		bool found = aggregate->findClosestPointFromNode(sInv, i, nodeStartIndex, aggregateIndex,
-														 boundaryHintInv, nodesVisited);
+														 nodesVisited, recordNormal);
 
 		// apply transform to sphere and interaction
 		s.r2 = sInv.transform(t).r2;
@@ -409,7 +399,8 @@ public:
 	bool findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 											int nodeStartIndex, int aggregateIndex,
 											int& nodesVisited, bool flipNormalOrientation=false,
-											float squaredMinRadius=0.0f, float precision=1e-3f) const {
+											float squaredMinRadius=0.0f, float precision=1e-3f,
+											bool recordNormal=false) const {
 		// apply inverse transform to sphere
 		BoundingSphere<DIM> sInv = s.transform(tInv);
 		BoundingSphere<DIM> sMin(s.c, squaredMinRadius);
@@ -418,7 +409,7 @@ public:
 		// find closest silhouette point
 		bool found = aggregate->findClosestSilhouettePointFromNode(sInv, i, nodeStartIndex, aggregateIndex,
 																   nodesVisited, flipNormalOrientation,
-																   sMinInv.r2, precision);
+																   sMinInv.r2, precision, recordNormal);
 
 		// apply transform to sphere and interaction
 		s.r2 = sInv.transform(t).r2;

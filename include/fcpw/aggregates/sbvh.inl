@@ -457,9 +457,6 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 	assignSilhouettesToNodes<DIM, CONEDATA, PrimitiveType, SilhouetteType>(primitives, silhouettes, ignoreSilhouette_,
 																		   flatTree, silhouetteRefs);
 
-	// don't compute normals by default
-	this->computeNormals = false;
-
 	// print stats
 	if (printStats_) {
 		high_resolution_clock::time_point t2 = high_resolution_clock::now();
@@ -931,11 +928,9 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochast
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																							  int nodeStartIndex, int aggregateIndex,
-																							  const Vector<DIM>& boundaryHint,
-																							  BvhTraversal *subtree, float *boxHits,
-																							  bool& notFound, int& nodesVisited) const
+																							  bool recordNormal, BvhTraversal *subtree,
+																							  float *boxHits, bool& notFound, int& nodesVisited) const
 {
-	// TODO: use direction to boundary guess
 	int stackPtr = 0;
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
@@ -960,10 +955,10 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 				if (primitiveTypeIsAggregate) {
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 					found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
-																boundaryHint, nodesVisited);
+																nodesVisited, recordNormal);
 
 				} else {
-					found = prim->findClosestPoint(s, c);
+					found = prim->findClosestPoint(s, c, recordNormal);
 					c.nodeIndex = nodeIndex;
 					c.referenceIndex = referenceIndex;
 					c.objectIndex = this->index;
@@ -1032,7 +1027,7 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline bool Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																						 int nodeStartIndex, int aggregateIndex,
-																						 const Vector<DIM>& boundaryHint, int& nodesVisited) const
+																						 int& nodesVisited, bool recordNormal) const
 {
 	bool notFound = true;
 	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
@@ -1043,13 +1038,13 @@ inline bool Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClosestPoint
 		s.r2 = std::min(s.r2, boxHits[1]);
 		subtree[0].node = rootIndex;
 		subtree[0].distance = boxHits[0];
-		processSubtreeForClosestPoint(s, i, nodeStartIndex, aggregateIndex, boundaryHint,
+		processSubtreeForClosestPoint(s, i, nodeStartIndex, aggregateIndex, recordNormal,
 									  subtree, boxHits, notFound, nodesVisited);
 	}
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
+		if (recordNormal && !primitiveTypeIsAggregate) {
 			i.computeNormal(primitives[i.referenceIndex]);
 		}
 
@@ -1066,9 +1061,9 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<SbvhNode<D
 													BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													int nodeStartIndex, int aggregateIndex, int objectIndex,
 													bool primitiveTypeIsAggregate, bool flipNormalOrientation,
-													float squaredMinRadius, float precision,
-													BvhTraversal *subtree, float *boxHits,
-													bool& notFound, int& nodesVisited)
+													float squaredMinRadius, float precision, bool recordNormal,
+													BvhTraversal *subtree, float *boxHits, bool& notFound,
+													int& nodesVisited)
 {
 	std::cerr << "Sbvh::processSubtreeForClosestSilhouettePoint() not supported without cone data" << std::endl;
 	exit(EXIT_FAILURE);
@@ -1081,9 +1076,9 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<SbvhNode<D
 													BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													int nodeStartIndex, int aggregateIndex, int objectIndex,
 													bool primitiveTypeIsAggregate, bool flipNormalOrientation,
-													float squaredMinRadius, float precision,
-													BvhTraversal *subtree, float *boxHits,
-													bool& notFound, int& nodesVisited)
+													float squaredMinRadius, float precision, bool recordNormal,
+													BvhTraversal *subtree, float *boxHits, bool& notFound,
+													int& nodesVisited)
 {
 	int stackPtr = 0;
 	while (stackPtr >= 0) {
@@ -1108,7 +1103,7 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<SbvhNode<D
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 					bool found = aggregate->findClosestSilhouettePointFromNode(s, c, nodeStartIndex, aggregateIndex,
 																			   nodesVisited, flipNormalOrientation,
-																			   squaredMinRadius, precision);
+																			   squaredMinRadius, precision, recordNormal);
 
 					// keep the closest silhouette point
 					if (found) {
@@ -1133,7 +1128,8 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<SbvhNode<D
 					nodesVisited++;
 
 					Interaction<DIM> c;
-					bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius, precision);
+					bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius,
+																		precision, recordNormal);
 
 					// keep the closest silhouette point
 					if (found) {
@@ -1204,7 +1200,8 @@ template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteT
 inline bool Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																								   int nodeStartIndex, int aggregateIndex,
 																								   int& nodesVisited, bool flipNormalOrientation,
-																								   float squaredMinRadius, float precision) const
+																								   float squaredMinRadius, float precision,
+																								   bool recordNormal) const
 {
 	if (squaredMinRadius >= s.r2) return false;
 
@@ -1219,13 +1216,13 @@ inline bool Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClosestSilho
 		processSubtreeForClosestSilhouettePoint<DIM, PrimitiveType, SilhouetteType>(flatTree, primitives, silhouetteRefs, s, i,
 																					nodeStartIndex, aggregateIndex, this->index,
 																					primitiveTypeIsAggregate, flipNormalOrientation,
-																					squaredMinRadius, precision, subtree, boxHits,
-																					notFound, nodesVisited);
+																					squaredMinRadius, precision, recordNormal,
+																					subtree, boxHits, notFound, nodesVisited);
 	}
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
+		if (recordNormal && !primitiveTypeIsAggregate) {
 			i.computeSilhouetteNormal(silhouetteRefs[i.referenceIndex]);
 		}
 

@@ -63,7 +63,7 @@ public:
 	// NOTE: does not currently support mixed PrimitiveTypes or non-manifold geometry
 	void computeSilhouettes(const std::function<bool(float, int)>& ignoreSilhouette={});
 
-	// enables normal computation for an object with a single PrimitiveType; if normals are required
+	// precomputes vertex and edge normals for an object with a single PrimitiveType; if normals are required
 	// for objects with mixed primitive types, they can be computed outside of fcpw after performing
 	// the query by using the "primitiveIndex" member in the "Interaction" class. NOTE: enabling normal
 	// computation for non-planar line segments produces gargabe results since normals are not well defined
@@ -123,7 +123,7 @@ public:
 	// finds the closest point in the scene to a query point; optionally specify a conservative
 	// radius guess around the query point inside which the search is performed
 	bool findClosestPoint(const Vector<DIM>& x, Interaction<DIM>& i,
-						  float squaredRadius=maxFloat) const;
+						  float squaredRadius=maxFloat, bool recordNormal=false) const;
 
 	// finds the closest point on the visibility silhouette in the scene to a query point;
 	// optionally specify a minimum radius to stop the closest silhouette search,
@@ -132,7 +132,8 @@ public:
 	// when the query point lies on the scene geometry
 	bool findClosestSilhouettePoint(const Vector<DIM>& x, Interaction<DIM>& i,
 									bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
-									float squaredMaxRadius=maxFloat, float precision=1e-3f) const;
+									float squaredMaxRadius=maxFloat, float precision=1e-3f,
+									bool recordNormal=false) const;
 
 	// returns a pointer to the underlying scene data; use at your own risk...
 	SceneData<DIM>* getSceneData();

@@ -373,9 +373,6 @@ range(enoki::arange<enoki::Array<int, DIM>>())
 
 	aggregateCentroid /= nPrimitives;
 
-	// don't compute normals by default
-	this->computeNormals = false;
-
 	// print stats
 	if (printStats_) {
 		// count not-full nodes
@@ -1288,8 +1285,8 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType>
 inline bool findClosestPointPrimitives(const MbvhNode<DIM, CONEDATA>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, DIM, PrimitiveType>>& leafNodes,
-									   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc, float& sr2,
-									   Interaction<DIM>& i)
+									   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
+									   float& sr2, Interaction<DIM>& i)
 {
 	std::cerr << "findClosestPointPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
 	exit(EXIT_FAILURE);
@@ -1300,8 +1297,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<DIM, CONEDATA>& node,
 template<size_t WIDTH, bool CONEDATA>
 inline bool findClosestPointPrimitives(const MbvhNode<3, CONEDATA>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, LineSegment>>& leafNodes,
-									   int nodeIndex, int aggregateIndex, const enokiVector3& sc, float& sr2,
-									   Interaction<3>& i)
+									   int nodeIndex, int aggregateIndex, const enokiVector3& sc,
+									   float& sr2, Interaction<3>& i)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -1356,8 +1353,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<3, CONEDATA>& node,
 template<size_t WIDTH, bool CONEDATA>
 inline bool findClosestPointPrimitives(const MbvhNode<3, CONEDATA>& node,
 									   const std::vector<MbvhLeafNode<WIDTH, 3, Triangle>>& leafNodes,
-									   int nodeIndex, int aggregateIndex, const enokiVector3& sc, float& sr2,
-									   Interaction<3>& i)
+									   int nodeIndex, int aggregateIndex, const enokiVector3& sc,
+									   float& sr2, Interaction<3>& i)
 {
 	int leafOffset = -node.child[0] - 1;
 	int nLeafs = node.child[1];
@@ -1413,9 +1410,8 @@ inline bool findClosestPointPrimitives(const MbvhNode<3, CONEDATA>& node,
 template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline bool Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																								int nodeStartIndex, int aggregateIndex,
-																								const Vector<DIM>& boundaryHint, int& nodesVisited) const
+																								int& nodesVisited, bool recordNormal) const
 {
-	// TODO: use direction to boundary guess
 	bool notFound = true;
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
@@ -1462,10 +1458,10 @@ inline bool Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClose
 					if (primitiveTypeIsAggregate) {
 						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 						found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
-																	boundaryHint, nodesVisited);
+																	nodesVisited, recordNormal);
 
 					} else {
-						found = prim->findClosestPoint(s, c);
+						found = prim->findClosestPoint(s, c, recordNormal);
 						c.nodeIndex = nodeIndex;
 						c.referenceIndex = referenceIndex;
 						c.objectIndex = this->index;
@@ -1496,7 +1492,7 @@ inline bool Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClose
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
+		if (recordNormal && !primitiveTypeIsAggregate) {
 			i.computeNormal(primitives[i.referenceIndex]);
 		}
 
@@ -1654,8 +1650,9 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<MbvhNode<D
 													BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													int nodeStartIndex, int aggregateIndex, int objectIndex,
 													bool primitiveTypeIsAggregate, bool flipNormalOrientation,
-													float squaredMinRadius, float precision, BvhTraversal *subtree,
-													FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min, bool& notFound, int& nodesVisited)
+													float squaredMinRadius, float precision, bool recordNormal,
+													BvhTraversal *subtree, FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min,
+													bool& notFound, int& nodesVisited)
 {
 	std::cerr << "Mbvh::processSubtreeForClosestSilhouettePoint() not supported without cone data" << std::endl;
 	exit(EXIT_FAILURE);
@@ -1670,8 +1667,9 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<MbvhNode<D
 													BoundingSphere<DIM>& s, Interaction<DIM>& i,
 													int nodeStartIndex, int aggregateIndex, int objectIndex,
 													bool primitiveTypeIsAggregate, bool flipNormalOrientation,
-													float squaredMinRadius, float precision, BvhTraversal *subtree,
-													FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min, bool& notFound, int& nodesVisited)
+													float squaredMinRadius, float precision, bool recordNormal,
+													BvhTraversal *subtree, FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min,
+													bool& notFound, int& nodesVisited)
 {
 	int stackPtr = 0;
 	while (stackPtr >= 0) {
@@ -1698,7 +1696,7 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<MbvhNode<D
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
 					bool found = aggregate->findClosestSilhouettePointFromNode(s, c, nodeStartIndex, aggregateIndex,
 																			   nodesVisited, flipNormalOrientation,
-																			   squaredMinRadius, precision);
+																			   squaredMinRadius, precision, recordNormal);
 
 					// keep the closest silhouette point
 					if (found) {
@@ -1740,7 +1738,8 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<MbvhNode<D
 						nodesVisited++;
 
 						Interaction<DIM> c;
-						bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius, precision);
+						bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius,
+																			precision, recordNormal);
 
 						// keep the closest silhouette point
 						if (found) {
@@ -1779,7 +1778,8 @@ template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typena
 inline bool Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																										  int nodeStartIndex, int aggregateIndex,
 																										  int& nodesVisited, bool flipNormalOrientation,
-																										  float squaredMinRadius, float precision) const
+																										  float squaredMinRadius, float precision,
+																										  bool recordNormal) const
 {
 	if (squaredMinRadius >= s.r2) return false;
 
@@ -1794,11 +1794,12 @@ inline bool Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::findClose
 	processSubtreeForClosestSilhouettePoint<WIDTH, DIM, PrimitiveType, SilhouetteType>(flatTree, primitives, silhouetteRefs, silhouetteLeafNodes,
 																					   sc, s, i, nodeStartIndex, aggregateIndex, this->index,
 																					   primitiveTypeIsAggregate, flipNormalOrientation,
-																					   squaredMinRadius, precision, subtree, d2Min, notFound, nodesVisited);
+																					   squaredMinRadius, precision, recordNormal,
+																					   subtree, d2Min, notFound, nodesVisited);
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
+		if (recordNormal && !primitiveTypeIsAggregate) {
 			i.computeSilhouetteNormal(silhouetteRefs[i.referenceIndex]);
 		}
 

@@ -30,7 +30,7 @@ public:
 	// finds closest silhouette point to sphere center; NOTE: specialized to flat vertex (z = 0)
 	bool findClosestSilhouettePoint(BoundingSphere<3>& s, Interaction<3>& i,
 									bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
-									float precision=1e-3f) const;
+									float precision=1e-3f, bool recordNormal=false) const;
 
 	// members
 	const PolygonSoup<3> *soup;

@@ -283,7 +283,7 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
 			int nodesVisited = 0;
 			Interaction<DIM> c;
 			BoundingSphere<DIM> s(queryPoints[I], r2);
-			bool found = aggregate->findClosestPointFromNode(s, c, 0, aggregate->index, Vector<DIM>::Zero(), nodesVisited);
+			bool found = aggregate->findClosestPointFromNode(s, c, 0, aggregate->index, nodesVisited);
 			nodesVisitedByThread += nodesVisited;
 			maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
 
@@ -522,7 +522,7 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
 			int nodesVisited = 0;
 			Interaction<DIM> c2;
 			BoundingSphere<DIM> s2(queryPoints[I], r2);
-			bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0, aggregate2->index, Vector<DIM>::Zero(), nodesVisited);
+			bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0, aggregate2->index, nodesVisited);
 
 			if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
 				std::cerr << "d1: " << c1.d << " d2: " << c2.d
@@ -699,8 +699,8 @@ void run()
 											 	shuffledIndices, bvhTypes[bvh - 1]);
 				timeRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
 											 	indices, bvhTypes[bvh - 1], true);
-				timeSphereIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomSquaredRadii,
-											 	   shuffledIndices, bvhTypes[bvh - 1]);
+				//timeSphereIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomSquaredRadii,
+				//							 	   shuffledIndices, bvhTypes[bvh - 1]);
 				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
 											 shuffledIndices, bvhTypes[bvh - 1]);
 				timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
@@ -750,8 +750,8 @@ void run()
 											 	queryPoints, randomDirections, shuffledIndices);
 				testRayIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 	queryPoints, randomDirections, indices);
-				testSphereIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
-											 	   queryPoints, randomSquaredRadii, shuffledIndices);
+				//testSphereIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+				//							 	   queryPoints, randomSquaredRadii, shuffledIndices);
 				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
 											 queryPoints, shuffledIndices);
 				testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,

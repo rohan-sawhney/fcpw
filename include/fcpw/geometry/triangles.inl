@@ -377,7 +377,7 @@ inline int Triangle::intersect(const BoundingSphere<3>& s,
 	return 0;
 }
 
-inline bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const
+inline bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i, bool recordNormal) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];

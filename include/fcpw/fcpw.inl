@@ -737,7 +737,6 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
 		}
 
 		objectAggregates[i]->index = nAggregates++;
-		objectAggregates[i]->computeNormals = sceneData->soups[i].vNormals.size() > 0;
 	}
 }
 
@@ -887,19 +886,21 @@ inline bool Scene<DIM>::hasLineOfSight(const Vector<DIM>& xi, const Vector<DIM>&
 }
 
 template<size_t DIM>
-inline bool Scene<DIM>::findClosestPoint(const Vector<DIM>& x, Interaction<DIM>& i, float squaredRadius) const
+inline bool Scene<DIM>::findClosestPoint(const Vector<DIM>& x, Interaction<DIM>& i,
+										 float squaredRadius, bool recordNormal) const
 {
 	BoundingSphere<DIM> s(x, squaredRadius);
-	return sceneData->aggregate->findClosestPoint(s, i);
+	return sceneData->aggregate->findClosestPoint(s, i, recordNormal);
 }
 
 template<size_t DIM>
 inline bool Scene<DIM>::findClosestSilhouettePoint(const Vector<DIM>& x, Interaction<DIM>& i,
 												   bool flipNormalOrientation, float squaredMinRadius,
-												   float squaredMaxRadius, float precision) const
+												   float squaredMaxRadius, float precision, bool recordNormal) const
 {
 	BoundingSphere<DIM> s(x, squaredMaxRadius);
-	return sceneData->aggregate->findClosestSilhouettePoint(s, i, flipNormalOrientation, squaredMinRadius, precision);
+	return sceneData->aggregate->findClosestSilhouettePoint(s, i, flipNormalOrientation, squaredMinRadius,
+															precision, recordNormal);
 }
 
 template<size_t DIM>

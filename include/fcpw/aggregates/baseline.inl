@@ -7,8 +7,7 @@ primitives(primitives_),
 silhouettes(silhouettes_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
-	// don't compute normals by default
-	this->computeNormals = false;
+
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
@@ -202,7 +201,7 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectStochasticFrom
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
 inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																				   int nodeStartIndex, int aggregateIndex,
-																				   const Vector<DIM>& boundaryHint, int& nodesVisited) const
+																				   int& nodesVisited, bool recordNormal) const
 {
 	// find closest point
 	bool notFound = true;
@@ -214,10 +213,10 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestPointFromNo
 		if (primitiveTypeIsAggregate) {
 			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
 			found = aggregate->findClosestPointFromNode(s, c, nodeStartIndex, aggregateIndex,
-														boundaryHint, nodesVisited);
+														nodesVisited, recordNormal);
 
 		} else {
-			found = primitives[p]->findClosestPoint(s, c);
+			found = primitives[p]->findClosestPoint(s, c, recordNormal);
 			c.referenceIndex = p;
 			c.objectIndex = this->index;
 		}
@@ -232,7 +231,7 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestPointFromNo
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
+		if (recordNormal && !primitiveTypeIsAggregate) {
 			i.computeNormal(primitives[i.referenceIndex]);
 		}
 
@@ -246,7 +245,8 @@ template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
 inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																							 int nodeStartIndex, int aggregateIndex,
 																							 int& nodesVisited, bool flipNormalOrientation,
-																							 float squaredMinRadius, float precision) const
+																							 float squaredMinRadius, float precision,
+																							 bool recordNormal) const
 {
 	if (squaredMinRadius >= s.r2) return false;
 
@@ -258,7 +258,7 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestSilhouetteP
 			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
 			bool found = aggregate->findClosestSilhouettePointFromNode(s, c, nodeStartIndex, aggregateIndex,
 																	   nodesVisited, flipNormalOrientation,
-																	   squaredMinRadius, precision);
+																	   squaredMinRadius, precision, recordNormal);
 
 			// keep the closest silhouette point
 			if (found) {
@@ -276,7 +276,8 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestSilhouetteP
 		for (int p = 0; p < (int)silhouettes.size(); p++) {
 			nodesVisited++;
 			Interaction<DIM> c;
-			bool found = silhouettes[p]->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius, precision);
+			bool found = silhouettes[p]->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius,
+																	precision, recordNormal);
 
 			// keep the closest silhouette point
 			if (found) {
@@ -295,7 +296,7 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestSilhouetteP
 
 	if (!notFound) {
 		// compute normal
-		if (this->computeNormals && !primitiveTypeIsAggregate) {
+		if (recordNormal && !primitiveTypeIsAggregate) {
 			i.computeSilhouetteNormal(silhouettes[i.referenceIndex]);
 		}
 

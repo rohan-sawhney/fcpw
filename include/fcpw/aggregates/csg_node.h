@@ -55,13 +55,14 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
-								  const Vector<DIM>& boundaryHint, int& nodesVisited) const;
+								  int& nodesVisited, bool recordNormal=false) const;
 
 	// finds closest silhouette point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 									   		int nodeStartIndex, int aggregateIndex,
 									   		int& nodesVisited, bool flipNormalOrientation=false,
-											float squaredMinRadius=0.0f, float precision=1e-3f) const;
+											float squaredMinRadius=0.0f, float precision=1e-3f,
+											bool recordNormal=false) const;
 
 private:
 	// computes bounding box in world sparce

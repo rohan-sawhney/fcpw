@@ -12,9 +12,6 @@ rightPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeRight
 {
 	// compute bounding box
 	computeBoundingBox();
-
-	// don't compute normals by default
-	this->computeNormals = false;
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
@@ -244,7 +241,7 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectStochas
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																						  int nodeStartIndex, int aggregateIndex,
-																						  const Vector<DIM>& boundaryHint, int& nodesVisited) const
+																						  int& nodesVisited, bool recordNormal) const
 {
 	bool notFound = true;
 	float d2Min, d2Max;
@@ -258,13 +255,13 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 		if (leftPrimitiveTypeIsAggregate) {
 			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(left.get());
 			foundLeft = aggregate->findClosestPointFromNode(sLeft, iLeft, nodeStartIndex, aggregateIndex,
-															boundaryHint, nodesVisited);
+															nodesVisited, true);
 
 		} else {
-			foundLeft = left->findClosestPoint(sLeft, iLeft);
+			foundLeft = left->findClosestPoint(sLeft, iLeft, true);
 
 			// compute normal
-			if (this->computeNormals && foundLeft) {
+			if (recordNormal && foundLeft) {
 				iLeft.computeNormal(left.get());
 			}
 		}
@@ -281,13 +278,13 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
 		if (rightPrimitiveTypeIsAggregate) {
 			const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(right.get());
 			foundRight = aggregate->findClosestPointFromNode(sRight, iRight, nodeStartIndex, aggregateIndex,
-															 boundaryHint, nodesVisited);
+															 nodesVisited, true);
 
 		} else {
-			foundRight = right->findClosestPoint(sRight, iRight);
+			foundRight = right->findClosestPoint(sRight, iRight, true);
 
 			// compute normal
-			if (this->computeNormals && foundRight) {
+			if (recordNormal && foundRight) {
 				iRight.computeNormal(right.get());
 			}
 		}
@@ -357,7 +354,8 @@ template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 																									int nodeStartIndex, int aggregateIndex,
 																									int& nodesVisited, bool flipNormalOrientation,
-																									float squaredMinRadius, float precision) const
+																									float squaredMinRadius, float precision,
+																									bool recordNormal) const
 {
 	std::cerr << "CsgNode::findClosestSilhouettePointFromNode() not implemented" << std::endl;
 	exit(EXIT_FAILURE);

@@ -53,7 +53,7 @@ public:
 				  const std::function<float(float)>& primitiveWeight={}) const;
 
 	// finds closest point to sphere center
-	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i) const;
+	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i, bool recordNormal=false) const;
 
 	// members
 	const PolygonSoup<3> *soup;

@@ -116,13 +116,14 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 								  int nodeStartIndex, int aggregateIndex,
-								  const Vector<DIM>& boundaryHint, int& nodesVisited) const;
+								  int& nodesVisited, bool recordNormal=false) const;
 
 	// finds closest silhouette point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 											int nodeStartIndex, int aggregateIndex,
 											int& nodesVisited, bool flipNormalOrientation=false,
-											float squaredMinRadius=0.0f, float precision=1e-3f) const;
+											float squaredMinRadius=0.0f, float precision=1e-3f,
+											bool recordNormal=false) const;
 
 protected:
 	// computes split cost based on heuristic
@@ -175,9 +176,8 @@ protected:
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
 									   int nodeStartIndex, int aggregateIndex,
-									   const Vector<DIM>& boundaryHint,
-									   BvhTraversal *subtree, float *boxHits,
-									   bool& notFound, int& nodesVisited) const;
+									   bool recordNormal, BvhTraversal *subtree,
+									   float *boxHits, bool& notFound, int& nodesVisited) const;
 
 	// members
 	CostHeuristic costHeuristic;

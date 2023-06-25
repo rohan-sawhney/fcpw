@@ -36,7 +36,7 @@ public:
 	// finds closest point to sphere center, starting the traversal at the specified node in an aggregate
 	bool findClosestPointFromNode(BoundingSphere<3>& s, Interaction<3>& i,
 								  int nodeStartIndex, int aggregateIndex,
-								  const Vector3& boundaryHint, int& nodesVisited) const;
+								  int& nodesVisited, bool recordNormal=false) const;
 
 protected:
 	// members
