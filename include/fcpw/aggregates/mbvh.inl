@@ -996,7 +996,6 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
-	pcg32 sampler;
 
 	// push root node
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
@@ -1014,7 +1013,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 			if (std::is_same<PrimitiveType, LineSegment>::value ||
 				std::is_same<PrimitiveType, Triangle>::value) {
 				// perform vectorized intersection query
-				float u = sampler.nextFloat();
+				float u = uniformRealRandomNumber();
 				hits += intersectSpherePrimitives(node, leafNodes, primitiveWeight, nodeIndex, this->index,
 												  sc, s.r2, u, is, totalPrimitiveWeight, recordOneHit);
 				nodesVisited++;
@@ -1050,7 +1049,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 						hits += hit;
 						if (recordOneHit && !primitiveTypeIsAggregate) {
 							totalPrimitiveWeight += cs[0].d;
-							if (sampler.nextFloat()*totalPrimitiveWeight < cs[0].d) {
+							if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
 								is[0] = cs[0];
 							}
 

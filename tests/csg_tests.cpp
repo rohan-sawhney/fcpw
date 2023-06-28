@@ -1,8 +1,6 @@
 #include <fcpw/utilities/scene_loader.h>
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
-#include <chrono>
-#include <random>
 
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
@@ -12,25 +10,6 @@
 #include "args/args.hxx"
 
 using namespace fcpw;
-
-inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)
-{
-	thread_local std::mt19937 generator(std::random_device{}());
-	std::uniform_real_distribution<float> distribution(a, b);
-
-	return distribution(generator);
-}
-
-template<size_t DIM>
-inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
-{
-	Vector<DIM> v;
-	for (size_t i = 0; i < DIM; i++) {
-		v[i] = uniformRealRandomNumber(a, b);
-	}
-
-	return v;
-}
 
 template<size_t DIM>
 void generateScatteredPointsAndRays(int nPoints, std::vector<Vector<DIM>>& scatteredPoints,

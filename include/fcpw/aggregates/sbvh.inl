@@ -661,7 +661,6 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeF
 {
 	float totalPrimitiveWeight = 0.0f;
 	int stackPtr = 0;
-	pcg32 sampler;
 
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
@@ -696,7 +695,7 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeF
 					hits += hit;
 					if (recordOneHit && !primitiveTypeIsAggregate) {
 						totalPrimitiveWeight += cs[0].d;
-						if (sampler.nextFloat()*totalPrimitiveWeight < cs[0].d) {
+						if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
 							is[0] = cs[0];
 						}
 

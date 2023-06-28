@@ -9,6 +9,8 @@
 #include <string>
 #include <vector>
 #include <functional>
+#include <chrono>
+#include <random>
 #include <type_traits>
 #ifdef FCPW_USE_ENOKI
 	#include <enoki/array.h>
@@ -82,6 +84,25 @@ inline T clamp(T val, U low, V high) {
 
 inline bool inRange(float val, float low, float high) {
 	return val >= low && val <= high;
+}
+
+inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)
+{
+	thread_local std::mt19937 generator(std::random_device{}());
+	std::uniform_real_distribution<float> distribution(a, b);
+
+	return distribution(generator);
+}
+
+template<size_t DIM>
+inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
+{
+	Vector<DIM> v;
+	for (size_t i = 0; i < DIM; i++) {
+		v[i] = uniformRealRandomNumber(a, b);
+	}
+
+	return v;
 }
 
 } // namespace fcpw
