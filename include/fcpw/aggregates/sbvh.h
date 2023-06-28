@@ -108,7 +108,8 @@ public:
 
 	// intersects with sphere, starting the traversal at the specified node in an aggregate
 	// NOTE: interactions contain primitive index
-	int intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+	int intersectStochasticFromNode(const BoundingSphere<DIM>& s,
+									std::vector<Interaction<DIM>>& is, pcg32& sampler,
 									int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 									const std::function<float(float)>& traversalWeight={},
 									const std::function<float(float)>& primitiveWeight={}) const;
@@ -168,7 +169,7 @@ protected:
 
 	// processes subtree for intersection
 	void processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
-									   int nodeStartIndex, int aggregateIndex, float u,
+									   pcg32& sampler, int nodeStartIndex, int aggregateIndex,
 									   const std::function<float(float)>& traversalWeight,
 									   const std::function<float(float)>& primitiveWeight,
 									   BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const;

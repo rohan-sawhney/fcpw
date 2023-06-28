@@ -1097,7 +1097,8 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 }
 
 template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
-inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s,
+																								  std::vector<Interaction<DIM>>& is, pcg32& sampler,
 																								  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 																								  const std::function<float(float)>& traversalWeight,
 																								  const std::function<float(float)>& primitiveWeight) const
@@ -1107,7 +1108,6 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 	float d2NodeMax = maxFloat;
-	pcg32 sampler;
 	float u = sampler.nextFloat();
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
@@ -1161,8 +1161,8 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 					std::vector<Interaction<DIM>> cs;
 					if (primitiveTypeIsAggregate) {
 						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-						hit = aggregate->intersectStochasticFromNode(s, cs, nodeStartIndex, aggregateIndex, nodesVisited,
-																	 traversalWeight, primitiveWeight);
+						hit = aggregate->intersectStochasticFromNode(s, cs, sampler, nodeStartIndex, aggregateIndex,
+																	 nodesVisited, traversalWeight, primitiveWeight);
 
 					} else {
 						if (d2NodeMax <= s.r2) {

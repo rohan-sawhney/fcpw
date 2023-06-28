@@ -177,7 +177,8 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s,
+																					 std::vector<Interaction<DIM>>& is, pcg32& sampler,
 																					 int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 																					 const std::function<float(float)>& traversalWeight,
 																					 const std::function<float(float)>& primitiveWeight) const
@@ -188,7 +189,6 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectStochasticFrom
 		if (!primitiveTypeIsAggregate) {
 			// sample a point on the selected geometric primitive
 			const PrimitiveType *prim = primitives[is[0].referenceIndex];
-			pcg32 sampler;
 			float pdf = is[0].samplePoint(prim, sampler);
 			is[0].d *= pdf;
 		}

@@ -766,13 +766,14 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectFromNode
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
-																							  int nodeStartIndex, int aggregateIndex, float u,
+																							  pcg32& sampler, int nodeStartIndex, int aggregateIndex,
 																							  const std::function<float(float)>& traversalWeight,
 																							  const std::function<float(float)>& primitiveWeight,
 																							  BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
 	float d2NodeMax = boxHits[1];
+	float u = sampler.nextFloat();
 
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
@@ -793,8 +794,8 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 				std::vector<Interaction<DIM>> cs;
 				if (primitiveTypeIsAggregate) {
 					const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-					hit = aggregate->intersectStochasticFromNode(s, cs, nodeStartIndex, aggregateIndex, nodesVisited,
-																 traversalWeight, primitiveWeight);
+					hit = aggregate->intersectStochasticFromNode(s, cs, sampler, nodeStartIndex, aggregateIndex,
+																 nodesVisited, traversalWeight, primitiveWeight);
 
 				} else {
 					if (d2NodeMax <= s.r2) {
@@ -887,7 +888,8 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 }
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
-inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s,
+																						   std::vector<Interaction<DIM>>& is, pcg32& sampler,
 																						   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 																						   const std::function<float(float)>& traversalWeight,
 																						   const std::function<float(float)>& primitiveWeight) const
@@ -896,14 +898,12 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochast
 	if (!primitiveTypeIsAggregate) is.resize(1);
 	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
 	float boxHits[4];
-	pcg32 sampler;
-	float u = sampler.nextFloat();
 
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
 	if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
 		subtree[0].node = rootIndex;
 		subtree[0].distance = 1.0f;
-		processSubtreeForIntersection(s, is, nodeStartIndex, aggregateIndex, u, traversalWeight,
+		processSubtreeForIntersection(s, is, sampler, nodeStartIndex, aggregateIndex, traversalWeight,
 									  primitiveWeight, subtree, boxHits, hits, nodesVisited);
 	}
 

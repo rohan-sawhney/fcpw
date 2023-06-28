@@ -866,11 +866,12 @@ inline int Scene<DIM>::intersect(const BoundingSphere<DIM>& s,
 }
 
 template<size_t DIM>
-inline int Scene<DIM>::intersectStochastic(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+inline int Scene<DIM>::intersectStochastic(const BoundingSphere<DIM>& s,
+										   std::vector<Interaction<DIM>>& is, pcg32& sampler,
 										   const std::function<float(float)>& traversalWeight,
 										   const std::function<float(float)>& primitiveWeight) const
 {
-	return sceneData->aggregate->intersectStochastic(s, is, traversalWeight, primitiveWeight);
+	return sceneData->aggregate->intersectStochastic(s, is, sampler, traversalWeight, primitiveWeight);
 }
 
 template<size_t DIM>

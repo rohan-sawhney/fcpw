@@ -168,11 +168,12 @@ public:
 	}
 
 	// intersects with sphere
-	int intersectStochastic(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+	int intersectStochastic(const BoundingSphere<DIM>& s,
+							std::vector<Interaction<DIM>>& is, pcg32& sampler,
 							const std::function<float(float)>& traversalWeight={},
 							const std::function<float(float)>& primitiveWeight={}) const {
 		int nodesVisited = 0;
-		return this->intersectStochasticFromNode(s, is, 0, this->index, nodesVisited,
+		return this->intersectStochasticFromNode(s, is, sampler, 0, this->index, nodesVisited,
 												 traversalWeight, primitiveWeight);
 	}
 
@@ -269,7 +270,8 @@ public:
 
 	// intersects with sphere, starting the traversal at the specified node in an aggregate
 	// NOTE: interactions contain primitive index
-	virtual int intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+	virtual int intersectStochasticFromNode(const BoundingSphere<DIM>& s,
+											std::vector<Interaction<DIM>>& is, pcg32& sampler,
 											int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 											const std::function<float(float)>& traversalWeight={},
 											const std::function<float(float)>& primitiveWeight={}) const = 0;
@@ -362,7 +364,8 @@ public:
 	}
 
 	// intersects with sphere, starting the traversal at the specified node in an aggregate
-	int intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+	int intersectStochasticFromNode(const BoundingSphere<DIM>& s,
+									std::vector<Interaction<DIM>>& is, pcg32& sampler,
 									int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 									const std::function<float(float)>& traversalWeight={},
 									const std::function<float(float)>& primitiveWeight={}) const {
@@ -370,7 +373,7 @@ public:
 		BoundingSphere<DIM> sInv = s.transform(tInv);
 
 		// intersect
-		int hits = aggregate->intersectStochasticFromNode(sInv, is, nodeStartIndex, aggregateIndex,
+		int hits = aggregate->intersectStochasticFromNode(sInv, is, sampler, nodeStartIndex, aggregateIndex,
 														  nodesVisited, traversalWeight, primitiveWeight);
 
 		nodesVisited++;

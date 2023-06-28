@@ -227,7 +227,8 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
-inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectStochasticFromNode(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectStochasticFromNode(const BoundingSphere<DIM>& s,
+																							std::vector<Interaction<DIM>>& is, pcg32& sampler,
 																							int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 																							const std::function<float(float)>& traversalWeight,
 																							const std::function<float(float)>& primitiveWeight) const
