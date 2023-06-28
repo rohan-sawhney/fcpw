@@ -125,6 +125,7 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const
 {
 	int hits = 0;
 	float totalPrimitiveWeight = 0.0f;
+	pcg32 sampler;
 	if (recordOneHit && !primitiveTypeIsAggregate) is.resize(1);
 
 	for (int p = 0; p < (int)primitives.size(); p++) {
@@ -149,7 +150,7 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const
 			hits += hit;
 			if (recordOneHit && !primitiveTypeIsAggregate) {
 				totalPrimitiveWeight += cs[0].d;
-				if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
+				if (sampler.nextFloat()*totalPrimitiveWeight < cs[0].d) {
 					is[0] = cs[0];
 				}
 
@@ -188,7 +189,8 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectStochasticFrom
 		if (!primitiveTypeIsAggregate) {
 			// sample a point on the selected geometric primitive
 			const PrimitiveType *prim = primitives[is[0].referenceIndex];
-			float pdf = is[0].samplePoint(prim);
+			pcg32 sampler;
+			float pdf = is[0].samplePoint(prim, sampler);
 			is[0].d *= pdf;
 		}
 

@@ -168,7 +168,7 @@ protected:
 
 	// processes subtree for intersection
 	void processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
-									   int nodeStartIndex, int aggregateIndex,
+									   int nodeStartIndex, int aggregateIndex, float u,
 									   const std::function<float(float)>& traversalWeight,
 									   const std::function<float(float)>& primitiveWeight,
 									   BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const;

@@ -661,6 +661,8 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeF
 {
 	float totalPrimitiveWeight = 0.0f;
 	int stackPtr = 0;
+	pcg32 sampler;
+
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
 		int nodeIndex = subtree[stackPtr].node;
@@ -694,7 +696,7 @@ inline float Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeF
 					hits += hit;
 					if (recordOneHit && !primitiveTypeIsAggregate) {
 						totalPrimitiveWeight += cs[0].d;
-						if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
+						if (sampler.nextFloat()*totalPrimitiveWeight < cs[0].d) {
 							is[0] = cs[0];
 						}
 
@@ -765,13 +767,12 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectFromNode
 
 template<size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
-																							  int nodeStartIndex, int aggregateIndex,
+																							  int nodeStartIndex, int aggregateIndex, float u,
 																							  const std::function<float(float)>& traversalWeight,
 																							  const std::function<float(float)>& primitiveWeight,
 																							  BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
-	float u = uniformRealRandomNumber();
 	float d2NodeMax = boxHits[1];
 
 	while (stackPtr >= 0) {
@@ -896,12 +897,14 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochast
 	if (!primitiveTypeIsAggregate) is.resize(1);
 	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
 	float boxHits[4];
+	pcg32 sampler;
+	float u = sampler.nextFloat();
 
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
 	if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
 		subtree[0].node = rootIndex;
 		subtree[0].distance = 1.0f;
-		processSubtreeForIntersection(s, is, nodeStartIndex, aggregateIndex, traversalWeight,
+		processSubtreeForIntersection(s, is, nodeStartIndex, aggregateIndex, u, traversalWeight,
 									  primitiveWeight, subtree, boxHits, hits, nodesVisited);
 	}
 
@@ -914,7 +917,7 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochast
 			} else {
 				// sample a point on the selected geometric primitive
 				const PrimitiveType *prim = primitives[is[0].referenceIndex];
-				float pdf = is[0].samplePoint(prim);
+				float pdf = is[0].samplePoint(prim, sampler);
 				is[0].d *= pdf;
 			}
 		}

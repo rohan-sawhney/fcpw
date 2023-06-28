@@ -18,6 +18,7 @@ add_subdirectory(fcpw)
 target_link_libraries(YOUR_TARGET fcpw)
 target_include_directories(YOUR_TARGET PUBLIC ${FCPW_EIGEN_INCLUDES})
 target_include_directories(YOUR_TARGET PUBLIC ${FCPW_ENOKI_INCLUDES})
+target_include_directories(YOUR_TARGET PUBLIC ${FCPW_PCG32_INCLUDES})
 ```
 
 to include *FCPW* in your project. Then, simply add
@@ -34,7 +35,7 @@ in the file where you want to use *FCPW*. If you are not using Cmake, then you'l
 #include <fcpw/fcpw.h>
 ```
 
-and include Eigen and Enoki (optional) independently into your project. If you plan on building and running the tests, clone the following projects into the `deps` folder
+and include Eigen, Enoki (optional) and pcg32 (random number generator) independently into your project. If you plan on building and running the tests, clone the following projects into the `deps` folder
 
 ```
 git clone https://github.com/embree/embree.git deps/embree

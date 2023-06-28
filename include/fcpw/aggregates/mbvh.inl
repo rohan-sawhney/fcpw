@@ -996,6 +996,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
+	pcg32 sampler;
 
 	// push root node
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
@@ -1013,7 +1014,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 			if (std::is_same<PrimitiveType, LineSegment>::value ||
 				std::is_same<PrimitiveType, Triangle>::value) {
 				// perform vectorized intersection query
-				float u = uniformRealRandomNumber();
+				float u = sampler.nextFloat();
 				hits += intersectSpherePrimitives(node, leafNodes, primitiveWeight, nodeIndex, this->index,
 												  sc, s.r2, u, is, totalPrimitiveWeight, recordOneHit);
 				nodesVisited++;
@@ -1049,7 +1050,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 						hits += hit;
 						if (recordOneHit && !primitiveTypeIsAggregate) {
 							totalPrimitiveWeight += cs[0].d;
-							if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
+							if (sampler.nextFloat()*totalPrimitiveWeight < cs[0].d) {
 								is[0] = cs[0];
 							}
 
@@ -1106,8 +1107,9 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 	if (!primitiveTypeIsAggregate) is.resize(1);
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
-	float u = uniformRealRandomNumber();
 	float d2NodeMax = maxFloat;
+	pcg32 sampler;
+	float u = sampler.nextFloat();
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
 	// push root node
@@ -1271,7 +1273,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 			} else {
 				// sample a point on the selected geometric primitive
 				const PrimitiveType *prim = primitives[is[0].referenceIndex];
-				float pdf = is[0].samplePoint(prim);
+				float pdf = is[0].samplePoint(prim, sampler);
 				is[0].d *= pdf;
 			}
 		}

@@ -1,6 +1,8 @@
 #include <fcpw/utilities/scene_loader.h>
 #include "tbb/parallel_for.h"
 #include "tbb/blocked_range.h"
+#include <chrono>
+#include <random>
 #include <atomic>
 
 #include "polyscope/polyscope.h"
@@ -22,6 +24,25 @@ static bool checkCorrectness = false;
 static bool checkPerformance = false;
 static bool computeSilhouettes = false;
 static int nQueries = 10000;
+
+inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)
+{
+	thread_local std::mt19937 generator(std::random_device{}());
+	std::uniform_real_distribution<float> distribution(a, b);
+
+	return distribution(generator);
+}
+
+template<size_t DIM>
+inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
+{
+	Vector<DIM> v;
+	for (size_t i = 0; i < DIM; i++) {
+		v[i] = uniformRealRandomNumber(a, b);
+	}
+
+	return v;
+}
 
 template<size_t DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,

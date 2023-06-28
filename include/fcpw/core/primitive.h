@@ -62,7 +62,8 @@ public:
 	virtual Vector<DIM - 1> barycentricCoordinates(const Vector<DIM>& p) const = 0;
 
 	// samples a random point on the geometric primitive and returns sampling pdf
-	virtual float samplePoint(Vector<DIM - 1>& uv, Vector<DIM>& p, Vector<DIM>& n) const = 0;
+	virtual float samplePoint(pcg32& sampler, Vector<DIM - 1>& uv,
+							  Vector<DIM>& p, Vector<DIM>& n) const = 0;
 
 	// finds closest silhouette point to sphere center
 	bool findClosestSilhouettePoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,

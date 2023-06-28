@@ -31,7 +31,7 @@ public:
 	Vector2 barycentricCoordinates(const Vector3& p) const;
 
 	// samples a random point on the geometric primitive and returns sampling pdf
-	float samplePoint(Vector2& uv, Vector3& p, Vector3& n) const;
+	float samplePoint(pcg32& sampler, Vector2& uv, Vector3& p, Vector3& n) const;
 
 	// splits the line segment along the provided coordinate and axis
 	void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
