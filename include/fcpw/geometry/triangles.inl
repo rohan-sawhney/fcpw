@@ -110,7 +110,7 @@ inline Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
 	return Vector2(1.0f - v - w, v);
 }
 
-inline float Triangle::samplePoint(pcg32& sampler, Vector2& uv, Vector3& p, Vector3& n) const
+inline float Triangle::samplePoint(float *randNums, Vector2& uv, Vector3& p, Vector3& n) const
 {
 	const Vector3& pa = soup->positions[indices[0]];
 	const Vector3& pb = soup->positions[indices[1]];
@@ -118,8 +118,8 @@ inline float Triangle::samplePoint(pcg32& sampler, Vector2& uv, Vector3& p, Vect
 
 	n = (pb - pa).cross(pc - pa);
 	float area = n.norm();
-	float u1 = std::sqrt(sampler.nextFloat());
-	float u2 = sampler.nextFloat();
+	float u1 = std::sqrt(randNums[1]);
+	float u2 = randNums[2];
 	float u = 1.0f - u1;
 	float v = u2*u1;
 	float w = 1.0f - u - v;

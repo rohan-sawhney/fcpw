@@ -17,7 +17,6 @@
 #endif
 #include <Eigen/Core>
 #include <Eigen/Geometry>
-#include "pcg32.h"
 
 namespace fcpw {
 

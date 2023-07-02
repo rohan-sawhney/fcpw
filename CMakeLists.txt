@@ -25,10 +25,8 @@ get_directory_property(hasParent PARENT_DIRECTORY)
 
 if(hasParent)
 	set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror PARENT_SCOPE)
-	set(FCPW_PCG32_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/pcg32 PARENT_SCOPE)
 else()
 	set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror)
-	set(FCPW_PCG32_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/pcg32)
 endif()
 
 if(FCPW_BUILD_TESTS)

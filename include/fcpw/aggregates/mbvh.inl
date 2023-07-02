@@ -1098,7 +1098,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectF
 
 template<size_t WIDTH, size_t DIM, bool CONEDATA, typename PrimitiveType, typename SilhouetteType>
 inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-																								  std::vector<Interaction<DIM>>& is, pcg32& sampler,
+																								  std::vector<Interaction<DIM>>& is, float *randNums,
 																								  int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 																								  const std::function<float(float)>& traversalWeight,
 																								  const std::function<float(float)>& primitiveWeight) const
@@ -1108,7 +1108,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 	float d2NodeMax = maxFloat;
-	float u = sampler.nextFloat();
+	float u = randNums[0];
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
 	// push root node
@@ -1160,8 +1160,11 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 					int hit = 0;
 					std::vector<Interaction<DIM>> cs;
 					if (primitiveTypeIsAggregate) {
+						float modifiedRandNums[DIM];
+						modifiedRandNums[0] = u;
+						for (int i = 1; i < DIM; i++) modifiedRandNums[i] = randNums[i];
 						const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-						hit = aggregate->intersectStochasticFromNode(s, cs, sampler, nodeStartIndex, aggregateIndex,
+						hit = aggregate->intersectStochasticFromNode(s, cs, modifiedRandNums, nodeStartIndex, aggregateIndex,
 																	 nodesVisited, traversalWeight, primitiveWeight);
 
 					} else {
@@ -1272,7 +1275,7 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 			} else {
 				// sample a point on the selected geometric primitive
 				const PrimitiveType *prim = primitives[is[0].referenceIndex];
-				float pdf = is[0].samplePoint(prim, sampler);
+				float pdf = is[0].samplePoint(prim, randNums);
 				is[0].d *= pdf;
 			}
 		}

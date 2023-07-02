@@ -108,11 +108,10 @@ public:
 	// geometric primitive inside the sphere (for each aggregate in the hierarchy) using
 	// the user specified weight function (function argument is the squared distance
 	// between the sphere and box/primitive centers) and samples a random point on that
-	// primitive (written to Interaction<DIM>::p) using the fast pcg32 sampler:
-	// https://github.com/wjakob/pcg32/tree/master; the selection pdf value is written
-	// to Interaction<DIM>::d along with the primitive index
+	// primitive (written to Interaction<DIM>::p) using the random numbers randNums[DIM];
+	// the selection pdf value is written to Interaction<DIM>::d along with the primitive index
 	int intersectStochastic(const BoundingSphere<DIM>& s,
-							std::vector<Interaction<DIM>>& is, pcg32& sampler,
+							std::vector<Interaction<DIM>>& is, float *randNums,
 							const std::function<float(float)>& traversalWeight={},
 							const std::function<float(float)>& primitiveWeight={}) const;
 

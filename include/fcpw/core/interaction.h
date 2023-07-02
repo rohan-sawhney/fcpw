@@ -34,8 +34,8 @@ struct Interaction {
 	}
 
 	// samples a random point on geometric primitive and returns sampling pdf
-	float samplePoint(const Primitive<DIM> *primitive, pcg32& sampler) {
-		return static_cast<const GeometricPrimitive<DIM> *>(primitive)->samplePoint(sampler, uv, p, n);
+	float samplePoint(const Primitive<DIM> *primitive, float *randNums) {
+		return static_cast<const GeometricPrimitive<DIM> *>(primitive)->samplePoint(randNums, uv, p, n);
 	}
 
 	// computes normal from geometric primitive if unspecified

@@ -62,7 +62,7 @@ public:
 	virtual Vector<DIM - 1> barycentricCoordinates(const Vector<DIM>& p) const = 0;
 
 	// samples a random point on the geometric primitive and returns sampling pdf
-	virtual float samplePoint(pcg32& sampler, Vector<DIM - 1>& uv,
+	virtual float samplePoint(float *randNums, Vector<DIM - 1>& uv,
 							  Vector<DIM>& p, Vector<DIM>& n) const = 0;
 
 	// finds closest silhouette point to sphere center
@@ -169,11 +169,11 @@ public:
 
 	// intersects with sphere
 	int intersectStochastic(const BoundingSphere<DIM>& s,
-							std::vector<Interaction<DIM>>& is, pcg32& sampler,
+							std::vector<Interaction<DIM>>& is, float *randNums,
 							const std::function<float(float)>& traversalWeight={},
 							const std::function<float(float)>& primitiveWeight={}) const {
 		int nodesVisited = 0;
-		return this->intersectStochasticFromNode(s, is, sampler, 0, this->index, nodesVisited,
+		return this->intersectStochasticFromNode(s, is, randNums, 0, this->index, nodesVisited,
 												 traversalWeight, primitiveWeight);
 	}
 
@@ -271,7 +271,7 @@ public:
 	// intersects with sphere, starting the traversal at the specified node in an aggregate
 	// NOTE: interactions contain primitive index
 	virtual int intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-											std::vector<Interaction<DIM>>& is, pcg32& sampler,
+											std::vector<Interaction<DIM>>& is, float *randNums,
 											int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 											const std::function<float(float)>& traversalWeight={},
 											const std::function<float(float)>& primitiveWeight={}) const = 0;
@@ -365,7 +365,7 @@ public:
 
 	// intersects with sphere, starting the traversal at the specified node in an aggregate
 	int intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-									std::vector<Interaction<DIM>>& is, pcg32& sampler,
+									std::vector<Interaction<DIM>>& is, float *randNums,
 									int nodeStartIndex, int aggregateIndex, int& nodesVisited,
 									const std::function<float(float)>& traversalWeight={},
 									const std::function<float(float)>& primitiveWeight={}) const {
@@ -373,7 +373,7 @@ public:
 		BoundingSphere<DIM> sInv = s.transform(tInv);
 
 		// intersect
-		int hits = aggregate->intersectStochasticFromNode(sInv, is, sampler, nodeStartIndex, aggregateIndex,
+		int hits = aggregate->intersectStochasticFromNode(sInv, is, randNums, nodeStartIndex, aggregateIndex,
 														  nodesVisited, traversalWeight, primitiveWeight);
 
 		nodesVisited++;
