@@ -172,7 +172,8 @@ protected:
 									   float *randNums, int nodeStartIndex, int aggregateIndex,
 									   const std::function<float(float)>& traversalWeight,
 									   const std::function<float(float)>& primitiveWeight,
-									   BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const;
+									   int nodeIndex, float traversalPdf, float *boxHits,
+									   int& hits, int& nodesVisited) const;
 
 	// processes subtree for closest point
 	void processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,

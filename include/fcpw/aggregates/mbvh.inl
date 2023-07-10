@@ -1105,22 +1105,18 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 {
 	int hits = 0;
 	if (!primitiveTypeIsAggregate) is.resize(1);
-	BvhTraversal subtree[FCPW_MBVH_MAX_DEPTH];
 	FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
 	float d2NodeMax = maxFloat;
 	float u = randNums[0];
 	enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
 
 	// push root node
-	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
-	subtree[0].node = rootIndex;
-	subtree[0].distance = 1.0f;
+	int nodeIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+	float traversalPdf = 1.0f;
 	int stackPtr = 0;
 
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
-		int nodeIndex = subtree[stackPtr].node;
-		float traversalPdf = subtree[stackPtr].distance;
 		const MbvhNode<DIM, CONEDATA>& node(flatTree[nodeIndex]);
 		stackPtr--;
 
@@ -1258,8 +1254,8 @@ inline int Mbvh<WIDTH, DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectS
 
 				if (selectedIndex != -1) {
 					stackPtr++;
-					subtree[stackPtr].node = node.child[selectedIndex];
-					subtree[stackPtr].distance = traversalPdf*selectedWeight/totalTraversalWeight;
+					nodeIndex = node.child[selectedIndex];
+					traversalPdf *= selectedWeight/totalTraversalWeight;
 					d2NodeMax = d2Max[selectedIndex];
 				}
 			}

@@ -769,7 +769,8 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 																							  float *randNums, int nodeStartIndex, int aggregateIndex,
 																							  const std::function<float(float)>& traversalWeight,
 																							  const std::function<float(float)>& primitiveWeight,
-																							  BvhTraversal *subtree, float *boxHits, int& hits, int& nodesVisited) const
+																							  int nodeIndex, float traversalPdf, float *boxHits,
+																							  int& hits, int& nodesVisited) const
 {
 	int stackPtr = 0;
 	float d2NodeMax = boxHits[1];
@@ -777,8 +778,6 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 
 	while (stackPtr >= 0) {
 		// pop off the next node to work on
-		int nodeIndex = subtree[stackPtr].node;
-		float traversalPdf = subtree[stackPtr].distance;
 		const SbvhNode<DIM, CONEDATA>& node(flatTree[nodeIndex]);
 		stackPtr--;
 
@@ -873,14 +872,14 @@ inline void Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::processSubtreeFo
 
 				if (u < traversalProb0) {
 					u = u/traversalProb0; // rescale to [0,1)
-					subtree[stackPtr].node = nodeIndex + 1;
-					subtree[stackPtr].distance = traversalPdf*traversalProb0;
+					nodeIndex = nodeIndex + 1;
+					traversalPdf *= traversalProb0;
 					d2NodeMax = boxHits[1];
 
 				} else {
 					u = (u - traversalProb0)/traversalProb1; // rescale to [0,1)
-					subtree[stackPtr].node = nodeIndex + node.secondChildOffset;
-					subtree[stackPtr].distance = traversalPdf*traversalProb1;
+					nodeIndex = nodeIndex + node.secondChildOffset;
+					traversalPdf *= traversalProb1;
 					d2NodeMax = boxHits[3];
 				}
 			}
@@ -899,15 +898,12 @@ inline int Sbvh<DIM, CONEDATA, PrimitiveType, SilhouetteType>::intersectStochast
 {
 	int hits = 0;
 	if (!primitiveTypeIsAggregate) is.resize(1);
-	BvhTraversal subtree[FCPW_SBVH_MAX_DEPTH];
 	float boxHits[4];
 
 	int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
 	if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
-		subtree[0].node = rootIndex;
-		subtree[0].distance = 1.0f;
 		processSubtreeForIntersection(s, is, randNums, nodeStartIndex, aggregateIndex, traversalWeight,
-									  primitiveWeight, subtree, boxHits, hits, nodesVisited);
+									  primitiveWeight, rootIndex, 1.0f, boxHits, hits, nodesVisited);
 	}
 
 	if (hits > 0) {
