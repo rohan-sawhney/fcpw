@@ -51,9 +51,10 @@ struct Interaction {
 	// applies transform
 	void applyTransform(const Transform<DIM>& t,
 						const Transform<DIM>& tInv,
-						const Vector<DIM>& query) {
+						const Vector<DIM>& query,
+						bool overwriteDistance = true) {
 		p = t*p;
-		d = (p - query).norm();
+		if (overwriteDistance) d = (p - query).norm();
 		n = Transform<DIM>(tInv.matrix().transpose())*n;
 		n.normalize();
 	}

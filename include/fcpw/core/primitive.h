@@ -376,6 +376,13 @@ public:
 		int hits = aggregate->intersectStochasticFromNode(sInv, is, randNums, nodeStartIndex, aggregateIndex,
 														  nodesVisited, traversalWeight, primitiveWeight);
 
+		// apply transform to interactions
+		if (hits > 0) {
+			for (int i = 0; i < (int)is.size(); i++) {
+				is[i].applyTransform(t, tInv, s.c, false);
+			}
+		}
+
 		nodesVisited++;
 		return hits;
 	}
