@@ -244,19 +244,28 @@ inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& s
 
 	// compute bounding cone axis
 	bool anySilhouetteRefs = false;
+	bool silhouettesHaveTwoAdjacentFaces = true;
 	for (int i = start; i < end; i++) {
 		SbvhNode<DIM, true>& childNode(flatTree[i]);
 
 		for (int j = 0; j < childNode.nSilhouetteReferences; j++) { // is leaf if nSilhouetteReferences > 0
 			int referenceIndex = childNode.silhouetteReferenceOffset + j;
+			const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
+
 			cone.axis += silhouetteNormals[referenceIndex];
+			silhouettesHaveTwoAdjacentFaces = silhouettesHaveTwoAdjacentFaces &&
+											  silhouette->hasFace(0) &&
+											  silhouette->hasFace(1);
 			anySilhouetteRefs = true;
 		}
 	}
 
 	// compute bounding cone angle
 	if (!anySilhouetteRefs) {
- 		node.cone.halfAngle = -M_PI;
+		node.cone.halfAngle = -M_PI;
+
+	} else if (!silhouettesHaveTwoAdjacentFaces) {
+		node.cone.halfAngle = M_PI;
 
 	} else {
 		float axisNorm = cone.axis.norm();
@@ -272,11 +281,9 @@ inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& s
 					const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
 
 					for (int k = 0; k < 2; k++) {
-						if (silhouette->hasFace(k)) {
-							const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
-							float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
-							cone.halfAngle = std::max(cone.halfAngle, angle);
-						}
+						const Vector<DIM>& n = silhouetteFaceNormals[2*referenceIndex + k];
+						float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
+						cone.halfAngle = std::max(cone.halfAngle, angle);
 					}
 				}
 			}
@@ -330,14 +337,21 @@ inline void assignSilhouettesToNodes<3, true, LineSegment, SilhouetteVertex>(con
 
 				if (seenVertex.find(vIndex) == seenVertex.end()) {
 					seenVertex[vIndex] = true;
-					Vector3 n = silhouetteVertex->normal();
-					Vector3 n0 = silhouetteVertex->hasFace(0) ? silhouetteVertex->normal(0, true) : zero;
-					Vector3 n1 = silhouetteVertex->hasFace(1) ? silhouetteVertex->normal(1, true) : zero;
-
+					Vector3 n = zero;
+					Vector3 n0 = zero;
+					Vector3 n1 = zero;
+					bool hasTwoAdjacentFaces = silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1);
 					bool ignore = false;
-	 				if (ignoreSilhouette && silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1)) {
-						float det = n0.x()*n1.y() - n1.x()*n0.y();
-						ignore = ignoreSilhouette(det, lineSegment->pIndex);
+
+					if (hasTwoAdjacentFaces) {
+						n = silhouetteVertex->normal();
+						n0 = silhouetteVertex->normal(0, true);
+						n1 = silhouetteVertex->normal(1, true);
+
+						if (ignoreSilhouette) {
+							float det = n0.x()*n1.y() - n1.x()*n0.y();
+							ignore = ignoreSilhouette(det, lineSegment->pIndex);
+						}
 					}
 
 					if (!ignore) {
@@ -387,17 +401,24 @@ inline void assignSilhouettesToNodes<3, true, Triangle, SilhouetteEdge>(const st
 
 				if (seenEdge.find(eIndex) == seenEdge.end()) {
 					seenEdge[eIndex] = true;
-					Vector3 n = silhouetteEdge->normal();
-					Vector3 n0 = silhouetteEdge->hasFace(0) ? silhouetteEdge->normal(0, true) : zero;
-					Vector3 n1 = silhouetteEdge->hasFace(1) ? silhouetteEdge->normal(1, true) : zero;
-
+					Vector3 n = zero;
+					Vector3 n0 = zero;
+					Vector3 n1 = zero;
+					bool hasTwoAdjacentFaces = silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1);
 					bool ignore = false;
-	 				if (ignoreSilhouette && silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1)) {
-						const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
-	 					const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
-	 					Vector3 edgeDir = (pb - pa).normalized();
-						float dihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));
-						ignore = ignoreSilhouette(dihedralAngle, triangle->pIndex);
+
+					if (hasTwoAdjacentFaces) {
+						n = silhouetteEdge->normal();
+						n0 = silhouetteEdge->normal(0, true);
+						n1 = silhouetteEdge->normal(1, true);
+
+						if (ignoreSilhouette) {
+							const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
+							const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
+							Vector3 edgeDir = (pb - pa).normalized();
+							float dihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));
+							ignore = ignoreSilhouette(dihedralAngle, triangle->pIndex);
+						}
 					}
 
 					if (!ignore) {
