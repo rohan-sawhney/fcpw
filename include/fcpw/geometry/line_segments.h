@@ -4,59 +4,62 @@
 
 namespace fcpw {
 
-class LineSegment: public GeometricPrimitive<3> {
+class LineSegment: public GeometricPrimitive<2> {
 public:
-	// constructor
-	LineSegment();
+    // constructor
+    LineSegment();
 
-	// returns bounding box
-	BoundingBox<3> boundingBox() const;
+    // returns bounding box
+    BoundingBox<2> boundingBox() const;
 
-	// returns centroid
-	Vector3 centroid() const;
+    // returns centroid
+    Vector2 centroid() const;
 
-	// returns surface area
-	float surfaceArea() const;
+    // returns surface area
+    float surfaceArea() const;
 
-	// returns signed volume; NOTE: specialized to flat line segment (z = 0)
-	float signedVolume() const;
+    // returns signed volume
+    float signedVolume() const;
 
-	// returns normal; NOTE: specialized to flat line segment (z = 0)
-	Vector3 normal(bool normalize=false) const;
+    // returns normal
+    Vector2 normal(bool normalize=false) const;
 
-	// returns the normalized normal based on the local parameterization
-	Vector3 normal(const Vector2& uv) const;
+    // returns the normalized normal based on the local parameterization
+    Vector2 normal(const Vector1& uv) const;
 
-	// returns barycentric coordinates
-	Vector2 barycentricCoordinates(const Vector3& p) const;
+    // returns barycentric coordinates
+    Vector1 barycentricCoordinates(const Vector2& p) const;
 
-	// samples a random point on the geometric primitive and returns sampling pdf
-	float samplePoint(float *randNums, Vector2& uv, Vector3& p, Vector3& n) const;
+    // samples a random point on the geometric primitive and returns sampling pdf
+    float samplePoint(float *randNums, Vector1& uv, Vector2& p, Vector2& n) const;
 
-	// splits the line segment along the provided coordinate and axis
-	void split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
-			   BoundingBox<3>& boxRight) const;
+    // splits the line segment along the provided coordinate and axis
+    void split(int dim, float splitCoord, BoundingBox<2>& boxLeft, BoundingBox<2>& boxRight) const;
 
-	// intersects with ray; NOTE: specialized to flat line segment (z = 0)
-	int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-				  bool checkForOcclusion=false, bool recordAllHits=false) const;
+    // intersects with ray
+    int intersect(Ray<2>& r, std::vector<Interaction<2>>& is,
+                  bool checkForOcclusion=false, bool recordAllHits=false) const;
 
-	// intersects with sphere
-	int intersect(const BoundingSphere<3>& s,
-				  std::vector<Interaction<3>>& is, bool recordOneHit=false,
-				  const std::function<float(float)>& primitiveWeight={}) const;
+    // intersects with sphere
+    int intersect(const BoundingSphere<2>& s, std::vector<Interaction<2>>& is,
+                  bool recordOneHit=false) const;
 
-	// finds closest point to sphere center
-	bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i, bool recordNormal=false) const;
+    // finds closest point to sphere center
+    bool findClosestPoint(BoundingSphere<2>& s, Interaction<2>& i, bool recordNormal=false) const;
 
-	// members
-	const PolygonSoup<3> *soup;
-	int indices[2];
+    // get and set index
+    int getIndex() const { return pIndex; }
+    void setIndex(int index) { pIndex = index; }
 
-private:
-	// returns normalized vertex normal if available;
-	// otherwise computes normalized segment normal
-	Vector3 normal(int vIndex) const;
+    // members
+    int indices[2];
+    int pIndex;
+    const PolygonSoup<2> *soup;
+
+protected:
+    // returns normalized vertex normal if available;
+    // otherwise computes normalized segment normal
+    Vector2 normal(int vIndex) const;
 };
 
 } // namespace fcpw

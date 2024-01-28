@@ -1,256 +1,252 @@
 namespace fcpw {
 
-inline LineSegment::LineSegment():
-soup(nullptr)
+inline LineSegment::LineSegment()
 {
-	indices[0] = -1;
-	indices[1] = -1;
-	pIndex = -1;
+    indices[0] = -1;
+    indices[1] = -1;
+    soup = nullptr;
+    pIndex = -1;
 }
 
-inline BoundingBox<3> LineSegment::boundingBox() const
+inline BoundingBox<2> LineSegment::boundingBox() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	BoundingBox<3> box(pa);
-	box.expandToInclude(pb);
+    BoundingBox<2> box(pa);
+    box.expandToInclude(pb);
 
-	return box;
+    return box;
 }
 
-inline Vector3 LineSegment::centroid() const
+inline Vector2 LineSegment::centroid() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	return (pa + pb)*0.5f;
+    return (pa + pb)*0.5f;
 }
 
 inline float LineSegment::surfaceArea() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	return (pb - pa).norm();
+    return (pb - pa).norm();
 }
 
 inline float LineSegment::signedVolume() const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	return 0.5f*pa.cross(pb)[2];
+    return 0.5f*(pa[0]*pb[1] - pa[1]*pb[0]);
 }
 
-inline Vector3 LineSegment::normal(bool normalize) const
+inline Vector2 LineSegment::normal(bool normalize) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	Vector3 s = pb - pa;
-	Vector3 n(s[1], -s[0], 0);
+    Vector2 s = pb - pa;
+    Vector2 n(s[1], -s[0]);
 
-	return normalize ? n.normalized() : n;
+    return normalize ? n.normalized() : n;
 }
 
-inline Vector3 LineSegment::normal(int vIndex) const
+inline Vector2 LineSegment::normal(int vIndex) const
 {
-	if (soup->vNormals.size() > 0 && vIndex >= 0) {
-		return soup->vNormals[indices[vIndex]];
-	}
+    if (soup->vNormals.size() > 0 && vIndex >= 0) {
+        return soup->vNormals[indices[vIndex]];
+    }
 
-	return normal(true);
+    return normal(true);
 }
 
-inline Vector3 LineSegment::normal(const Vector2& uv) const
+inline Vector2 LineSegment::normal(const Vector1& uv) const
 {
-	int vIndex = -1;
-	if (uv[0] <= epsilon) vIndex = 0;
-	else if (uv[0] >= oneMinusEpsilon) vIndex = 1;
+    int vIndex = -1;
+    if (uv[0] <= epsilon) vIndex = 0;
+    else if (uv[0] >= oneMinusEpsilon) vIndex = 1;
 
-	return normal(vIndex);
+    return normal(vIndex);
 }
 
-inline Vector2 LineSegment::barycentricCoordinates(const Vector3& p) const
+inline Vector1 LineSegment::barycentricCoordinates(const Vector2& p) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	return Vector2((p - pa).norm()/(pb - pa).norm(), 0.0f);
+    return Vector1((p - pa).norm()/(pb - pa).norm());
 }
 
-inline float LineSegment::samplePoint(float *randNums, Vector2& uv, Vector3& p, Vector3& n) const
+inline float LineSegment::samplePoint(float *randNums, Vector1& uv, Vector2& p, Vector2& n) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	Vector3 s = pb - pa;
-	float area = s.norm();
-	float u = randNums[1];
-	uv = Vector2(u, 0.0f);
-	p = pa + u*s;
-	n[0] = s[1];
-	n[1] = -s[0];
-	n[2] = 0.0f;
-	n /= area;
+    Vector2 s = pb - pa;
+    float area = s.norm();
+    float u = randNums[1];
+    uv[0] = u;
+    p = pa + u*s;
+    n[0] = s[1];
+    n[1] = -s[0];
+    n /= area;
 
-	return 1.0f/area;
+    return 1.0f/area;
 }
 
-inline void LineSegment::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
-							   BoundingBox<3>& boxRight) const
+inline void LineSegment::split(int dim, float splitCoord, BoundingBox<2>& boxLeft,
+                               BoundingBox<2>& boxRight) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	if (pa[dim] <= splitCoord) {
-		if (pb[dim] <= splitCoord) {
-			boxLeft = BoundingBox<3>(pa);
-			boxLeft.expandToInclude(pb);
-			boxRight = BoundingBox<3>();
+    if (pa[dim] <= splitCoord) {
+        if (pb[dim] <= splitCoord) {
+            boxLeft = BoundingBox<2>(pa);
+            boxLeft.expandToInclude(pb);
+            boxRight = BoundingBox<2>();
 
-		} else {
-			Vector3 u = pb - pa;
-			float t = clamp((splitCoord - pa[dim])/u[dim], 0.0f, 1.0f);
+        } else {
+            Vector2 u = pb - pa;
+            float t = std::clamp((splitCoord - pa[dim])/u[dim], 0.0f, 1.0f);
 
-			boxLeft = BoundingBox<3>(pa + u*t);
-			boxRight = boxLeft;
-			boxLeft.expandToInclude(pa);
-			boxRight.expandToInclude(pb);
-		}
+            boxLeft = BoundingBox<2>(pa + u*t);
+            boxRight = boxLeft;
+            boxLeft.expandToInclude(pa);
+            boxRight.expandToInclude(pb);
+        }
 
-	} else {
-		if (pb[dim] >= splitCoord) {
-			boxRight = BoundingBox<3>(pa);
-			boxRight.expandToInclude(pb);
-			boxLeft = BoundingBox<3>();
+    } else {
+        if (pb[dim] >= splitCoord) {
+            boxRight = BoundingBox<2>(pa);
+            boxRight.expandToInclude(pb);
+            boxLeft = BoundingBox<2>();
 
-		} else {
-			Vector3 u = pb - pa;
-			float t = clamp((splitCoord - pa[dim])/u[dim], 0.0f, 1.0f);
+        } else {
+            Vector2 u = pb - pa;
+            float t = std::clamp((splitCoord - pa[dim])/u[dim], 0.0f, 1.0f);
 
-			boxRight = BoundingBox<3>(pa + u*t);
-			boxLeft = boxRight;
-			boxRight.expandToInclude(pa);
-			boxLeft.expandToInclude(pb);
-		}
-	}
+            boxRight = BoundingBox<2>(pa + u*t);
+            boxLeft = boxRight;
+            boxRight.expandToInclude(pa);
+            boxLeft.expandToInclude(pb);
+        }
+    }
 }
 
-inline int LineSegment::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-								  bool checkForOcclusion, bool recordAllHits) const
+inline int LineSegment::intersect(Ray<2>& r, std::vector<Interaction<2>>& is,
+                                  bool checkForOcclusion, bool recordAllHits) const
 {
-	is.clear();
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    is.clear();
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	Vector3 u = pa - r.o;
-	Vector3 v = pb - pa;
+    Vector2 u = pa - r.o;
+    Vector2 v = pb - pa;
 
-	// return if line segment and ray are parallel
-	float dv = r.d.cross(v)[2];
-	if (std::fabs(dv) <= epsilon) return 0;
+    // return if line segment and ray are parallel
+    float dv = r.d[0]*v[1] - r.d[1]*v[0];
+    if (std::fabs(dv) <= epsilon) return 0;
 
-	// solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
-	// s = (u x r.d)/(r.d x v)
-	float ud = u.cross(r.d)[2];
-	float s = ud/dv;
+    // solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
+    // s = (u x r.d)/(r.d x v)
+    float ud = u[0]*r.d[1] - u[1]*r.d[0];
+    float s = ud/dv;
 
-	if (s >= 0.0f && s <= 1.0f) {
-		// t = (u x v)/(r.d x v)
-		float uv = u.cross(v)[2];
-		float t = uv/dv;
+    if (s >= 0.0f && s <= 1.0f) {
+        // t = (u x v)/(r.d x v)
+        float uv = u[0]*v[1] - u[1]*v[0];
+        float t = uv/dv;
 
-		if (t >= 0.0f && t <= r.tMax) {
-			if (checkForOcclusion) return 1;
-			auto it = is.emplace(is.end(), Interaction<3>());
-			it->d = t;
-			it->p = pa + s*v;
-			it->n = Vector3(v[1], -v[0], 0).normalized();
-			it->uv[0] = s;
-			it->uv[1] = -1;
-			it->primitiveIndex = pIndex;
+        if (t >= 0.0f && t <= r.tMax) {
+            if (checkForOcclusion) return 1;
+            auto it = is.emplace(is.end(), Interaction<2>());
+            it->d = t;
+            it->p = pa + s*v;
+            it->n = Vector2(v[1], -v[0]).normalized();
+            it->uv[0] = s;
+            it->primitiveIndex = pIndex;
 
-			return 1;
-		}
-	}
+            return 1;
+        }
+    }
 
-	return 0;
+    return 0;
 }
 
-inline float findClosestPointLineSegment(const Vector3& pa, const Vector3& pb,
-										 const Vector3& x, Vector3& pt, float& t)
+template<size_t DIM>
+inline float findClosestPointLineSegment(const Vector<DIM>& pa, const Vector<DIM>& pb,
+                                         const Vector<DIM>& x, Vector<DIM>& pt, float& t)
 {
-	Vector3 u = pb - pa;
-	Vector3 v = x - pa;
+    Vector<DIM> u = pb - pa;
+    Vector<DIM> v = x - pa;
 
-	float c1 = u.dot(v);
-	if (c1 <= 0.0f) {
-		pt = pa;
-		t = 0.0f;
+    float c1 = u.dot(v);
+    if (c1 <= 0.0f) {
+        pt = pa;
+        t = 0.0f;
 
-		return (x - pt).norm();
-	}
+        return (x - pt).norm();
+    }
 
-	float c2 = u.dot(u);
-	if (c2 <= c1) {
-		pt = pb;
-		t = 1.0f;
+    float c2 = u.dot(u);
+    if (c2 <= c1) {
+        pt = pb;
+        t = 1.0f;
 
-		return (x - pt).norm();
-	}
+        return (x - pt).norm();
+    }
 
-	t = c1/c2;
-	pt = pa + u*t;
+    t = c1/c2;
+    pt = pa + u*t;
 
-	return (x - pt).norm();
+    return (x - pt).norm();
 }
 
-inline int LineSegment::intersect(const BoundingSphere<3>& s,
-								  std::vector<Interaction<3>>& is, bool recordOneHit,
-								  const std::function<float(float)>& primitiveWeight) const
+inline int LineSegment::intersect(const BoundingSphere<2>& s, std::vector<Interaction<2>>& is,
+                                  bool recordOneHit) const
 {
-	is.clear();
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    is.clear();
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	Interaction<3> i;
-	float d = findClosestPointLineSegment(pa, pb, s.c, i.p, i.uv[0]);
+    Interaction<2> i;
+    float d = findClosestPointLineSegment<2>(pa, pb, s.c, i.p, i.uv[0]);
 
-	if (d*d <= s.r2) {
-		auto it = is.emplace(is.end(), Interaction<3>());
-		it->primitiveIndex = pIndex;
-		if (recordOneHit) {
-			it->d = surfaceArea();
-			if (primitiveWeight) it->d *= primitiveWeight(d*d);
+    if (d*d <= s.r2) {
+        auto it = is.emplace(is.end(), Interaction<2>());
+        it->primitiveIndex = pIndex;
+        if (recordOneHit) {
+            it->d = surfaceArea();
 
-		} else {
-			it->d = 1.0f;
-		}
+        } else {
+            it->d = 1.0f;
+        }
 
-		return 1;
-	}
+        return 1;
+    }
 
-	return 0;
+    return 0;
 }
 
-inline bool LineSegment::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i, bool recordNormal) const
+inline bool LineSegment::findClosestPoint(BoundingSphere<2>& s, Interaction<2>& i, bool recordNormal) const
 {
-	const Vector3& pa = soup->positions[indices[0]];
-	const Vector3& pb = soup->positions[indices[1]];
+    const Vector2& pa = soup->positions[indices[0]];
+    const Vector2& pb = soup->positions[indices[1]];
 
-	float d = findClosestPointLineSegment(pa, pb, s.c, i.p, i.uv[0]);
+    float d = findClosestPointLineSegment<2>(pa, pb, s.c, i.p, i.uv[0]);
 
-	if (d*d <= s.r2) {
-		i.d = d;
-		i.primitiveIndex = pIndex;
-		i.uv[1] = -1;
+    if (d*d <= s.r2) {
+        i.d = d;
+        i.primitiveIndex = pIndex;
 
-		return true;
-	}
+        return true;
+    }
 
-	return false;
+    return false;
 }
 
 } // namespace fcpw

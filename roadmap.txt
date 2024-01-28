@@ -9,7 +9,6 @@ Future Optimizations & Features:
 ---- (for non-spatio-temporal (incoherent) queries) incrementally build spatial data structure while querying that stores pointers to nodes in the tree based on positions and directions to boundary
 3. SNCH
 ---- properly handle unoriented and non-manifold meshes
----- for closed domains, only use vertices in 2D and edges in 3D with negative dihedral angles as silhouette candidates
 ---- specialized construction heuristics for tighter normal cones such as the surface area orientation heuristic:
 ------- http://www.aconty.com/pdf/many-lights-hpg2018.pdf
 ------- https://link.springer.com/content/pdf/10.1007/978-1-4842-4427-2_18.pdf
@@ -18,8 +17,8 @@ Future Optimizations & Features:
 ---- faster traversal (tighter view cones, minimize sqrt, acos, asin, atan2 calls)
 4. GPU traversal (CUDA, GLSL)
 5. tree construction:
+---- oriented bounding boxes and/or rectangular swept spheres (specify bounding volume via templates)
 ---- spatial split bvh
----- oriented bounding boxes + rectangular swept spheres (specify bounding volume via templates)
 ---- vectorize and thread
-6. refit/dynamic bvh
+6. refit bvh
 7. packet queries: lower bound distance to all points inside box (optionally, collect subtrees)

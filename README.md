@@ -37,7 +37,6 @@ in the file where you want to use *FCPW*. If you are not using Cmake, then you'l
 and include Eigen and Enoki (optional) independently into your project. If you plan on building and running the tests, clone the following projects into the `deps` folder
 
 ```
-git clone https://github.com/embree/embree.git deps/embree
 git clone https://github.com/wjakob/tbb.git deps/tbb
 git clone --recurse-submodules https://github.com/nmwsharp/polyscope.git deps/polyscope
 ```
@@ -67,9 +66,6 @@ for (int i = 0; i < nVertices; i++) {
 for (int i = 0; i < nTriangles; i++) {
 	scene.setObjectTriangle(&indices[3*i], i, 0);
 }
-
-// compute vertex & edge normals (optional)
-scene.computeObjectNormals(0);
 
 // compute silhouette data (required only for closest silhouette point queries)
 scene.computeSilhouettes();
