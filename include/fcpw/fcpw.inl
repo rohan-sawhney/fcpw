@@ -2,6 +2,13 @@
 #include <fcpw/aggregates/bvh.h>
 #ifdef FCPW_USE_ENOKI
     #include <fcpw/aggregates/mbvh.h>
+#else
+// make dummy types to make it compile
+template <int DIM>
+struct MsnchNode {};
+
+template <int DIM>
+struct MbvhNode {};
 #endif
 #include <map>
 
@@ -565,6 +572,7 @@ inline void sortSoupPositions<3, SnchNode<3>, Triangle, SilhouetteEdge>(const st
     }
 }
 
+#ifdef FCPW_USE_ENOKI
 template<size_t DIM,
          typename BvhNodeType,
          typename PrimitiveType,
@@ -598,6 +606,7 @@ inline std::unique_ptr<Aggregate<DIM>> makeVectorizedAggregate(std::vector<Primi
 
     return mbvh;
 }
+#endif
 
 template<size_t DIM,
          typename NodeType,
