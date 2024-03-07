@@ -96,8 +96,19 @@ If your scene contains multiple objects with the same type of primitives (e.g. t
 
 See this [report](https://thenumb.at/assets/projects/fcpw-report.pdf) by [Max Slater](https://thenumb.at).
 
+# Citation
+
+```
+@software{FCPW,
+author = {Sawhney, Rohan},
+title = {FCPW: Fastest Closest Points in the West},
+version = {1.0},
+year = {2021}
+}
+```
+
 # Author
-[Rohan Sawhney](http://www.rohansawhney.io), with support from [Max Slater](https://thenumb.at), Ruihao Ye, [Keenan Crane](https://www.cs.cmu.edu/~kmcrane/) and Johann Korndoerfer.
+[Rohan Sawhney](http://www.rohansawhney.io)
 
 # License
 
