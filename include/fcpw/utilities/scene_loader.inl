@@ -232,7 +232,7 @@ inline void loadGeometry<2, LineSegment>(const std::string& filename, const Load
         loadLineSegmentSoupFromOBJFile(filename, soup);
 
     } else {
-        std::cerr << "loadGeometry<3, LineSegment>(): Invalid loading option" << std::endl;
+        std::cerr << "loadGeometry<2, LineSegment>(): Invalid loading option" << std::endl;
         exit(EXIT_FAILURE);
     }
 
