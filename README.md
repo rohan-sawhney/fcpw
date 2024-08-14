@@ -37,7 +37,7 @@ The `Scene` class is templated on dimension, which enables it to work with geome
 
 If your scene consists of multiple objects with the same type of primitives (e.g. triangles), it is better to "flatten" those objects into a single object (with a list of `positions` and `indices`). *FCPW* then builds a single acceleration structure over all primitives in the scene. If multiple objects are loaded, *FCPW* instead builds a hierarchy of acceleration structures, with a structure for each object in the scene.
 
-Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/main/demos/demo.cpp) for a complete demo, and [fcpw.h](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/fcpw.h) for the full API, which includes the list of supported geometric queries, heuristrics for constructing the accerlation structure, as well as support for refitting, instancing and CSG operations. Details regarding GPU support and installation are provided below.
+Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.cpp) for a complete demo, and [fcpw.h](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/fcpw.h) for the full API, which includes the list of supported geometric queries, heuristrics for constructing the accerlation structure, as well as support for refitting, instancing and CSG operations. Details regarding GPU support and installation are provided below.
 
 # Python API
 
@@ -72,11 +72,11 @@ scene.find_closest_points(bounding_spheres, interactions)
 closest_points = [i.p for i in interactions]
 ```
 
-Refer to [demo.py](https://github.com/rohan-sawhney/fcpw/blob/main/demos/demo.py) for a complete demo. The full API can be viewed in the Python console using `help(fcpw)`.
+Refer to [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.py) for a complete demo. The full API can be viewed in the Python console using `help(fcpw)`.
 
 # GPU Support
 
-GPU support for a large collection of query points is provided through the [GPUScene](https://github.com/rohan-sawhney/fcpw/blob/main/include/fcpw/fcpw_gpu.h) class in C++, and `gpu_scene_*D` classes in Python. *FCPW* currently requires the acceleration structure to be built on the CPU and then transferred to the GPU. For instance, in C++ we have:
+GPU support for a large collection of query points is provided through the [GPUScene](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/fcpw_gpu.h) class in C++, and `gpu_scene_*D` classes in Python. *FCPW* currently requires the acceleration structure to be built on the CPU and then transferred to the GPU. For instance, in C++ we have:
 
 ```c++
 #include <fcpw/fcpw_gpu.h>
@@ -134,9 +134,9 @@ interactions = fcpw.gpu_interaction_list()
 gpu_scene.find_closest_points(bounding_spheres, interactions)
 ```
 
-Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/main/demos/demo.cpp) and [demo.py](https://github.com/rohan-sawhney/fcpw/blob/main/demos/demo.py) for complete demos. GPU support is available on Linux and Windows ([Slang](https://shader-slang.com/slang/user-guide/) currently only has unofficial support for macOS). Installation details for Slang are provided below.
+Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.cpp) and [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.py) for complete demos. GPU support is available on Linux and Windows ([Slang](https://shader-slang.com/slang/user-guide/) currently only has unofficial support for macOS). Installation details for Slang are provided below.
 
-For those developing directly on the GPU, the acceleration structure can also be accessed through [bvh.slang](https://github.com/rohan-sawhney/fcpw/blob/main/include/fcpw/gpu/bvh.slang). Slang offers CUDA, HLSL, Vulkan, OpenGL and Metal (experimental) as compilation targets. Refer to its [user guide](https://shader-slang.com/slang/user-guide/get-started.html) for further details on compiling to these targets.
+For those developing directly on the GPU, the acceleration structure can also be accessed through [bvh.slang](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/gpu/bvh.slang). Slang offers CUDA, HLSL, Vulkan, OpenGL and Metal (experimental) as compilation targets. Refer to its [user guide](https://shader-slang.com/slang/user-guide/get-started.html) for further details on compiling to these targets.
 
 # C++ Installation
 
