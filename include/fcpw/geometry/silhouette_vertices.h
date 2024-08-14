@@ -28,9 +28,10 @@ public:
     Vector2 normal() const;
 
     // finds closest silhouette point to sphere center
-    bool findClosestSilhouettePoint(BoundingSphere<2>& s, Interaction<2>& i,
-                                    bool flipNormalOrientation=false, float squaredMinRadius=0.0f,
-                                    float precision=1e-3f, bool recordNormal=false) const;
+    bool findClosestSilhouettePoint(const BoundingSphere<2>& s, Interaction<2>& i,
+                                    bool flipNormalOrientation=false,
+                                    float squaredMinRadius=0.0f,
+                                    float precision=1e-3f) const;
 
     // get and set index
     int getIndex() const { return pIndex; }

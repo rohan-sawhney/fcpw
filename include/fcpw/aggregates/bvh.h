@@ -76,6 +76,9 @@ public:
         const std::function<bool(float, int)>& ignoreSilhouette_={},
         bool packLeaves_=false, int leafSize_=4, int nBuckets_=8);
 
+    // refits the aggregate
+    void refit();
+
     // prints statistics
     void printStats() const;
 
@@ -92,6 +95,12 @@ public:
     float signedVolume() const;
 
     // intersects with ray, starting the traversal at the specified node in an aggregate
+    // NOTE: interaction is invalid when checkForOcclusion is enabled
+    bool intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                           int aggregateIndex, int& nodesVisited,
+                           bool checkForOcclusion=false) const;
+
+    // intersects with ray, starting the traversal at the specified node in an aggregate
     // NOTE: interactions are invalid when checkForOcclusion is enabled
     int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                           int nodeStartIndex, int aggregateIndex, int& nodesVisited,
@@ -106,10 +115,10 @@ public:
 
     // intersects with sphere, starting the traversal at the specified node in an aggregate
     // NOTE: interactions contain primitive index
-    int intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-                                    std::vector<Interaction<DIM>>& is, float *randNums,
-                                    int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                    const std::function<float(float)>& branchTraversalWeight={}) const;
+    int intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                          const Vector<DIM>& randNums, int nodeStartIndex,
+                          int aggregateIndex, int& nodesVisited,
+                          const std::function<float(float)>& branchTraversalWeight={}) const;
 
     // finds closest point to sphere center, starting the traversal at the specified node in an aggregate
     bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
@@ -156,6 +165,12 @@ protected:
     void assignGeometricDataToNodes(const std::function<bool(float, int)>& ignoreSilhouette);
 
     // processes subtree for intersection
+    bool processSubtreeForIntersection(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                       int aggregateIndex, bool checkForOcclusion,
+                                       TraversalStack *subtree, float *boxHits,
+                                       bool& didHit, int& nodesVisited) const;
+
+    // processes subtree for intersection
     bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                        int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
                                        bool recordAllHits, TraversalStack *subtree,
@@ -167,8 +182,8 @@ protected:
                                         TraversalStack *subtree, float *boxHits, int& hits, int& nodesVisited) const;
 
     // processes subtree for intersection
-    void processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
-                                       float *randNums, int nodeStartIndex, int aggregateIndex,
+    void processSubtreeForIntersection(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                       const Vector<DIM>& randNums, int nodeStartIndex, int aggregateIndex,
                                        const std::function<float(float)>& branchTraversalWeight,
                                        int nodeIndex, float traversalPdf, float *boxHits,
                                        int& hits, int& nodesVisited) const;
@@ -194,6 +209,8 @@ protected:
 
     template<size_t A, typename B, typename C, typename D, typename E, typename F, typename G>
     friend class CPUBvhDataExtractor;
+    template<size_t A, typename B, typename C, typename D>
+    friend class CPUBvhRefitDataExtractor;
 };
 
 } // namespace fcpw

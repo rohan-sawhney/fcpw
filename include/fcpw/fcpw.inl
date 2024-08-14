@@ -11,6 +11,7 @@ template <int DIM>
 struct MbvhNode {};
 #endif
 #include <map>
+#include <thread>
 
 namespace fcpw {
 
@@ -49,7 +50,7 @@ inline void Scene<2>::setObjectTypes(const std::vector<std::vector<PrimitiveType
 
         if (objectTypes[i][0] == PrimitiveType::LineSegment) {
             sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::LineSegments,
-                                                                        nLineSegmentObjects));
+                                                                       nLineSegmentObjects));
             nLineSegmentObjects++;
         }
     }
@@ -78,7 +79,7 @@ inline void Scene<3>::setObjectTypes(const std::vector<std::vector<PrimitiveType
 
         if (objectTypes[i][0] == PrimitiveType::Triangle) {
             sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::Triangles,
-                                                                        nTriangleObjects));
+                                                                       nTriangleObjects));
             nTriangleObjects++;
         }
     }
@@ -153,14 +154,14 @@ inline void Scene<DIM>::setObjectVertex(const Vector<DIM>& position, int vertexI
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::setObjectLineSegment(const int *indices, int lineSegmentIndex, int objectIndex)
+inline void Scene<DIM>::setObjectLineSegment(const Vector2i& indices, int lineSegmentIndex, int objectIndex)
 {
     std::cerr << "setObjectLineSegment(): DIM: " << DIM << std::endl;
     exit(EXIT_FAILURE);
 }
 
 template<>
-inline void Scene<2>::setObjectLineSegment(const int *indices, int lineSegmentIndex, int objectIndex)
+inline void Scene<2>::setObjectLineSegment(const Vector2i& indices, int lineSegmentIndex, int objectIndex)
 {
     // update soup indices
     PolygonSoup<2>& soup = sceneData->soups[objectIndex];
@@ -177,14 +178,14 @@ inline void Scene<2>::setObjectLineSegment(const int *indices, int lineSegmentIn
 }
 
 template<size_t DIM>
-inline void Scene<DIM>::setObjectTriangle(const int *indices, int triangleIndex, int objectIndex)
+inline void Scene<DIM>::setObjectTriangle(const Vector3i& indices, int triangleIndex, int objectIndex)
 {
     std::cerr << "setObjectTriangle(): DIM: " << DIM << std::endl;
     exit(EXIT_FAILURE);
 }
 
 template<>
-inline void Scene<3>::setObjectTriangle(const int *indices, int triangleIndex, int objectIndex)
+inline void Scene<3>::setObjectTriangle(const Vector3i& indices, int triangleIndex, int objectIndex)
 {
     // update soup indices
     PolygonSoup<3>& soup = sceneData->soups[objectIndex];
@@ -200,6 +201,105 @@ inline void Scene<3>::setObjectTriangle(const int *indices, int triangleIndex, i
     triangle.indices[1] = indices[1];
     triangle.indices[2] = indices[2];
     triangle.setIndex(triangleIndex);
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectCount(int nObjects)
+{
+    // clear old data
+    sceneData->clearAggregateData();
+    sceneData->clearObjectData();
+
+    // initialize soup
+    sceneData->soups.resize(nObjects);
+    sceneData->instanceTransforms.resize(nObjects);
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectVertices(const std::vector<Vector<DIM>>& positions, int objectIndex)
+{
+    int nVertices = (int)positions.size();
+    setObjectVertexCount(nVertices, objectIndex);
+
+    for (int i = 0; i < nVertices; i++) {
+        setObjectVertex(positions[i], i, objectIndex);
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectLineSegments(const std::vector<Vector2i>& indices, int objectIndex)
+{
+    std::cerr << "setObjectLineSegments(): DIM: " << DIM << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+template<>
+inline void Scene<2>::setObjectLineSegments(const std::vector<Vector2i>& indices, int objectIndex)
+{
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::LineSegments) {
+            std::cerr << "Already set line segments!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // create line segments
+    int nLineSegments = (int)indices.size();
+    int nLineSegmentObjects = (int)sceneData->lineSegmentObjects.size();
+    sceneData->soupToObjectsMap[objectIndex].emplace_back(std::make_pair(ObjectType::LineSegments,
+                                                                         nLineSegmentObjects));
+    sceneData->lineSegmentObjects.resize(nLineSegmentObjects + 1);
+    sceneData->lineSegmentObjects[nLineSegmentObjects] =
+        std::unique_ptr<std::vector<LineSegment>>(new std::vector<LineSegment>(nLineSegments));
+
+    // resize soup indices
+    PolygonSoup<2>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + 2*nLineSegments);
+
+    // set line segments
+    for (int i = 0; i < nLineSegments; i++) {
+        setObjectLineSegment(indices[i], i, objectIndex);
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectTriangles(const std::vector<Vector3i>& indices, int objectIndex)
+{
+    std::cerr << "setObjectTriangles(): DIM: " << DIM << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+template<>
+inline void Scene<3>::setObjectTriangles(const std::vector<Vector3i>& indices, int objectIndex)
+{
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::Triangles) {
+            std::cerr << "Already set triangles!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // create line segment object
+    int nTriangles = (int)indices.size();
+    int nTriangleObjects = (int)sceneData->triangleObjects.size();
+    sceneData->soupToObjectsMap[objectIndex].emplace_back(std::make_pair(ObjectType::Triangles,
+                                                                         nTriangleObjects));
+    sceneData->triangleObjects.resize(nTriangleObjects + 1);
+    sceneData->triangleObjects[nTriangleObjects] =
+        std::unique_ptr<std::vector<Triangle>>(new std::vector<Triangle>(nTriangles));
+
+    // resize soup indices
+    PolygonSoup<3>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + 3*nTriangles);
+
+    // set triangles
+    for (int i = 0; i < nTriangles; i++) {
+        setObjectTriangle(indices[i], i, objectIndex);
+    }
 }
 
 template<size_t DIM>
@@ -393,7 +493,7 @@ inline void computeNormals<3, Triangle>(const std::vector<Triangle>& triangles,
 template<size_t DIM>
 inline void Scene<DIM>::computeObjectNormals(int objectIndex, bool computeWeighted)
 {
-    std::cerr << "computeSilhouettes(): DIM: " << DIM << std::endl;
+    std::cerr << "computeObjectNormals(): DIM: " << DIM << std::endl;
     exit(EXIT_FAILURE);
 }
 
@@ -426,11 +526,12 @@ inline void Scene<3>::computeObjectNormals(int objectIndex, bool computeWeighted
 template<typename NodeType, typename PrimitiveType>
 inline void sortLineSegmentSoupPositions(const std::vector<NodeType>& flatTree,
                                          std::vector<PrimitiveType *>& lineSegments,
-                                         PolygonSoup<2>& soup, std::vector<int>& indexMap)
+                                         PolygonSoup<2>& soup)
 {
     int V = (int)soup.positions.size();
     std::vector<Vector2> sortedPositions(V), sortedVertexNormals(V);
-    indexMap.resize(V, -1);
+    soup.indexMap.resize(V);
+    std::fill(soup.indexMap.begin(), soup.indexMap.end(), -1);
     int v = 0;
 
     // collect sorted positions, updating line segment and soup indices
@@ -444,14 +545,14 @@ inline void sortLineSegmentSoupPositions(const std::vector<NodeType>& flatTree,
             for (int k = 0; k < 2; k++) {
                 int vIndex = lineSegment->indices[k];
 
-                if (indexMap[vIndex] == -1) {
+                if (soup.indexMap[vIndex] == -1) {
                     sortedPositions[v] = soup.positions[vIndex];
                     if (soup.vNormals.size() > 0) sortedVertexNormals[v] = soup.vNormals[vIndex];
-                    indexMap[vIndex] = v++;
+                    soup.indexMap[vIndex] = v++;
                 }
 
-                soup.indices[2*lineSegment->getIndex() + k] = indexMap[vIndex];
-                lineSegment->indices[k] = indexMap[vIndex];
+                soup.indices[2*lineSegment->getIndex() + k] = soup.indexMap[vIndex];
+                lineSegment->indices[k] = soup.indexMap[vIndex];
             }
         }
     }
@@ -464,11 +565,12 @@ inline void sortLineSegmentSoupPositions(const std::vector<NodeType>& flatTree,
 template<typename NodeType, typename PrimitiveType>
 inline void sortTriangleSoupPositions(const std::vector<NodeType>& flatTree,
                                       std::vector<PrimitiveType *>& triangles,
-                                      PolygonSoup<3>& soup, std::vector<int>& indexMap)
+                                      PolygonSoup<3>& soup)
 {
     int V = (int)soup.positions.size();
     std::vector<Vector3> sortedPositions(V), sortedVertexNormals(V);
-    indexMap.resize(V, -1);
+    soup.indexMap.resize(V);
+    std::fill(soup.indexMap.begin(), soup.indexMap.end(), -1);
     int v = 0;
 
     // collect sorted positions, updating triangle and soup indices
@@ -482,14 +584,14 @@ inline void sortTriangleSoupPositions(const std::vector<NodeType>& flatTree,
             for (int k = 0; k < 3; k++) {
                 int vIndex = triangle->indices[k];
 
-                if (indexMap[vIndex] == -1) {
+                if (soup.indexMap[vIndex] == -1) {
                     sortedPositions[v] = soup.positions[vIndex];
                     if (soup.vNormals.size() > 0) sortedVertexNormals[v] = soup.vNormals[vIndex];
-                    indexMap[vIndex] = v++;
+                    soup.indexMap[vIndex] = v++;
                 }
 
-                soup.indices[3*triangle->getIndex() + k] = indexMap[vIndex];
-                triangle->indices[k] = indexMap[vIndex];
+                soup.indices[3*triangle->getIndex() + k] = soup.indexMap[vIndex];
+                triangle->indices[k] = soup.indexMap[vIndex];
             }
         }
     }
@@ -514,8 +616,7 @@ inline void sortSoupPositions<2, BvhNode<2>, LineSegment, SilhouettePrimitive<2>
                                                                                   std::vector<SilhouettePrimitive<2> *>& silhouettes,
                                                                                   PolygonSoup<2>& soup)
 {
-    std::vector<int> indexMap;
-    sortLineSegmentSoupPositions<BvhNode<2>, LineSegment>(flatTree, lineSegments, soup, indexMap);
+    sortLineSegmentSoupPositions<BvhNode<2>, LineSegment>(flatTree, lineSegments, soup);
 }
 
 template<>
@@ -524,8 +625,7 @@ inline void sortSoupPositions<2, SnchNode<2>, LineSegment, SilhouetteVertex>(con
                                                                              std::vector<SilhouetteVertex *>& silhouetteVertices,
                                                                              PolygonSoup<2>& soup)
 {
-    std::vector<int> indexMap;
-    sortLineSegmentSoupPositions<SnchNode<2>, LineSegment>(flatTree, lineSegments, soup, indexMap);
+    sortLineSegmentSoupPositions<SnchNode<2>, LineSegment>(flatTree, lineSegments, soup);
 
     for (int i = 0; i < (int)lineSegments.size(); i++) {
         int index1 = lineSegments[i]->indices[0];
@@ -549,8 +649,7 @@ inline void sortSoupPositions<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>>(c
                                                                                std::vector<SilhouettePrimitive<3> *>& silhouettes,
                                                                                PolygonSoup<3>& soup)
 {
-    std::vector<int> indexMap;
-    sortTriangleSoupPositions<BvhNode<3>, Triangle>(flatTree, triangles, soup, indexMap);
+    sortTriangleSoupPositions<BvhNode<3>, Triangle>(flatTree, triangles, soup);
 }
 
 template<>
@@ -559,15 +658,14 @@ inline void sortSoupPositions<3, SnchNode<3>, Triangle, SilhouetteEdge>(const st
                                                                         std::vector<SilhouetteEdge *>& silhouetteEdges,
                                                                         PolygonSoup<3>& soup)
 {
-    std::vector<int> indexMap;
-    sortTriangleSoupPositions<SnchNode<3>, Triangle>(flatTree, triangles, soup, indexMap);
+    sortTriangleSoupPositions<SnchNode<3>, Triangle>(flatTree, triangles, soup);
 
     for (int i = 0; i < silhouetteEdges.size(); i++) {
         SilhouetteEdge *silhouetteEdge = silhouetteEdges[i];
 
         for (int j = 0; j < 4; j++) {
             int vIndex = silhouetteEdge->indices[j];
-            if (vIndex != -1) silhouetteEdge->indices[j] = indexMap[vIndex];
+            if (vIndex != -1) silhouetteEdge->indices[j] = soup.indexMap[vIndex];
         }
     }
 }
@@ -759,7 +857,7 @@ inline void buildGeometricAggregates<2>(const AggregateType& aggregateType, bool
             nLineSegmentObjectPtrs++;
         }
 
-        objectAggregates[i]->index = nAggregates++;
+        objectAggregates[i]->setIndex(nAggregates++);
     }
 }
 
@@ -831,7 +929,7 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
             nTriangleObjectPtrs++;
         }
 
-        objectAggregates[i]->index = nAggregates++;
+        objectAggregates[i]->setIndex(nAggregates++);
     }
 }
 
@@ -850,7 +948,7 @@ inline std::unique_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 
     } else {
         instance1 = buildCsgAggregateRecursive<DIM>(node.child1, csgTree, aggregateInstances, nAggregates);
-        instance1->index = nAggregates++;
+        instance1->setIndex(nAggregates++);
     }
 
     if (node.isLeafChild2) {
@@ -858,7 +956,7 @@ inline std::unique_ptr<Aggregate<DIM>> buildCsgAggregateRecursive(
 
     } else {
         instance2 = buildCsgAggregateRecursive<DIM>(node.child2, csgTree, aggregateInstances, nAggregates);
-        instance2->index = nAggregates++;
+        instance2->setIndex(nAggregates++);
     }
 
     return std::unique_ptr<CsgNode<DIM, Aggregate<DIM>, Aggregate<DIM>>>(
@@ -892,7 +990,7 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
             for (int j = 0; j < nObjectInstances; j++) {
                 std::unique_ptr<TransformedAggregate<DIM>> transformedAggregate(
                     new TransformedAggregate<DIM>(aggregate, sceneData->instanceTransforms[i][j]));
-                transformedAggregate->index = nAggregates++;
+                transformedAggregate->setIndex(nAggregates++);
 
                 sceneData->aggregateInstancePtrs.emplace_back(transformedAggregate.get());
                 sceneData->aggregateInstances.emplace_back(std::move(transformedAggregate));
@@ -910,8 +1008,9 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
     } else if (sceneData->csgTree.size() > 0) {
         // build csg tree
         sceneData->aggregate = buildCsgAggregateRecursive<DIM>(0, sceneData->csgTree,
-                                                               sceneData->aggregateInstances, nAggregates);
-        sceneData->aggregate->index = nAggregates++;
+                                                               sceneData->aggregateInstances,
+                                                               nAggregates);
+        sceneData->aggregate->setIndex(nAggregates++);
         sceneData->aggregateInstancePtrs.clear();
         sceneData->aggregateInstances.clear();
 
@@ -926,28 +1025,60 @@ inline void Scene<DIM>::build(const AggregateType& aggregateType, bool vectorize
                 aggregateType, sceneData->aggregateInstancePtrs, sceneData->silhouetteObjectPtrStub, false, printStats);
         }
 
-        sceneData->aggregate->index = nAggregates++;
+        sceneData->aggregate->setIndex(nAggregates++);
     }
 
     // reduce memory footprint of aggregate
     if (reduceMemoryFootprint) {
-        sceneData->soupToObjectsMap.clear();
         sceneData->instanceTransforms.clear();
-        sceneData->csgTree.clear();
 
         for (int i = 0; i < (int)sceneData->soups.size(); i++) {
             PolygonSoup<DIM>& soup = sceneData->soups[i];
             soup.indices.clear();
-            if (vectorize && soup.vNormals.size() == 0) {
-                soup.positions.clear();
-            }
         }
     }
 }
 
 template<size_t DIM>
-inline int Scene<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is, bool checkForOcclusion,
-                                 bool recordAllHits) const
+inline void Scene<DIM>::updateObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex)
+{
+    PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+    soup.positions[soup.indexMap[vertexIndex]] = position;
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::updateObjectVertices(const std::vector<Vector<DIM>>& positions, int objectIndex)
+{
+    int nVertices = (int)positions.size();
+    for (int i = 0; i < nVertices; i++) {
+        updateObjectVertex(positions[i], i, objectIndex);
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::refit(bool printStats)
+{
+    using namespace std::chrono;
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+    sceneData->aggregate->refit(); // refit is applied recursively to all children
+
+    if (printStats) {
+        high_resolution_clock::time_point t2 = high_resolution_clock::now();
+        duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+        std::cout << "refit time: " << timeSpan.count() << " seconds" << std::endl;
+    }
+}
+
+template<size_t DIM>
+inline bool Scene<DIM>::intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion) const
+{
+    return sceneData->aggregate->intersect(r, i, checkForOcclusion);
+}
+
+template<size_t DIM>
+inline int Scene<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+                                 bool checkForOcclusion, bool recordAllHits) const
 {
     return sceneData->aggregate->intersect(r, is, checkForOcclusion, recordAllHits);
 }
@@ -960,11 +1091,11 @@ inline int Scene<DIM>::intersect(const BoundingSphere<DIM>& s, std::vector<Inter
 }
 
 template<size_t DIM>
-inline int Scene<DIM>::intersectStochastic(const BoundingSphere<DIM>& s,
-                                           std::vector<Interaction<DIM>>& is, float *randNums,
-                                           const std::function<float(float)>& branchTraversalWeight) const
+inline int Scene<DIM>::intersect(const BoundingSphere<DIM>& s,
+                                 Interaction<DIM>& i, const Vector<DIM>& randNums,
+                                 const std::function<float(float)>& branchTraversalWeight) const
 {
-    return sceneData->aggregate->intersectStochastic(s, is, randNums, branchTraversalWeight);
+    return sceneData->aggregate->intersect(s, i, randNums, branchTraversalWeight);
 }
 
 template<size_t DIM>
@@ -995,6 +1126,191 @@ inline bool Scene<DIM>::findClosestSilhouettePoint(const Vector<DIM>& x, Interac
     BoundingSphere<DIM> s(x, squaredMaxRadius);
     return sceneData->aggregate->findClosestSilhouettePoint(s, i, flipNormalOrientation, squaredMinRadius,
                                                             precision, recordNormal);
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::intersect(std::vector<Ray<DIM>>& rays,
+                                  std::vector<Interaction<DIM>>& interactions,
+                                  bool checkForOcclusion) const
+{
+    int nQueries = (int)rays.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            sceneData->aggregate->intersect(rays[i], interactions[i], checkForOcclusion);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::intersect(const std::vector<BoundingSphere<DIM>>& boundingSpheres,
+                                  std::vector<Interaction<DIM>>& interactions,
+                                  const std::vector<Vector<DIM>>& randNums,
+                                  const std::function<float(float)>& branchTraversalWeight) const
+{
+    int nQueries = (int)boundingSpheres.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            sceneData->aggregate->intersect(boundingSpheres[i], interactions[i],
+                                            randNums[i], branchTraversalWeight);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::contains(const std::vector<Vector<DIM>>& points,
+                                 std::vector<uint32_t>& result) const
+{
+    int nQueries = (int)points.size();
+    result.clear();
+    result.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            result[i] = sceneData->aggregate->contains(points[i]) ? 1 : 0;
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::hasLineOfSight(const std::vector<Vector<DIM>>& pointsI,
+                                       const std::vector<Vector<DIM>>& pointsJ,
+                                       std::vector<uint32_t>& result) const
+{
+    int nQueries = (int)pointsI.size();
+    result.clear();
+    result.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            result[i] = sceneData->aggregate->hasLineOfSight(pointsI[i], pointsJ[i]) ? 1 : 0;
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::findClosestPoints(std::vector<BoundingSphere<DIM>>& boundingSpheres,
+                                          std::vector<Interaction<DIM>>& interactions,
+                                          bool recordNormal) const
+{
+    int nQueries = (int)boundingSpheres.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            sceneData->aggregate->findClosestPoint(boundingSpheres[i], interactions[i], recordNormal);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::findClosestSilhouettePoints(std::vector<BoundingSphere<DIM>>& boundingSpheres,
+                                                    std::vector<Interaction<DIM>>& interactions,
+                                                    const std::vector<uint32_t>& flipNormalOrientation,
+                                                    float squaredMinRadius, float precision,
+                                                    bool recordNormal) const
+{
+    int nQueries = (int)boundingSpheres.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            sceneData->aggregate->findClosestSilhouettePoint(boundingSpheres[i], interactions[i],
+                                                             flipNormalOrientation[i] == 1,
+                                                             squaredMinRadius, precision, recordNormal);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
 }
 
 template<size_t DIM>

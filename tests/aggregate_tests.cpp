@@ -132,13 +132,13 @@ void timeRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate
             int I = indices[i];
 
             int nodesVisited = 0;
-            std::vector<Interaction<DIM>> cs;
+            Interaction<DIM> c;
             Ray<DIM> r(rayOrigins[I], rayDirections[I]);
-            bool hit = (bool)aggregate->intersectFromNode(r, cs, 0, aggregate->index, nodesVisited);
+            bool hit = aggregate->intersectFromNode(r, c, 0, aggregate->getIndex(), nodesVisited);
             nodesVisitedByThread += nodesVisited;
             maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
 
-            if (hit) cPrev = cs[0];
+            if (hit) cPrev = c;
         }
 
         totalNodesVisited += nodesVisitedByThread;
@@ -182,7 +182,7 @@ void timeSphereIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggreg
             int nodesVisited = 0;
             std::vector<Interaction<DIM>> cs;
             BoundingSphere<DIM> s(sphereCenters[I], sphereSquaredRadii[I]);
-            int hit = aggregate->intersectFromNode(s, cs, 0, aggregate->index, nodesVisited);
+            int hit = aggregate->intersectFromNode(s, cs, 0, aggregate->getIndex(), nodesVisited);
             nodesVisitedByThread += nodesVisited;
             maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
         }
@@ -233,7 +233,7 @@ void timeClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
             int nodesVisited = 0;
             Interaction<DIM> c;
             BoundingSphere<DIM> s(queryPoints[I], r2);
-            bool found = aggregate->findClosestPointFromNode(s, c, 0, aggregate->index, nodesVisited);
+            bool found = aggregate->findClosestPointFromNode(s, c, 0, aggregate->getIndex(), nodesVisited);
             nodesVisitedByThread += nodesVisited;
             maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
 
@@ -291,7 +291,7 @@ void timeClosestSilhouettePointQueries(const std::unique_ptr<Aggregate<DIM>>& ag
             Interaction<DIM> c;
             bool flipNormalOrientation = !isInterior[I];
             BoundingSphere<DIM> s(sphereCenters[I], maxFloat);
-            bool found = aggregate->findClosestSilhouettePointFromNode(s, c, 0, aggregate->index, nodesVisited,
+            bool found = aggregate->findClosestSilhouettePointFromNode(s, c, 0, aggregate->getIndex(), nodesVisited,
                                                                        flipNormalOrientation, 1e-6f, 1e-3f);
             nodesVisitedByThread += nodesVisited;
             maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
@@ -331,23 +331,23 @@ void testRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate
             if (stopQueries) break;
             int I = indices[i];
 
-            std::vector<Interaction<DIM>> c1;
+            Interaction<DIM> c1;
             Ray<DIM> r1(rayOrigins[I], rayDirections[I]);
-            bool hit1 = (bool)aggregate1->intersect(r1, c1);
+            bool hit1 = aggregate1->intersect(r1, c1);
 
             int nodesVisited = 0;
-            std::vector<Interaction<DIM>> c2;
+            Interaction<DIM> c2;
             Ray<DIM> r2(rayOrigins[I], rayDirections[I]);
-            bool hit2 = (bool)aggregate2->intersectFromNode(r2, c2, 0, aggregate2->index, nodesVisited);
+            bool hit2 = aggregate2->intersectFromNode(r2, c2, 0, aggregate2->getIndex(), nodesVisited);
 
-            if ((hit1 != hit2) || (hit1 && hit2 && c1[0] != c2[0])) {
-                std::cerr << "d1: " << c1[0].d << " d2: " << c2[0].d
-                          << "\np1: " << c1[0].p << " p2: " << c2[0].p
+            if ((hit1 != hit2) || (hit1 && hit2 && c1 != c2)) {
+                std::cerr << "d1: " << c1.d << " d2: " << c2.d
+                          << "\np1: " << c1.p << " p2: " << c2.p
                           << "\nIntersections do not match!" << std::endl;
                 stopQueries = true;
             }
 
-            if (hit2) cPrev = c2[0];
+            if (hit2) cPrev = c2;
 
             std::vector<Interaction<DIM>> c3;
             Ray<DIM> r3(rayOrigins[I], rayDirections[I]);
@@ -356,7 +356,7 @@ void testRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate
             nodesVisited = 0;
             std::vector<Interaction<DIM>> c4;
             Ray<DIM> r4(rayOrigins[I], rayDirections[I]);
-            int hit4 = aggregate2->intersectFromNode(r4, c4, 0, aggregate2->index, nodesVisited, false, true);
+            int hit4 = aggregate2->intersectFromNode(r4, c4, 0, aggregate2->getIndex(), nodesVisited, false, true);
 
             if (hit3 != hit4) {
                 std::cerr << "Number of intersections do not match!"
@@ -392,7 +392,7 @@ void testSphereIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggreg
 
             int nodesVisited = 0;
             std::vector<Interaction<DIM>> c2;
-            int hit2 = aggregate2->intersectFromNode(s, c2, 0, aggregate2->index, nodesVisited);
+            int hit2 = aggregate2->intersectFromNode(s, c2, 0, aggregate2->getIndex(), nodesVisited);
 
             if ((hit1 != hit2) || (hit1 && hit2 && c1.size() != c2.size())) {
                 std::cerr << "Number of intersections do not match!"
@@ -417,7 +417,7 @@ void testSphereIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggreg
 
             nodesVisited = 0;
             std::vector<Interaction<DIM>> c4;
-            int hit4 = aggregate2->intersectFromNode(s, c4, 0, aggregate2->index, nodesVisited, true);
+            int hit4 = aggregate2->intersectFromNode(s, c4, 0, aggregate2->getIndex(), nodesVisited, true);
 
             if ((hit3 != hit4) || (hit3 && hit4 && c3.size() != c4.size())) {
                 std::cerr << "Number of intersections do not match!"
@@ -468,7 +468,7 @@ void testClosestPointQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
             int nodesVisited = 0;
             Interaction<DIM> c2;
             BoundingSphere<DIM> s2(queryPoints[I], r2);
-            bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0, aggregate2->index, nodesVisited);
+            bool found2 = aggregate2->findClosestPointFromNode(s2, c2, 0, aggregate2->getIndex(), nodesVisited);
 
             if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-6) {
                 std::cerr << "d1: " << c1.d << " d2: " << c2.d
@@ -515,7 +515,7 @@ void testClosestSilhouettePointQueries(const std::unique_ptr<Aggregate<DIM>>& ag
             int nodesVisited = 0;
             Interaction<DIM> c2;
             BoundingSphere<DIM> s2(sphereCenters[I], maxFloat);
-            bool found2 = aggregate2->findClosestSilhouettePointFromNode(s2, c2, 0, aggregate2->index, nodesVisited,
+            bool found2 = aggregate2->findClosestSilhouettePointFromNode(s2, c2, 0, aggregate2->getIndex(), nodesVisited,
                                                                          flipNormalOrientation, 1e-6f, 1e-3f);
 
             if (found1 != found2 || std::fabs(c1.d - c2.d) > 1e-3f) {

@@ -51,18 +51,16 @@ public:
     std::vector<std::unique_ptr<std::vector<SilhouetteEdge>>> silhouetteEdgeObjects;
     std::vector<std::vector<Transform<DIM>>> instanceTransforms;
     std::unordered_map<int, CsgTreeNode> csgTree;
+    std::function<bool(float, int)> ignoreSilhouette;
 
     std::vector<std::vector<LineSegment *>> lineSegmentObjectPtrs;
     std::vector<std::vector<Triangle *>> triangleObjectPtrs;
     std::vector<std::vector<SilhouetteVertex *>> silhouetteVertexObjectPtrs;
     std::vector<std::vector<SilhouetteEdge *>> silhouetteEdgeObjectPtrs;
     std::vector<SilhouettePrimitive<DIM> *> silhouetteObjectPtrStub;
-
     std::vector<std::unique_ptr<Aggregate<DIM>>> aggregateInstances;
     std::vector<Aggregate<DIM> *> aggregateInstancePtrs;
     std::unique_ptr<Aggregate<DIM>> aggregate;
-
-    std::function<bool(float, int)> ignoreSilhouette;
 
     template<size_t U>
     friend class Scene;

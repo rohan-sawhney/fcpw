@@ -31,7 +31,7 @@ public:
     Vector2 barycentricCoordinates(const Vector3& p) const;
 
     // samples a random point on the geometric primitive and returns sampling pdf
-    float samplePoint(float *randNums, Vector2& uv, Vector3& p, Vector3& n) const;
+    float samplePoint(const Vector3& randNums, Vector2& uv, Vector3& p, Vector3& n) const;
 
     // returns texture coordinates
     Vector2 textureCoordinates(const Vector2& uv) const;
@@ -44,15 +44,18 @@ public:
                BoundingBox<3>& boxRight) const;
 
     // intersects with ray
-    int intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
+    bool intersect(const Ray<3>& r, Interaction<3>& i, bool checkForOcclusion=false) const;
+
+    // intersects with ray
+    int intersect(const Ray<3>& r, std::vector<Interaction<3>>& is,
                   bool checkForOcclusion=false, bool recordAllHits=false) const;
 
     // intersects with sphere
-    int intersect(const BoundingSphere<3>& s, std::vector<Interaction<3>>& is,
-                  bool recordOneHit=false) const;
+    bool intersect(const BoundingSphere<3>& s, Interaction<3>& i,
+                   bool recordSurfaceArea=false) const;
 
     // finds closest point to sphere center
-    bool findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i, bool recordNormal=false) const;
+    bool findClosestPoint(const BoundingSphere<3>& s, Interaction<3>& i) const;
 
     // get and set index
     int getIndex() const { return pIndex; }

@@ -31,11 +31,16 @@
 *.out
 *.app
 
+# Extras
+*.ini
+
 # Build directories
 build/
 build_debug/
+.vscode/
 
 # External deps
-deps/embree 
 deps/polyscope
 deps/tbb
+deps/slang
+deps/nanobind

@@ -291,9 +291,10 @@ inline FloatP<WIDTH> projectToWidePlane(const Vector3P<WIDTH>& n, const Vector3P
 // performs wide version of cone cone overlap test
 template<size_t WIDTH, size_t DIM>
 inline void overlapWideCone(const VectorP<WIDTH, DIM>& normalConeAxis, const FloatP<WIDTH>& normalConeHalfAngle,
-                            const enokiVector<DIM>& co, const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
-                            const FloatP<WIDTH>& distToBox, FloatP<WIDTH>& minAngleRange, FloatP<WIDTH>& maxAngleRange,
-                            MaskP<WIDTH>& overlap)
+                            const FloatP<WIDTH>& normalConeRadius, const enokiVector<DIM>& co,
+                            const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+                            const FloatP<WIDTH>& distToBox, FloatP<WIDTH>& minAngleRange,
+                            FloatP<WIDTH>& maxAngleRange, MaskP<WIDTH>& overlap)
 {
     minAngleRange = 0.0f;
     maxAngleRange = M_PI_2;
@@ -310,14 +311,12 @@ inline void overlapWideCone(const VectorP<WIDTH, DIM>& normalConeAxis, const Flo
         // compute the angle between the view and normal cone axes
         FloatP<WIDTH> dAxisAngle = enoki::acos(enoki::max(-1.0f, enoki::min(1.0f, enoki::dot(normalConeAxis, viewConeAxis)))); // [0, 180]
 
-        // check if the view cone origin lies outside the box's bounding sphere;
+        // check if the view cone origin lies outside the normal cone's bounding sphere;
         // if it does, compute the view cone halfAngle and check for overlap
-        VectorP<WIDTH, DIM> be = bMax - bc;
-        FloatP<WIDTH> r = enoki::norm(be);
-        MaskP<WIDTH> outsideSphere = l > r;
+        MaskP<WIDTH> outsideSphere = l > normalConeRadius;
         MaskP<WIDTH> activeQueryOutsideSphere = activeQuery && outsideSphere;
         {
-            FloatP<WIDTH> viewConeHalfAngle = enoki::asin(r*lInv);
+            FloatP<WIDTH> viewConeHalfAngle = enoki::asin(normalConeRadius*lInv);
             FloatP<WIDTH> halfAngleSum = normalConeHalfAngle + viewConeHalfAngle;
             minAngleRange = dAxisAngle - halfAngleSum;
             maxAngleRange = dAxisAngle + halfAngleSum;
@@ -329,6 +328,7 @@ inline void overlapWideCone(const VectorP<WIDTH, DIM>& normalConeAxis, const Flo
         // the view cone origin lies inside the box's bounding sphere, so check if
         // the plane defined by the view cone axis intersects the box; if it does, then
         // there's overlap since the view cone has a halfAngle greater than 90 degrees
+        VectorP<WIDTH, DIM> be = bMax - bc;
         FloatP<WIDTH> d = enoki::dot(be, enoki::abs(viewConeAxis));
         FloatP<WIDTH> s = l - d;
         MaskP<WIDTH> intersectPlane = s <= 0.0f;

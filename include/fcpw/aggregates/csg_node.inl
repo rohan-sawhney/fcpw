@@ -1,20 +1,6 @@
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
-inline CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::CsgNode(std::unique_ptr<PrimitiveTypeLeft> left_,
-                                                                    std::unique_ptr<PrimitiveTypeRight> right_,
-                                                                    const BooleanOperation& operation_):
-left(std::move(left_)),
-right(std::move(right_)),
-operation(operation_),
-leftPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeLeft>::value),
-rightPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeRight>::value)
-{
-    // compute bounding box
-    computeBoundingBox();
-}
-
-template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeBoundingBox()
 {
     if (operation == BooleanOperation::Intersection) {
@@ -37,6 +23,28 @@ inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeBounding
         box.expandToInclude(boxLeft);
         box.expandToInclude(boxRight);
     }
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::CsgNode(std::unique_ptr<PrimitiveTypeLeft> left_,
+                                                                    std::unique_ptr<PrimitiveTypeRight> right_,
+                                                                    const BooleanOperation& operation_):
+left(std::move(left_)),
+right(std::move(right_)),
+operation(operation_),
+leftPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeLeft>::value),
+rightPrimitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveTypeRight>::value)
+{
+    // compute bounding box
+    computeBoundingBox();
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::refit()
+{
+    if (leftPrimitiveTypeIsAggregate) left->refit();
+    if (rightPrimitiveTypeIsAggregate) right->refit();
+    computeBoundingBox();
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
@@ -126,6 +134,17 @@ inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeInteract
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                                                                   int aggregateIndex, int& nodesVisited,
+                                                                                   bool checkForOcclusion) const
+{
+    std::cerr << "CsgNode::intersectFromNode(const Ray<DIM>&) not implemented" << std::endl;
+    exit(EXIT_FAILURE);
+
+    return false;
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                                   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
                                                                                   bool checkForOcclusion, bool recordAllHits) const
@@ -147,7 +166,8 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
                                                     nodesVisited, false, true);
 
         } else {
-            hitsLeft = left->intersect(rLeft, isLeft, false, true);
+            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(left.get());
+            hitsLeft = geometricPrim->intersect(rLeft, isLeft, false, true);
         }
 
         // return if no intersections for the left child were found and
@@ -165,7 +185,8 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
                                                      nodesVisited, false, true);
 
         } else {
-            hitsRight = right->intersect(rRight, isRight, false, true);
+            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(right.get());
+            hitsRight = geometricPrim->intersect(rRight, isRight, false, true);
         }
 
         // return if no intersections were found for both children
@@ -226,12 +247,12 @@ inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNod
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
-inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-                                                                                            std::vector<Interaction<DIM>>& is, float *randNums,
-                                                                                            int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                                                            const std::function<float(float)>& branchTraversalWeight) const
+inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                                  const Vector<DIM>& randNums, int nodeStartIndex,
+                                                                                  int aggregateIndex, int& nodesVisited,
+                                                                                  const std::function<float(float)>& branchTraversalWeight) const
 {
-    std::cerr << "CsgNode::intersectStochasticFromNode(const BoundingSphere<DIM>&) not implemented" << std::endl;
+    std::cerr << "CsgNode::intersectFromNode(const BoundingSphere<DIM>&) not implemented" << std::endl;
     exit(EXIT_FAILURE);
 
     return 0;
@@ -257,7 +278,8 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
                                                             nodesVisited, true);
 
         } else {
-            foundLeft = left->findClosestPoint(sLeft, iLeft, true);
+            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(left.get());
+            foundLeft = geometricPrim->findClosestPoint(sLeft, iLeft);
 
             // compute normal
             if (recordNormal && foundLeft) {
@@ -280,7 +302,8 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::findClosestPoin
                                                              nodesVisited, true);
 
         } else {
-            foundRight = right->findClosestPoint(sRight, iRight, true);
+            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(right.get());
+            foundRight = geometricPrim->findClosestPoint(sRight, iRight);
 
             // compute normal
             if (recordNormal && foundRight) {

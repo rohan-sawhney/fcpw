@@ -110,7 +110,7 @@ inline Vector2 Triangle::barycentricCoordinates(const Vector3& p) const
     return Vector2(1.0f - v - w, v);
 }
 
-inline float Triangle::samplePoint(float *randNums, Vector2& uv, Vector3& p, Vector3& n) const
+inline float Triangle::samplePoint(const Vector3& randNums, Vector2& uv, Vector3& p, Vector3& n) const
 {
     const Vector3& pa = soup->positions[indices[0]];
     const Vector3& pb = soup->positions[indices[1]];
@@ -219,14 +219,12 @@ inline void Triangle::split(int dim, float splitCoord, BoundingBox<3>& boxLeft,
     }
 }
 
-inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
-                               bool checkForOcclusion, bool recordAllHits) const
+inline bool Triangle::intersect(const Ray<3>& r, Interaction<3>& i, bool checkForOcclusion) const
 {
     // Möller–Trumbore intersection algorithm
     const Vector3& pa = soup->positions[indices[0]];
     const Vector3& pb = soup->positions[indices[1]];
     const Vector3& pc = soup->positions[indices[2]];
-    is.clear();
 
     Vector3 v1 = pb - pa;
     Vector3 v2 = pc - pa;
@@ -247,15 +245,31 @@ inline int Triangle::intersect(Ray<3>& r, std::vector<Interaction<3>>& is,
 
     float t = v2.dot(q)*invDet;
     if (t >= 0.0f && t <= r.tMax) {
-        if (checkForOcclusion) return 1;
-        auto it = is.emplace(is.end(), Interaction<3>());
-        it->d = t;
-        it->p = pa + v1*v + v2*w;
-        it->n = v1.cross(v2).normalized();
-        it->uv[0] = 1.0f - v - w;
-        it->uv[1] = v;
-        it->primitiveIndex = pIndex;
+        if (checkForOcclusion) return true;
+        i.d = t;
+        i.p = pa + v1*v + v2*w;
+        i.n = v1.cross(v2).normalized();
+        i.uv[0] = 1.0f - v - w;
+        i.uv[1] = v;
+        i.primitiveIndex = pIndex;
 
+        return true;
+    }
+
+    return false;
+}
+
+inline int Triangle::intersect(const Ray<3>& r, std::vector<Interaction<3>>& is,
+                               bool checkForOcclusion, bool recordAllHits) const
+{
+    is.clear();
+    Interaction<3> i;
+    bool hit = intersect(r, i, checkForOcclusion);
+
+    if (hit) {
+        if (checkForOcclusion) return 1;
+
+        is.emplace_back(i);
         return 1;
     }
 
@@ -348,41 +362,25 @@ inline float findClosestPointTriangle(const Vector3& pa, const Vector3& pb, cons
     return (x - pt).norm();
 }
 
-inline int Triangle::intersect(const BoundingSphere<3>& s, std::vector<Interaction<3>>& is,
-                               bool recordOneHit) const
+inline bool Triangle::intersect(const BoundingSphere<3>& s, Interaction<3>& i,
+                                bool recordSurfaceArea) const
 {
-    is.clear();
-    const Vector3& pa = soup->positions[indices[0]];
-    const Vector3& pb = soup->positions[indices[1]];
-    const Vector3& pc = soup->positions[indices[2]];
-
-    Interaction<3> i;
-    float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv);
-
-    if (d*d <= s.r2) {
-        auto it = is.emplace(is.end(), Interaction<3>());
-        it->primitiveIndex = pIndex;
-        if (recordOneHit) {
-            it->d = surfaceArea();
-
-        } else {
-            it->d = 1.0f;
-        }
-
-        return 1;
+    bool found = findClosestPoint(s, i);
+    if (found) {
+        i.d = recordSurfaceArea ? surfaceArea() : 1.0f;
+        return true;
     }
 
-    return 0;
+    return false;
 }
 
-inline bool Triangle::findClosestPoint(BoundingSphere<3>& s, Interaction<3>& i, bool recordNormal) const
+inline bool Triangle::findClosestPoint(const BoundingSphere<3>& s, Interaction<3>& i) const
 {
     const Vector3& pa = soup->positions[indices[0]];
     const Vector3& pb = soup->positions[indices[1]];
     const Vector3& pc = soup->positions[indices[2]];
 
     float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv);
-
     if (d*d <= s.r2) {
         i.d = d;
         i.primitiveIndex = pIndex;

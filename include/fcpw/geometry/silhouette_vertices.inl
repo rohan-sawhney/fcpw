@@ -84,9 +84,9 @@ inline bool isSilhouetteVertex(const Vector2& n0, const Vector2& n1, const Vecto
     return dot0*dot1 < 0.0f;
 }
 
-inline bool SilhouetteVertex::findClosestSilhouettePoint(BoundingSphere<2>& s, Interaction<2>& i,
+inline bool SilhouetteVertex::findClosestSilhouettePoint(const BoundingSphere<2>& s, Interaction<2>& i,
                                                          bool flipNormalOrientation, float squaredMinRadius,
-                                                         float precision, bool recordNormal) const
+                                                         float precision) const
 {
     if (squaredMinRadius >= s.r2) return false;
 

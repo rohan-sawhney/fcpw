@@ -110,9 +110,9 @@ inline bool isSilhouetteEdge(const Vector3& pa, const Vector3& pb,
     return dot0*dot1 < 0.0f;
 }
 
-inline bool SilhouetteEdge::findClosestSilhouettePoint(BoundingSphere<3>& s, Interaction<3>& i,
+inline bool SilhouetteEdge::findClosestSilhouettePoint(const BoundingSphere<3>& s, Interaction<3>& i,
                                                        bool flipNormalOrientation, float squaredMinRadius,
-                                                       float precision, bool recordNormal) const
+                                                       float precision) const
 {
     if (squaredMinRadius >= s.r2) return false;
 

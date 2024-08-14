@@ -13,6 +13,9 @@ public:
     Baseline(std::vector<PrimitiveType *>& primitives_,
              std::vector<SilhouetteType *>& silhouettes_);
 
+    // refits the aggregate
+    void refit();
+
     // returns bounding box
     BoundingBox<DIM> boundingBox() const;
 
@@ -24,6 +27,12 @@ public:
 
     // returns signed volume
     float signedVolume() const;
+
+    // intersects with ray, starting the traversal at the specified node in an aggregate
+    // NOTE: interaction is invalid when checkForOcclusion is enabled
+    bool intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                           int aggregateIndex, int& nodesVisited,
+                           bool checkForOcclusion=false) const;
 
     // intersects with ray, starting the traversal at the specified node in an aggregate
     // NOTE: interactions are invalid when checkForOcclusion is enabled
@@ -40,10 +49,10 @@ public:
 
     // intersects with sphere, starting the traversal at the specified node in an aggregate
     // NOTE: interactions contain primitive index
-    int intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-                                    std::vector<Interaction<DIM>>& is, float *randNums,
-                                    int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                    const std::function<float(float)>& branchTraversalWeight={}) const;
+    int intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                          const Vector<DIM>& randNums, int nodeStartIndex,
+                          int aggregateIndex, int& nodesVisited,
+                          const std::function<float(float)>& branchTraversalWeight={}) const;
 
     // finds closest point to sphere center, starting the traversal at the specified node in an aggregate
     bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,

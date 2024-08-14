@@ -241,6 +241,7 @@ inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& s
 {
     BoundingCone<DIM> cone;
     SnchNode<DIM>& node(flatTree[start]);
+    Vector<DIM> centroid = node.box.centroid();
 
     // compute bounding cone axis
     bool anySilhouetteRefs = false;
@@ -253,6 +254,7 @@ inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& s
             const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
 
             cone.axis += silhouetteNormals[referenceIndex];
+            cone.radius = std::max(cone.radius, (silhouette->centroid() - centroid).norm());
             silhouettesHaveTwoAdjacentFaces = silhouettesHaveTwoAdjacentFaces &&
                                               silhouette->hasFace(0) &&
                                               silhouette->hasFace(1);
@@ -463,6 +465,139 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
     assignGeometricDataToNodes(ignoreSilhouette_);
 }
 
+template<typename NodeType>
+inline void mergeBoundingCones(const NodeType& left, const NodeType& right, NodeType& node)
+{
+    // do nothing
+}
+
+template<size_t DIM>
+inline void mergeBoundingCones(const SnchNode<DIM>& left, const SnchNode<DIM>& right, SnchNode<DIM>& node)
+{
+    node.cone = mergeBoundingCones<DIM>(left.cone, right.cone,
+                                        left.box.centroid(),
+                                        right.box.centroid(),
+                                        node.box.centroid());
+}
+
+template<size_t DIM, typename SilhouetteType>
+inline BoundingCone<DIM> computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
+                                             const Vector<DIM>& centroid,
+                                             int nSilhouetteReferences,
+                                             int silhouetteReferenceOffset)
+{
+    // compute bounding cone axis
+    BoundingCone<DIM> cone;
+    bool anySilhouetteRefs = false;
+    bool silhouettesHaveTwoAdjacentFaces = true;
+    for (int p = 0; p < nSilhouetteReferences; p++) {
+        int referenceIndex = silhouetteReferenceOffset + p;
+        const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
+
+        cone.axis += silhouette->normal();
+        cone.radius = std::max(cone.radius, (silhouette->centroid() - centroid).norm());
+        silhouettesHaveTwoAdjacentFaces = silhouettesHaveTwoAdjacentFaces &&
+                                          silhouette->hasFace(0) &&
+                                          silhouette->hasFace(1);
+        anySilhouetteRefs = true;
+    }
+
+    // compute bounding cone angle
+    if (!anySilhouetteRefs) {
+        cone.halfAngle = -M_PI;
+
+    } else if (!silhouettesHaveTwoAdjacentFaces) {
+        cone.halfAngle = M_PI;
+
+    } else {
+        float axisNorm = cone.axis.norm();
+        if (axisNorm > epsilon) {
+            cone.axis /= axisNorm;
+            cone.halfAngle = 0.0f;
+
+            for (int p = 0; p < nSilhouetteReferences; p++) {
+                int referenceIndex = silhouetteReferenceOffset + p;
+                const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
+
+                for (int k = 0; k < 2; k++) {
+                    Vector<DIM> n = silhouette->normal(k, true);
+                    float angle = std::acos(std::max(-1.0f, std::min(1.0f, cone.axis.dot(n))));
+                    cone.halfAngle = std::max(cone.halfAngle, angle);
+                }
+            }
+        }
+    }
+
+    return cone;
+}
+
+template<typename NodeType, typename SilhouetteType>
+inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs, NodeType& node)
+{
+    // do nothing
+}
+
+template<size_t DIM, typename SilhouetteType>
+inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs, SnchNode<DIM>& node)
+{
+    node.cone = computeBoundingCone<DIM, SilhouetteType>(silhouetteRefs, node.box.centroid(),
+                                                         node.nSilhouetteReferences,
+                                                         node.silhouetteReferenceOffset);
+}
+
+template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
+inline void refitRecursive(const std::vector<PrimitiveType *>& primitives,
+                           const std::vector<SilhouetteType *>& silhouetteRefs,
+                           std::vector<NodeType>& flatTree, int nodeIndex)
+{
+    NodeType& node(flatTree[nodeIndex]);
+
+    if (node.nReferences == 0) { // not a leaf
+        refitRecursive<DIM, NodeType, PrimitiveType, SilhouetteType>(
+            primitives, silhouetteRefs, flatTree, nodeIndex + 1);
+        refitRecursive<DIM, NodeType, PrimitiveType, SilhouetteType>(
+            primitives, silhouetteRefs, flatTree, nodeIndex + node.secondChildOffset);
+
+        // merge left and right child bounding boxes
+        node.box = flatTree[nodeIndex + 1].box;
+        node.box.expandToInclude(flatTree[nodeIndex + node.secondChildOffset].box);
+
+        // merge left and right child bounding cones
+        mergeBoundingCones(flatTree[nodeIndex + 1], flatTree[nodeIndex + node.secondChildOffset], node);
+
+    } else { // leaf
+        // compute bounding box
+        node.box = BoundingBox<DIM>();
+        for (int p = 0; p < node.nReferences; p++) {
+            int referenceIndex = node.referenceOffset + p;
+            const PrimitiveType *prim = primitives[referenceIndex];
+
+            node.box.expandToInclude(prim->boundingBox());
+        }
+
+        // compute bounding cone
+        computeBoundingCone(silhouetteRefs, node);
+    }
+}
+
+template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
+inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::refit()
+{
+    // refit primitives if they are aggregates
+    if (primitiveTypeIsAggregate) {
+        for (int p = 0; p < (int)primitives.size(); p++) {
+            Aggregate<DIM> *aggregate = reinterpret_cast<Aggregate<DIM> *>(primitives[p]);
+            aggregate->refit();
+        }
+    }
+
+    // refit
+    if (nNodes > 0) {
+        refitRecursive<DIM, NodeType, PrimitiveType, SilhouetteType>(
+            primitives, silhouetteRefs, flatTree, 0);
+    }
+}
+
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::printStats() const
 {
@@ -518,6 +653,122 @@ inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::signedVolume() c
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
+inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                                                                             int aggregateIndex, bool checkForOcclusion,
+                                                                                             TraversalStack *subtree, float *boxHits,
+                                                                                             bool& didHit, int& nodesVisited) const
+{
+    int stackPtr = 0;
+    while (stackPtr >= 0) {
+        // pop off the next node to work on
+        int nodeIndex = subtree[stackPtr].node;
+        float currentDist = subtree[stackPtr].distance;
+        stackPtr--;
+
+        // if this node is further than the closest found intersection, continue
+        if (currentDist > r.tMax) continue;
+        const NodeType& node(flatTree[nodeIndex]);
+
+        // is leaf -> intersect
+        if (node.nReferences > 0) {
+            for (int p = 0; p < node.nReferences; p++) {
+                int referenceIndex = node.referenceOffset + p;
+                const PrimitiveType *prim = primitives[referenceIndex];
+                nodesVisited++;
+
+                bool hit = false;
+                if (primitiveTypeIsAggregate) {
+                    const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+                    hit = aggregate->intersectFromNode(r, i, nodeStartIndex, aggregateIndex,
+                                                       nodesVisited, checkForOcclusion);
+
+                } else {
+                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                    hit = geometricPrim->intersect(r, i, checkForOcclusion);
+                }
+
+                if (hit) {
+                    if (checkForOcclusion) {
+                        return true;
+                    }
+
+                    didHit = true;
+                    r.tMax = std::min(r.tMax, i.d);
+                    i.nodeIndex = nodeIndex;
+                    i.referenceIndex = p;
+                    i.objectIndex = this->pIndex;
+                }
+            }
+
+        } else { // not a leaf
+            bool hit0 = flatTree[nodeIndex + 1].box.intersect(r, boxHits[0], boxHits[1]);
+            bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.intersect(r, boxHits[2], boxHits[3]);
+
+            // did we hit both nodes?
+            if (hit0 && hit1) {
+                // we assume that the left child is a closer hit...
+                int closer = nodeIndex + 1;
+                int other = nodeIndex + node.secondChildOffset;
+
+                // ... if the right child was actually closer, swap the relavent values
+                if (boxHits[2] < boxHits[0]) {
+                    std::swap(boxHits[0], boxHits[2]);
+                    std::swap(boxHits[1], boxHits[3]);
+                    std::swap(closer, other);
+                }
+
+                // it's possible that the nearest object is still in the other side, but we'll
+                // check the farther-away node later...
+
+                // push the farther first, then the closer
+                stackPtr++;
+                subtree[stackPtr].node = other;
+                subtree[stackPtr].distance = boxHits[2];
+
+                stackPtr++;
+                subtree[stackPtr].node = closer;
+                subtree[stackPtr].distance = boxHits[0];
+
+            } else if (hit0) {
+                stackPtr++;
+                subtree[stackPtr].node = nodeIndex + 1;
+                subtree[stackPtr].distance = boxHits[0];
+
+            } else if (hit1) {
+                stackPtr++;
+                subtree[stackPtr].node = nodeIndex + node.secondChildOffset;
+                subtree[stackPtr].distance = boxHits[2];
+            }
+
+            nodesVisited++;
+        }
+    }
+
+    return false;
+}
+
+template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
+inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                                                                 int aggregateIndex, int& nodesVisited,
+                                                                                 bool checkForOcclusion) const
+{
+    bool didHit = false;
+    TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
+    float boxHits[4];
+
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
+    if (flatTree[rootIndex].box.intersect(r, boxHits[0], boxHits[1])) {
+        subtree[0].node = rootIndex;
+        subtree[0].distance = boxHits[0];
+        bool occluded = processSubtreeForIntersection(r, i, nodeStartIndex, aggregateIndex, checkForOcclusion,
+                                                      subtree, boxHits, didHit, nodesVisited);
+        if (occluded) return true;
+    }
+
+    return didHit;
+}
+
+template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                                              int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
                                                                                              bool recordAllHits, TraversalStack *subtree,
@@ -549,11 +800,12 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
                                                        nodesVisited, checkForOcclusion, recordAllHits);
 
                 } else {
-                    hit = prim->intersect(r, cs, checkForOcclusion, recordAllHits);
+                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                    hit = geometricPrim->intersect(r, cs, checkForOcclusion, recordAllHits);
                     for (int i = 0; i < (int)cs.size(); i++) {
                         cs[i].nodeIndex = nodeIndex;
                         cs[i].referenceIndex = referenceIndex;
-                        cs[i].objectIndex = this->index;
+                        cs[i].objectIndex = this->pIndex;
                     }
                 }
 
@@ -631,7 +883,7 @@ inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
     float boxHits[4];
 
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     if (flatTree[rootIndex].box.intersect(r, boxHits[0], boxHits[1])) {
         subtree[0].node = rootIndex;
         subtree[0].distance = boxHits[0];
@@ -678,32 +930,33 @@ inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFo
                 const PrimitiveType *prim = primitives[referenceIndex];
                 nodesVisited++;
 
-                int hit = 0;
-                std::vector<Interaction<DIM>> cs;
                 if (primitiveTypeIsAggregate) {
+                    std::vector<Interaction<DIM>> cs;
                     const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-                    hit = aggregate->intersectFromNode(s, cs, nodeStartIndex, aggregateIndex,
-                                                       nodesVisited, recordOneHit);
+                    hits += aggregate->intersectFromNode(s, cs, nodeStartIndex, aggregateIndex,
+                                                         nodesVisited, recordOneHit);
+                    is.insert(is.end(), cs.begin(), cs.end());
 
                 } else {
-                    hit = prim->intersect(s, cs, recordOneHit);
-                    for (int i = 0; i < (int)cs.size(); i++) {
-                        cs[i].nodeIndex = nodeIndex;
-                        cs[i].referenceIndex = referenceIndex;
-                        cs[i].objectIndex = this->index;
-                    }
-                }
+                    Interaction<DIM> c;
+                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                    bool hit = geometricPrim->intersect(s, c, recordOneHit);
 
-                if (hit > 0) {
-                    hits += hit;
-                    if (recordOneHit && !primitiveTypeIsAggregate) {
-                        totalPrimitiveWeight += cs[0].d;
-                        if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
-                            is[0] = cs[0];
+                    if (hit) {
+                        hits += 1;
+                        c.nodeIndex = nodeIndex;
+                        c.referenceIndex = referenceIndex;
+                        c.objectIndex = this->pIndex;
+
+                        if (recordOneHit) {
+                            totalPrimitiveWeight += c.d;
+                            if (uniformRealRandomNumber()*totalPrimitiveWeight < c.d) {
+                                is[0] = c;
+                            }
+
+                        } else {
+                            is.emplace_back(c);
                         }
-
-                    } else {
-                        is.insert(is.end(), cs.begin(), cs.end());
                     }
                 }
             }
@@ -741,7 +994,7 @@ inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
     float boxHits[4];
 
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
         subtree[0].node = rootIndex;
         subtree[0].distance = s.r2;
@@ -767,8 +1020,8 @@ inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
-                                                                                             float *randNums, int nodeStartIndex, int aggregateIndex,
+inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                                             const Vector<DIM>& randNums, int nodeStartIndex, int aggregateIndex,
                                                                                              const std::function<float(float)>& branchTraversalWeight,
                                                                                              int nodeIndex, float traversalPdf, float *boxHits,
                                                                                              int& hits, int& nodesVisited) const
@@ -791,62 +1044,58 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
                 nodesVisited++;
 
                 int hit = 0;
-                std::vector<Interaction<DIM>> cs;
+                Interaction<DIM> c;
                 if (primitiveTypeIsAggregate) {
-                    float modifiedRandNums[DIM];
+                    Vector<DIM> modifiedRandNums;
                     modifiedRandNums[0] = u;
                     for (int i = 1; i < DIM; i++) modifiedRandNums[i] = randNums[i];
                     const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-                    hit = aggregate->intersectStochasticFromNode(s, cs, modifiedRandNums, nodeStartIndex, aggregateIndex,
-                                                                 nodesVisited, branchTraversalWeight);
+                    hit = aggregate->intersectFromNode(s, c, modifiedRandNums, nodeStartIndex, aggregateIndex,
+                                                       nodesVisited, branchTraversalWeight);
 
                 } else {
                     if (d2NodeMax <= s.r2) {
                         hit = 1;
-                        auto it = cs.emplace(cs.end(), Interaction<DIM>());
-                        it->primitiveIndex = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim)->getIndex();
-                        it->d = prim->surfaceArea();
+                        c.primitiveIndex = prim->getIndex();
+                        c.d = prim->surfaceArea();
 
                     } else {
-                        hit = prim->intersect(s, cs, true);
+                        const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                        hit = geometricPrim->intersect(s, c, true) ? 1 : 0;
                     }
 
-                    for (int i = 0; i < (int)cs.size(); i++) {
-                        cs[i].nodeIndex = nodeIndex;
-                        cs[i].referenceIndex = referenceIndex;
-                        cs[i].objectIndex = this->index;
-                    }
+                    c.nodeIndex = nodeIndex;
+                    c.referenceIndex = referenceIndex;
+                    c.objectIndex = this->pIndex;
                 }
 
                 if (hit > 0) {
                     hits += hit;
-                    if (!primitiveTypeIsAggregate) {
-                        totalPrimitiveWeight += cs[0].d;
-                        float selectionProb = cs[0].d/totalPrimitiveWeight;
-
-                        if (u < selectionProb) {
-                            u = u/selectionProb; // rescale to [0,1)
-                            is[0] = cs[0];
-                            is[0].d *= traversalPdf;
-
-                        } else {
-                            u = (u - selectionProb)/(1.0f - selectionProb);
-                        }
+                    float selectionProb = 0.0f;
+                    if (primitiveTypeIsAggregate) {
+                        // choose sample uniformly amongst aggregates
+                        totalPrimitiveWeight += 1.0f;
+                        selectionProb = 1.0f/totalPrimitiveWeight;
 
                     } else {
-                        int nInteractions = (int)is.size();
-                        is.insert(is.end(), cs.begin(), cs.end());
-                        for (int i = nInteractions; i < (int)is.size(); i++) {
-                            is[i].d *= traversalPdf;
-                        }
+                        // choose sample in proportion to surface area amongst primitives
+                        totalPrimitiveWeight += c.d;
+                        selectionProb = c.d/totalPrimitiveWeight;
+                    }
+
+                    if (u < selectionProb) {
+                        u = u/selectionProb; // rescale to [0,1)
+                        i = c;
+                        i.d *= traversalPdf;
+
+                    } else {
+                        u = (u - selectionProb)/(1.0f - selectionProb);
                     }
                 }
             }
 
-            if (!primitiveTypeIsAggregate) {
-                if (totalPrimitiveWeight > 0.0f) {
-                    is[0].d /= totalPrimitiveWeight;
-                }
+            if (totalPrimitiveWeight > 0.0f) {
+                i.d /= totalPrimitiveWeight;
             }
 
         } else { // not a leaf
@@ -887,32 +1136,30 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-                                                                                          std::vector<Interaction<DIM>>& is, float *randNums,
-                                                                                          int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                                                          const std::function<float(float)>& branchTraversalWeight) const
+inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                                const Vector<DIM>& randNums, int nodeStartIndex,
+                                                                                int aggregateIndex, int& nodesVisited,
+                                                                                const std::function<float(float)>& branchTraversalWeight) const
 {
     int hits = 0;
-    if (!primitiveTypeIsAggregate) is.resize(1);
     float boxHits[4];
 
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
-        processSubtreeForIntersection(s, is, randNums, nodeStartIndex, aggregateIndex, branchTraversalWeight,
+        processSubtreeForIntersection(s, i, randNums, nodeStartIndex, aggregateIndex, branchTraversalWeight,
                                       rootIndex, 1.0f, boxHits, hits, nodesVisited);
     }
 
     if (hits > 0) {
         if (!primitiveTypeIsAggregate) {
-            if (is[0].primitiveIndex == -1) {
+            if (i.primitiveIndex == -1) {
                 hits = 0;
-                is.clear();
 
             } else {
                 // sample a point on the selected geometric primitive
-                const PrimitiveType *prim = primitives[is[0].referenceIndex];
-                float pdf = is[0].samplePoint(prim, randNums);
-                is[0].d *= pdf;
+                const PrimitiveType *prim = primitives[i.referenceIndex];
+                float pdf = i.samplePoint(prim, randNums);
+                i.d *= pdf;
             }
         }
 
@@ -955,10 +1202,11 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
                                                                 nodesVisited, recordNormal);
 
                 } else {
-                    found = prim->findClosestPoint(s, c, recordNormal);
+                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                    found = geometricPrim->findClosestPoint(s, c);
                     c.nodeIndex = nodeIndex;
                     c.referenceIndex = referenceIndex;
-                    c.objectIndex = this->index;
+                    c.objectIndex = this->pIndex;
                 }
 
                 // keep the closest point only
@@ -1030,7 +1278,7 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::findClosestPointF
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
     float boxHits[4];
 
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     if (flatTree[rootIndex].box.overlap(s, boxHits[0], boxHits[1])) {
         s.r2 = std::min(s.r2, boxHits[1]);
         subtree[0].node = rootIndex;
@@ -1121,13 +1369,12 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<SnchNode<D
                     const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
 
                     // skip query if silhouette index is the same as i.primitiveIndex (and object indices match)
-                    int primitiveIndex = static_cast<const SilhouettePrimitive<DIM> *>(silhouette)->getIndex();
-                    if (primitiveIndex == i.primitiveIndex && objectIndex == i.objectIndex) continue;
+                    if (silhouette->getIndex() == i.primitiveIndex && objectIndex == i.objectIndex) continue;
                     nodesVisited++;
 
                     Interaction<DIM> c;
-                    bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius,
-                                                                        precision, recordNormal);
+                    bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation,
+                                                                        squaredMinRadius, precision);
 
                     // keep the closest silhouette point
                     if (found) {
@@ -1207,12 +1454,12 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::findClosestSilhou
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
     float boxHits[2];
 
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     if (flatTree[rootIndex].box.overlap(s, boxHits[0])) {
         subtree[0].node = rootIndex;
         subtree[0].distance = boxHits[0];
         processSubtreeForClosestSilhouettePoint(flatTree, primitives, silhouetteRefs, s, i, 
-                                                nodeStartIndex, aggregateIndex, this->index,
+                                                nodeStartIndex, aggregateIndex, this->pIndex,
                                                 primitiveTypeIsAggregate, flipNormalOrientation,
                                                 squaredMinRadius, precision, recordNormal,
                                                 subtree, boxHits, notFound, nodesVisited);

@@ -3,7 +3,7 @@
 // global includes
 #define _USE_MATH_DEFINES
 #include <algorithm>
-#include <cmath>
+#include <math.h>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -47,6 +47,9 @@ using Vector = Eigen::Matrix<float, DIM, 1>;
 using Vector1 = Vector<1>;
 using Vector2 = Vector<2>;
 using Vector3 = Vector<3>;
+
+using Vector2i = Eigen::Vector2i;
+using Vector3i = Eigen::Vector3i;
 
 template<size_t DIM>
 using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
@@ -98,6 +101,49 @@ inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
     }
 
     return v;
+}
+
+template<size_t DIM>
+inline Vector<DIM> rotate(const Vector<DIM>& u, const Vector<DIM>& v, float theta)
+{
+    std::cerr << "rotate<DIM>() not implemented" << std::endl;
+    exit(EXIT_FAILURE);
+
+    return Vector<DIM>::Zero();
+}
+
+template<>
+inline Vector2 rotate<2>(const Vector2& u, const Vector2& v, float theta)
+{
+    float det = u[0]*v[1] - u[1]*v[0];
+    theta *= std::copysign(1.0f, det);
+    float cosTheta = std::cos(theta);
+    float sinTheta = std::sin(theta);
+
+    return Vector2(cosTheta*u[0] - sinTheta*u[1],
+                   sinTheta*u[0] + cosTheta*u[1]);
+}
+
+template<>
+inline Vector3 rotate<3>(const Vector3& u, const Vector3& v, float theta)
+{
+    float cosTheta = std::cos(theta);
+    float sinTheta = std::sin(theta);
+    Vector3 w = u.cross(v).normalized();
+    Vector3 oneMinusCosThetaW = (1.0f - cosTheta)*w;
+
+    Eigen::Matrix3f R; 
+    R << cosTheta + oneMinusCosThetaW[0]*w[0],
+         oneMinusCosThetaW[1]*w[0] - sinTheta*w[2],
+         oneMinusCosThetaW[2]*w[0] + sinTheta*w[1],
+         oneMinusCosThetaW[0]*w[1] + sinTheta*w[2],
+         cosTheta + oneMinusCosThetaW[1]*w[1],
+         oneMinusCosThetaW[2]*w[1] - sinTheta*w[0],
+         oneMinusCosThetaW[0]*w[2] - sinTheta*w[1],
+         oneMinusCosThetaW[1]*w[2] + sinTheta*w[0],
+         cosTheta + oneMinusCosThetaW[2]*w[2];
+
+    return R*u;
 }
 
 } // namespace fcpw

@@ -80,7 +80,7 @@ inline Vector1 LineSegment::barycentricCoordinates(const Vector2& p) const
     return Vector1((p - pa).norm()/(pb - pa).norm());
 }
 
-inline float LineSegment::samplePoint(float *randNums, Vector1& uv, Vector2& p, Vector2& n) const
+inline float LineSegment::samplePoint(const Vector2& randNums, Vector1& uv, Vector2& p, Vector2& n) const
 {
     const Vector2& pa = soup->positions[indices[0]];
     const Vector2& pb = soup->positions[indices[1]];
@@ -137,10 +137,8 @@ inline void LineSegment::split(int dim, float splitCoord, BoundingBox<2>& boxLef
     }
 }
 
-inline int LineSegment::intersect(Ray<2>& r, std::vector<Interaction<2>>& is,
-                                  bool checkForOcclusion, bool recordAllHits) const
+inline bool LineSegment::intersect(const Ray<2>& r, Interaction<2>& i, bool checkForOcclusion) const
 {
-    is.clear();
     const Vector2& pa = soup->positions[indices[0]];
     const Vector2& pb = soup->positions[indices[1]];
 
@@ -162,16 +160,32 @@ inline int LineSegment::intersect(Ray<2>& r, std::vector<Interaction<2>>& is,
         float t = uv/dv;
 
         if (t >= 0.0f && t <= r.tMax) {
-            if (checkForOcclusion) return 1;
-            auto it = is.emplace(is.end(), Interaction<2>());
-            it->d = t;
-            it->p = pa + s*v;
-            it->n = Vector2(v[1], -v[0]).normalized();
-            it->uv[0] = s;
-            it->primitiveIndex = pIndex;
+            if (checkForOcclusion) return true;
+            i.d = t;
+            i.p = pa + s*v;
+            i.n = Vector2(v[1], -v[0]).normalized();
+            i.uv[0] = s;
+            i.primitiveIndex = pIndex;
 
-            return 1;
+            return true;
         }
+    }
+
+    return false;   
+}
+
+inline int LineSegment::intersect(const Ray<2>& r, std::vector<Interaction<2>>& is,
+                                  bool checkForOcclusion, bool recordAllHits) const
+{
+    is.clear();
+    Interaction<2> i;
+    bool hit = intersect(r, i, checkForOcclusion);
+
+    if (hit) {
+        if (checkForOcclusion) return 1;
+
+        is.emplace_back(i);
+        return 1;
     }
 
     return 0;
@@ -206,39 +220,24 @@ inline float findClosestPointLineSegment(const Vector<DIM>& pa, const Vector<DIM
     return (x - pt).norm();
 }
 
-inline int LineSegment::intersect(const BoundingSphere<2>& s, std::vector<Interaction<2>>& is,
-                                  bool recordOneHit) const
+inline bool LineSegment::intersect(const BoundingSphere<2>& s, Interaction<2>& i,
+                                   bool recordSurfaceArea) const
 {
-    is.clear();
-    const Vector2& pa = soup->positions[indices[0]];
-    const Vector2& pb = soup->positions[indices[1]];
-
-    Interaction<2> i;
-    float d = findClosestPointLineSegment<2>(pa, pb, s.c, i.p, i.uv[0]);
-
-    if (d*d <= s.r2) {
-        auto it = is.emplace(is.end(), Interaction<2>());
-        it->primitiveIndex = pIndex;
-        if (recordOneHit) {
-            it->d = surfaceArea();
-
-        } else {
-            it->d = 1.0f;
-        }
-
-        return 1;
+    bool found = findClosestPoint(s, i);
+    if (found) {
+        i.d = recordSurfaceArea ? surfaceArea() : 1.0f;
+        return true;
     }
 
-    return 0;
+    return false;
 }
 
-inline bool LineSegment::findClosestPoint(BoundingSphere<2>& s, Interaction<2>& i, bool recordNormal) const
+inline bool LineSegment::findClosestPoint(const BoundingSphere<2>& s, Interaction<2>& i) const
 {
     const Vector2& pa = soup->positions[indices[0]];
     const Vector2& pb = soup->positions[indices[1]];
 
     float d = findClosestPointLineSegment<2>(pa, pb, s.c, i.p, i.uv[0]);
-
     if (d*d <= s.r2) {
         i.d = d;
         i.primitiveIndex = pIndex;

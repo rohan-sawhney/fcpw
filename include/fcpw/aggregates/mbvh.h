@@ -29,12 +29,14 @@ struct MsnchNode {
     MsnchNode(): boxMin(FloatP<FCPW_MBVH_BRANCHING_FACTOR>(maxFloat)),
                  boxMax(FloatP<FCPW_MBVH_BRANCHING_FACTOR>(minFloat)),
                  coneAxis(FloatP<FCPW_MBVH_BRANCHING_FACTOR>(0.0f)),
-                 coneHalfAngle(M_PI), child(maxInt), silhouetteChild(maxInt) {}
+                 coneHalfAngle(M_PI), coneRadius(0.0f),
+                 child(maxInt), silhouetteChild(maxInt) {}
 
     // members
     VectorP<FCPW_MBVH_BRANCHING_FACTOR, DIM> boxMin, boxMax;
     VectorP<FCPW_MBVH_BRANCHING_FACTOR, DIM> coneAxis;
     FloatP<FCPW_MBVH_BRANCHING_FACTOR> coneHalfAngle;
+    FloatP<FCPW_MBVH_BRANCHING_FACTOR> coneRadius;
     IntP<FCPW_MBVH_BRANCHING_FACTOR> child; // use sign to differentiate between inner and leaf nodes
     IntP<FCPW_MBVH_BRANCHING_FACTOR> silhouetteChild; // use sign to differentiate between inner and silhouette leaf nodes
 };
@@ -70,6 +72,9 @@ public:
     template<typename BvhNodeType>
     void initialize(const Bvh<DIM, BvhNodeType, PrimitiveType, SilhouetteType> *bvh);
 
+    // refits the aggregate
+    void refit();
+
     // prints statistics
     void printStats() const;
 
@@ -86,6 +91,12 @@ public:
     float signedVolume() const;
 
     // intersects with ray, starting the traversal at the specified node in an aggregate
+    // NOTE: interaction is invalid when checkForOcclusion is enabled
+    bool intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                           int aggregateIndex, int& nodesVisited,
+                           bool checkForOcclusion=false) const;
+
+    // intersects with ray, starting the traversal at the specified node in an aggregate
     // NOTE: interactions are invalid when checkForOcclusion is enabled
     int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                           int nodeStartIndex, int aggregateIndex, int& nodesVisited,
@@ -100,10 +111,10 @@ public:
 
     // intersects with sphere, starting the traversal at the specified node in an aggregate
     // NOTE: interactions contain primitive index
-    int intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-                                    std::vector<Interaction<DIM>>& is, float *randNums,
-                                    int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                    const std::function<float(float)>& branchTraversalWeight={}) const;
+    int intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                          const Vector<DIM>& randNums, int nodeStartIndex,
+                          int aggregateIndex, int& nodesVisited,
+                          const std::function<float(float)>& branchTraversalWeight={}) const;
 
     // finds closest point to sphere center, starting the traversal at the specified node in an aggregate
     bool findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
@@ -134,8 +145,6 @@ protected:
 
     // members
     int nNodes, nLeafs, nSilhouetteLeafs, maxDepth;
-    float area, volume;
-    Vector<DIM> aggregateCentroid;
     std::vector<PrimitiveType *>& primitives;
     std::vector<SilhouetteType *>& silhouettes;
     std::vector<SilhouetteType *> silhouetteRefs;

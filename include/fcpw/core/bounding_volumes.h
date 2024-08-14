@@ -231,10 +231,11 @@ inline float projectToPlane<3>(const Vector3& n, const Vector3& e)
 template<size_t DIM>
 struct BoundingCone {
     // constructor
-    BoundingCone(): axis(Vector<DIM>::Zero()), halfAngle(M_PI) {}
+    BoundingCone(): axis(Vector<DIM>::Zero()), halfAngle(M_PI), radius(0.0f) {}
 
     // constructor
-    BoundingCone(const Vector<DIM>& axis_, float halfAngle_): axis(axis_), halfAngle(halfAngle_) {}
+    BoundingCone(const Vector<DIM>& axis_, float halfAngle_, float radius_):
+                 axis(axis_), halfAngle(halfAngle_), radius(radius_) {}
 
     // check for overlap between this cone and the "view" cone defined by the given
     // point and bounding box; the two cones overlap when there exist two vectors,
@@ -261,22 +262,20 @@ struct BoundingCone {
         float dAxisAngle = std::acos(std::max(-1.0f, std::min(1.0f, axis.dot(viewConeAxis)))); // [0, 180]
         if (inRange(M_PI_2, dAxisAngle - halfAngle, dAxisAngle + halfAngle)) return true;
 
-        // check if the view cone origin lies outside the box's bounding sphere;
+        // check if the view cone origin lies outside this cone's bounding sphere;
         // if it does, compute the view cone halfAngle and check for overlap
-        Vector<DIM> e = b.pMax - c;
-        float r2 = e.squaredNorm();
-        if (l*l > r2) {
-            float r = std::sqrt(r2);
-            float viewConeHalfAngle = std::asin(r/l);
+        if (l > radius) {
+            float viewConeHalfAngle = std::asin(radius/l);
             float halfAngleSum = halfAngle + viewConeHalfAngle;
             minAngleRange = dAxisAngle - halfAngleSum;
             maxAngleRange = dAxisAngle + halfAngleSum;
             return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, minAngleRange, maxAngleRange);
         }
 
-        // the view cone origin lies inside the box's bounding sphere, so check if
+        // the view cone origin lies inside this cone's bounding sphere, so check if
         // the plane defined by the view cone axis intersects the box; if it does, then
         // there's overlap since the view cone has a halfAngle greater than 90 degrees
+        Vector<DIM> e = b.pMax - c;
         float d = e.dot(viewConeAxis.cwiseAbs()); // max projection length onto axis
         float s = l - d;
         if (s <= 0.0f) return true;
@@ -299,6 +298,62 @@ struct BoundingCone {
     // members
     Vector<DIM> axis;
     float halfAngle;
+    float radius;
 };
+
+template<size_t DIM>
+inline BoundingCone<DIM> mergeBoundingCones(const BoundingCone<DIM>& coneA,
+                                            const BoundingCone<DIM>& coneB,
+                                            const Vector<DIM>& originA,
+                                            const Vector<DIM>& originB,
+                                            const Vector<DIM>& newOrigin)
+{
+    BoundingCone<DIM> cone;
+    if (coneA.isValid() && coneB.isValid()) {
+        Vector<DIM> axisA = coneA.axis;
+        Vector<DIM> axisB = coneB.axis;
+        float halfAngleA = coneA.halfAngle;
+        float halfAngleB = coneB.halfAngle;
+        Vector<DIM> dOriginA = newOrigin - originA;
+        Vector<DIM> dOriginB = newOrigin - originB;
+        cone.radius = std::sqrt(std::max(coneA.radius*coneA.radius + dOriginA.squaredNorm(),
+                                         coneB.radius*coneB.radius + dOriginB.squaredNorm()));
+
+        if (halfAngleB > halfAngleA) {
+            std::swap(axisA, axisB);
+            std::swap(halfAngleA, halfAngleB);
+        }
+
+        float theta = std::acos(std::max(-1.0f, std::min(1.0f, axisA.dot(axisB))));
+        if (std::min(theta + halfAngleB, static_cast<float>(M_PI)) <= halfAngleA) {
+            // right cone is completely inside left cone
+            cone.axis = axisA;
+            cone.halfAngle = halfAngleA;
+            return cone;
+        }
+
+        // merge cones by first computing the spread angle of the cone to cover both cones
+        float oTheta = (halfAngleA + theta + halfAngleB)/2.0f;
+        if (oTheta >= M_PI) {
+            cone.axis = axisA;
+            return cone;
+        }
+
+        float rTheta = oTheta - halfAngleA;
+        cone.axis = rotate<DIM>(axisA, axisB, rTheta);
+        cone.halfAngle = oTheta;
+
+    } else if (coneA.isValid()) {
+        cone = coneA;
+
+    } else if (coneB.isValid()) {
+        cone = coneB;
+
+    } else {
+        cone.halfAngle = -M_PI;
+    }
+
+    return cone;
+}
 
 } // namespace fcpw

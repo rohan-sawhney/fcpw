@@ -16,6 +16,7 @@ struct PolygonSoup {
 
     // members
     std::vector<int> indices /* a.k.a. vIndices */, eIndices, tIndices;
+    std::vector<int> indexMap;
     std::vector<Vector<DIM>> positions;
     std::vector<Vector<DIM - 1>> textureCoordinates;
     std::vector<Vector<DIM>> vNormals, eNormals; // normalized values

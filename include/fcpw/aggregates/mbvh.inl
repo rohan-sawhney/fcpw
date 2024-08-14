@@ -17,6 +17,7 @@ inline void assignGeometricDataToNode(const SnchNode<DIM>& bvhNode, MsnchNode<DI
     }
 
     mbvhNode.coneHalfAngle[index] = bvhNode.cone.halfAngle;
+    mbvhNode.coneRadius[index] = bvhNode.cone.radius;
 }
 
 template<typename BvhNodeType, typename MbvhNodeType>
@@ -391,8 +392,6 @@ nNodes(0),
 nLeafs(0),
 nSilhouetteLeafs(0),
 maxDepth(0),
-area(0.0f),
-volume(0.0f),
 primitives(primitives_),
 silhouettes(silhouettes_),
 range(enoki::arange<enoki::Array<int, DIM>>())
@@ -425,8 +424,6 @@ inline void Mbvh<WIDTH, DIM,
     nLeafs = 0;
     nSilhouetteLeafs = 0;
     maxDepth = 0;
-    area = 0.0f;
-    volume = 0.0f;
     silhouetteRefs.clear();
     flatTree.clear();
     leafNodes.clear();
@@ -441,18 +438,154 @@ inline void Mbvh<WIDTH, DIM,
 
     // populate silhouette leaf nodes if primitive type is supported
     populateSilhouetteLeafNodes();
+}
 
-    // precompute surface area and signed volume
-    int nPrimitives = (int)primitives.size();
-    aggregateCentroid = Vector<DIM>::Zero();
+template<size_t DIM, typename NodeType, typename SilhouetteType>
+inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
+                                const BoundingBox<DIM>& box, NodeType& node,
+                                BoundingCone<DIM>& cone)
+{
+    // do nothing
+}
 
-    for (int p = 0; p < nPrimitives; p++) {
-        aggregateCentroid += primitives[p]->centroid();
-        area += primitives[p]->surfaceArea();
-        volume += primitives[p]->signedVolume();
+template<size_t DIM, typename SilhouetteType>
+inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
+                                const BoundingBox<DIM>& box, MsnchNode<DIM>& node,
+                                BoundingCone<DIM>& cone)
+{
+    int silhouetteReferenceOffset = node.silhouetteChild[2];
+    int nSilhouetteReferences = node.silhouetteChild[3];
+
+    cone = computeBoundingCone<DIM, SilhouetteType>(silhouetteRefs, box.centroid(),
+                                                    nSilhouetteReferences,
+                                                    silhouetteReferenceOffset);
+}
+
+template<size_t DIM, typename NodeType>
+inline void assignBoundingCone(const BoundingCone<DIM>& cone, NodeType& node, int index)
+{
+    // do nothing
+}
+
+template<size_t DIM>
+inline void assignBoundingCone(const BoundingCone<DIM>& cone, MsnchNode<DIM>& node, int index)
+{
+    for (size_t i = 0; i < DIM; i++) {
+        node.coneAxis[i][index] = cone.axis[i];
     }
 
-    aggregateCentroid /= nPrimitives;
+    node.coneHalfAngle[index] = cone.halfAngle;
+    node.coneRadius[index] = cone.radius;
+}
+
+template<size_t DIM, typename NodeType>
+inline void mergeBoundingCones(const BoundingCone<DIM>& coneA, const BoundingCone<DIM>& coneB,
+                               const BoundingBox<DIM>& boxA, const BoundingBox<DIM>& boxB,
+                               const BoundingBox<DIM>& mergedBox, NodeType& node,
+                               BoundingCone<DIM>& cone)
+{
+    // do nothing
+}
+
+template<size_t DIM>
+inline void mergeBoundingCones(const BoundingCone<DIM>& coneA, const BoundingCone<DIM>& coneB,
+                               const BoundingBox<DIM>& boxA, const BoundingBox<DIM>& boxB,
+                               const BoundingBox<DIM>& mergedBox, MsnchNode<DIM>& node,
+                               BoundingCone<DIM>& cone)
+{
+    cone = mergeBoundingCones<DIM>(coneA, coneB,
+                                   boxA.centroid(),
+                                   boxB.centroid(),
+                                   mergedBox.centroid());
+}
+
+template<size_t WIDTH,
+         size_t DIM,
+         typename NodeType,
+         typename PrimitiveType,
+         typename SilhouetteType>
+inline std::pair<BoundingBox<DIM>, BoundingCone<DIM>> refitRecursive(const std::vector<PrimitiveType *>& primitives,
+                                                                     const std::vector<SilhouetteType *>& silhouetteRefs,
+                                                                     std::vector<NodeType>& flatTree, int nodeIndex)
+{
+    BoundingBox<DIM> box;
+    BoundingCone<DIM> cone;
+    cone.halfAngle = -M_PI;
+    NodeType& node(flatTree[nodeIndex]);
+
+    if (node.child[0] < 0) { // leaf
+        // compute bounding box
+        int referenceOffset = node.child[2];
+        int nReferences = node.child[3];
+
+        for (int p = 0; p < nReferences; p++) {
+            int referenceIndex = referenceOffset + p;
+            const PrimitiveType *prim = primitives[referenceIndex];
+
+            box.expandToInclude(prim->boundingBox());
+        }
+
+        // compute bounding cone
+        computeBoundingCone(silhouetteRefs, box, node, cone);
+
+    } else { // not a leaf
+        for (int w = 0; w < FCPW_MBVH_BRANCHING_FACTOR; w++) {
+            if (node.child[w] != maxInt) {
+                // refit child
+                std::pair<BoundingBox<DIM>, BoundingCone<DIM>> childBoxCone =
+                    refitRecursive<WIDTH, DIM, NodeType, PrimitiveType, SilhouetteType>(
+                        primitives, silhouetteRefs, flatTree, node.child[w]);
+
+                // expand bounding box
+                BoundingBox<DIM> currentBox = box;
+                BoundingBox<DIM> childBox = childBoxCone.first;
+                for (size_t i = 0; i < DIM; i++) {
+                    node.boxMin[i][w] = childBox.pMin[i];
+                    node.boxMax[i][w] = childBox.pMax[i];
+                }
+                box.expandToInclude(childBox);
+
+                // expand bounding cone
+                BoundingCone<DIM> childCone = childBoxCone.second;
+                assignBoundingCone(childCone, node, w);
+                mergeBoundingCones(cone, childCone, currentBox, childBox, box, node, cone);
+            }
+        }
+    }
+
+    return std::make_pair(box, cone);
+}
+
+template<size_t WIDTH, size_t DIM,
+         typename PrimitiveType,
+         typename SilhouetteType,
+         typename NodeType,
+         typename LeafNodeType,
+         typename SilhouetteLeafNodeType>
+inline void Mbvh<WIDTH, DIM,
+                 PrimitiveType,
+                 SilhouetteType,
+                 NodeType,
+                 LeafNodeType,
+                 SilhouetteLeafNodeType>::refit()
+{
+    // refit primitives if they are aggregates
+    if (primitiveTypeIsAggregate) {
+        for (int p = 0; p < (int)primitives.size(); p++) {
+            Aggregate<DIM> *aggregate = reinterpret_cast<Aggregate<DIM> *>(primitives[p]);
+            aggregate->refit();
+        }
+    }
+
+    // update leaf and silhouette leaf nodes if primitive type is supported
+    populateLeafNodes();
+    populateSilhouetteLeafNodes();
+
+    // update flatTree
+    if (nNodes > 0) {
+        refitRecursive<WIDTH, DIM, NodeType, PrimitiveType, SilhouetteType>(
+            primitives, silhouetteRefs, flatTree, 0);
+    }
 }
 
 template<typename NodeType>
@@ -517,7 +650,7 @@ inline void Mbvh<WIDTH, DIM,
               << nSilhouetteLeafs << " silhouette leaves, "
               << (nNodesNotFull*100/nInnerNodes) << "% nodes, "
               << (nLeafsNotFull*100/nLeafs) << "% leaves not full & "
-              << (nSilhouetteLeafsNotFull*100/nSilhouetteLeafs) << "% silhouette leaves not full, "
+              << (nSilhouetteLeafs > 0 ? (nSilhouetteLeafsNotFull*100/nSilhouetteLeafs) : 0) << "% silhouette leaves not full, "
               << maxDepth << " max depth"
               << std::endl;
 }
@@ -557,7 +690,14 @@ inline Vector<DIM> Mbvh<WIDTH, DIM,
                         LeafNodeType,
                         SilhouetteLeafNodeType>::centroid() const
 {
-    return aggregateCentroid;
+    Vector<DIM> c = Vector<DIM>::Zero();
+    int nPrimitives = (int)primitives.size();
+
+    for (int p = 0; p < nPrimitives; p++) {
+        c += primitives[p]->centroid();
+    }
+
+    return c/nPrimitives;
 }
 
 template<size_t WIDTH, size_t DIM,
@@ -573,6 +713,11 @@ inline float Mbvh<WIDTH, DIM,
                   LeafNodeType,
                   SilhouetteLeafNodeType>::surfaceArea() const
 {
+    float area = 0.0f;
+    for (int p = 0; p < (int)primitives.size(); p++) {
+        area += primitives[p]->surfaceArea();
+    }
+
     return area;
 }
 
@@ -589,6 +734,11 @@ inline float Mbvh<WIDTH, DIM,
                   LeafNodeType,
                   SilhouetteLeafNodeType>::signedVolume() const
 {
+    float volume = 0.0f;
+    for (int p = 0; p < (int)primitives.size(); p++) {
+        volume += primitives[p]->signedVolume();
+    }
+
     return volume;
 }
 
@@ -658,11 +808,248 @@ struct QueryStub {
 };
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
+inline bool intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
+                                   const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                   int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
+                                   float& rtMax, Interaction<DIM>& i, bool checkForOcclusion)
+{
+    std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+    exit(EXIT_FAILURE);
+
+    return 0;
+}
+
+template<size_t WIDTH, typename NodeType, typename LeafNodeType>
+inline bool intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
+                                   const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                   int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
+                                   float& rtMax, Interaction<2>& i, bool checkForOcclusion)
+{
+    int leafOffset = -node.child[0] - 1;
+    int nLeafs = node.child[1];
+    int referenceOffset = node.child[2];
+    int nReferences = node.child[3];
+    int startReference = 0;
+    bool didHit = false;
+
+    for (int l = 0; l < nLeafs; l++) {
+        // perform vectorized intersection query
+        FloatP<WIDTH> d;
+        Vector2P<WIDTH> pt, n;
+        FloatP<WIDTH> t;
+        int leafIndex = leafOffset + l;
+        const Vector2P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+        const Vector2P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+        const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
+        MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMax, d,
+                                                            pt, n, t, checkForOcclusion);
+
+        // determine closest index
+        int closestIndex = -1;
+        int W = std::min((int)WIDTH, nReferences - startReference);
+
+        for (int w = 0; w < W; w++) {
+            if (mask[w] && d[w] <= rtMax) {
+                if (checkForOcclusion) return true;
+                closestIndex = w;
+                rtMax = d[w];
+            }
+        }
+
+        // update interaction
+        if (closestIndex != -1) {
+            didHit = true;
+            i.d = d[closestIndex];
+            i.p[0] = pt[0][closestIndex];
+            i.p[1] = pt[1][closestIndex];
+            i.n[0] = n[0][closestIndex];
+            i.n[1] = n[1][closestIndex];
+            i.uv[0] = t[closestIndex];
+            i.primitiveIndex = primitiveIndex[closestIndex];
+            i.nodeIndex = nodeIndex;
+            i.referenceIndex = referenceOffset + startReference + closestIndex;
+            i.objectIndex = aggregateIndex;
+        }
+
+        startReference += WIDTH;
+    }
+
+    return didHit;
+}
+
+template<size_t WIDTH, typename NodeType, typename LeafNodeType>
+inline bool intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
+                                   const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                   int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
+                                   float& rtMax, Interaction<3>& i, bool checkForOcclusion)
+{
+    int leafOffset = -node.child[0] - 1;
+    int nLeafs = node.child[1];
+    int referenceOffset = node.child[2];
+    int nReferences = node.child[3];
+    int startReference = 0;
+    bool didHit = false;
+
+    for (int l = 0; l < nLeafs; l++) {
+        // perform vectorized intersection query
+        FloatP<WIDTH> d;
+        Vector3P<WIDTH> pt, n;
+        Vector2P<WIDTH> t;
+        int leafIndex = leafOffset + l;
+        const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+        const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+        const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
+        const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
+        MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMax, d,
+                                                         pt, n, t, checkForOcclusion);
+
+        // determine closest index
+        int closestIndex = -1;
+        int W = std::min((int)WIDTH, nReferences - startReference);
+
+        for (int w = 0; w < W; w++) {
+            if (mask[w] && d[w] <= rtMax) {
+                if (checkForOcclusion) return true;
+                closestIndex = w;
+                rtMax = d[w];
+            }
+        }
+
+        // update interaction
+        if (closestIndex != -1) {
+            didHit = true;
+            i.d = d[closestIndex];
+            i.p[0] = pt[0][closestIndex];
+            i.p[1] = pt[1][closestIndex];
+            i.p[2] = pt[2][closestIndex];
+            i.n[0] = n[0][closestIndex];
+            i.n[1] = n[1][closestIndex];
+            i.n[2] = n[2][closestIndex];
+            i.uv[0] = t[0][closestIndex];
+            i.uv[1] = t[1][closestIndex];
+            i.primitiveIndex = primitiveIndex[closestIndex];
+            i.nodeIndex = nodeIndex;
+            i.referenceIndex = referenceOffset + startReference + closestIndex;
+            i.objectIndex = aggregateIndex;
+        }
+
+        startReference += WIDTH;
+    }
+
+    return didHit;
+}
+
+template<size_t WIDTH, size_t DIM,
+         typename PrimitiveType,
+         typename SilhouetteType,
+         typename NodeType,
+         typename LeafNodeType,
+         typename SilhouetteLeafNodeType>
+inline bool Mbvh<WIDTH, DIM,
+                 PrimitiveType,
+                 SilhouetteType,
+                 NodeType,
+                 LeafNodeType,
+                 SilhouetteLeafNodeType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                                            int aggregateIndex, int& nodesVisited,
+                                                            bool checkForOcclusion) const
+{
+    bool didHit = false;
+    TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
+    FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
+    enokiVector<DIM> ro = enoki::gather<enokiVector<DIM>>(r.o.data(), range);
+    enokiVector<DIM> rd = enoki::gather<enokiVector<DIM>>(r.d.data(), range);
+    enokiVector<DIM> rinvD = enoki::gather<enokiVector<DIM>>(r.invD.data(), range);
+    QueryStub<WIDTH, DIM> queryStub;
+
+    // push root node
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
+    subtree[0].node = rootIndex;
+    subtree[0].distance = minFloat;
+    int stackPtr = 0;
+
+    while (stackPtr >= 0) {
+        // pop off the next node to work on
+        int nodeIndex = subtree[stackPtr].node;
+        float currentDist = subtree[stackPtr].distance;
+        stackPtr--;
+
+        // if this node is further than the closest found intersection, continue
+        if (currentDist > r.tMax) continue;
+        const NodeType& node(flatTree[nodeIndex]);
+
+        if (isLeafNode(node)) {
+            if (primitiveTypeSupportsVectorizedQueries) {
+                // perform vectorized intersection query
+                bool hit = intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
+                                                  ro, rd, r.tMax, i, checkForOcclusion);
+
+                nodesVisited++;
+                if (hit) {
+                    if (checkForOcclusion) return true;
+                    didHit = true;
+                }
+
+            } else {
+                // primitive type does not support vectorized intersection query,
+                // perform query to each primitive one by one
+                int referenceOffset = node.child[2];
+                int nReferences = node.child[3];
+
+                for (int p = 0; p < nReferences; p++) {
+                    int referenceIndex = referenceOffset + p;
+                    const PrimitiveType *prim = primitives[referenceIndex];
+                    nodesVisited++;
+
+                    bool hit = false;
+                    if (primitiveTypeIsAggregate) {
+                        const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+                        hit = aggregate->intersectFromNode(r, i, nodeStartIndex, aggregateIndex,
+                                                           nodesVisited, checkForOcclusion);
+
+                    } else {
+                        const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                        hit = geometricPrim->intersect(r, i, checkForOcclusion);
+                    }
+
+                    if (hit) {
+                        if (checkForOcclusion) {
+                            return true;
+                        }
+
+                        didHit = true;
+                        r.tMax = std::min(r.tMax, i.d);
+                        i.nodeIndex = nodeIndex;
+                        i.referenceIndex = p;
+                        i.objectIndex = this->pIndex;
+                    }
+                }
+            }
+
+        } else {
+            // intersect ray with boxes
+            MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+                                                        node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
+
+            // enqueue intersecting boxes in sorted order
+            nodesVisited++;
+            mask &= enoki::neq(node.child, maxInt);
+            if (enoki::any(mask)) {
+                float stub = 0.0f;
+                enqueueNodes<FCPW_MBVH_BRANCHING_FACTOR>(node.child, tMin, tMax, mask,
+                                                         r.tMax, stub, stackPtr, subtree);
+            }
+        }
+    }
+
+    return didHit;
+}
+
+template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
 inline int intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
-                                  const std::vector<LeafNodeType>& leafNodes,
-                                  int nodeIndex, int aggregateIndex, const enokiVector<DIM>& ro,
-                                  const enokiVector<DIM>& rd, float& rtMax, std::vector<Interaction<DIM>>& is,
-                                  bool checkForOcclusion, bool recordAllHits)
+                                  const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                  int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
+                                  float& rtMax, std::vector<Interaction<DIM>>& is, bool checkForOcclusion)
 {
     std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -672,10 +1059,9 @@ inline int intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeTyp
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 inline int intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
-                                  const std::vector<LeafNodeType>& leafNodes,
-                                  int nodeIndex, int aggregateIndex, const enokiVector2& ro,
-                                  const enokiVector2& rd, float& rtMax, std::vector<Interaction<2>>& is,
-                                  bool checkForOcclusion, bool recordAllHits)
+                                  const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                  int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
+                                  float& rtMax, std::vector<Interaction<2>>& is, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -696,56 +1082,26 @@ inline int intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType&
         MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMax, d,
                                                             pt, n, t, checkForOcclusion);
 
-        if (recordAllHits) {
-            // record interactions
-            int endReference = startReference + WIDTH;
-            if (endReference > nReferences) endReference = nReferences;
+        // record interactions
+        int endReference = startReference + WIDTH;
+        if (endReference > nReferences) endReference = nReferences;
 
-            for (int p = startReference; p < endReference; p++) {
-                int w = p - startReference;
+        for (int p = startReference; p < endReference; p++) {
+            int w = p - startReference;
 
-                if (mask[w]) {
-                    hits++;
-                    auto it = is.emplace(is.end(), Interaction<2>());
-                    it->d = d[w];
-                    it->p[0] = pt[0][w];
-                    it->p[1] = pt[1][w];
-                    it->n[0] = n[0][w];
-                    it->n[1] = n[1][w];
-                    it->uv[0] = t[w];
-                    it->primitiveIndex = primitiveIndex[w];
-                    it->nodeIndex = nodeIndex;
-                    it->referenceIndex = referenceOffset + p;
-                    it->objectIndex = aggregateIndex;
-                }
-            }
-
-        } else {
-            // determine closest index
-            int closestIndex = -1;
-            int W = std::min((int)WIDTH, nReferences - startReference);
-
-            for (int w = 0; w < W; w++) {
-                if (mask[w] && d[w] <= rtMax) {
-                    if (checkForOcclusion) return 1;
-                    closestIndex = w;
-                    rtMax = d[w];
-                }
-            }
-
-            // update interaction
-            if (closestIndex != -1) {
-                hits = 1;
-                is[0].d = d[closestIndex];
-                is[0].p[0] = pt[0][closestIndex];
-                is[0].p[1] = pt[1][closestIndex];
-                is[0].n[0] = n[0][closestIndex];
-                is[0].n[1] = n[1][closestIndex];
-                is[0].uv[0] = t[closestIndex];
-                is[0].primitiveIndex = primitiveIndex[closestIndex];
-                is[0].nodeIndex = nodeIndex;
-                is[0].referenceIndex = referenceOffset + startReference + closestIndex;
-                is[0].objectIndex = aggregateIndex;
+            if (mask[w]) {
+                hits++;
+                auto it = is.emplace(is.end(), Interaction<2>());
+                it->d = d[w];
+                it->p[0] = pt[0][w];
+                it->p[1] = pt[1][w];
+                it->n[0] = n[0][w];
+                it->n[1] = n[1][w];
+                it->uv[0] = t[w];
+                it->primitiveIndex = primitiveIndex[w];
+                it->nodeIndex = nodeIndex;
+                it->referenceIndex = referenceOffset + p;
+                it->objectIndex = aggregateIndex;
             }
         }
 
@@ -757,10 +1113,9 @@ inline int intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType&
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 inline int intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
-                                  const std::vector<LeafNodeType>& leafNodes,
-                                  int nodeIndex, int aggregateIndex, const enokiVector3& ro,
-                                  const enokiVector3& rd, float& rtMax, std::vector<Interaction<3>>& is,
-                                  bool checkForOcclusion, bool recordAllHits)
+                                  const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                  int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
+                                  float& rtMax, std::vector<Interaction<3>>& is, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -782,62 +1137,29 @@ inline int intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType&
         MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMax, d,
                                                          pt, n, t, checkForOcclusion);
 
-        if (recordAllHits) {
-            // record interactions
-            int endReference = startReference + WIDTH;
-            if (endReference > nReferences) endReference = nReferences;
+        // record interactions
+        int endReference = startReference + WIDTH;
+        if (endReference > nReferences) endReference = nReferences;
 
-            for (int p = startReference; p < endReference; p++) {
-                int w = p - startReference;
+        for (int p = startReference; p < endReference; p++) {
+            int w = p - startReference;
 
-                if (mask[w]) {
-                    hits++;
-                    auto it = is.emplace(is.end(), Interaction<3>());
-                    it->d = d[w];
-                    it->p[0] = pt[0][w];
-                    it->p[1] = pt[1][w];
-                    it->p[2] = pt[2][w];
-                    it->n[0] = n[0][w];
-                    it->n[1] = n[1][w];
-                    it->n[2] = n[2][w];
-                    it->uv[0] = t[0][w];
-                    it->uv[1] = t[1][w];
-                    it->primitiveIndex = primitiveIndex[w];
-                    it->nodeIndex = nodeIndex;
-                    it->referenceIndex = referenceOffset + p;
-                    it->objectIndex = aggregateIndex;
-                }
-            }
-
-        } else {
-            // determine closest index
-            int closestIndex = -1;
-            int W = std::min((int)WIDTH, nReferences - startReference);
-
-            for (int w = 0; w < W; w++) {
-                if (mask[w] && d[w] <= rtMax) {
-                    if (checkForOcclusion) return 1;
-                    closestIndex = w;
-                    rtMax = d[w];
-                }
-            }
-
-            // update interaction
-            if (closestIndex != -1) {
-                hits = 1;
-                is[0].d = d[closestIndex];
-                is[0].p[0] = pt[0][closestIndex];
-                is[0].p[1] = pt[1][closestIndex];
-                is[0].p[2] = pt[2][closestIndex];
-                is[0].n[0] = n[0][closestIndex];
-                is[0].n[1] = n[1][closestIndex];
-                is[0].n[2] = n[2][closestIndex];
-                is[0].uv[0] = t[0][closestIndex];
-                is[0].uv[1] = t[1][closestIndex];
-                is[0].primitiveIndex = primitiveIndex[closestIndex];
-                is[0].nodeIndex = nodeIndex;
-                is[0].referenceIndex = referenceOffset + startReference + closestIndex;
-                is[0].objectIndex = aggregateIndex;
+            if (mask[w]) {
+                hits++;
+                auto it = is.emplace(is.end(), Interaction<3>());
+                it->d = d[w];
+                it->p[0] = pt[0][w];
+                it->p[1] = pt[1][w];
+                it->p[2] = pt[2][w];
+                it->n[0] = n[0][w];
+                it->n[1] = n[1][w];
+                it->n[2] = n[2][w];
+                it->uv[0] = t[0][w];
+                it->uv[1] = t[1][w];
+                it->primitiveIndex = primitiveIndex[w];
+                it->nodeIndex = nodeIndex;
+                it->referenceIndex = referenceOffset + p;
+                it->objectIndex = aggregateIndex;
             }
         }
 
@@ -872,7 +1194,7 @@ inline int Mbvh<WIDTH, DIM,
     QueryStub<WIDTH, DIM> queryStub;
 
     // push root node
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     subtree[0].node = rootIndex;
     subtree[0].distance = minFloat;
     int stackPtr = 0;
@@ -890,10 +1212,16 @@ inline int Mbvh<WIDTH, DIM,
         if (isLeafNode(node)) {
             if (primitiveTypeSupportsVectorizedQueries) {
                 // perform vectorized intersection query
-                hits += intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, this->index,
-                                               ro, rd, r.tMax, is, checkForOcclusion, recordAllHits);
-                nodesVisited++;
+                if (recordAllHits) {
+                    hits += intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
+                                                   ro, rd, r.tMax, is, checkForOcclusion);
 
+                } else {
+                    hits += intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
+                                                   ro, rd, r.tMax, is[0], checkForOcclusion);
+                }
+
+                nodesVisited++;
                 if (hits > 0 && checkForOcclusion) {
                     return 1;
                 }
@@ -917,11 +1245,12 @@ inline int Mbvh<WIDTH, DIM,
                                                            nodesVisited, checkForOcclusion, recordAllHits);
 
                     } else {
-                        hit = prim->intersect(r, cs, checkForOcclusion, recordAllHits);
+                        const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                        hit = geometricPrim->intersect(r, cs, checkForOcclusion, recordAllHits);
                         for (int i = 0; i < (int)cs.size(); i++) {
                             cs[i].nodeIndex = nodeIndex;
                             cs[i].referenceIndex = referenceIndex;
-                            cs[i].objectIndex = this->index;
+                            cs[i].objectIndex = this->pIndex;
                         }
                     }
 
@@ -978,10 +1307,9 @@ inline int Mbvh<WIDTH, DIM,
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
 inline int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes,
-                                     int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
-                                     float sr2, float u, std::vector<Interaction<DIM>>& is,
-                                     float& totalPrimitiveWeight, bool recordOneHit,
+                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                     int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
+                                     float u, Interaction<DIM>& i, float& totalPrimitiveWeight,
                                      bool isNodeInsideSphere=false)
 {
     std::cerr << "intersectSpherePrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
@@ -992,10 +1320,9 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const Node
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 inline int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes,
-                                     int nodeIndex, int aggregateIndex, const enokiVector2& sc,
-                                     float sr2, float u, std::vector<Interaction<2>>& is,
-                                     float& totalPrimitiveWeight, bool recordOneHit,
+                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                     int aggregateIndex, const enokiVector2& sc, float sr2,
+                                     float u, Interaction<2>& i, float& totalPrimitiveWeight,
                                      bool isNodeInsideSphere=false)
 {
     Vector2 queryPt(sc[0], sc[1]);
@@ -1027,31 +1354,20 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeTy
 
             if (d2[w] <= sr2) {
                 hits++;
+                float weight = surfaceArea[w];
+                totalPrimitiveWeight += weight;
+                float selectionProb = weight/totalPrimitiveWeight;
 
-                if (recordOneHit) {
-                    float weight = surfaceArea[w];
-                    totalPrimitiveWeight += weight;
-                    float selectionProb = weight/totalPrimitiveWeight;
-
-                    if (u < selectionProb) {
-                        u = u/selectionProb; // rescale to [0,1)
-                        is[0].d = weight;
-                        is[0].primitiveIndex = primitiveIndex[w];
-                        is[0].nodeIndex = nodeIndex;
-                        is[0].referenceIndex = referenceOffset + p;
-                        is[0].objectIndex = aggregateIndex;
-
-                    } else {
-                        u = (u - selectionProb)/(1.0f - selectionProb);
-                    }
+                if (u < selectionProb) {
+                    u = u/selectionProb; // rescale to [0,1)
+                    i.d = weight;
+                    i.primitiveIndex = primitiveIndex[w];
+                    i.nodeIndex = nodeIndex;
+                    i.referenceIndex = referenceOffset + p;
+                    i.objectIndex = aggregateIndex;
 
                 } else {
-                    auto it = is.emplace(is.end(), Interaction<2>());
-                    it->d = 1.0f;
-                    it->primitiveIndex = primitiveIndex[w];
-                    it->nodeIndex = nodeIndex;
-                    it->referenceIndex = referenceOffset + p;
-                    it->objectIndex = aggregateIndex;
+                    u = (u - selectionProb)/(1.0f - selectionProb);
                 }
             }
         }
@@ -1064,10 +1380,9 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeTy
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 inline int intersectSpherePrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes,
-                                     int nodeIndex, int aggregateIndex, const enokiVector3& sc,
-                                     float sr2, float u, std::vector<Interaction<3>>& is,
-                                     float& totalPrimitiveWeight, bool recordOneHit,
+                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                     int aggregateIndex, const enokiVector3& sc, float sr2,
+                                     float u, Interaction<3>& i, float& totalPrimitiveWeight,
                                      bool isNodeInsideSphere=false)
 {
     Vector3 queryPt(sc[0], sc[1], sc[2]);
@@ -1100,32 +1415,137 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, 3> queryStub, const NodeTy
 
             if (d2[w] <= sr2) {
                 hits++;
+                float weight = surfaceArea[w];
+                totalPrimitiveWeight += weight;
+                float selectionProb = weight/totalPrimitiveWeight;
 
-                if (recordOneHit) {
-                    float weight = surfaceArea[w];
-                    totalPrimitiveWeight += weight;
-                    float selectionProb = weight/totalPrimitiveWeight;
-
-                    if (u < selectionProb) {
-                        u = u/selectionProb; // rescale to [0,1)
-                        is[0].d = weight;
-                        is[0].primitiveIndex = primitiveIndex[w];
-                        is[0].nodeIndex = nodeIndex;
-                        is[0].referenceIndex = referenceOffset + p;
-                        is[0].objectIndex = aggregateIndex;
-
-                    } else {
-                        u = (u - selectionProb)/(1.0f - selectionProb);
-                    }
+                if (u < selectionProb) {
+                    u = u/selectionProb; // rescale to [0,1)
+                    i.d = weight;
+                    i.primitiveIndex = primitiveIndex[w];
+                    i.nodeIndex = nodeIndex;
+                    i.referenceIndex = referenceOffset + p;
+                    i.objectIndex = aggregateIndex;
 
                 } else {
-                    auto it = is.emplace(is.end(), Interaction<3>());
-                    it->d = 1.0f;
-                    it->primitiveIndex = primitiveIndex[w];
-                    it->nodeIndex = nodeIndex;
-                    it->referenceIndex = referenceOffset + p;
-                    it->objectIndex = aggregateIndex;
+                    u = (u - selectionProb)/(1.0f - selectionProb);
                 }
+            }
+        }
+
+        startReference += WIDTH;
+    }
+
+    return hits;
+}
+
+template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
+inline int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
+                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                     int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
+                                     std::vector<Interaction<DIM>>& is, float& totalPrimitiveWeight,
+                                     bool isNodeInsideSphere=false)
+{
+    std::cerr << "intersectSpherePrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
+    exit(EXIT_FAILURE);
+
+    return 0;
+}
+
+template<size_t WIDTH, typename NodeType, typename LeafNodeType>
+inline int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
+                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                     int aggregateIndex, const enokiVector2& sc, float sr2,
+                                     std::vector<Interaction<2>>& is, float& totalPrimitiveWeight,
+                                     bool isNodeInsideSphere=false)
+{
+    Vector2 queryPt(sc[0], sc[1]);
+    int leafOffset = -node.child[0] - 1;
+    int nLeafs = node.child[1];
+    int referenceOffset = node.child[2];
+    int nReferences = node.child[3];
+    int startReference = 0;
+    int hits = 0;
+
+    for (int l = 0; l < nLeafs; l++) {
+        // perform vectorized closest point query
+        Vector2P<WIDTH> pt;
+        FloatP<WIDTH> t;
+        int leafIndex = leafOffset + l;
+        const Vector2P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+        const Vector2P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+        const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
+        FloatP<WIDTH> surfaceArea = enoki::norm(pb - pa);
+        FloatP<WIDTH> d = isNodeInsideSphere ? 0.0f : findClosestPointWideLineSegment<WIDTH, 2>(pa, pb, sc, pt, t);
+        FloatP<WIDTH> d2 = d*d;
+
+        // record interactions
+        int endReference = startReference + WIDTH;
+        if (endReference > nReferences) endReference = nReferences;
+
+        for (int p = startReference; p < endReference; p++) {
+            int w = p - startReference;
+
+            if (d2[w] <= sr2) {
+                hits++;
+                auto it = is.emplace(is.end(), Interaction<2>());
+                it->d = 1.0f;
+                it->primitiveIndex = primitiveIndex[w];
+                it->nodeIndex = nodeIndex;
+                it->referenceIndex = referenceOffset + p;
+                it->objectIndex = aggregateIndex;
+            }
+        }
+
+        startReference += WIDTH;
+    }
+
+    return hits;
+}
+
+template<size_t WIDTH, typename NodeType, typename LeafNodeType>
+inline int intersectSpherePrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
+                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                                     int aggregateIndex, const enokiVector3& sc, float sr2,
+                                     std::vector<Interaction<3>>& is, float& totalPrimitiveWeight,
+                                     bool isNodeInsideSphere=false)
+{
+    Vector3 queryPt(sc[0], sc[1], sc[2]);
+    int leafOffset = -node.child[0] - 1;
+    int nLeafs = node.child[1];
+    int referenceOffset = node.child[2];
+    int nReferences = node.child[3];
+    int startReference = 0;
+    int hits = 0;
+
+    for (int l = 0; l < nLeafs; l++) {
+        // perform vectorized closest point query
+        Vector3P<WIDTH> pt;
+        Vector2P<WIDTH> t;
+        int leafIndex = leafOffset + l;
+        const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+        const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+        const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
+        const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
+        FloatP<WIDTH> surfaceArea = 0.5f*enoki::norm(enoki::cross(pb - pa, pc - pa));
+        FloatP<WIDTH> d = isNodeInsideSphere ? 0.0f : findClosestPointWideTriangle<WIDTH>(pa, pb, pc, sc, pt, t);
+        FloatP<WIDTH> d2 = d*d;
+
+        // record interactions
+        int endReference = startReference + WIDTH;
+        if (endReference > nReferences) endReference = nReferences;
+
+        for (int p = startReference; p < endReference; p++) {
+            int w = p - startReference;
+
+            if (d2[w] <= sr2) {
+                hits++;
+                auto it = is.emplace(is.end(), Interaction<3>());
+                it->d = 1.0f;
+                it->primitiveIndex = primitiveIndex[w];
+                it->nodeIndex = nodeIndex;
+                it->referenceIndex = referenceOffset + p;
+                it->objectIndex = aggregateIndex;
             }
         }
 
@@ -1160,7 +1580,7 @@ inline int Mbvh<WIDTH, DIM,
     QueryStub<WIDTH, DIM> queryStub;
 
     // push root node
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     subtree[0].node = rootIndex;
     subtree[0].distance = s.r2;
     int stackPtr = 0;
@@ -1174,9 +1594,16 @@ inline int Mbvh<WIDTH, DIM,
         if (isLeafNode(node)) {
             if (primitiveTypeSupportsVectorizedQueries) {
                 // perform vectorized intersection query
-                float u = uniformRealRandomNumber();
-                hits += intersectSpherePrimitives(queryStub, node, leafNodes, nodeIndex, this->index,
-                                                  sc, s.r2, u, is, totalPrimitiveWeight, recordOneHit);
+                if (recordOneHit) {
+                    float u = uniformRealRandomNumber();
+                    hits += intersectSpherePrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
+                                                      sc, s.r2, u, is[0], totalPrimitiveWeight);
+
+                } else {
+                    hits += intersectSpherePrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
+                                                      sc, s.r2, is, totalPrimitiveWeight);
+                }
+
                 nodesVisited++;
 
             } else {
@@ -1190,32 +1617,33 @@ inline int Mbvh<WIDTH, DIM,
                     const PrimitiveType *prim = primitives[referenceIndex];
                     nodesVisited++;
 
-                    int hit = 0;
-                    std::vector<Interaction<DIM>> cs;
                     if (primitiveTypeIsAggregate) {
+                        std::vector<Interaction<DIM>> cs;
                         const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-                        hit = aggregate->intersectFromNode(s, cs, nodeStartIndex, aggregateIndex,
-                                                           nodesVisited, recordOneHit);
+                        hits += aggregate->intersectFromNode(s, cs, nodeStartIndex, aggregateIndex,
+                                                             nodesVisited, recordOneHit);
+                        is.insert(is.end(), cs.begin(), cs.end());
 
                     } else {
-                        hit = prim->intersect(s, cs, recordOneHit);
-                        for (int i = 0; i < (int)cs.size(); i++) {
-                            cs[i].nodeIndex = nodeIndex;
-                            cs[i].referenceIndex = referenceIndex;
-                            cs[i].objectIndex = this->index;
-                        }
-                    }
+                        Interaction<DIM> c;
+                        const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                        bool hit = geometricPrim->intersect(s, c, recordOneHit);
 
-                    if (hit > 0) {
-                        hits += hit;
-                        if (recordOneHit && !primitiveTypeIsAggregate) {
-                            totalPrimitiveWeight += cs[0].d;
-                            if (uniformRealRandomNumber()*totalPrimitiveWeight < cs[0].d) {
-                                is[0] = cs[0];
+                        if (hit) {
+                            hits += 1;
+                            c.nodeIndex = nodeIndex;
+                            c.referenceIndex = referenceIndex;
+                            c.objectIndex = this->pIndex;
+
+                            if (recordOneHit) {
+                                totalPrimitiveWeight += c.d;
+                                if (uniformRealRandomNumber()*totalPrimitiveWeight < c.d) {
+                                    is[0] = c;
+                                }
+
+                            } else {
+                                is.emplace_back(c);
                             }
-
-                        } else {
-                            is.insert(is.end(), cs.begin(), cs.end());
                         }
                     }
                 }
@@ -1224,7 +1652,7 @@ inline int Mbvh<WIDTH, DIM,
         } else {
             // overlap sphere with boxes
             MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
-                                                                node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
+                                                        node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
 
             // enqueue overlapping boxes
             nodesVisited++;
@@ -1268,13 +1696,12 @@ inline int Mbvh<WIDTH, DIM,
                 SilhouetteType,
                 NodeType,
                 LeafNodeType,
-                SilhouetteLeafNodeType>::intersectStochasticFromNode(const BoundingSphere<DIM>& s,
-                                                                     std::vector<Interaction<DIM>>& is, float *randNums,
-                                                                     int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                                     const std::function<float(float)>& branchTraversalWeight) const
+                SilhouetteLeafNodeType>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                           const Vector<DIM>& randNums, int nodeStartIndex,
+                                                           int aggregateIndex, int& nodesVisited,
+                                                           const std::function<float(float)>& branchTraversalWeight) const
 {
     int hits = 0;
-    if (!primitiveTypeIsAggregate) is.resize(1);
     FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
     float d2NodeMax = maxFloat;
     float u = randNums[0];
@@ -1282,7 +1709,7 @@ inline int Mbvh<WIDTH, DIM,
     QueryStub<WIDTH, DIM> queryStub;
 
     // push root node
-    int nodeIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int nodeIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     float traversalPdf = 1.0f;
     int stackPtr = 0;
 
@@ -1295,21 +1722,13 @@ inline int Mbvh<WIDTH, DIM,
             float totalPrimitiveWeight = 0.0f;
             if (primitiveTypeSupportsVectorizedQueries) {
                 // perform vectorized intersection query
-                int nInteractions = (int)is.size();
-                int hit = intersectSpherePrimitives(queryStub, node, leafNodes, nodeIndex, this->index, sc, s.r2,
-                                                    u, is, totalPrimitiveWeight, true, d2NodeMax <= s.r2);
+                int hit = intersectSpherePrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
+                                                    sc, s.r2, u, i, totalPrimitiveWeight, d2NodeMax <= s.r2);
                 nodesVisited++;
 
                 if (hit > 0) {
                     hits += hit;
-                    if (!primitiveTypeIsAggregate) {
-                        is[0].d *= traversalPdf;
-
-                    } else {
-                        for (int i = nInteractions; i < (int)is.size(); i++) {
-                            is[i].d *= traversalPdf;
-                        }
-                    }
+                    i.d *= traversalPdf;
                 }
 
             } else {
@@ -1324,69 +1743,65 @@ inline int Mbvh<WIDTH, DIM,
                     nodesVisited++;
 
                     int hit = 0;
-                    std::vector<Interaction<DIM>> cs;
+                    Interaction<DIM> c;
                     if (primitiveTypeIsAggregate) {
-                        float modifiedRandNums[DIM];
+                        Vector<DIM> modifiedRandNums;
                         modifiedRandNums[0] = u;
                         for (int i = 1; i < DIM; i++) modifiedRandNums[i] = randNums[i];
                         const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-                        hit = aggregate->intersectStochasticFromNode(s, cs, modifiedRandNums, nodeStartIndex, aggregateIndex,
-                                                                     nodesVisited, branchTraversalWeight);
+                        hit = aggregate->intersectFromNode(s, c, modifiedRandNums, nodeStartIndex, aggregateIndex,
+                                                           nodesVisited, branchTraversalWeight);
 
                     } else {
                         if (d2NodeMax <= s.r2) {
                             hit = 1;
-                            auto it = cs.emplace(cs.end(), Interaction<DIM>());
-                            it->primitiveIndex = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim)->getIndex();
-                            it->d = prim->surfaceArea();
+                            c.primitiveIndex = prim->getIndex();
+                            c.d = prim->surfaceArea();
 
                         } else {
-                            hit = prim->intersect(s, cs, true);
+                            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                            hit = geometricPrim->intersect(s, c, true) ? 1 : 0;
                         }
 
-                        for (int i = 0; i < (int)cs.size(); i++) {
-                            cs[i].nodeIndex = nodeIndex;
-                            cs[i].referenceIndex = referenceIndex;
-                            cs[i].objectIndex = this->index;
-                        }
+                        c.nodeIndex = nodeIndex;
+                        c.referenceIndex = referenceIndex;
+                        c.objectIndex = this->pIndex;
                     }
 
                     if (hit > 0) {
                         hits += hit;
-                        if (!primitiveTypeIsAggregate) {
-                            totalPrimitiveWeight += cs[0].d;
-                            float selectionProb = cs[0].d/totalPrimitiveWeight;
-
-                            if (u < selectionProb) {
-                                u = u/selectionProb; // rescale to [0,1)
-                                is[0] = cs[0];
-                                is[0].d *= traversalPdf;
-
-                            } else {
-                                u = (u - selectionProb)/(1.0f - selectionProb);
-                            }
+                        float selectionProb = 0.0f;
+                        if (primitiveTypeIsAggregate) {
+                            // choose sample uniformly amongst aggregates
+                            totalPrimitiveWeight += 1.0f;
+                            selectionProb = 1.0f/totalPrimitiveWeight;
 
                         } else {
-                            int nInteractions = (int)is.size();
-                            is.insert(is.end(), cs.begin(), cs.end());
-                            for (int i = nInteractions; i < (int)is.size(); i++) {
-                                is[i].d *= traversalPdf;
-                            }
+                            // choose sample in proportion to surface area amongst primitives
+                            totalPrimitiveWeight += c.d;
+                            selectionProb = c.d/totalPrimitiveWeight;
+                        }
+
+                        if (u < selectionProb) {
+                            u = u/selectionProb; // rescale to [0,1)
+                            i = c;
+                            i.d *= traversalPdf;
+
+                        } else {
+                            u = (u - selectionProb)/(1.0f - selectionProb);
                         }
                     }
                 }
             }
 
-            if (!primitiveTypeIsAggregate) {
-                if (totalPrimitiveWeight > 0.0f) {
-                    is[0].d /= totalPrimitiveWeight;
-                }
+            if (totalPrimitiveWeight > 0.0f) {
+                i.d /= totalPrimitiveWeight;
             }
 
         } else {
             // overlap sphere with boxes
             MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
-                                                                node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
+                                                        node.boxMin, node.boxMax, sc, s.r2, d2Min, d2Max);
 
             // enqueue overlapping boxes
             nodesVisited++;
@@ -1430,15 +1845,14 @@ inline int Mbvh<WIDTH, DIM,
 
     if (hits > 0) {
         if (!primitiveTypeIsAggregate) {
-            if (is[0].primitiveIndex == -1) {
+            if (i.primitiveIndex == -1) {
                 hits = 0;
-                is.clear();
 
             } else {
                 // sample a point on the selected geometric primitive
-                const PrimitiveType *prim = primitives[is[0].referenceIndex];
-                float pdf = is[0].samplePoint(prim, randNums);
-                is[0].d *= pdf;
+                const PrimitiveType *prim = primitives[i.referenceIndex];
+                float pdf = i.samplePoint(prim, randNums);
+                i.d *= pdf;
             }
         }
 
@@ -1593,7 +2007,7 @@ inline bool Mbvh<WIDTH, DIM,
     QueryStub<WIDTH, DIM> queryStub;
 
     // push root node
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     subtree[0].node = rootIndex;
     subtree[0].distance = minFloat;
     int stackPtr = 0;
@@ -1612,7 +2026,7 @@ inline bool Mbvh<WIDTH, DIM,
             if (primitiveTypeSupportsVectorizedQueries) {
                 // perform vectorized closest point query
                 bool found = findClosestPointPrimitives(queryStub, node, leafNodes, nodeIndex,
-                                                        this->index, sc, s.r2, i);
+                                                        this->pIndex, sc, s.r2, i);
                 if (found) notFound = false;
                 nodesVisited++;
 
@@ -1636,10 +2050,11 @@ inline bool Mbvh<WIDTH, DIM,
                                                                     nodesVisited, recordNormal);
 
                     } else {
-                        found = prim->findClosestPoint(s, c, recordNormal);
+                        const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                        found = geometricPrim->findClosestPoint(s, c);
                         c.nodeIndex = nodeIndex;
                         c.referenceIndex = referenceIndex;
-                        c.objectIndex = this->index;
+                        c.objectIndex = this->pIndex;
                     }
 
                     // keep the closest point only
@@ -1919,13 +2334,12 @@ inline void processSubtreeForClosestSilhouettePoint(QueryStub<WIDTH, DIM> queryS
                         const SilhouetteType *silhouette = silhouetteRefs[referenceIndex];
 
                         // skip query if silhouette index is the same as i.primitiveIndex (and object indices match)
-                        int primitiveIndex = static_cast<const SilhouettePrimitive<DIM> *>(silhouette)->getIndex();
-                        if (primitiveIndex == i.primitiveIndex && objectIndex == i.objectIndex) continue;
+                        if (silhouette->getIndex() == i.primitiveIndex && objectIndex == i.objectIndex) continue;
                         nodesVisited++;
 
                         Interaction<DIM> c;
-                        bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation, squaredMinRadius,
-                                                                            precision, recordNormal);
+                        bool found = silhouette->findClosestSilhouettePoint(s, c, flipNormalOrientation,
+                                                                            squaredMinRadius, precision);
 
                         // keep the closest silhouette point
                         if (found) {
@@ -1948,8 +2362,8 @@ inline void processSubtreeForClosestSilhouettePoint(QueryStub<WIDTH, DIM> queryS
             // overlap sphere with boxes, and normal and view cones
             MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = enoki::neq(node.child, maxInt) && node.coneHalfAngle >= 0.0f;
             mask &= overlapWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(node.boxMin, node.boxMax, sc, s.r2, d2Min);
-            overlapWideCone<FCPW_MBVH_BRANCHING_FACTOR, DIM>(node.coneAxis, node.coneHalfAngle, sc, node.boxMin,
-                                                             node.boxMax, d2Min, stubs[0], stubs[1], mask);
+            overlapWideCone<FCPW_MBVH_BRANCHING_FACTOR, DIM>(node.coneAxis, node.coneHalfAngle, node.coneRadius, sc,
+                                                             node.boxMin, node.boxMax, d2Min, stubs[0], stubs[1], mask);
 
             // enqueue overlapping boxes in sorted order
             nodesVisited++;
@@ -1985,13 +2399,13 @@ inline bool Mbvh<WIDTH, DIM,
     FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min;
     enokiVector<DIM> sc = enoki::gather<enokiVector<DIM>>(s.c.data(), range);
     TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
-    int rootIndex = aggregateIndex == this->index ? nodeStartIndex : 0;
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
     subtree[0].node = rootIndex;
     subtree[0].distance = minFloat;
     QueryStub<WIDTH, DIM> queryStub;
 
     processSubtreeForClosestSilhouettePoint(queryStub, flatTree, primitives, silhouetteRefs, silhouetteLeafNodes,
-                                            sc, s, i, nodeStartIndex, aggregateIndex, this->index,
+                                            sc, s, i, nodeStartIndex, aggregateIndex, this->pIndex,
                                             primitiveTypeIsAggregate, silhouetteTypeSupportsVectorizedQueries,
                                             flipNormalOrientation, squaredMinRadius, precision, recordNormal,
                                             subtree, d2Min, notFound, nodesVisited);

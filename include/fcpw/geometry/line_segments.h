@@ -31,21 +31,24 @@ public:
     Vector1 barycentricCoordinates(const Vector2& p) const;
 
     // samples a random point on the geometric primitive and returns sampling pdf
-    float samplePoint(float *randNums, Vector1& uv, Vector2& p, Vector2& n) const;
+    float samplePoint(const Vector2& randNums, Vector1& uv, Vector2& p, Vector2& n) const;
 
     // splits the line segment along the provided coordinate and axis
     void split(int dim, float splitCoord, BoundingBox<2>& boxLeft, BoundingBox<2>& boxRight) const;
 
     // intersects with ray
-    int intersect(Ray<2>& r, std::vector<Interaction<2>>& is,
+    bool intersect(const Ray<2>& r, Interaction<2>& i, bool checkForOcclusion=false) const;
+
+    // intersects with ray
+    int intersect(const Ray<2>& r, std::vector<Interaction<2>>& is,
                   bool checkForOcclusion=false, bool recordAllHits=false) const;
 
     // intersects with sphere
-    int intersect(const BoundingSphere<2>& s, std::vector<Interaction<2>>& is,
-                  bool recordOneHit=false) const;
+    bool intersect(const BoundingSphere<2>& s, Interaction<2>& i,
+                   bool recordSurfaceArea=false) const;
 
     // finds closest point to sphere center
-    bool findClosestPoint(BoundingSphere<2>& s, Interaction<2>& i, bool recordNormal=false) const;
+    bool findClosestPoint(const BoundingSphere<2>& s, Interaction<2>& i) const;
 
     // get and set index
     int getIndex() const { return pIndex; }
