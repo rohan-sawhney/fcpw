@@ -12,7 +12,7 @@ authors = [
     { name = "Rohan Sawhney" },
 ]
 classifiers = [
-    "License :: MIT",
+    License :: OSI Approved :: MIT License,
 ]
 
 [project.urls]
