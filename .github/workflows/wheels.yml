@@ -109,13 +109,17 @@ jobs:
       with:
         path: ./dist
 
-    - name: Move wheels to root dist directory
+    - name: Flatten directory structure
       run: |
-        find ./dist -name '*.whl' -exec mv {} ./dist/ \;
+        find ./dist -type f -name '*.whl' -exec mv {} ./dist/ \;
 
-    - name: Delete non-wheel files
+    - name: Delete all non-wheel files
       run: |
         find ./dist -type f ! -name '*.whl' -delete
+
+    - name: Ensure only wheel files are in ./dist
+      run: |
+        ls -la ./dist
 
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
