@@ -67,7 +67,14 @@ jobs:
 
     - name: Build wheels (macOS)
       if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
-      run: pip wheel --verbose .
+      run: pip wheel --verbose . --config-settings=cmake.define.FCPW_USE_ENOKI=OFF
+
+    - name: Rename wheel to include no_gpu_enoki (macOS)
+      if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
+      run: |
+        for whl in *.whl; do
+          mv "$whl" "${whl/.whl/_no_gpu_enoki.whl}"
+        done
 
     - name: Build wheels (Windows/Ubuntu)
       if: matrix.os == 'windows-latest' || matrix.os == 'ubuntu-latest'
