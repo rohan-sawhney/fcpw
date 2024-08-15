@@ -109,6 +109,10 @@ jobs:
       with:
         path: ./dist
 
+    - name: Move wheels to root dist directory
+      run: |
+        find ./dist -name '*.whl' -exec mv {} ./dist/ \;
+
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
@@ -121,4 +125,4 @@ jobs:
       with:
         body: |
           FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu. Windows and Ubuntu wheels include GPU and CPU vectorization support, while macOS wheels do not.
-        files: ./dist/**/*.whl
+        files: ./dist/*.whl
