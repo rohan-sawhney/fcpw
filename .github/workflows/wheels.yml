@@ -113,9 +113,10 @@ jobs:
       run: |
         find ./dist -type f -name '*.whl' -exec mv {} ./dist/ \;
 
-    - name: Delete all non-wheel files
+    - name: Delete all non-wheel files and directories
       run: |
         find ./dist -type f ! -name '*.whl' -delete
+        find ./dist -type d -empty -delete
 
     - name: Ensure only wheel files are in ./dist
       run: |
