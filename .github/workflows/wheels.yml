@@ -113,5 +113,5 @@ jobs:
       uses: softprops/action-gh-release@v2
       with:
         body: |
-          FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu. Windows and Ubuntu wheels include GPU support and CPU vectorization, while macOS wheels do not.
+          FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu. Windows and Ubuntu wheels include GPU and CPU vectorization support, while macOS wheels do not.
         files: ./dist/**/*.whl
