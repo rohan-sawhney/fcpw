@@ -1,3 +1,4 @@
+// contributed by Ivan DeWolf
 #pragma once
 
 #include <fcpw/geometry/polygon_soup.h>
@@ -61,10 +62,14 @@ public:
     int getIndex() const { return pIndex; }
     void setIndex(int index) { pIndex = index; }
 
+    // set iter
+    void setIter(int maxIter_) { maxIter = maxIter_; }
+
     // members
     int indices[4];
     int pIndex;
     const PolygonSoup<3> *soup;
+    int maxIter; // deffaults to 3
 
 protected:
     // returns normalized vertex or edge normal if available;
