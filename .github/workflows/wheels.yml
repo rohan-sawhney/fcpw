@@ -113,12 +113,16 @@ jobs:
       run: |
         find ./dist -name '*.whl' -exec mv {} ./dist/ \;
 
+    - name: Delete non-wheel files
+      run: |
+        find ./dist -type f ! -name '*.whl' -delete
+
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
-        packages_dir: ./dist
+        packages-dir: ./dist
 
     - name: Release
       uses: softprops/action-gh-release@v2
