@@ -73,7 +73,8 @@ jobs:
       if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
       run: |
         for whl in *.whl; do
-          mv "$whl" "${whl/.whl/_no_gpu_enoki.whl}"
+          base_name=$(echo "$whl" | sed -E 's/(.+)-(.+)-(.+-.+-.+)/\1-\2+no_gpu_enoki-\3/')
+          mv "$whl" "$base_name"
         done
 
     - name: Build wheels (Windows/Ubuntu)
