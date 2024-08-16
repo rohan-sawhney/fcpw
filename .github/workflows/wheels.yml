@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
@@ -65,7 +65,7 @@ jobs:
         python-version: ${{ matrix.python-version }}
 
     - name: Build wheels with cibuildwheel
-      uses: pypa/cibuildwheel@v2
+      uses: pypa/cibuildwheel@v2.19
       with:
         python-version: ${{ matrix.python-version }}
       env:
