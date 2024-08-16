@@ -68,8 +68,6 @@ jobs:
       uses: pypa/cibuildwheel@v2.19
       env:
         CIBW_BUILD: ${{ matrix.python-version }}
-        CIBW_CONFIG_SETTINGS_WINDOWS: "--config-settings=cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON"
-        CIBW_CONFIG_SETTINGS_LINUX: "--config-settings=cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON"
 
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
