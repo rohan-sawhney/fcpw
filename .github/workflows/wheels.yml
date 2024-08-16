@@ -83,6 +83,18 @@ jobs:
         mkdir -p wheels
         mv *.whl wheels/
 
+    - name: Install auditwheel (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        pip install auditwheel
+
+    - name: Repair wheels with auditwheel (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        for whl in wheels/*.whl; do
+          auditwheel repair "$whl" --plat manylinux2014_x86_64 -w wheels/
+        done
+
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -90,7 +102,7 @@ jobs:
         path: ./wheels/*.whl
 
   release:
-    name: Create GitHub release
+    name: Create GitHub release and publish to PyPI
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
@@ -112,13 +124,13 @@ jobs:
         find ./dist -type f ! -name '*.whl' -delete
         find ./dist -type d -empty -delete
 
-    #- name: Publish to PyPI
-    #  uses: pypa/gh-action-pypi-publish@release/v1
-    #  with:
-    #    user: __token__
-    #    password: ${{ secrets.PYPI_API_TOKEN }}
-    #    packages-dir: ./dist
-    #    repository-url: https://test.pypi.org/legacy/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        packages-dir: ./dist
+        repository-url: https://test.pypi.org/legacy/
 
     - name: Release
       uses: softprops/action-gh-release@v2
