@@ -40,6 +40,9 @@ FCPW_USE_ENOKI = "ON"
 # Necessary to see build output from the actual compilation
 build-verbosity = 1
 
+# Skip CPython and PyPy 3.8
+skip = ["cp38-*", "pp38-*"]
+
 # Only target 64 bit architectures
 archs = ["auto64"]
 
