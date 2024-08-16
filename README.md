@@ -194,7 +194,13 @@ On Windows, you may need to download necessary DLL files from the official Direc
 
 # Python Installation
 
-Pre-built Python wheels are available for Linux, Windows and macOS but without GPU support. Download the appropriate wheel for your platform from [Releases](https://github.com/rohan-sawhney/fcpw/releases) and install it using:
+Pre-built Python wheels are available for Linux, Windows and macOS on [PyPI](https://test.pypi.org/project/fcpw/) but without GPU support:
+
+```
+pip install -i https://test.pypi.org/simple/ fcpw
+```
+
+These wheels can also be downloaded and installed from [Releases](https://github.com/rohan-sawhney/fcpw/releases):
 
 ```
 pip install fcpw-*.whl
