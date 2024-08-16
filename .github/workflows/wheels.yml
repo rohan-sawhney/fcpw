@@ -14,7 +14,6 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-13, macos-14]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
     - uses: actions/checkout@v4
@@ -61,8 +60,6 @@ jobs:
         unzip "$zip_file" -d deps/slang
 
     - uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
 
     - name: Build wheels with cibuildwheel
       uses: pypa/cibuildwheel@v2.19
@@ -72,7 +69,7 @@ jobs:
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: dist-${{ matrix.os }}-py-${{ matrix.python-version }}
+        name: dist-${{ matrix.os }}
         path: wheelhouse/*.whl
 
   release:
