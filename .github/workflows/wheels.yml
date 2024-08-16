@@ -59,8 +59,6 @@ jobs:
         zip_file=$(ls slang-*-linux-x86_64.zip)
         unzip "$zip_file" -d deps/slang
 
-    - uses: actions/setup-python@v5
-
     - name: Build wheels with cibuildwheel
       uses: pypa/cibuildwheel@v2.19
       env:
