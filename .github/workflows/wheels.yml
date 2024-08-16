@@ -76,24 +76,19 @@ jobs:
         mkdir -p wheels
         mv *.whl wheels/
 
-    - name: Build wheels (Windows/Ubuntu)
-      if: matrix.os == 'windows-latest' || matrix.os == 'ubuntu-latest'
+    - name: Build wheels (Ubuntu in manylinux Docker)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        docker run --rm -v $(pwd):/project quay.io/pypa/manylinux2014_x86_64 /bin/bash -c "\
+          /opt/python/${{ matrix.python-version }}/bin/python -m pip wheel /project --no-deps -w /project/wheels/ \
+          && auditwheel repair /project/wheels/*.whl -w /project/wheels/"
+
+    - name: Build wheels (Windows)
+      if: matrix.os == 'windows-latest'
       run: |
         pip wheel --verbose . --config-settings=cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
         mkdir -p wheels
         mv *.whl wheels/
-
-    - name: Install auditwheel (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        pip install auditwheel
-
-    - name: Repair wheels with auditwheel (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        for whl in wheels/*.whl; do
-          auditwheel repair "$whl" --plat manylinux2014_x86_64 -w wheels/
-        done
 
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
