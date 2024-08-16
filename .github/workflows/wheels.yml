@@ -13,7 +13,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
@@ -64,30 +64,20 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
-    - name: Set min macOS version
-      if: runner.os == 'macOS'
-      run: |
-        echo "MACOS_DEPLOYMENT_TARGET=10.14" >> $GITHUB_ENV
-
-    - name: Build wheels (macOS)
-      if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
-      run: |
-        pip wheel --verbose . --config-settings=cmake.define.FCPW_USE_ENOKI=OFF
-        mkdir -p wheels
-        mv *.whl wheels/
-
-    - name: Build wheels (Windows/Ubuntu)
-      if: matrix.os == 'windows-latest' || matrix.os == 'ubuntu-latest'
-      run: |
-        pip wheel --verbose . --config-settings=cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
-        mkdir -p wheels
-        mv *.whl wheels/
+    - name: Build wheels with cibuildwheel
+      uses: pypa/cibuildwheel@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+      env:
+        CIBW_CONFIG_SETTINGS_WINDOWS: "--config-settings=cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON"
+        CIBW_CONFIG_SETTINGS_LINUX: "--config-settings=cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON"
+        CIBW_CONFIG_SETTINGS_MACOS: "--config-settings=cmake.define.FCPW_USE_ENOKI=OFF"
 
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
       with:
         name: dist-${{ matrix.os }}-py-${{ matrix.python-version }}
-        path: ./wheels/*.whl
+        path: wheelhouse/*.whl
 
   release:
     name: Create GitHub release
@@ -112,13 +102,13 @@ jobs:
         find ./dist -type f ! -name '*.whl' -delete
         find ./dist -type d -empty -delete
 
-    #- name: Publish to PyPI
-    #  uses: pypa/gh-action-pypi-publish@release/v1
-    #  with:
-    #    user: __token__
-    #    password: ${{ secrets.PYPI_API_TOKEN }}
-    #    packages-dir: ./dist
-    #    repository-url: https://test.pypi.org/legacy/
+    - name: Publish to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+        packages-dir: ./dist
+        repository-url: https://test.pypi.org/legacy/
 
     - name: Release
       uses: softprops/action-gh-release@v2
