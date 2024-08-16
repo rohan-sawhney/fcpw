@@ -100,7 +100,6 @@ jobs:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
         packages-dir: ./dist
-        repository-url: https://test.pypi.org/legacy/
 
     - name: Release
       uses: softprops/action-gh-release@v2
