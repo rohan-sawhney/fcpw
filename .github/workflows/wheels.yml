@@ -62,12 +62,10 @@ jobs:
     - name: Build wheels with cibuildwheel
       uses: pypa/cibuildwheel@v2.20
       env:
-        CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64
+        CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64:latest
         CIBW_CONFIG_SETTINGS_MACOS: cmake.define.FCPW_USE_ENOKI=OFF
         CIBW_CONFIG_SETTINGS_WINDOWS: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
-        CIBW_CONFIG_SETTINGS_LINUX: |
-          cmake.define.FCPW_ENABLE_GPU_SUPPORT=OFF
-          cmake.define.FCPW_USE_ENOKI=ON
+        CIBW_CONFIG_SETTINGS_LINUX: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
 
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
@@ -112,5 +110,5 @@ jobs:
         body: |
           FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu.
 
-          **NOTE:** Windows and Ubuntu wheels include GPU support, while macOS wheels do not. Windows wheels include support for CPU vectorization via Enoki, while Ubuntu and macOS wheels do not.
+          **NOTE:** Windows and Ubuntu wheels include GPU and CPU vectorization support, while macOS wheels do not.
         files: ./dist/*.whl
