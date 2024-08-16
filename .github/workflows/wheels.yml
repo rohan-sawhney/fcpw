@@ -59,6 +59,22 @@ jobs:
         zip_file=$(ls slang-*-linux-x86_64.zip)
         unzip "$zip_file" -d deps/slang
 
+    - name: Set environment variables (macOS)
+      if: matrix.os == 'macos-13' || matrix.os == 'macos-14'
+      run: |
+        echo "FCPW_USE_ENOKI=OFF" >> $GITHUB_ENV
+
+    - name: Set environment variables (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        echo "FCPW_ENABLE_GPU_SUPPORT=ON" >> $Env:GITHUB_ENV
+
+    - name: Set environment variables (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        echo "FCPW_ENABLE_GPU_SUPPORT=ON" >> $Env:GITHUB_ENV
+      shell: pwsh
+
     - name: Build wheels with cibuildwheel
       uses: pypa/cibuildwheel@v2.19
       env:
