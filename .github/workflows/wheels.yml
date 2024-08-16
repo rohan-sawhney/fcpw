@@ -66,8 +66,8 @@ jobs:
         CIBW_CONFIG_SETTINGS_MACOS: cmake.define.FCPW_USE_ENOKI=OFF
         CIBW_CONFIG_SETTINGS_WINDOWS: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
         CIBW_CONFIG_SETTINGS_LINUX: |
-          cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
-          cmake.define.FCPW_USE_ENOKI=OFF
+          cmake.define.FCPW_ENABLE_GPU_SUPPORT=OFF
+          cmake.define.FCPW_USE_ENOKI=ON
 
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
