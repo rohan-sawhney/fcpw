@@ -1,5 +1,5 @@
 <p align="center">
-<img src="./logo.png" height="140" width="100">
+<img src="https://github.com/rohan-sawhney/fcpw/blob/master/logo.png" height="140" width="100">
 </p>
 <h1 align="center"><em>FCPW: Fastest Closest Points in the West</em></h1>
 
