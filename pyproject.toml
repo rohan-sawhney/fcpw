@@ -46,4 +46,4 @@ build-verbosity = 1
 
 # Needed for full C++17 support on macOS
 [tool.cibuildwheel.macos.environment]
-MACOSX_DEPLOYMENT_TARGET = "10.14"
+MACOSX_DEPLOYMENT_TARGET = "10.15"
