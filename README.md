@@ -194,13 +194,13 @@ On Windows, you may need to download necessary DLL files from the official Direc
 
 # Python Installation
 
-Pre-built Python wheels are available for Linux, Windows and macOS. Download the appropriate wheel for your platform from [Releases](https://github.com/rohan-sawhney/fcpw/releases) and install it using:
+Pre-built Python wheels are available for Linux, Windows and macOS but without GPU support. Download the appropriate wheel for your platform from [Releases](https://github.com/rohan-sawhney/fcpw/releases) and install it using:
 
 ```
 pip install fcpw-*.whl
 ```
 
-Alternatively, to manually build Python bindings for *FCPW*, first clone [nanobind](https://nanobind.readthedocs.io/en/latest/) using:
+Alternatively, to manually build Python bindings for *FCPW* on your local machine with GPU support, first clone [nanobind](https://nanobind.readthedocs.io/en/latest/) using:
 
 ```
 git clone --recurse-submodules https://github.com/wjakob/nanobind.git deps/nanobind
