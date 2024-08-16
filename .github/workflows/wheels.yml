@@ -59,12 +59,20 @@ jobs:
         zip_file=$(ls slang-*-linux-x86_64.zip)
         unzip "$zip_file" -d deps/slang
 
+    - name: Set environment variables based on OS
+      run: |
+        if [[ "${{ matrix.os }}" == "windows-latest" || "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+          echo "FCPW_ENABLE_GPU_SUPPORT=ON" >> $GITHUB_ENV
+        fi
+
+        if [[ "${{ matrix.os }}" == "macos-13" || "${{ matrix.os }}" == "macos-14" ]]; then
+          echo "FCPW_USE_ENOKI=OFF" >> $GITHUB_ENV
+        fi
+
     - name: Build wheels with cibuildwheel
       uses: pypa/cibuildwheel@v2.19
       env:
         CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64
-        FCPW_ENABLE_GPU_SUPPORT: ${{ matrix.os == 'windows-latest' || matrix.os == 'ubuntu-latest' && 'ON' }}
-        FCPW_USE_ENOKI: ${{ matrix.os == 'macos-13' || matrix.os == 'macos-14' && 'OFF' }}
 
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
