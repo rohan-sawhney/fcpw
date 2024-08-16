@@ -79,8 +79,9 @@ jobs:
     - name: Build wheels (Ubuntu in manylinux Docker)
       if: matrix.os == 'ubuntu-latest'
       run: |
+        PYTHON_TAG="cp${{ matrix.python-version | replace('.', '') }}"
         docker run --rm -v $(pwd):/project quay.io/pypa/manylinux2014_x86_64 /bin/bash -c "\
-          /opt/python/${{ matrix.python-version }}/bin/python -m pip wheel /project --no-deps -w /project/wheels/ \
+          /opt/python/${PYTHON_TAG}-${PYTHON_TAG}/bin/python -m pip wheel /project --no-deps -w /project/wheels/ \
           && auditwheel repair /project/wheels/*.whl -w /project/wheels/"
 
     - name: Build wheels (Windows)
