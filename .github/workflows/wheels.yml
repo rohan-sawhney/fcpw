@@ -49,14 +49,14 @@ jobs:
       uses: dsaltares/fetch-gh-release-asset@master
       with:
         repo: shader-slang/slang
-        file: 'slang-.*-linux-x86_64\.zip'
+        file: 'slang-.*-linux-x86_64-glibc-*\.zip'
         target: "./"
         regex: true
 
     - name: Unzip slang binaries (Ubuntu)
       if: matrix.os == 'ubuntu-latest'
       run: |
-        zip_file=$(ls slang-*-linux-x86_64.zip)
+        zip_file=$(ls slang-*-linux-x86_64-glibc-*.zip)
         unzip "$zip_file" -d deps/slang
 
     - name: Build wheels with cibuildwheel
