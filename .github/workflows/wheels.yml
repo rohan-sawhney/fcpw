@@ -84,11 +84,21 @@ jobs:
       with:
         path: ./dist
 
+    - name: Flatten directory structure
+      run: |
+        find ./dist -type f -name '*.whl' -exec mv {} ./dist/ \;
+
+    - name: Delete all non-wheel files and directories
+      run: |
+        find ./dist -type f ! -name '*.whl' -delete
+        find ./dist -type d -empty -delete
+
     - name: Publish to PyPI
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
+        packages-dir: ./dist
         repository-url: https://test.pypi.org/legacy/
 
     - name: Release
@@ -98,4 +108,4 @@ jobs:
           FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu.
 
           **NOTE:** Windows and Ubuntu wheels include GPU and CPU vectorization support, while macOS wheels do not.
-        files: ./dist/**/*.whl
+        files: ./dist/*.whl
