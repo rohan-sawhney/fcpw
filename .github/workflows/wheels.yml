@@ -62,7 +62,7 @@ jobs:
     - name: Build wheels with cibuildwheel
       uses: pypa/cibuildwheel@v2.19
       env:
-        CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64
+        CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2010_x86_64
         CIBW_CONFIG_SETTINGS_MACOS: cmake.define.FCPW_USE_ENOKI=OFF
         CIBW_CONFIG_SETTINGS_WINDOWS: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
         CIBW_CONFIG_SETTINGS_LINUX: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
