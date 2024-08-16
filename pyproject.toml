@@ -34,7 +34,7 @@ wheel.py-api = "cp312"
 [tool.scikit-build.cmake.define]
 FCPW_BUILD_BINDINGS = "ON"
 FCPW_ENABLE_GPU_SUPPORT = "OFF"
-FCPW_USE_ENOKI = "ON"
+FCPW_USE_ENOKI = "OFF"
 
 [tool.cibuildwheel]
 # Necessary to see build output from the actual compilation
