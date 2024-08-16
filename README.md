@@ -206,7 +206,7 @@ These wheels can also be downloaded and installed from [Releases](https://github
 pip install fcpw-*.whl
 ```
 
-Alternatively, to manually build Python bindings for *FCPW* on your local machine with GPU support, first clone [nanobind](https://nanobind.readthedocs.io/en/latest/) using:
+Alternatively, to build Python bindings on your local machine with GPU support, first clone [nanobind](https://nanobind.readthedocs.io/en/latest/) using:
 
 ```
 git clone --recurse-submodules https://github.com/wjakob/nanobind.git deps/nanobind
