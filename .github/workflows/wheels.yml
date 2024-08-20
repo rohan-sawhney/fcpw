@@ -70,14 +70,14 @@ jobs:
       uses: dsaltares/fetch-gh-release-asset@master
       with:
         repo: shader-slang/slang
-        file: 'slang-.*-linux-x86_64\.zip'
+        file: 'slang-.*-linux-x86_64-glibc-2.17\.zip'
         target: "./"
         regex: true
 
     - name: Unzip slang binaries (Ubuntu)
       if: matrix.os == 'linux'
       run: |
-        zip_file=$(ls slang-*-linux-x86_64.zip)
+        zip_file=$(ls slang-*-linux-x86_64-glibc-2.17.zip)
         unzip "$zip_file" -d deps/slang
 
     - name: Install cibuildwheel
@@ -96,7 +96,7 @@ jobs:
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: wheels
+        name: dist-${{ matrix.os }}-python-${{ matrix.python }}
         path: wheelhouse/*.whl
 
 #  release:
