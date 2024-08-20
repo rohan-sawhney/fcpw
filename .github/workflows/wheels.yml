@@ -20,21 +20,24 @@ env:
 
 jobs:
   build:
-    name: Build wheels
-    runs-on: ${{ matrix.runs-on }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows, linux, macos]
-        platform: [x86_64, aarch64]
-        python: [cp39, cp310, cp311, cp312]
-        exclude:
-          - { os: windows, platform: aarch64 }
-          - { os: linux, platform: aarch64 }
-        include:
-          - { os: windows, runs-on: [windows-latest] }
-          - { os: linux, runs-on: [ubuntu-latest] }
-          - { os: macos, runs-on: [macos-13, macos-14] }
+  name: Build wheels
+  runs-on: ${{ matrix.runs-on }}
+  strategy:
+    fail-fast: false
+    matrix:
+      os: [windows, linux, macos]
+      platform: [x86_64, arm64]  # Intel and Apple Silicon
+      python: [cp39, cp310, cp311, cp312]
+      exclude:
+        - { os: windows, platform: arm64 }
+        - { os: linux, platform: arm64 }
+      include:
+        - { os: windows, runs-on: windows-latest }
+        - { os: linux, runs-on: ubuntu-latest }
+        - { os: macos, runs-on: macos-13, platform: x86_64 }
+        - { os: macos, runs-on: macos-13, platform: arm64 }
+        - { os: macos, runs-on: macos-14, platform: x86_64 }
+        - { os: macos, runs-on: macos-14, platform: arm64 }
 
     steps:
     - uses: actions/checkout@v4
@@ -138,5 +141,5 @@ jobs:
 #        body: |
 #          FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu.
 #
-#          **NOTE:** Windows, Ubuntu and macOS wheels do not come with GPU support, while the macOS wheels also do not include support for CPU vectorization. Follow the Python build instructions in the README to enable GPU support locally on your machine.
+#          **NOTE:** Windows and Ubuntu wheels come with GPU and CPU vectotization support, while the macOS wheels do not.
 #        files: ./dist/*.whl
