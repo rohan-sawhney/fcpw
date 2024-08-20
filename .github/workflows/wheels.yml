@@ -20,7 +20,7 @@ env:
 jobs:
   build:
     name: Build wheels
-    runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.runs-on }}
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +44,7 @@ jobs:
       run: git clone --recurse-submodules https://github.com/wjakob/nanobind.git deps/nanobind
 
     - name: Download slang binaries (Windows)
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows'
       id: download-win64
       uses: dsaltares/fetch-gh-release-asset@master
       with:
@@ -54,14 +54,14 @@ jobs:
         regex: true
 
     - name: Unzip slang binaries (Windows)
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows'
       run: |
         $zipFile = Get-ChildItem -Filter "slang-*-windows-x86_64.zip"
         Expand-Archive -Path $zipFile.FullName -DestinationPath deps/slang
       shell: pwsh
 
     - name: Download slang binaries (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'linux'
       id: download-linux64
       uses: dsaltares/fetch-gh-release-asset@master
       with:
@@ -71,7 +71,7 @@ jobs:
         regex: true
 
     - name: Unzip slang binaries (Ubuntu)
-      if: matrix.os == 'ubuntu-latest'
+      if: matrix.os == 'linux'
       run: |
         zip_file=$(ls slang-*-linux-x86_64.zip)
         unzip "$zip_file" -d deps/slang
@@ -84,7 +84,7 @@ jobs:
       run: python -m pip install cibuildwheel==2.20.0
 
     - name: Setup MSVC
-      if: matrix.os == 'windows-latest'
+      if: matrix.os == 'windows'
       uses: ilammy/msvc-dev-cmd@v1
 
     - name: Build wheels
@@ -96,7 +96,7 @@ jobs:
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: dist-${{ matrix.os }}
+        name: wheels
         path: wheelhouse/*.whl
 
 #  release:
