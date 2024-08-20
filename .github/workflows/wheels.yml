@@ -7,13 +7,13 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_mac_windows:
-    name: Build wheels (macOS, Windows)
+  build:
+    name: Build wheels
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-13, macos-14]
+        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
 
     steps:
     - uses: actions/checkout@v4
@@ -26,28 +26,44 @@ jobs:
     - name: Clone nanobind
       run: git clone --recurse-submodules https://github.com/wjakob/nanobind.git deps/nanobind
 
-    - name: Download slang binaries (Windows)
-      if: matrix.os == 'windows-latest'
-      id: download-win64
-      uses: dsaltares/fetch-gh-release-asset@master
-      with:
-        repo: shader-slang/slang
-        file: 'slang-.*-windows-x86_64\.zip'
-        target: "./"
-        regex: true
+    #- name: Download slang binaries (Windows)
+    #  if: matrix.os == 'windows-latest'
+    #  id: download-win64
+    #  uses: dsaltares/fetch-gh-release-asset@master
+    #  with:
+    #    repo: shader-slang/slang
+    #    file: 'slang-.*-windows-x86_64\.zip'
+    #    target: "./"
+    #    regex: true
 
-    - name: Unzip slang binaries (Windows)
-      if: matrix.os == 'windows-latest'
-      run: |
-        $zipFile = Get-ChildItem -Filter "slang-*-windows-x86_64.zip"
-        Expand-Archive -Path $zipFile.FullName -DestinationPath deps/slang
-      shell: pwsh
+    #- name: Unzip slang binaries (Windows)
+    #  if: matrix.os == 'windows-latest'
+    #  run: |
+    #    $zipFile = Get-ChildItem -Filter "slang-*-windows-x86_64.zip"
+    #    Expand-Archive -Path $zipFile.FullName -DestinationPath deps/slang
+    #  shell: pwsh
+
+    #- name: Download slang binaries (Ubuntu)
+    #  if: matrix.os == 'ubuntu-latest'
+    #  id: download-linux64
+    #  uses: dsaltares/fetch-gh-release-asset@master
+    #  with:
+    #    repo: shader-slang/slang
+    #    file: 'slang-.*-linux-x86_64\.zip'
+    #    target: "./"
+    #    regex: true
+
+    #- name: Unzip slang binaries (Ubuntu)
+    #  if: matrix.os == 'ubuntu-latest'
+    #  run: |
+    #    zip_file=$(ls slang-*-linux-x86_64.zip)
+    #    unzip "$zip_file" -d deps/slang
 
     - name: Build wheels with cibuildwheel
       uses: pypa/cibuildwheel@v2.20
       env:
+        CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64
         CIBW_CONFIG_SETTINGS_MACOS: cmake.define.FCPW_USE_ENOKI=OFF
-        CIBW_CONFIG_SETTINGS_WINDOWS: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
 
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
@@ -55,63 +71,9 @@ jobs:
         name: dist-${{ matrix.os }}
         path: wheelhouse/*.whl
 
-  build_linux:
-    name: Build wheels (Ubuntu)
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest]
-        python-version: ["3.8", "3.9", "3.10", "3.11", "3.12"]
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: true
-
-    - name: Update submodules
-      run: git submodule update --init --recursive
-
-    - name: Clone nanobind
-      run: git clone --recurse-submodules https://github.com/wjakob/nanobind.git deps/nanobind
-
-    - name: Download slang binaries
-      if: matrix.os == 'ubuntu-latest'
-      id: download-linux64
-      uses: dsaltares/fetch-gh-release-asset@master
-      with:
-        repo: shader-slang/slang
-        file: 'slang-.*-linux-x86_64\.zip'
-        target: "./"
-        regex: true
-
-    - name: Unzip slang binaries
-      if: matrix.os == 'ubuntu-latest'
-      run: |
-        zip_file=$(ls slang-*-linux-x86_64.zip)
-        unzip "$zip_file" -d deps/slang
-
-    - uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-
-    - name: Build wheels
-      run: |
-        pip wheel --verbose . --config-settings=cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
-        mkdir -p wheelhouse
-        mv *.whl wheelhouse/
-
-    - name: Upload wheels as artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: dist-${{ matrix.os }}-py-${{ matrix.python-version }}
-        path: wheelhouse/*.whl
-
   release:
     name: Create GitHub release and publish wheels
-    needs:
-      - build_mac_windows
-      - build_linux
+    needs: build
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
@@ -124,7 +86,8 @@ jobs:
         path: ./dist
 
     - name: Flatten directory structure
-      run: find ./dist -type f -name '*.whl' -exec mv {} ./dist/ \;
+      run: |
+        find ./dist -type f -name '*.whl' -exec mv {} ./dist/ \;
 
     - name: Delete all non-wheel files and directories
       run: |
@@ -144,5 +107,5 @@ jobs:
         body: |
           FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu.
 
-          **NOTE:** Windows and Ubuntu come with GPU and CPU vectorization support, while the macOS wheels do not.
+          **NOTE:** Windows, Ubuntu and macOS wheels do not come with GPU support, while the macOS wheels also do not include support for CPU vectorization. Follow the Python build instructions in the README to enable GPU support locally on your machine.
         files: ./dist/*.whl
