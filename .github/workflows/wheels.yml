@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-mac-windows-wheels:
+  build_mac_windows:
     name: Build wheels (macOS, Windows)
     runs-on: ${{ matrix.os }}
     strategy:
@@ -55,7 +55,7 @@ jobs:
         name: dist-${{ matrix.os }}
         path: wheelhouse/*.whl
 
-  build-linux-wheels:
+  build_linux:
     name: Build wheels (Ubuntu)
     runs-on: ${{ matrix.os }}
     strategy:
@@ -109,7 +109,7 @@ jobs:
 
   release:
     name: Create GitHub release and publish wheels
-    needs: build-mac-windows-wheels, build-linux-wheels
+    needs: build_mac_windows, build_linux
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
