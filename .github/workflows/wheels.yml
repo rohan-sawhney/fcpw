@@ -20,24 +20,24 @@ env:
 
 jobs:
   build:
-  name: Build wheels
-  runs-on: ${{ matrix.runs-on }}
-  strategy:
-    fail-fast: false
-    matrix:
-      os: [windows, linux, macos]
-      platform: [x86_64, arm64]  # Intel and Apple Silicon
-      python: [cp39, cp310, cp311, cp312]
-      exclude:
-        - { os: windows, platform: arm64 }
-        - { os: linux, platform: arm64 }
-      include:
-        - { os: windows, runs-on: windows-latest }
-        - { os: linux, runs-on: ubuntu-latest }
-        - { os: macos, runs-on: macos-13, platform: x86_64 }
-        - { os: macos, runs-on: macos-13, platform: arm64 }
-        - { os: macos, runs-on: macos-14, platform: x86_64 }
-        - { os: macos, runs-on: macos-14, platform: arm64 }
+    name: Build wheels
+    runs-on: ${{ matrix.runs-on }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows, linux, macos]
+        platform: [x86_64, arm64]  # Intel and Apple Silicon
+        python: [cp39, cp310, cp311, cp312]
+        exclude:
+          - { os: windows, platform: arm64 }
+          - { os: linux, platform: arm64 }
+        include:
+          - { os: windows, runs-on: windows-latest }
+          - { os: linux, runs-on: ubuntu-latest }
+          - { os: macos, runs-on: macos-13, platform: x86_64 }
+          - { os: macos, runs-on: macos-13, platform: arm64 }
+          - { os: macos, runs-on: macos-14, platform: x86_64 }
+          - { os: macos, runs-on: macos-14, platform: arm64 }
 
     steps:
     - uses: actions/checkout@v4
