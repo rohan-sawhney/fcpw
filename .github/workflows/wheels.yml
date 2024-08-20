@@ -6,6 +6,17 @@ on:
       - "v*.*.*"
   workflow_dispatch:
 
+env:
+  CIBW_BUILD_VERBOSITY: 1
+  CIBW_SKIP: "*-musllinux* pp*"
+  CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
+  CIBW_ARCHS_WINDOWS: auto64
+  CIBW_ARCHS_LINUX: auto64
+  CIBW_BEFORE_ALL_LINUX: yum install -y zip wayland-devel libxkbcommon-devel libXcursor-devel libXi-devel libXinerama-devel libXrandr-devel
+  CIBW_CONFIG_SETTINGS_MACOS: cmake.define.FCPW_USE_ENOKI=OFF
+  CIBW_CONFIG_SETTINGS_LINUX: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
+  CIBW_CONFIG_SETTINGS_WINDOWS: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
+
 jobs:
   build:
     name: Build wheels
@@ -13,57 +24,74 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-13, macos-14]
+        os: [windows, linux, macos]
+        platform: [x86_64, aarch64]
+        python: [cp39, cp310, cp311, cp312]
+        exclude:
+          - { os: windows, platform: aarch64 }
+          - { os: linux, platform: aarch64 }
+        include:
+          - { os: windows, runs-on: [windows-latest] }
+          - { os: linux, runs-on: [ubuntu-latest] }
+          - { os: macos, runs-on: [macos-13, macos-14] }
 
     steps:
     - uses: actions/checkout@v4
       with:
-        submodules: true
-
-    - name: Update submodules
-      run: git submodule update --init --recursive
+        submodules: recursive
 
     - name: Clone nanobind
       run: git clone --recurse-submodules https://github.com/wjakob/nanobind.git deps/nanobind
 
-    #- name: Download slang binaries (Windows)
-    #  if: matrix.os == 'windows-latest'
-    #  id: download-win64
-    #  uses: dsaltares/fetch-gh-release-asset@master
-    #  with:
-    #    repo: shader-slang/slang
-    #    file: 'slang-.*-windows-x86_64\.zip'
-    #    target: "./"
-    #    regex: true
+    - name: Download slang binaries (Windows)
+      if: matrix.os == 'windows-latest'
+      id: download-win64
+      uses: dsaltares/fetch-gh-release-asset@master
+      with:
+        repo: shader-slang/slang
+        file: 'slang-.*-windows-x86_64\.zip'
+        target: "./"
+        regex: true
 
-    #- name: Unzip slang binaries (Windows)
-    #  if: matrix.os == 'windows-latest'
-    #  run: |
-    #    $zipFile = Get-ChildItem -Filter "slang-*-windows-x86_64.zip"
-    #    Expand-Archive -Path $zipFile.FullName -DestinationPath deps/slang
-    #  shell: pwsh
+    - name: Unzip slang binaries (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        $zipFile = Get-ChildItem -Filter "slang-*-windows-x86_64.zip"
+        Expand-Archive -Path $zipFile.FullName -DestinationPath deps/slang
+      shell: pwsh
 
-    #- name: Download slang binaries (Ubuntu)
-    #  if: matrix.os == 'ubuntu-latest'
-    #  id: download-linux64
-    #  uses: dsaltares/fetch-gh-release-asset@master
-    #  with:
-    #    repo: shader-slang/slang
-    #    file: 'slang-.*-linux-x86_64\.zip'
-    #    target: "./"
-    #    regex: true
+    - name: Download slang binaries (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      id: download-linux64
+      uses: dsaltares/fetch-gh-release-asset@master
+      with:
+        repo: shader-slang/slang
+        file: 'slang-.*-linux-x86_64\.zip'
+        target: "./"
+        regex: true
 
-    #- name: Unzip slang binaries (Ubuntu)
-    #  if: matrix.os == 'ubuntu-latest'
-    #  run: |
-    #    zip_file=$(ls slang-*-linux-x86_64.zip)
-    #    unzip "$zip_file" -d deps/slang
+    - name: Unzip slang binaries (Ubuntu)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        zip_file=$(ls slang-*-linux-x86_64.zip)
+        unzip "$zip_file" -d deps/slang
 
-    - name: Build wheels with cibuildwheel
-      uses: pypa/cibuildwheel@v2.20
-      env:
-        CIBW_MANYLINUX_X86_64_IMAGE: quay.io/pypa/manylinux2014_x86_64
-        CIBW_CONFIG_SETTINGS_MACOS: cmake.define.FCPW_USE_ENOKI=OFF
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python }}
+
+    - name: Install cibuildwheel
+      run: python -m pip install cibuildwheel==2.20.0
+
+    - name: Setup MSVC
+      if: matrix.os == 'windows-latest'
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Build wheels
+        env:
+          CIBW_BUILD: ${{ matrix.python }}-*
+        run: |
+          python -m cibuildwheel --output-dir wheelhouse
 
     - name: Upload wheels as artifacts
       uses: actions/upload-artifact@v4
@@ -71,41 +99,41 @@ jobs:
         name: dist-${{ matrix.os }}
         path: wheelhouse/*.whl
 
-  release:
-    name: Create GitHub release and publish wheels
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Download all wheels
-      uses: actions/download-artifact@v4
-      with:
-        path: ./dist
-
-    - name: Flatten directory structure
-      run: |
-        find ./dist -type f -name '*.whl' -exec mv {} ./dist/ \;
-
-    - name: Delete all non-wheel files and directories
-      run: |
-        find ./dist -type f ! -name '*.whl' -delete
-        find ./dist -type d -empty -delete
-
-    - name: Publish to PyPI
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: __token__
-        password: ${{ secrets.PYPI_API_TOKEN }}
-        packages-dir: ./dist
-
-    - name: Release
-      uses: softprops/action-gh-release@v2
-      with:
-        body: |
-          FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu.
-
-          **NOTE:** Windows, Ubuntu and macOS wheels do not come with GPU support, while the macOS wheels also do not include support for CPU vectorization. Follow the Python build instructions in the README to enable GPU support locally on your machine.
-        files: ./dist/*.whl
+#  release:
+#    name: Create GitHub release and publish wheels
+#    needs: build
+#    if: startsWith(github.ref, 'refs/tags/')
+#    runs-on: ubuntu-latest
+#    steps:
+#    - name: Checkout code
+#      uses: actions/checkout@v4
+#
+#    - name: Download all wheels
+#      uses: actions/download-artifact@v4
+#      with:
+#        path: ./dist
+#
+#    - name: Flatten directory structure
+#      run: |
+#        find ./dist -type f -name '*.whl' -exec mv {} ./dist/ \;
+#
+#    - name: Delete all non-wheel files and directories
+#      run: |
+#        find ./dist -type f ! -name '*.whl' -delete
+#        find ./dist -type d -empty -delete
+#
+#    - name: Publish to PyPI
+#      uses: pypa/gh-action-pypi-publish@release/v1
+#      with:
+#        user: __token__
+#        password: ${{ secrets.PYPI_API_TOKEN }}
+#        packages-dir: ./dist
+#
+#    - name: Release
+#      uses: softprops/action-gh-release@v2
+#      with:
+#        body: |
+#          FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu.
+#
+#          **NOTE:** Windows, Ubuntu and macOS wheels do not come with GPU support, while the macOS wheels also do not include support for CPU vectorization. Follow the Python build instructions in the README to enable GPU support locally on your machine.
+#        files: ./dist/*.whl
