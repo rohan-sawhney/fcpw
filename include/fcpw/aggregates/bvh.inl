@@ -331,21 +331,17 @@ inline void Bvh<2, SnchNode<2>, LineSegment, SilhouetteVertex>::assignGeometricD
 
                 if (seenVertex.find(vIndex) == seenVertex.end()) {
                     seenVertex[vIndex] = true;
-                    Vector2 n = zero;
-                    Vector2 n0 = zero;
-                    Vector2 n1 = zero;
-                    bool hasTwoAdjacentFaces = silhouetteVertex->hasFace(0) && silhouetteVertex->hasFace(1);
                     bool ignore = false;
+                    bool hasFace0 = silhouetteVertex->hasFace(0);
+                    bool hasFace1 = silhouetteVertex->hasFace(1);
+                    bool hasTwoAdjacentFaces = hasFace0 && hasFace1;
+                    Vector2 n0 = hasFace0 ? silhouetteVertex->normal(0, true) : zero;
+                    Vector2 n1 = hasFace1 ? silhouetteVertex->normal(1, true) : zero;
+                    Vector2 n = silhouetteVertex->normal();
 
-                    if (hasTwoAdjacentFaces) {
-                        n = silhouetteVertex->normal();
-                        n0 = silhouetteVertex->normal(0, true);
-                        n1 = silhouetteVertex->normal(1, true);
-
-                        if (ignoreSilhouette) {
-                            float det = n0[0]*n1[1] - n0[1]*n1[0];
-                            ignore = ignoreSilhouette(det, lineSegment->getIndex());
-                        }
+                    if (hasTwoAdjacentFaces && ignoreSilhouette) {
+                        float det = n0[0]*n1[1] - n0[1]*n1[0];
+                        ignore = ignoreSilhouette(det, lineSegment->getIndex());
                     }
 
                     if (!ignore) {
@@ -391,24 +387,20 @@ inline void Bvh<3, SnchNode<3>, Triangle, SilhouetteEdge>::assignGeometricDataTo
 
                 if (seenEdge.find(eIndex) == seenEdge.end()) {
                     seenEdge[eIndex] = true;
-                    Vector3 n = zero;
-                    Vector3 n0 = zero;
-                    Vector3 n1 = zero;
-                    bool hasTwoAdjacentFaces = silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1);
                     bool ignore = false;
+                    bool hasFace0 = silhouetteEdge->hasFace(0);
+                    bool hasFace1 = silhouetteEdge->hasFace(1);
+                    bool hasTwoAdjacentFaces = hasFace0 && hasFace1;
+                    Vector3 n0 = hasFace0 ? silhouetteEdge->normal(0, true) : zero;
+                    Vector3 n1 = hasFace1 ? silhouetteEdge->normal(1, true) : zero;
+                    Vector3 n = silhouetteEdge->normal();
 
-                    if (hasTwoAdjacentFaces) {
-                        n = silhouetteEdge->normal();
-                        n0 = silhouetteEdge->normal(0, true);
-                        n1 = silhouetteEdge->normal(1, true);
-
-                        if (ignoreSilhouette) {
-                            const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
-                            const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
-                            Vector3 edgeDir = (pb - pa).normalized();
-                            float dihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));
-                            ignore = ignoreSilhouette(dihedralAngle, triangle->getIndex());
-                        }
+                    if (hasTwoAdjacentFaces && ignoreSilhouette) {
+                        const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
+                        const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
+                        Vector3 edgeDir = (pb - pa).normalized();
+                        float dihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));
+                        ignore = ignoreSilhouette(dihedralAngle, triangle->getIndex());
                     }
 
                     if (!ignore) {
