@@ -4,10 +4,10 @@
     #include <fcpw/aggregates/mbvh.h>
 #else
 // make dummy types to make it compile
-template <int DIM>
+template <size_t DIM>
 struct MsnchNode {};
 
-template <int DIM>
+template <size_t DIM>
 struct MbvhNode {};
 #endif
 #include <map>
