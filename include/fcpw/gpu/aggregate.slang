@@ -1,4 +1,4 @@
-implementing bvh;
+implementing fcpw;
 __include ray;
 __include interaction;
 __include bounding_volumes;

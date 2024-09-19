@@ -1,9 +1,4 @@
-module bvh;
-__include ray;
-__include math_constants;
-__include interaction;
-__include bounding_volumes;
-__include transform;
+implementing fcpw;
 __include aggregate;
 __include geometry;
 __include bvh_node;
