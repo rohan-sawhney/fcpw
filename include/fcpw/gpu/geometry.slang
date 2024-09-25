@@ -400,9 +400,6 @@ public interface ISilhouette
     // returns normal of adjacent face
     float3 getNormal(uint fIndex);
 
-    // checks if primitive is a silhouette wrt view direction
-    bool isSilhouette(float3 viewDir, float d, bool flipNormalOrientation, float precision);
-
     // finds closest silhouette point on primitive from sphere center
     bool findClosestSilhouettePoint(BoundingSphere s, bool flipNormalOrientation,
                                     float squaredMinRadius, float precision,
@@ -435,12 +432,6 @@ public struct NoSilhouette : ISilhouette
         return float3(0.0, 0.0, 0.0);
     }
 
-    // checks if primitive is a silhouette wrt view direction
-    public bool isSilhouette(float3 viewDir, float d, bool flipNormalOrientation, float precision)
-    {
-        return false;
-    }
-
     // finds closest silhouette point on primitive from sphere center
     public bool findClosestSilhouettePoint(BoundingSphere s, bool flipNormalOrientation,
                                            float squaredMinRadius, float precision,
@@ -455,6 +446,40 @@ public struct NoSilhouette : ISilhouette
         return UINT_MAX;
     }
 };
+
+public bool isSilhouetteVertex(float3 n0, float3 n1, float3 viewDir, float d, bool flipNormalOrientation, float precision)
+{
+    float sign = flipNormalOrientation ? 1.0 : -1.0;
+
+    // vertex is a silhouette point if it is concave and the query point lies on the vertex
+    if (d <= precision)
+    {
+        float det = n0.x * n1.y - n1.x * n0.y;
+        return sign * det > precision;
+    }
+
+    // vertex is a silhouette point if the query point lies on the halfplane
+    // defined by an adjacent line segment and the other segment is backfacing
+    float3 viewDirUnit = viewDir / d;
+    float dot0 = dot(viewDirUnit, n0);
+    float dot1 = dot(viewDirUnit, n1);
+
+    bool isZeroDot0 = abs(dot0) <= precision;
+    if (isZeroDot0)
+    {
+        return sign * dot1 > precision;
+    }
+
+    bool isZeroDot1 = abs(dot1) <= precision;
+    if (isZeroDot1)
+    {
+        return sign * dot0 > precision;
+    }
+
+    // vertex is a silhouette point if an adjacent line segment is frontfacing
+    // w.r.t. the query point and the other segment is backfacing
+    return dot0 * dot1 < 0.0;
+}
 
 [open]
 public struct Vertex : ISilhouette
@@ -488,41 +513,6 @@ public struct Vertex : ISilhouette
         return n1;
     }
 
-    // checks if primitive is a silhouette wrt view direction
-    public bool isSilhouette(float3 viewDir, float d, bool flipNormalOrientation, float precision)
-    {
-        float sign = flipNormalOrientation ? 1.0 : -1.0;
-
-        // vertex is a silhouette point if it is concave and the query point lies on the vertex
-        if (d <= precision)
-        {
-            float det = n0.x * n1.y - n1.x * n0.y;
-            return sign * det > precision;
-        }
-
-        // vertex is a silhouette point if the query point lies on the halfplane
-        // defined by an adjacent line segment and the other segment is backfacing
-        float3 viewDirUnit = viewDir / d;
-        float dot0 = dot(viewDirUnit, n0);
-        float dot1 = dot(viewDirUnit, n1);
-
-        bool isZeroDot0 = abs(dot0) <= precision;
-        if (isZeroDot0)
-        {
-            return sign * dot1 > precision;
-        }
-
-        bool isZeroDot1 = abs(dot1) <= precision;
-        if (isZeroDot1)
-        {
-            return sign * dot0 > precision;
-        }
-
-        // vertex is a silhouette point if an adjacent line segment is frontfacing
-        // w.r.t. the query point and the other segment is backfacing
-        return dot0 * dot1 < 0.0;
-    }
-
     // finds closest silhouette point on primitive from sphere center
     public bool findClosestSilhouettePoint(BoundingSphere s, bool flipNormalOrientation,
                                            float squaredMinRadius, float precision,
@@ -545,7 +535,7 @@ public struct Vertex : ISilhouette
         bool process = hasOneAdjacentFace == 1 ? true : false;
         if (!process)
         {
-            process = isSilhouette(viewDir, d, flipNormalOrientation, precision);
+            process = isSilhouetteVertex(n0, n1, viewDir, d, flipNormalOrientation, precision);
         }
 
         if (process && d * d <= s.r2)
@@ -566,6 +556,42 @@ public struct Vertex : ISilhouette
         return index;
     }
 };
+
+public bool isSilhouetteEdge(float3 pa, float3 pb, float3 n0, float3 n1, float3 viewDir,
+                             float d, bool flipNormalOrientation, float precision)
+{
+    float sign = flipNormalOrientation ? 1.0 : -1.0;
+
+    // edge is a silhouette if it is concave and the query point lies on the edge
+    if (d <= precision)
+    {
+        float3 edgeDir = normalize(pb - pa);
+        float signedDihedralAngle = atan2(dot(edgeDir, cross(n0, n1)), dot(n0, n1));
+        return sign * signedDihedralAngle > precision;
+    }
+
+    // edge is a silhouette if the query point lies on the halfplane defined
+    // by an adjacent triangle and the other triangle is backfacing
+    float3 viewDirUnit = viewDir / d;
+    float dot0 = dot(viewDirUnit, n0);
+    float dot1 = dot(viewDirUnit, n1);
+
+    bool isZeroDot0 = abs(dot0) <= precision;
+    if (isZeroDot0)
+    {
+        return sign * dot1 > precision;
+    }
+
+    bool isZeroDot1 = abs(dot1) <= precision;
+    if (isZeroDot1)
+    {
+        return sign * dot0 > precision;
+    }
+
+    // edge is a silhouette if an adjacent triangle is frontfacing w.r.t. the
+    // query point and the other triangle is backfacing
+    return dot0 * dot1 < 0.0;
+}
 
 [open]
 public struct Edge : ISilhouette
@@ -600,42 +626,6 @@ public struct Edge : ISilhouette
         return n1;
     }
 
-    // checks if primitive is a silhouette wrt view direction
-    public bool isSilhouette(float3 viewDir, float d, bool flipNormalOrientation, float precision)
-    {
-        float sign = flipNormalOrientation ? 1.0 : -1.0;
-
-        // edge is a silhouette if it is concave and the query point lies on the edge
-        if (d <= precision)
-        {
-            float3 edgeDir = normalize(pb - pa);
-            float signedDihedralAngle = atan2(dot(edgeDir, cross(n0, n1)), dot(n0, n1));
-            return sign * signedDihedralAngle > precision;
-        }
-
-        // edge is a silhouette if the query point lies on the halfplane defined
-        // by an adjacent triangle and the other triangle is backfacing
-        float3 viewDirUnit = viewDir / d;
-        float dot0 = dot(viewDirUnit, n0);
-        float dot1 = dot(viewDirUnit, n1);
-
-        bool isZeroDot0 = abs(dot0) <= precision;
-        if (isZeroDot0)
-        {
-            return sign * dot1 > precision;
-        }
-
-        bool isZeroDot1 = abs(dot1) <= precision;
-        if (isZeroDot1)
-        {
-            return sign * dot0 > precision;
-        }
-
-        // edge is a silhouette if an adjacent triangle is frontfacing w.r.t. the
-        // query point and the other triangle is backfacing
-        return dot0 * dot1 < 0.0;
-    }
-
     // finds closest silhouette point on primitive from sphere center
     public bool findClosestSilhouettePoint(BoundingSphere s, bool flipNormalOrientation,
                                            float squaredMinRadius, float precision,
@@ -658,7 +648,7 @@ public struct Edge : ISilhouette
         if (!process)
         {
             float3 viewDir = s.c - i.p;
-            process = isSilhouette(viewDir, d, flipNormalOrientation, precision);
+            process = isSilhouetteEdge(pa, pb, n0, n1, viewDir, d, flipNormalOrientation, precision);
         }
 
         if (process && d * d <= s.r2)
