@@ -14,8 +14,8 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
 
     public struct TraversalStack
     {
-        uint node;      // node index
-        float distance; // minimum distance (parametric, squared, ...) to this node
+        public uint node;      // node index
+        public float distance; // minimum distance (parametric, squared, ...) to this node
 
         // constructor
         __init()
