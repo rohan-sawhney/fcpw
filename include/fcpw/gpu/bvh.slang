@@ -5,6 +5,7 @@ __include bvh_node;
 
 public static const uint FCPW_BVH_MAX_DEPTH = 64;
 
+[open]
 public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
 {
     public RWStructuredBuffer<N> nodes;
