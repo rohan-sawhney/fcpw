@@ -580,7 +580,9 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                         overlapsLeft = leftBox.overlap(s, distToChildNodes[0]);
                         if (overlapsLeft)
                         {
-                            overlapsLeft = leftCone.overlap(s.c, leftBox, distToChildNodes[0]);
+                            float minAngleRange, maxAngleRange;
+                            overlapsLeft = leftCone.overlap(s.c, leftBox, distToChildNodes[0],
+                                                            minAngleRange, maxAngleRange);
                         }
                     }
 
@@ -593,7 +595,9 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                         overlapsRight = rightBox.overlap(s, distToChildNodes[1]);
                         if (overlapsRight)
                         {
-                            overlapsRight = rightCone.overlap(s.c, rightBox, distToChildNodes[1]);
+                            float minAngleRange, maxAngleRange;
+                            overlapsRight = rightCone.overlap(s.c, rightBox, distToChildNodes[1],
+                                                              minAngleRange, maxAngleRange);
                         }
                     }
 

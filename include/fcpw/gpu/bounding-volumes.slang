@@ -154,8 +154,13 @@ public struct BoundingCone
     // check for overlap between this cone and the "view" cone defined by the given
     // point o and bounding box b; the two cones overlap when there exist two vectors,
     // one in each cone, that are orthogonal to each other.
-    public bool overlap(float3 o, BoundingBox b, float distToBox)
+    public bool overlap(float3 o, BoundingBox b, float distToBox,
+                        out float minAngleRange, out float maxAngleRange)
     {
+        // initialize angle bounds
+        minAngleRange = 0.0f;
+        maxAngleRange = M_PI_2;
+
         // there's overlap if this cone's halfAngle is greater than 90 degrees, or
         // if the box contains the view cone origin (since the view cone is invalid)
         if (halfAngle >= M_PI_2 || distToBox < FLT_EPSILON)
@@ -182,7 +187,9 @@ public struct BoundingCone
         {
             float viewConeHalfAngle = asin(radius / l);
             float halfAngleSum = halfAngle + viewConeHalfAngle;
-            return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, dAxisAngle - halfAngleSum, dAxisAngle + halfAngleSum);
+            minAngleRange = dAxisAngle - halfAngleSum;
+            maxAngleRange = dAxisAngle + halfAngleSum;
+            return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, minAngleRange, maxAngleRange);
         }
 
         // the view cone origin lies inside the box's bounding sphere, so check if
@@ -201,7 +208,9 @@ public struct BoundingCone
         d = projectToPlane(viewConeAxis, e);
         float viewConeHalfAngle = atan2(d, s);
         float halfAngleSum = halfAngle + viewConeHalfAngle;
-        return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, dAxisAngle - halfAngleSum, dAxisAngle + halfAngleSum);
+        minAngleRange = dAxisAngle - halfAngleSum;
+        maxAngleRange = dAxisAngle + halfAngleSum;
+        return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, minAngleRange, maxAngleRange);
     }
 };
 
