@@ -18,7 +18,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
         public float distance; // minimum distance (parametric, squared, ...) to this node
 
         // constructor
-        __init()
+        public __init()
         {
             node = 0;
             distance = 0.0;
