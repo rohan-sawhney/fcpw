@@ -34,7 +34,7 @@ public struct BoundingBox
     }
 
     // returns box centroid
-    public float3 centroid()
+    public float3 getCentroid()
     {
         return 0.5 * (pMin + pMax);
     }
@@ -169,7 +169,7 @@ public struct BoundingCone
         }
 
         // compute the view cone axis
-        float3 c = b.centroid();
+        float3 c = b.getCentroid();
         float3 viewConeAxis = c - o;
         float l = length(viewConeAxis);
         viewConeAxis /= l;

@@ -114,9 +114,9 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
             BoundingCone leftCone = nodes[leftNodeIndex].getBoundingCone();
             BoundingCone rightCone = nodes[rightNodeIndex].getBoundingCone();
             BoundingCone mergedCone = mergeBoundingCones(leftCone, rightCone,
-                                                         leftBox.centroid(),
-                                                         rightBox.centroid(),
-                                                         mergedBox.centroid());
+                                                         leftBox.getCentroid(),
+                                                         rightBox.getCentroid(),
+                                                         mergedBox.getCentroid());
             nodes[nodeIndex].setBoundingCone(mergedCone);
         }
     }
@@ -326,7 +326,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     float weightLeft = overlapsLeft ? 1.0 : 0.0;
                     if (weightLeft > 0.0)
                     {
-                        float3 u = s.c - leftBox.centroid();
+                        float3 u = s.c - leftBox.getCentroid();
                         weightLeft *= branchTraversalWeight.compute(dot(u, u));
                     }
 
@@ -336,7 +336,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     float weightRight = overlapsRight ? 1.0 : 0.0;
                     if (weightRight > 0.0)
                     {
-                        float3 u = s.c - rightBox.centroid();
+                        float3 u = s.c - rightBox.getCentroid();
                         weightRight *= branchTraversalWeight.compute(dot(u, u));
                     }
 
