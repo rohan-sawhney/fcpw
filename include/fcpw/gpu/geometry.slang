@@ -10,13 +10,13 @@ public interface IPrimitive
     BoundingBox getBoundingBox();
 
     // returns the centroid of the primitive
-    float3 centroid();
+    float3 getCentroid();
 
     // returns the normal of the primitive
-    float3 normal();
+    float3 getNormal();
 
     // returns the surface area of the primitive
-    float surfaceArea();
+    float getSurfaceArea();
 
     // intersects primitive with ray
     bool intersect(Ray r, bool checkForOcclusion, inout Interaction i);
@@ -75,13 +75,13 @@ public struct LineSegment : IPrimitive
     }
 
     // returns the centroid of the primitive
-    public float3 centroid()
+    public float3 getCentroid()
     {
         return 0.5 * (pa + pb);
     }
 
     // returns the normal of the primitive
-    public float3 normal()
+    public float3 getNormal()
     {
         float3 s = pb - pa;
         float3 n = float3(s.y, -s.x, 0.0);
@@ -90,7 +90,7 @@ public struct LineSegment : IPrimitive
     }
 
     // returns the surface area of the primitive
-    public float surfaceArea()
+    public float getSurfaceArea()
     {
         return length(pb - pa);
     }
@@ -146,7 +146,7 @@ public struct LineSegment : IPrimitive
         float d = findClosestPointLineSegment(pa, pb, s.c, i.p, i.uv[0]);
         if (d * d <= s.r2)
         {
-            i.d = surfaceArea();
+            i.d = getSurfaceArea();
             i.index = index;
             return true;
         }
@@ -288,19 +288,19 @@ public struct Triangle : IPrimitive
     }
 
     // returns the centroid of the primitive
-    public float3 centroid()
+    public float3 getCentroid()
     {
         return (pa + pb + pc) / 3.0;
     }
 
     // returns the surface area of the primitive
-    public float surfaceArea()
+    public float getSurfaceArea()
     {
         return 0.5 * length(cross(pb - pa, pc - pa));
     }
 
     // returns the normal of the primitive
-    public float3 normal()
+    public float3 getNormal()
     {
         float3 n = cross(pb - pa, pc - pa);
 
@@ -363,7 +363,7 @@ public struct Triangle : IPrimitive
         float d = findClosestPointTriangle(pa, pb, pc, s.c, i.p, i.uv);
         if (d * d <= s.r2)
         {
-            i.d = surfaceArea();
+            i.d = getSurfaceArea();
             i.index = index;
             return true;
         }
@@ -412,7 +412,7 @@ public struct Triangle : IPrimitive
 public interface ISilhouette
 {
     // returns the centroid of the silhouette
-    float3 centroid();
+    float3 getCentroid();
 
     // returns whether silhouette has two adjacent faces
     bool hasTwoAdjacentFaces();
@@ -435,7 +435,7 @@ public struct NoSilhouette : ISilhouette
     public uint index;
 
     // returns the centroid of the silhouette
-    public float3 centroid()
+    public float3 getCentroid()
     {
         return float3(0.0, 0.0, 0.0);
     }
@@ -511,7 +511,7 @@ public struct Vertex : ISilhouette
     public uint hasOneAdjacentFace;
 
     // returns the centroid of the silhouette
-    public float3 centroid()
+    public float3 getCentroid()
     {
         return p;
     }
@@ -624,7 +624,7 @@ public struct Edge : ISilhouette
     public uint hasOneAdjacentFace;
 
     // returns the centroid of the silhouette
-    public float3 centroid()
+    public float3 getCentroid()
     {
         return 0.5 * (pa + pb);
     }

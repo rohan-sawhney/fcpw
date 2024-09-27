@@ -59,7 +59,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                 uint silhouetteIndex = nodes[nodeIndex].getSilhouetteOffset() + p;
                 axis += silhouettes[silhouetteIndex].getNormal(0);
                 axis += silhouettes[silhouetteIndex].getNormal(1);
-                radius = max(radius, length(silhouettes[silhouetteIndex].centroid() - centroid));
+                radius = max(radius, length(silhouettes[silhouetteIndex].getCentroid() - centroid));
                 silhouettesHaveTwoAdjacentFaces = silhouettesHaveTwoAdjacentFaces &&
                                                   silhouettes[silhouetteIndex].hasTwoAdjacentFaces();
                 anySilhouettes = true;
@@ -284,7 +284,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                         if (maxDistToChildNode <= s.r2)
                         {
                             didIntersectPrimitive = true;
-                            c.d = primitives[primitiveIndex].surfaceArea();
+                            c.d = primitives[primitiveIndex].getSurfaceArea();
                             c.index = primitives[primitiveIndex].getIndex();
                         }
                         else
@@ -501,7 +501,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
         }
 
         if (!notFound && recordNormal) {
-            i.n = primitives[i.index].normal();
+            i.n = primitives[i.index].getNormal();
         }
 
         return !notFound;
