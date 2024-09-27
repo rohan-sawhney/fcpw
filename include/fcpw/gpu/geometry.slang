@@ -60,7 +60,6 @@ public float findClosestPointLineSegment(float3 pa, float3 pb, float3 x, out flo
     return length(x - p);
 }
 
-[open]
 public struct LineSegment : IPrimitive
 {
     public float3 pa;
@@ -272,7 +271,6 @@ public float findClosestPointTriangle(float3 pa, float3 pb, float3 pc, float3 x,
     return length(x - p);
 }
 
-[open]
 public struct Triangle : IPrimitive
 {
     public float3 pa;
@@ -429,7 +427,6 @@ public interface ISilhouette
     uint getIndex();
 };
 
-[open]
 public struct NoSilhouette : ISilhouette
 {
     public uint index;
@@ -501,7 +498,6 @@ public bool isSilhouetteVertex(float3 n0, float3 n1, float3 viewDir, float d, bo
     return dot0 * dot1 < 0.0;
 }
 
-[open]
 public struct Vertex : ISilhouette
 {
     public float3 p;
@@ -613,7 +609,6 @@ public bool isSilhouetteEdge(float3 pa, float3 pb, float3 n0, float3 n1, float3 
     return dot0 * dot1 < 0.0;
 }
 
-[open]
 public struct Edge : ISilhouette
 {
     public float3 pa;
