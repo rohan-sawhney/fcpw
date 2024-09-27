@@ -8,17 +8,17 @@ public static const uint FCPW_BVH_MAX_DEPTH = 64;
 [open]
 public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
 {
-    internal RWStructuredBuffer<N> nodes;
-    internal StructuredBuffer<P> primitives;
-    internal StructuredBuffer<S> silhouettes;
+    public RWStructuredBuffer<N> nodes;
+    public StructuredBuffer<P> primitives;
+    public StructuredBuffer<S> silhouettes;
 
-    internal struct TraversalStack
+    public struct TraversalStack
     {
-        internal uint node;      // node index
-        internal float distance; // minimum distance (parametric, squared, ...) to this node
+        public uint node;      // node index
+        public float distance; // minimum distance (parametric, squared, ...) to this node
 
         // constructor
-        internal __init()
+        public __init()
         {
             node = 0;
             distance = 0.0;
