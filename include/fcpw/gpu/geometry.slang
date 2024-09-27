@@ -12,6 +12,9 @@ public interface IPrimitive
     // returns the centroid of the primitive
     float3 centroid();
 
+    // returns the normal of the primitive
+    float3 normal();
+
     // returns the surface area of the primitive
     float surfaceArea();
 
@@ -75,6 +78,15 @@ public struct LineSegment : IPrimitive
     public float3 centroid()
     {
         return 0.5 * (pa + pb);
+    }
+
+    // returns the normal of the primitive
+    public float3 normal()
+    {
+        float3 s = pb - pa;
+        float3 n = float3(s.y, -s.x, 0.0);
+
+        return normalize(n);
     }
 
     // returns the surface area of the primitive
@@ -285,6 +297,14 @@ public struct Triangle : IPrimitive
     public float surfaceArea()
     {
         return 0.5 * length(cross(pb - pa, pc - pa));
+    }
+
+    // returns the normal of the primitive
+    public float3 normal()
+    {
+        float3 n = cross(pb - pa, pc - pa);
+
+        return normalize(n);
     }
 
     // intersects primitive with ray

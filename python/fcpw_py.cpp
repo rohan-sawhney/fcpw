@@ -441,7 +441,7 @@ NB_MODULE(py, m) {
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
         .def("find_closest_points", &fcpw::GPUScene<2>::findClosestPoints,
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
-            "bounding_spheres"_a, "interactions"_a)
+            "bounding_spheres"_a, "interactions"_a, "record_normals"_a=false)
         .def("find_closest_silhouette_points", &fcpw::GPUScene<2>::findClosestSilhouettePoints,
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
             "bounding_spheres"_a, "flip_normal_orientation"_a, "interactions"_a,
@@ -466,7 +466,7 @@ NB_MODULE(py, m) {
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
         .def("find_closest_points", &fcpw::GPUScene<3>::findClosestPoints,
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
-            "bounding_spheres"_a, "interactions"_a)
+            "bounding_spheres"_a, "interactions"_a, "record_normals"_a=false)
         .def("find_closest_silhouette_points", &fcpw::GPUScene<3>::findClosestSilhouettePoints,
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
             "bounding_spheres"_a, "flip_normal_orientation"_a, "interactions"_a,

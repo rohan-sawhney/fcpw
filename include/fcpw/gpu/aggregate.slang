@@ -33,7 +33,8 @@ public interface IAggregate
                                                inout Interaction i);
 
     // finds closest point on aggregate geometry from sphere center
-    bool findClosestPoint(inout BoundingSphere s, inout Interaction i);
+    bool findClosestPoint(inout BoundingSphere s, inout Interaction i,
+                          bool recordNormal = false);
 
     // finds closest silhouette point on aggregate geometry from sphere center
     bool findClosestSilhouettePoint(inout BoundingSphere s, bool flipNormalOrientation,
@@ -97,13 +98,14 @@ public struct TransformedAggregate<A : IAggregate> : IAggregate
     }
 
     // finds closest point on aggregate geometry from sphere center
-    public bool findClosestPoint(inout BoundingSphere s, inout Interaction i)
+    public bool findClosestPoint(inout BoundingSphere s, inout Interaction i,
+                                 bool recordNormal = false)
     {
         // apply inverse transform to sphere
         BoundingSphere sInv = transformSphere(tInv, s);
 
         // find closest point
-        bool didFindClosestPoint = aggregate.findClosestPoint(sInv, i);
+        bool didFindClosestPoint = aggregate.findClosestPoint(sInv, i, recordNormal);
 
         // apply transform to sphere and interaction
         s.r2 = transformSphere(t, sInv).r2;

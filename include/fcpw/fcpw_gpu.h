@@ -46,7 +46,8 @@ public:
     // The radius of each bounding sphere specifies the conservative radius guess around the query
     // point inside which the search is performed.
     void findClosestPoints(std::vector<GPUBoundingSphere>& boundingSpheres,
-                           std::vector<GPUInteraction>& interactions);
+                           std::vector<GPUInteraction>& interactions,
+                           bool recordNormals=false);
 
     // finds the closest points on the visibility silhouette in the scene to the given query points,
     // encoded as bounding spheres. Optionally specify a minimum radius to stop the closest silhouette

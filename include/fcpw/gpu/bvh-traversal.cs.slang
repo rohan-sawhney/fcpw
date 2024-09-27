@@ -84,6 +84,7 @@ void sphereIntersection(uint3 threadId: SV_DispatchThreadID,
 void closestPoint(uint3 threadId: SV_DispatchThreadID,
                   uniform StructuredBuffer<BoundingSphere> boundingSpheres,
                   uniform RWStructuredBuffer<Interaction> interactions,
+                  uniform bool recordNormals,
                   uniform uint nQueries)
 {
     uint index = threadId.x;
@@ -94,7 +95,7 @@ void closestPoint(uint3 threadId: SV_DispatchThreadID,
 
     BoundingSphere s = boundingSpheres[index];
     Interaction i;
-    bool found = gBvh.findClosestPoint(s, i);
+    bool found = gBvh.findClosestPoint(s, i, recordNormals);
     if (found)
     {
         interactions[index] = i;

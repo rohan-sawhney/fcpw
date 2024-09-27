@@ -118,7 +118,8 @@ inline void GPUScene<DIM>::intersect(std::vector<GPUBoundingSphere>& boundingSph
 
 template<size_t DIM>
 inline void GPUScene<DIM>::findClosestPoints(std::vector<GPUBoundingSphere>& boundingSpheres,
-                                             std::vector<GPUInteraction>& interactions)
+                                             std::vector<GPUInteraction>& interactions,
+                                             bool recordNormals)
 {
     // initialize shader
     if (closestPointShader.reflection == nullptr) {
@@ -128,6 +129,7 @@ inline void GPUScene<DIM>::findClosestPoints(std::vector<GPUBoundingSphere>& bou
     // create GPU buffers
     GPUQueryClosestPointBuffers gpuQueryClosestPointBuffers;
     gpuQueryClosestPointBuffers.allocate(gpuContext.device, boundingSpheres);
+    gpuQueryClosestPointBuffers.recordNormals = recordNormals;
 
     // run closest point shader
     int nQueries = (int)boundingSpheres.size();

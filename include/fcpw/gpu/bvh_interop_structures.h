@@ -905,6 +905,7 @@ class GPUQueryClosestPointBuffers {
 public:
     GPUBuffer boundingSpheres = {};
     GPUInteractionsBuffer interactionsBuffer;
+    float recordNormals = false;
 
     void allocate(ComPtr<IDevice>& device,
                   std::vector<GPUBoundingSphere>& boundingSpheresData) {
@@ -922,9 +923,10 @@ public:
     int setResources(ShaderCursor& cursor) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
+        cursor.getPath("recordNormals").setData(recordNormals);
         cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
 
-        return 4;
+        return 5;
     }
 
     void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {

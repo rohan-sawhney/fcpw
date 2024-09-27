@@ -384,7 +384,8 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
     }
 
     // finds closest point on aggregate geometry from sphere center
-    public bool findClosestPoint(inout BoundingSphere s, inout Interaction i)
+    public bool findClosestPoint(inout BoundingSphere s, inout Interaction i,
+                                 bool recordNormal = false)
     {
         TraversalStack traversalStack[FCPW_BVH_MAX_DEPTH];
         float4 distToChildNodes = float4(0.0, 0.0, 0.0, 0.0);
@@ -497,6 +498,10 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     }
                 }
             }
+        }
+
+        if (!notFound && recordNormal) {
+            i.n = primitives[i.index].normal();
         }
 
         return !notFound;
