@@ -25,6 +25,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
     };
 
     // updates the bounding volume of an aggregate leaf node
+    [mutating]
     internal void refitLeafNode(uint nodeIndex)
     {
         // update leaf node's bounding box
@@ -99,6 +100,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
     }
 
     // updates the bounding volume of an aggregate internal node
+    [mutating]
     internal void refitInternalNode(uint nodeIndex)
     {
         // update internal node's bounding box
@@ -128,6 +130,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
 
     // updates the bounding volume of an aggregate node
     // NOTE: assumes node indices are provided in bottom-up order
+    [mutating]
     public void refit(uint nodeIndex)
     {
         if (nodes[nodeIndex].isLeaf())
