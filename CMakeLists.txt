@@ -57,13 +57,13 @@ if(FCPW_ENABLE_GPU_SUPPORT)
 
     # find the .lib/.so files
     set(SLANG_LIBRARY_PATH ${CMAKE_CURRENT_SOURCE_DIR}/deps/slang/lib)
-    find_library(FCPW_SLANG_LIBRARY NAMES slang PATHS ${SLANG_LIBRARY_PATH})
+    find_library(FCPW_SLANG_LIBRARY NAMES slang HINTS ${SLANG_LIBRARY_PATH})
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        find_library(FCPW_SLANG_GLSLANG_LIBRARY NAMES slang-glslang PATHS ${SLANG_LIBRARY_PATH})
+        find_library(FCPW_SLANG_GLSLANG_LIBRARY NAMES slang-glslang HINTS ${SLANG_LIBRARY_PATH})
     else()
         set(FCPW_SLANG_GLSLANG_LIBRARY "")
     endif()
-    find_library(FCPW_GFX_LIBRARY NAMES gfx PATHS ${SLANG_LIBRARY_PATH})
+    find_library(FCPW_GFX_LIBRARY NAMES gfx HINTS ${SLANG_LIBRARY_PATH})
 
     # find the corresponding .dll files
     if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
