@@ -134,7 +134,7 @@ interactions = fcpw.gpu_interaction_list()
 gpu_scene.find_closest_points(bounding_spheres, interactions)
 ```
 
-Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.cpp) and [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.py) for complete demos. GPU support is available on Linux and Windows ([Slang](https://shader-slang.com/slang/user-guide/) currently only has unofficial support for macOS). Installation details for Slang are provided below.
+Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.cpp) and [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.py) for complete demos. GPU support is available on Linux and Windows ([Slang](https://shader-slang.com/slang/user-guide/) currently only has unofficial support for macOS).
 
 For those developing directly on the GPU, the acceleration structure can also be accessed through [bvh.slang](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/gpu/bvh.slang). Slang offers CUDA, HLSL, Vulkan, OpenGL and Metal (experimental) as compilation targets. Refer to its [user guide](https://shader-slang.com/slang/user-guide/get-started.html) for further details on compiling to these targets.
 
@@ -181,7 +181,7 @@ If your prefer to directly include *FCPW* header files without CMake, then you'l
 #include <fcpw/fcpw.h>
 ```
 
-Finally, for GPU support the `FCPW_ENABLE_GPU_SUPPORT` option assumes Slang binaries are available under `deps/slang`. Copy-paste the contents of the [latest release](https://github.com/shader-slang/slang/releases) under this directory for the relevant platform. Additionally include the following lines in your CMakeLists.txt file:
+Finally, GPU support can be enabled with the command `FCPW_ENABLE_GPU_SUPPORT=ON`. Additionally include the following lines in your CMakeLists.txt file:
 
 ```
 target_link_libraries(YOUR_TARGET ${FCPW_SLANG_LIBRARY})
@@ -218,7 +218,7 @@ To build and install the bindings, run:
 pip install . [--config-settings=cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON]
 ```
 
-For GPU support, you will need to follow the instructions in the previous section on fetching and placing Slang binaries under `deps/slang`. Finally, launch the Python demo from the `demos` folder using:
+Finally, launch the Python demo from the `demos` folder using:
 
 ```
 python -m pip install polyscope
