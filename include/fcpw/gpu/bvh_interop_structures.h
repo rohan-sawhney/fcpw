@@ -455,29 +455,29 @@ template<size_t DIM,
          typename NodeType,
          typename PrimitiveType,
          typename SilhouetteType>
-class CPUBvhRefitDataExtractor {
+class CPUBvhUpdateDataExtractor {
 public:
     // constructor
-    CPUBvhRefitDataExtractor(const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh_): bvh(bvh_) {}
+    CPUBvhUpdateDataExtractor(const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh_): bvh(bvh_) {}
 
-    // populates refit data from CPU bvh
+    // populates update data from CPU bvh
     // source: https://github.com/NVIDIAGameWorks/Falcor/blob/58ce2d1eafce67b4cb9d304029068c7fb31bd831/Source/Falcor/Rendering/Lights/LightBVH.cpp#L219
     uint32_t extract(std::vector<uint32_t>& nodeIndicesData,
-                     std::vector<std::pair<uint32_t, uint32_t>>& refitEntryData) {
+                     std::vector<std::pair<uint32_t, uint32_t>>& updateEntryData) {
         // count number of nodes at each level
         int maxDepth = bvh->maxDepth;
-        refitEntryData.resize(maxDepth + 1, std::make_pair(0, 0));
-        refitEntryData[maxDepth].second = bvh->nLeafs;
+        updateEntryData.resize(maxDepth + 1, std::make_pair(0, 0));
+        updateEntryData[maxDepth].second = bvh->nLeafs;
         traverseBvh(
-            [&refitEntryData](int index, int depth) { ++refitEntryData[depth].second; },
+            [&updateEntryData](int index, int depth) { ++updateEntryData[depth].second; },
             [](int index, int depth) { /* do nothing */ }
         );
 
         // record offsets into nodeIndicesData
         std::vector<uint32_t> offsets(maxDepth + 1, 0);
         for (uint32_t i = 1; i < maxDepth + 1; i++) {
-            uint32_t currentOffset = refitEntryData[i - 1].first + refitEntryData[i - 1].second;
-            offsets[i] = refitEntryData[i].first = currentOffset;
+            uint32_t currentOffset = updateEntryData[i - 1].first + updateEntryData[i - 1].second;
+            offsets[i] = updateEntryData[i].first = currentOffset;
         }
 
         // populate nodeIndicesData such that:
@@ -540,8 +540,8 @@ public:
     GPUBuffer primitives = {};
     GPUBuffer silhouettes = {};
     GPUBuffer nodeIndices = {};
-    std::vector<std::pair<uint32_t, uint32_t>> refitEntryData;
-    uint32_t maxRefitDepth = 0;
+    std::vector<std::pair<uint32_t, uint32_t>> updateEntryData;
+    uint32_t maxUpdateDepth = 0;
     std::string reflectionType = "";
 
     template<size_t DIM>
@@ -659,18 +659,18 @@ private:
              typename PrimitiveType,
              typename SilhouetteType>
     void allocateRefitBuffer(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
-        // extract refit data from cpu bvh
+        // extract update data from cpu bvh
         const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh =
             reinterpret_cast<const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *>(
                 cpuSceneData->aggregate.get());
-        CPUBvhRefitDataExtractor<DIM,
-                                 NodeType,
-                                 PrimitiveType,
-                                 SilhouetteType> cpuBvhRefitDataExtractor(bvh);
+        CPUBvhUpdateDataExtractor<DIM,
+                                  NodeType,
+                                  PrimitiveType,
+                                  SilhouetteType> cpuBvhUpdateDataExtractor(bvh);
 
-        refitEntryData.clear();
+        updateEntryData.clear();
         std::vector<uint32_t> nodeIndicesData;
-        maxRefitDepth = cpuBvhRefitDataExtractor.extract(nodeIndicesData, refitEntryData);
+        maxUpdateDepth = cpuBvhUpdateDataExtractor.extract(nodeIndicesData, updateEntryData);
 
         // allocate gpu buffer
         Slang::Result createBufferResult = nodeIndices.create<uint32_t>(

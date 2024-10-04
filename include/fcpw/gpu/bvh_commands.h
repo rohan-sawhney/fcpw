@@ -21,14 +21,14 @@ void loadShader(GPUContext& gpuContext,
     }
 }
 
-template <typename GPUQueryBuffers>
-void runQueries(GPUContext& gpuContext,
-                const Shader& shader,
-                const GPUBvhBuffers& gpuBvhBuffers,
-                const GPUQueryBuffers& gpuQueryBuffers,
-                std::vector<GPUInteraction>& interactions,
-                int nThreadGroups = 4096,
-                bool printLogs = false)
+template <typename T, typename S>
+void runTraversal(GPUContext& gpuContext,
+                  const Shader& shader,
+                  const T& gpuBvhBuffers,
+                  const S& gpuQueryBuffers,
+                  std::vector<GPUInteraction>& interactions,
+                  int nThreadGroups = 4096,
+                  bool printLogs = false)
 {
     // setup command buffer
     auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
@@ -45,7 +45,7 @@ void runQueries(GPUContext& gpuContext,
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
     int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor);
     if (printLogs) {
-        std::cout << "runQueries" << std::endl;
+        std::cout << "runTraversal" << std::endl;
         for (int i = 0; i < entryPointFieldCount; i++) {
             std::cout << "\tcursor[" << i << "]: " << entryPointCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
         }
@@ -97,10 +97,11 @@ void runQueries(GPUContext& gpuContext,
     }
 }
 
-void runRefit(GPUContext& gpuContext,
-              const Shader& shader,
-              const GPUBvhBuffers& gpuBvhBuffers,
-              bool printLogs = false)
+template <typename T>
+void runUpdate(GPUContext& gpuContext,
+               const Shader& shader,
+               const T& gpuBvhBuffers,
+               bool printLogs = false)
 {
     // setup command buffer
     auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
@@ -117,9 +118,9 @@ void runRefit(GPUContext& gpuContext,
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
     entryPointCursor.getPath("nodeIndices").setResource(gpuBvhBuffers.nodeIndices.view);
 
-    for (int depth = gpuBvhBuffers.maxRefitDepth; depth >= 0; --depth) {
-        uint32_t firstNodeOffset = gpuBvhBuffers.refitEntryData[depth].first;
-        uint32_t nodeCount = gpuBvhBuffers.refitEntryData[depth].second;
+    for (int depth = gpuBvhBuffers.maxUpdateDepth; depth >= 0; --depth) {
+        uint32_t firstNodeOffset = gpuBvhBuffers.updateEntryData[depth].first;
+        uint32_t nodeCount = gpuBvhBuffers.updateEntryData[depth].second;
         entryPointCursor.getPath("firstNodeOffset").setData(firstNodeOffset);
         entryPointCursor.getPath("nodeCount").setData(nodeCount);
 
@@ -128,7 +129,7 @@ void runRefit(GPUContext& gpuContext,
     }
 
     if (printLogs) {
-        std::cout << "runRefit" << std::endl;
+        std::cout << "runUpdate" << std::endl;
         int entryPointFieldCount = 4;
         for (int i = 0; i < entryPointFieldCount; i++) {
             std::cout << "\tcursor[" << i << "]: " << entryPointCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;

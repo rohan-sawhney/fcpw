@@ -210,7 +210,7 @@ protected:
     template<size_t A, typename B, typename C, typename D, typename E, typename F, typename G>
     friend class CPUBvhDataExtractor;
     template<size_t A, typename B, typename C, typename D>
-    friend class CPUBvhRefitDataExtractor;
+    friend class CPUBvhUpdateDataExtractor;
 };
 
 } // namespace fcpw
