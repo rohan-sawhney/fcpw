@@ -122,12 +122,6 @@ NB_MODULE(py, m) {
     using Interaction3DList = std::vector<fcpw::Interaction<3>>;
     nb::bind_vector<Interaction3DList>(m, "interaction_3D_list");
 
-    using PrimitiveTypeList = std::vector<fcpw::PrimitiveType>;
-    nb::bind_vector<PrimitiveTypeList>(m, "primitive_type_list");
-
-    using ObjectTypeList = std::vector<PrimitiveTypeList>;
-    nb::bind_vector<ObjectTypeList>(m, "object_type_list");
-
     using Transform2DList = std::vector<Eigen::Matrix3f>;
     nb::bind_vector<Transform2DList>(m, "transform_2D_list");
 
@@ -157,21 +151,6 @@ NB_MODULE(py, m) {
         .def("set_object_line_segments", &fcpw::Scene<2>::setObjectLineSegments,
             "Sets the vertex indices of line segments for an object.",
             "indices"_a, "object_index"_a)
-        .def("Set_object_types", &fcpw::Scene<2>::setObjectTypes,
-            "Sets the primitive type for each object in the scene.\nE.g., [[line_segment], [line_segment], [line_segment]] specifies a scene with 3 objects made of line segments in 2D.\nObjects with multiple primitive types, or primitives embedded in different dimensions (e.g., [[triangle, line_segment], [triangle]]) are not currently supported.\nEach call to this function resets the scene data.",
-            "object_types"_a)
-        .def("set_object_vertex_count", &fcpw::Scene<2>::setObjectVertexCount,
-            "Sets the number of vertices for an object.",
-            "n_vertices"_a, "object_index"_a)
-        .def("set_object_line_segment_count", &fcpw::Scene<2>::setObjectLineSegmentCount,
-            "Sets the number of line segments for an object.",
-            "n_line_segments"_a, "object_index"_a)
-        .def("set_object_vertex", &fcpw::Scene<2>::setObjectVertex,
-            "Sets the position of a vertex for an object.",
-            "position"_a, "vertex_index"_a, "object_index"_a)
-        .def("set_object_line_segment", &fcpw::Scene<2>::setObjectLineSegment,
-            "Sets the vertex indices of a line segment for an object.",
-            "indices"_a, "line_segment_index"_a, "object_index"_a)
         .def("set_object_instance_transforms",
             [](fcpw::Scene<2>& self, const Transform2DList& matrixTransforms, int objectIndex) {
                 std::vector<fcpw::Transform<2>> transforms;
@@ -189,9 +168,6 @@ NB_MODULE(py, m) {
         .def("compute_silhouettes", &fcpw::Scene<2>::computeSilhouettes,
             "Precomputes silhouette information for primitives in a scene to perform closest silhouette point queries.\nThe optional ignore_silhouette callback allows the user to specify which interior vertices in the line segment geometry\nto ignore for silhouette tests (arguments: vertex dihedral angle, index of an adjacent line segment).\nNOTE: does not currently support non-manifold geometry.",
             "ignore_silhouette"_a.none())
-        .def("compute_object_normals", &fcpw::Scene<2>::computeObjectNormals,
-            "Precomputes vertex normals for an object made of line segments.",
-            "object_index"_a, "compute_weighted"_a=false)
         .def("build", &fcpw::Scene<2>::build,
             "Builds a (possibly vectorized) aggregate/accelerator for the scene.\nEach call to this function rebuilds the aggregate/accelerator for the scene from the specified geometry\n(except when reduce_memory_footprint is set to true which results in undefined behavior).\nIt is recommended to set vectorize to false for primitives that do not implement vectorized intersection and closest point queries.\nSet reduce_memory_footprint to true to reduce the memory footprint of fcpw when constructing an aggregate,\nhowever if you plan to access the scene data let it remain false.",
             "aggregate_type"_a, "vectorize"_a, "print_stats"_a=false, "reduce_memory_footprint"_a=false)
@@ -202,7 +178,7 @@ NB_MODULE(py, m) {
             "Updates the vertex positions for an object.",
             "positions"_a, "object_index"_a)
         .def("refit", &fcpw::Scene<2>::refit,
-            "Refits the scene aggregate hierarchy after updating the geometry, via calls to update_object_vertex and compute_object_normals.\nNOTE: refitting of instanced aggregates is currently quite inefficient, since the shared aggregate is refit for each instance.",
+            "Refits the scene aggregate hierarchy after updating the geometry, via calls to update_object_vertex.\nNOTE: refitting of instanced aggregates is currently quite inefficient, since the shared aggregate is refit for each instance.",
             "print_stats"_a=false)
         .def("intersect", nb::overload_cast<fcpw::Ray<2>&, fcpw::Interaction<2>&, bool>(
             &fcpw::Scene<2>::intersect, nb::const_),
@@ -269,21 +245,6 @@ NB_MODULE(py, m) {
         .def("set_object_triangles", &fcpw::Scene<3>::setObjectTriangles,
             "Sets the vertex indices of triangles for an object.",
             "indices"_a, "object_index"_a)
-        .def("set_object_types", &fcpw::Scene<3>::setObjectTypes,
-            "Sets the primitive type for each object in the scene.\nE.g., [[triangle], [triangle]] specifies a scene with 2 objects made of triangles in 3D.\nObjects with multiple primitive types, or primitives embedded in different dimensions (e.g., [[triangle, line_segment], [triangle]]) are not currently supported.\nEach call to this function resets the scene data.",
-            "object_types"_a)
-        .def("set_object_vertex_count", &fcpw::Scene<3>::setObjectVertexCount,
-            "Sets the number of vertices for an object.",
-            "n_vertices"_a, "object_index"_a)
-        .def("set_object_triangle_count", &fcpw::Scene<3>::setObjectTriangleCount,
-            "Sets the number of triangles for an object.",
-            "n_triangles"_a, "object_index"_a)
-        .def("set_object_vertex", &fcpw::Scene<3>::setObjectVertex,
-            "Sets the position of a vertex for an object.",
-            "position"_a, "vertex_index"_a, "object_index"_a)
-        .def("set_object_triangle", &fcpw::Scene<3>::setObjectTriangle,
-            "Sets the vertex indices of a triangle for an object.",
-            "indices"_a, "triangle_index"_a, "object_index"_a)
         .def("set_object_instance_transforms",
             [](fcpw::Scene<3>& self, const Transform3DList& matrixTransforms, int objectIndex) {
                 std::vector<fcpw::Transform<3>> transforms;
@@ -301,9 +262,6 @@ NB_MODULE(py, m) {
         .def("compute_silhouettes", &fcpw::Scene<3>::computeSilhouettes,
             "Precomputes silhouette information for primitives in a scene to perform closest silhouette point queries.\nThe optional ignore_silhouette callback allows the user to specify which interior edges in the triangle geometry\nto ignore for silhouette tests (arguments: edge dihedral angle, index of an adjacent triangle).\nNOTE: does not currently support non-manifold geometry.",
             "ignore_silhouette"_a.none())
-        .def("compute_object_normals", &fcpw::Scene<3>::computeObjectNormals,
-            "Precomputes edge normals for an object made of triangles.",
-            "object_index"_a, "compute_weighted"_a=false)
         .def("build", &fcpw::Scene<3>::build,
             "Builds a (possibly vectorized) aggregate/accelerator for the scene.\nEach call to this function rebuilds the aggregate/accelerator for the scene from the specified geometry\n(except when reduce_memory_footprint is set to true which results in undefined behavior).\nIt is recommended to set vectorize to false for primitives that do not implement vectorized intersection and closest point queries.\nSet reduce_memory_footprint to true to reduce the memory footprint of fcpw when constructing an aggregate,\nhowever if you plan to access the scene data let it remain false.",
             "aggregate_type"_a, "vectorize"_a, "print_stats"_a=false, "reduce_memory_footprint"_a=false)
@@ -314,7 +272,7 @@ NB_MODULE(py, m) {
             "Updates the vertex positions for an object.",
             "positions"_a, "object_index"_a)
         .def("refit", &fcpw::Scene<3>::refit,
-            "Refits the scene aggregate hierarchy after updating the geometry, via calls to update_object_vertex and compute_object_normals.\nNOTE: refitting of instanced aggregates is currently quite inefficient, since the shared aggregate is refit for each instance.",
+            "Refits the scene aggregate hierarchy after updating the geometry, via calls to update_object_vertex.\nNOTE: refitting of instanced aggregates is currently quite inefficient, since the shared aggregate is refit for each instance.",
             "print_stats"_a=false)
         .def("intersect", nb::overload_cast<fcpw::Ray<3>&, fcpw::Interaction<3>&, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
