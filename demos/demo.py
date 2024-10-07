@@ -45,14 +45,10 @@ def load_fcpw_scene(positions, indices, build_vectorized_cpu_bvh):
     return scene
 
 def perform_closest_point_queries(scene, query_points):
-    # initialize bounding spheres
-    bounding_spheres = fcpw.bounding_sphere_3D_list()
-    for q in query_points:
-        bounding_spheres.append(fcpw.bounding_sphere_3D(q, np.inf))
-
     # perform cpqs
+    squared_max_radii = np.inf * np.ones(len(query_points), dtype=np.float32)
     interactions = fcpw.interaction_3D_list()
-    scene.find_closest_points(bounding_spheres, interactions)
+    scene.find_closest_points(query_points, squared_max_radii, interactions)
 
     # extract closest points
     closest_points = np.array([i.p for i in interactions])
@@ -60,15 +56,10 @@ def perform_closest_point_queries(scene, query_points):
     return closest_points
 
 def perform_gpu_closest_point_queries(gpu_scene, query_points):
-    # initialize bounding spheres
-    bounding_spheres = fcpw.gpu_bounding_sphere_list()
-    for q in query_points:
-        gpu_query_point = fcpw.gpu_float_3D(q[0], q[1], q[2])
-        bounding_spheres.append(fcpw.gpu_bounding_sphere(gpu_query_point, np.inf))
-
     # perform cpqs on GPU
+    squared_max_radii = np.inf * np.ones(len(query_points), dtype=np.float32)
     interactions = fcpw.gpu_interaction_list()
-    gpu_scene.find_closest_points(bounding_spheres, interactions)
+    gpu_scene.find_closest_points(query_points, squared_max_radii, interactions)
 
     # extract closest points
     closest_points = np.array([np.array([i.p.x, i.p.y, i.p.z], dtype=np.float32, order='C') for i in interactions])

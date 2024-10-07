@@ -72,26 +72,28 @@ inline int countThreadGroups(int nQueries, int nThreadsPerGroup, bool printLogs)
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& rayOrigins,
-                                     std::vector<Vector<DIM>>& rayDirections,
-                                     std::vector<float>& rayDistanceBounds,
+inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& rayOrigins,
+                                     Eigen::MatrixXf& rayDirections,
+                                     Eigen::VectorXf& rayDistanceBounds,
                                      std::vector<GPUInteraction>& interactions,
                                      bool checkForOcclusion)
 {
+    size_t nRays = rayOrigins.rows();
     std::vector<GPURay> rays;
-    rays.reserve(rayOrigins.size());
-    for (size_t i = 0; i < rayOrigins.size(); i++) {
+    rays.reserve(nRays);
+
+    for (size_t i = 0; i < nRays; i++) {
         GPURay ray;
-        ray.o = float3{rayOrigins[i][0],
-                       rayOrigins[i][1],
-                       DIM == 2 ? 0.0f : rayOrigins[i][2]};
-        ray.d = float3{rayDirections[i][0],
-                       rayDirections[i][1],
-                       DIM == 2 ? 0.0f : rayDirections[i][2]};
+        ray.o = float3{rayOrigins(i, 0),
+                       rayOrigins(i, 1),
+                       DIM == 2 ? 0.0f : rayOrigins(i, 2)};
+        ray.d = float3{rayDirections(i, 0),
+                       rayDirections(i, 1),
+                       DIM == 2 ? 0.0f : rayDirections(i, 2)};
         ray.dInv = float3{1.0f / ray.d.x,
                           1.0f / ray.d.y,
                           DIM == 2 ? 0.0f : 1.0f / ray.d.z};
-        ray.tMax = rayDistanceBounds[i];
+        ray.tMax = rayDistanceBounds(i);
         rays.emplace_back(ray);
     }
 
@@ -122,26 +124,28 @@ inline void GPUScene<DIM>::intersect(std::vector<GPURay>& rays,
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& sphereCenters,
-                                     std::vector<float>& sphereSquaredRadii,
-                                     std::vector<Vector<DIM>>& randNums,
+inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& sphereCenters,
+                                     Eigen::VectorXf& sphereSquaredRadii,
+                                     Eigen::MatrixXf& randNums,
                                      std::vector<GPUInteraction>& interactions)
 {
+    size_t nSpheres = sphereCenters.rows();
     std::vector<GPUBoundingSphere> boundingSpheres;
     std::vector<float3> randNums3;
-    boundingSpheres.reserve(sphereCenters.size());
-    randNums3.reserve(sphereCenters.size());
-    for (size_t i = 0; i < sphereCenters.size(); i++) {
+    boundingSpheres.reserve(nSpheres);
+    randNums3.reserve(nSpheres);
+
+    for (size_t i = 0; i < nSpheres; i++) {
         GPUBoundingSphere boundingSphere;
-        boundingSphere.c = float3{sphereCenters[i][0],
-                                  sphereCenters[i][1],
-                                  DIM == 2 ? 0.0f : sphereCenters[i][2]};
-        boundingSphere.r2 = sphereSquaredRadii[i];
+        boundingSphere.c = float3{sphereCenters(i, 0),
+                                  sphereCenters(i, 1),
+                                  DIM == 2 ? 0.0f : sphereCenters(i, 2)};
+        boundingSphere.r2 = sphereSquaredRadii(i);
         boundingSpheres.emplace_back(boundingSphere);
 
-        float3 nums{randNums[i][0],
-                    randNums[i][1],
-                    DIM == 2 ? 0.0f : randNums[i][2]};
+        float3 nums{randNums(i, 0),
+                    randNums(i, 1),
+                    DIM == 2 ? 0.0f : randNums(i, 2)};
         randNums3.emplace_back(nums);
     }
 
@@ -171,19 +175,21 @@ inline void GPUScene<DIM>::intersect(std::vector<GPUBoundingSphere>& boundingSph
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestPoints(std::vector<Vector<DIM>>& queryPoints,
-                                             std::vector<float>& squaredMaxRadii,
+inline void GPUScene<DIM>::findClosestPoints(Eigen::MatrixXf& queryPoints,
+                                             Eigen::VectorXf& squaredMaxRadii,
                                              std::vector<GPUInteraction>& interactions,
                                              bool recordNormals)
 {
+    size_t nQueryPoints = queryPoints.rows();
     std::vector<GPUBoundingSphere> boundingSpheres;
-    boundingSpheres.reserve(queryPoints.size());
-    for (size_t i = 0; i < queryPoints.size(); i++) {
+    boundingSpheres.reserve(nQueryPoints);
+
+    for (size_t i = 0; i < nQueryPoints; i++) {
         GPUBoundingSphere boundingSphere;
-        boundingSphere.c = float3{queryPoints[i][0],
-                                  queryPoints[i][1],
-                                  DIM == 2 ? 0.0f : queryPoints[i][2]};
-        boundingSphere.r2 = squaredMaxRadii[i];
+        boundingSphere.c = float3{queryPoints(i, 0),
+                                  queryPoints(i, 1),
+                                  DIM == 2 ? 0.0f : queryPoints(i, 2)};
+        boundingSphere.r2 = squaredMaxRadii(i);
         boundingSpheres.emplace_back(boundingSphere);
     }
 
@@ -214,24 +220,30 @@ inline void GPUScene<DIM>::findClosestPoints(std::vector<GPUBoundingSphere>& bou
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestSilhouettePoints(std::vector<Vector<DIM>>& queryPoints,
-                                                       std::vector<float>& squaredMaxRadii,
-                                                       std::vector<uint32_t>& flipNormalOrientation,
+inline void GPUScene<DIM>::findClosestSilhouettePoints(Eigen::MatrixXf& queryPoints,
+                                                       Eigen::VectorXf& squaredMaxRadii,
+                                                       Eigen::VectorXi& flipNormalOrientation,
                                                        std::vector<GPUInteraction>& interactions,
                                                        float squaredMinRadius, float precision)
 {
+    size_t nQueryPoints = queryPoints.rows();
     std::vector<GPUBoundingSphere> boundingSpheres;
-    boundingSpheres.reserve(queryPoints.size());
-    for (size_t i = 0; i < queryPoints.size(); i++) {
+    std::vector<uint32_t> flipNormalOrientationVec;
+    boundingSpheres.reserve(nQueryPoints);
+    flipNormalOrientationVec.reserve(nQueryPoints);
+
+    for (size_t i = 0; i < nQueryPoints; i++) {
         GPUBoundingSphere boundingSphere;
-        boundingSphere.c = float3{queryPoints[i][0],
-                                  queryPoints[i][1],
-                                  DIM == 2 ? 0.0f : queryPoints[i][2]};
-        boundingSphere.r2 = squaredMaxRadii[i];
+        boundingSphere.c = float3{queryPoints(i, 0),
+                                  queryPoints(i, 1),
+                                  DIM == 2 ? 0.0f : queryPoints(i, 2)};
+        boundingSphere.r2 = squaredMaxRadii(i);
         boundingSpheres.emplace_back(boundingSphere);
+
+        flipNormalOrientationVec.emplace_back(flipNormalOrientation(i));
     }
 
-    findClosestSilhouettePoints(boundingSpheres, flipNormalOrientation,
+    findClosestSilhouettePoints(boundingSpheres, flipNormalOrientationVec,
                                 interactions, squaredMinRadius, precision);
 }
 

@@ -211,10 +211,18 @@ NB_MODULE(py, m) {
             "Finds the closest point on the visibility silhouette in the scene to a query point.\nOptionally specify a minimum radius to stop the closest silhouette search, a conservative maximum radius guess\naround the query point inside which the search is performed, as well as a precision parameter to help classify\nsilhouettes when the query point lies on the scene geometry.",
             "x"_a, "i"_a, "flip_normal_orientation"_a=false, "squared_min_radius"_a=0.0f,
             "squared_max_radius"_a=fcpw::maxFloat, "precision"_a=1e-3f, "record_normal"_a=false)
+        .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction2DList&, bool>(
+            &fcpw::Scene<2>::intersect, nb::const_),
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.",
+            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a, "check_for_occlusion"_a=false)
         .def("intersect", nb::overload_cast<Ray2DList&, Interaction2DList&, bool>(
             &fcpw::Scene<2>::intersect, nb::const_),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
+        .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction2DList&, const Eigen::MatrixXf&, const std::function<float(float)>&>(
+            &fcpw::Scene<2>::intersect, nb::const_),
+            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_2D.p) using the random numbers randNums[2].\nThe selection pdf value is written to interaction_2D.d along with the primitive index.",
+            "sphere_centers"_a, "sphere_squared_radii"_a, "interactions"_a, "rand_nums"_a, "branch_traversal_weight"_a.none())
         .def("intersect", nb::overload_cast<const BoundingSphere2DList&, Interaction2DList&, const Float2DList&, const std::function<float(float)>&>(
             &fcpw::Scene<2>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_2D.p) using the random numbers randNums[2].\nThe selection pdf value is written to interaction_2D.d along with the primitive index.",
@@ -227,14 +235,24 @@ NB_MODULE(py, m) {
             &fcpw::Scene<2>::hasLineOfSight, nb::const_),
             "Checks whether there is a line of sight between between two sets of points in the scene.",
             "points_i"_a, "points_j"_a, "result"_a)
+        .def("find_closest_points", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction2DList&, bool>(
+            &fcpw::Scene<2>::findClosestPoints, nb::const_),
+            "Finds the closest points in the scene to the given query points.\nThe max radius specifies the conservative radius guess around the query point inside which the search is performed.",
+            "query_points"_a, "squared_max_radii"_a, "interactions"_a, "record_normal"_a=false)
         .def("find_closest_points", nb::overload_cast<BoundingSphere2DList&, Interaction2DList&, bool>(
             &fcpw::Scene<2>::findClosestPoints, nb::const_),
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
             "bounding_spheres"_a, "interactions"_a, "record_normal"_a=false)
+        .def("find_closest_silhouette_points", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction2DList&, const Eigen::VectorXi&, float, float, bool>(
+            &fcpw::Scene<2>::findClosestSilhouettePoints, nb::const_),
+            "Finds the closest points on the visibility silhouette in the scene to the given query points.\nThe max radius specifies the minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
+            "query_points"_a, "squared_max_radii"_a, "interactions"_a, "flip_normal_orientation"_a,
+            "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false)
         .def("find_closest_silhouette_points", nb::overload_cast<BoundingSphere2DList&, Interaction2DList&, const UInt32List&, float, float, bool>(
             &fcpw::Scene<2>::findClosestSilhouettePoints, nb::const_),
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
-            "bounding_spheres"_a, "interactions"_a, "flip_normal_orientation"_a, "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
+            "bounding_spheres"_a, "interactions"_a, "flip_normal_orientation"_a,
+            "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
 
     nb::class_<fcpw::Scene<3>>(m, "scene_3D")
         .def(nb::init<>())
@@ -307,10 +325,18 @@ NB_MODULE(py, m) {
             "Finds the closest point on the visibility silhouette in the scene to a query point.\nOptionally specify a minimum radius to stop the closest silhouette search, a conservative maximum radius guess\naround the query point inside which the search is performed, as well as a precision parameter to help classify\nsilhouettes when the query point lies on the scene geometry.",
             "x"_a, "i"_a, "flip_normal_orientation"_a=false, "squared_min_radius"_a=0.0f,
             "squared_max_radius"_a=fcpw::maxFloat, "precision"_a=1e-3f, "record_normal"_a=false)
+        .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&, bool>(
+            &fcpw::Scene<3>::intersect, nb::const_),
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.",
+            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a, "check_for_occlusion"_a=false)
         .def("intersect", nb::overload_cast<Ray3DList&, Interaction3DList&, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
+        .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&, const Eigen::MatrixXf&, const std::function<float(float)>&>(
+            &fcpw::Scene<3>::intersect, nb::const_),
+            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_3D.p) using the random numbers randNums[3].\nThe selection pdf value is written to interaction_3D.d along with the primitive index.",
+            "sphere_centers"_a, "sphere_squared_radii"_a, "interactions"_a, "rand_nums"_a, "branch_traversal_weight"_a.none())
         .def("intersect", nb::overload_cast<const BoundingSphere3DList&, Interaction3DList&, const Float3DList&, const std::function<float(float)>&>(
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_3D.p) using the random numbers randNums[3].\nThe selection pdf value is written to interaction_3D.d along with the primitive index.",
@@ -323,14 +349,24 @@ NB_MODULE(py, m) {
             &fcpw::Scene<3>::hasLineOfSight, nb::const_),
             "Checks whether there is a line of sight between between two sets of points in the scene.",
             "points_i"_a, "points_j"_a, "result"_a)
+        .def("find_closest_points", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&, bool>(
+            &fcpw::Scene<3>::findClosestPoints, nb::const_),
+            "Finds the closest points in the scene to the given query points.\nThe max radius specifies the conservative radius guess around the query point inside which the search is performed.",
+            "query_points"_a, "squared_max_radii"_a, "interactions"_a, "record_normal"_a=false)
         .def("find_closest_points", nb::overload_cast<BoundingSphere3DList&, Interaction3DList&, bool>(
             &fcpw::Scene<3>::findClosestPoints, nb::const_),
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
             "bounding_spheres"_a, "interactions"_a, "record_normal"_a=false)
+        .def("find_closest_silhouette_points", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&, const Eigen::VectorXi&, float, float, bool>(
+            &fcpw::Scene<3>::findClosestSilhouettePoints, nb::const_),
+            "Finds the closest points on the visibility silhouette in the scene to the given query points.\nThe max radius specifies the minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
+            "query_points"_a, "squared_max_radii"_a, "interactions"_a, "flip_normal_orientation"_a,
+            "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false)
         .def("find_closest_silhouette_points", nb::overload_cast<BoundingSphere3DList&, Interaction3DList&, const UInt32List&, float, float, bool>(
             &fcpw::Scene<3>::findClosestSilhouettePoints, nb::const_),
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
-            "bounding_spheres"_a, "interactions"_a, "flip_normal_orientation"_a, "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
+            "bounding_spheres"_a, "interactions"_a, "flip_normal_orientation"_a,
+            "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
 
 #ifdef FCPW_USE_GPU
     nb::class_<fcpw::float2>(m, "gpu_float_2D")
@@ -393,18 +429,35 @@ NB_MODULE(py, m) {
         .def("refit", &fcpw::GPUScene<2>::refit,
             "Refits the BVH on the GPU after updating the geometry, either via calls to update_object_vertex in the Scene class, or directly in GPU code\nin the user's slang shaders (set updateGeometry to false if the geometry is updated directly on the GPU).\nNOTE: Before calling this function, the BVH must already have been transferred to the GPU.",
             "scene"_a, "update_geometry"_a=true)
+        .def("intersect", nb::overload_cast<Eigen::MatrixXf&, Eigen::MatrixXf&, Eigen::VectorXf&, GPUInteractionList&, bool>(
+            &fcpw::GPUScene<2>::intersect),
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.",
+            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a, "check_for_occlusion"_a=false)
         .def("intersect", nb::overload_cast<GPURayList&, GPUInteractionList&, bool>(
             &fcpw::GPUScene<2>::intersect),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
+        .def("intersect", nb::overload_cast<Eigen::MatrixXf&, Eigen::VectorXf&, Eigen::MatrixXf&, GPUInteractionList&>(
+            &fcpw::GPUScene<2>::intersect),
+            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3] (gpu_float_3D.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
+            "sphere_centers"_a, "sphere_squared_radii"_a, "rand_nums"_a, "interactions"_a)
         .def("intersect", nb::overload_cast<GPUBoundingSphereList&, GPUFloat3DList&, GPUInteractionList&>(
             &fcpw::GPUScene<2>::intersect),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3] (gpu_float_3D.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
+        .def("find_closest_points", nb::overload_cast<Eigen::MatrixXf&, Eigen::VectorXf&, GPUInteractionList&, bool>(
+            &fcpw::GPUScene<2>::findClosestPoints),
+            "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
+            "query_points"_a, "squared_max_radii"_a, "interactions"_a, "record_normals"_a=false)
         .def("find_closest_points", nb::overload_cast<GPUBoundingSphereList&, GPUInteractionList&, bool>(
             &fcpw::GPUScene<2>::findClosestPoints),
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
             "bounding_spheres"_a, "interactions"_a, "record_normals"_a=false)
+        .def("find_closest_silhouette_points", nb::overload_cast<Eigen::MatrixXf&, Eigen::VectorXf&, Eigen::VectorXi&, GPUInteractionList&, float, float>(
+            &fcpw::GPUScene<2>::findClosestSilhouettePoints),
+            "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
+            "query_points"_a, "squared_max_radii"_a, "flip_normal_orientation"_a,
+            "interactions"_a, "squared_min_radius"_a=0.0f, "precision"_a=1e-3f)
         .def("find_closest_silhouette_points", nb::overload_cast<GPUBoundingSphereList&, UInt32List&, GPUInteractionList&, float, float>(
             &fcpw::GPUScene<2>::findClosestSilhouettePoints),
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
@@ -420,18 +473,35 @@ NB_MODULE(py, m) {
         .def("refit", &fcpw::GPUScene<3>::refit,
             "Refits the BVH on the GPU after updating the geometry, either via calls to update_object_vertex in the Scene class, or directly in GPU code\nin the user's slang shaders (set updateGeometry to false if the geometry is updated directly on the GPU).\nNOTE: Before calling this function, the BVH must already have been transferred to the GPU.",
             "scene"_a, "update_geometry"_a=true)
+        .def("intersect", nb::overload_cast<Eigen::MatrixXf&, Eigen::MatrixXf&, Eigen::VectorXf&, GPUInteractionList&, bool>(
+            &fcpw::GPUScene<3>::intersect),
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.",
+            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a, "check_for_occlusion"_a=false)
         .def("intersect", nb::overload_cast<GPURayList&, GPUInteractionList&, bool>(
             &fcpw::GPUScene<3>::intersect),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
+        .def("intersect", nb::overload_cast<Eigen::MatrixXf&, Eigen::VectorXf&, Eigen::MatrixXf&, GPUInteractionList&>(
+            &fcpw::GPUScene<3>::intersect),
+            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3].\nThe selection pdf value is written to interaction.d along with the primitive index.",
+            "sphere_centers"_a, "sphere_squared_radii"_a, "rand_nums"_a, "interactions"_a)
         .def("intersect", nb::overload_cast<GPUBoundingSphereList&, GPUFloat3DList&, GPUInteractionList&>(
             &fcpw::GPUScene<3>::intersect),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3].\nThe selection pdf value is written to interaction.d along with the primitive index.",
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
+        .def("find_closest_points", nb::overload_cast<Eigen::MatrixXf&, Eigen::VectorXf&, GPUInteractionList&, bool>(
+            &fcpw::GPUScene<3>::findClosestPoints),
+            "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
+            "query_points"_a, "squared_max_radii"_a, "interactions"_a, "record_normals"_a=false)
         .def("find_closest_points", nb::overload_cast<GPUBoundingSphereList&, GPUInteractionList&, bool>(
             &fcpw::GPUScene<3>::findClosestPoints),
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
             "bounding_spheres"_a, "interactions"_a, "record_normals"_a=false)
+        .def("find_closest_silhouette_points", nb::overload_cast<Eigen::MatrixXf&, Eigen::VectorXf&, Eigen::VectorXi&, GPUInteractionList&, float, float>(
+            &fcpw::GPUScene<3>::findClosestSilhouettePoints),
+            "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
+            "query_points"_a, "squared_max_radii"_a, "flip_normal_orientation"_a,
+            "interactions"_a, "squared_min_radius"_a=0.0f, "precision"_a=1e-3f)
         .def("find_closest_silhouette_points", nb::overload_cast<GPUBoundingSphereList&, UInt32List&, GPUInteractionList&, float, float>(
             &fcpw::GPUScene<3>::findClosestSilhouettePoints),
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
