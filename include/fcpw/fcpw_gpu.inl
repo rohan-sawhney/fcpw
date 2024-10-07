@@ -186,7 +186,7 @@ inline void GPUScene<DIM>::findClosestPoints(std::vector<GPUBoundingSphere>& bou
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestSilhouettePoints(std::vector<Vector<DIM>>& queryPoints,
+inline void GPUScene<DIM>::findClosestSilhouettePoints(std::vector<float3>& queryPoints,
                                                        std::vector<float>& squaredMaxRadii,
                                                        std::vector<uint32_t>& flipNormalOrientation,
                                                        std::vector<GPUInteraction>& interactions,

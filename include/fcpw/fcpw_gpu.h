@@ -65,7 +65,7 @@ public:
     // The max radius specifies a conservative radius guess around the query point inside which the
     // search is performed. Optionally specify a minimum radius to stop the closest silhouette
     // search, as well as a precision parameter to help classify silhouettes.
-    void findClosestSilhouettePoints(std::vector<Vector<DIM>>& queryPoints,
+    void findClosestSilhouettePoints(std::vector<float3>& queryPoints,
                                      std::vector<float>& squaredMaxRadii,
                                      std::vector<uint32_t>& flipNormalOrientation,
                                      std::vector<GPUInteraction>& interactions,
