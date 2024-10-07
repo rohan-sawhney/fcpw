@@ -303,7 +303,7 @@ NB_MODULE(py, m) {
             "x"_a, "i"_a, "squared_radius"_a=fcpw::maxFloat, "record_normal"_a=false)
         .def("find_closest_silhouette_point", &fcpw::Scene<3>::findClosestSilhouettePoint,
             "Finds the closest point on the visibility silhouette in the scene to a query point.\nOptionally specify a minimum radius to stop the closest silhouette search, a conservative maximum radius guess\naround the query point inside which the search is performed, as well as a precision parameter to help classify\nsilhouettes when the query point lies on the scene geometry.",
-            "x"_a, "i"_a, "flipNormalOrientation"_a=false, "squaredMinRadius"_a=0.0f,
+            "x"_a, "i"_a, "flip_normal_orientation"_a=false, "squared_min_radius"_a=0.0f,
             "squared_max_radius"_a=fcpw::maxFloat, "precision"_a=1e-3f, "record_normal"_a=false)
         .def("intersect", nb::overload_cast<Ray3DList&, Interaction3DList&, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
