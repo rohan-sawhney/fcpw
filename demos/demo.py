@@ -63,7 +63,7 @@ def perform_gpu_closest_point_queries(gpu_scene, query_points):
     # initialize bounding spheres
     bounding_spheres = fcpw.gpu_bounding_sphere_list()
     for q in query_points:
-        gpu_query_point = fcpw.float_3D(q[0], q[1], q[2])
+        gpu_query_point = fcpw.gpu_float_3D(q[0], q[1], q[2])
         bounding_spheres.append(fcpw.gpu_bounding_sphere(gpu_query_point, np.inf))
 
     # perform cpqs on GPU

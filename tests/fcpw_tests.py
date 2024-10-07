@@ -162,11 +162,9 @@ def init_gpu_data(n_queries, query_points, random_directions, random_squared_rad
         scene = fcpw.gpu_scene_3D(fcpw_directory_path, True)
 
     for q in range(n_queries):
-        query_point = fcpw.float_3D(query_points[q][0],
-                                    query_points[q][1], 0.0)
-        random_direction = fcpw.float_3D(random_directions[q][0],
-                                         random_directions[q][1], 0.0)
-        rand_num = fcpw.float_3D(cpu_rand_nums[q][0], cpu_rand_nums[q][1], 0.0)
+        query_point = fcpw.gpu_float_3D(query_points[q][0], query_points[q][1], 0.0)
+        random_direction = fcpw.gpu_float_3D(random_directions[q][0], random_directions[q][1], 0.0)
+        rand_num = fcpw.gpu_float_3D(cpu_rand_nums[q][0], cpu_rand_nums[q][1], 0.0)
         if dim == 3:
             query_point.z = query_points[q][2]
             random_direction.z = random_directions[q][2]
@@ -179,7 +177,7 @@ def init_gpu_data(n_queries, query_points, random_directions, random_squared_rad
         flip_normal_orientation[q] = 1 if cpu_flip_normal_orientation[q] else 0
 
     return scene, fcpw.gpu_ray_list(ray_list), fcpw.gpu_bounding_sphere_list(bounding_sphere_list), \
-           fcpw.gpu_bounding_sphere_list(infinite_sphere_list), fcpw.float_3D_list(rand_nums), \
+           fcpw.gpu_bounding_sphere_list(infinite_sphere_list), fcpw.gpu_float_3D_list(rand_nums), \
            fcpw.uint32_list(flip_normal_orientation)
 
 def run_cpu_ray_intersection_queries(scene, ray_origins, ray_directions,

@@ -104,17 +104,17 @@ NB_MODULE(py, m) {
     using UInt32List = std::vector<uint32_t>;
     nb::bind_vector<UInt32List>(m, "uint32_list");
 
-    using Vector2fList = std::vector<fcpw::Vector<2>>;
-    nb::bind_vector<Vector2fList>(m, "vector_2f_list");
+    using Float2DList = std::vector<fcpw::Vector<2>>;
+    nb::bind_vector<Float2DList>(m, "float_2D_list");
 
-    using Vector3fList = std::vector<fcpw::Vector<3>>;
-    nb::bind_vector<Vector3fList>(m, "vector_3f_list");
+    using Float3DList = std::vector<fcpw::Vector<3>>;
+    nb::bind_vector<Float3DList>(m, "float_3D_list");
 
-    using Vector2iList = std::vector<fcpw::Vector2i>;
-    nb::bind_vector<Vector2iList>(m, "vector_2i_list");
+    using Int2DList = std::vector<fcpw::Vector2i>;
+    nb::bind_vector<Int2DList>(m, "int_2D_list");
 
-    using Vector3iList = std::vector<fcpw::Vector3i>;
-    nb::bind_vector<Vector3iList>(m, "vector_3i_list");
+    using Int3DList = std::vector<fcpw::Vector3i>;
+    nb::bind_vector<Int3DList>(m, "int_3D_list");
 
     using Interaction2DList = std::vector<fcpw::Interaction<2>>;
     nb::bind_vector<Interaction2DList>(m, "interaction_2D_list");
@@ -215,15 +215,15 @@ NB_MODULE(py, m) {
             &fcpw::Scene<2>::intersect, nb::const_),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
-        .def("intersect", nb::overload_cast<const BoundingSphere2DList&, Interaction2DList&, const Vector2fList&, const std::function<float(float)>&>(
+        .def("intersect", nb::overload_cast<const BoundingSphere2DList&, Interaction2DList&, const Float2DList&, const std::function<float(float)>&>(
             &fcpw::Scene<2>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_2D.p) using the random numbers randNums[2].\nThe selection pdf value is written to interaction_2D.d along with the primitive index.",
             "bounding_spheres"_a, "interactions"_a, "rand_nums"_a, "branch_traversal_weight"_a.none())
-        .def("contains", nb::overload_cast<const Vector2fList&, UInt32List&>(
+        .def("contains", nb::overload_cast<const Float2DList&, UInt32List&>(
             &fcpw::Scene<2>::contains, nb::const_),
             "Checks whether points are contained inside a scene. NOTE: the scene must be watertight.",
             "points"_a, "result"_a)
-        .def("has_line_of_sight", nb::overload_cast<const Vector2fList&, const Vector2fList&, UInt32List&>(
+        .def("has_line_of_sight", nb::overload_cast<const Float2DList&, const Float2DList&, UInt32List&>(
             &fcpw::Scene<2>::hasLineOfSight, nb::const_),
             "Checks whether there is a line of sight between between two sets of points in the scene.",
             "points_i"_a, "points_j"_a, "result"_a)
@@ -311,15 +311,15 @@ NB_MODULE(py, m) {
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
-        .def("intersect", nb::overload_cast<const BoundingSphere3DList&, Interaction3DList&, const Vector3fList&, const std::function<float(float)>&>(
+        .def("intersect", nb::overload_cast<const BoundingSphere3DList&, Interaction3DList&, const Float3DList&, const std::function<float(float)>&>(
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_3D.p) using the random numbers randNums[3].\nThe selection pdf value is written to interaction_3D.d along with the primitive index.",
             "bounding_spheres"_a, "interactions"_a, "rand_nums"_a, "branch_traversal_weight"_a.none())
-        .def("contains", nb::overload_cast<const Vector3fList&, UInt32List&>(
+        .def("contains", nb::overload_cast<const Float3DList&, UInt32List&>(
             &fcpw::Scene<3>::contains, nb::const_),
             "Checks whether points are contained inside a scene. NOTE: the scene must be watertight.",
             "points"_a, "result"_a)
-        .def("has_line_of_sight", nb::overload_cast<const Vector3fList&, const Vector3fList&, UInt32List&>(
+        .def("has_line_of_sight", nb::overload_cast<const Float3DList&, const Float3DList&, UInt32List&>(
             &fcpw::Scene<3>::hasLineOfSight, nb::const_),
             "Checks whether there is a line of sight between between two sets of points in the scene.",
             "points_i"_a, "points_j"_a, "result"_a)
@@ -333,14 +333,14 @@ NB_MODULE(py, m) {
             "bounding_spheres"_a, "interactions"_a, "flip_normal_orientation"_a, "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
 
 #ifdef FCPW_USE_GPU
-    nb::class_<fcpw::float2>(m, "float_2D")
+    nb::class_<fcpw::float2>(m, "gpu_float_2D")
         .def(nb::init<>())
         .def(nb::init<float, float>(),
             "x"_a, "y"_a)
         .def_rw("x", &fcpw::float2::x)
         .def_rw("y", &fcpw::float2::y);
 
-    nb::class_<fcpw::float3>(m, "float_3D")
+    nb::class_<fcpw::float3>(m, "gpu_float_3D")
         .def(nb::init<>())
         .def(nb::init<float, float, float>(),
             "x"_a, "y"_a, "z"_a)
@@ -372,8 +372,8 @@ NB_MODULE(py, m) {
         .def_rw("d", &fcpw::GPUInteraction::d)
         .def_rw("index", &fcpw::GPUInteraction::index);
 
-    using Float3DList = std::vector<fcpw::float3>;
-    nb::bind_vector<Float3DList>(m, "float_3D_list");
+    using GPUFloat3DList = std::vector<fcpw::float3>;
+    nb::bind_vector<GPUFloat3DList>(m, "gpu_float_3D_list");
 
     using GPURayList = std::vector<fcpw::GPURay>;
     nb::bind_vector<GPURayList>(m, "gpu_ray_list");
@@ -397,9 +397,9 @@ NB_MODULE(py, m) {
             &fcpw::GPUScene<2>::intersect),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
-        .def("intersect", nb::overload_cast<GPUBoundingSphereList&, Float3DList&, GPUInteractionList&>(
+        .def("intersect", nb::overload_cast<GPUBoundingSphereList&, GPUFloat3DList&, GPUInteractionList&>(
             &fcpw::GPUScene<2>::intersect),
-            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3] (float_3D.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
+            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3] (gpu_float_3D.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
         .def("find_closest_points", nb::overload_cast<GPUBoundingSphereList&, GPUInteractionList&, bool>(
             &fcpw::GPUScene<2>::findClosestPoints),
@@ -424,7 +424,7 @@ NB_MODULE(py, m) {
             &fcpw::GPUScene<3>::intersect),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
-        .def("intersect", nb::overload_cast<GPUBoundingSphereList&, Float3DList&, GPUInteractionList&>(
+        .def("intersect", nb::overload_cast<GPUBoundingSphereList&, GPUFloat3DList&, GPUInteractionList&>(
             &fcpw::GPUScene<3>::intersect),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3].\nThe selection pdf value is written to interaction.d along with the primitive index.",
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
