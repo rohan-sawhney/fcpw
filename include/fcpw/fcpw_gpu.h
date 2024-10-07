@@ -30,8 +30,8 @@ public:
     // API for GPU queries; NOTE: GPU queries are not thread-safe!
 
     // intersects the scene with the given rays, returning the closest interaction if it exists.
-    void intersect(std::vector<float3>& rayOrigins,
-                   std::vector<float3>& rayDirections,
+    void intersect(std::vector<Vector<DIM>>& rayOrigins,
+                   std::vector<Vector<DIM>>& rayDirections,
                    std::vector<float>& rayDistanceBounds,
                    std::vector<GPUInteraction>& interactions,
                    bool checkForOcclusion=false);
@@ -43,9 +43,9 @@ public:
     // contained inside each sphere and sampling a random point on that primitive (written to 
     // GPUInteraction.p) using the random numbers randNums[3] (float3.z is ignored for DIM = 2);
     // the selection pdf value is written to GPUInteraction.d along with the primitive index
-    void intersect(std::vector<float3>& sphereCenters,
+    void intersect(std::vector<Vector<DIM>>& sphereCenters,
                    std::vector<float>& sphereSquaredRadii,
-                   std::vector<float3>& randNums,
+                   std::vector<Vector<DIM>>& randNums,
                    std::vector<GPUInteraction>& interactions);
     void intersect(std::vector<GPUBoundingSphere>& boundingSpheres,
                    std::vector<float3>& randNums,
@@ -53,7 +53,7 @@ public:
 
     // finds the closest points in the scene to the given query points. The max radius specifies
     // a conservative radius guess around the query point inside which the search is performed.
-    void findClosestPoints(std::vector<float3>& queryPoints,
+    void findClosestPoints(std::vector<Vector<DIM>>& queryPoints,
                            std::vector<float>& squaredMaxRadii,
                            std::vector<GPUInteraction>& interactions,
                            bool recordNormals=false);
@@ -65,7 +65,7 @@ public:
     // The max radius specifies a conservative radius guess around the query point inside which the
     // search is performed. Optionally specify a minimum radius to stop the closest silhouette
     // search, as well as a precision parameter to help classify silhouettes.
-    void findClosestSilhouettePoints(std::vector<float3>& queryPoints,
+    void findClosestSilhouettePoints(std::vector<Vector<DIM>>& queryPoints,
                                      std::vector<float>& squaredMaxRadii,
                                      std::vector<uint32_t>& flipNormalOrientation,
                                      std::vector<GPUInteraction>& interactions,

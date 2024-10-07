@@ -227,10 +227,12 @@ NB_MODULE(py, m) {
             &fcpw::Scene<2>::hasLineOfSight, nb::const_),
             "Checks whether there is a line of sight between between two sets of points in the scene.",
             "points_i"_a, "points_j"_a, "result"_a)
-        .def("find_closest_points", &fcpw::Scene<2>::findClosestPoints,
+        .def("find_closest_points", nb::overload_cast<BoundingSphere2DList&, Interaction2DList&, bool>(
+            &fcpw::Scene<2>::findClosestPoints, nb::const_),
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
             "bounding_spheres"_a, "interactions"_a, "record_normal"_a=false)
-        .def("find_closest_silhouette_points", &fcpw::Scene<2>::findClosestSilhouettePoints,
+        .def("find_closest_silhouette_points", nb::overload_cast<BoundingSphere2DList&, Interaction2DList&, const UInt32List&, float, float, bool>(
+            &fcpw::Scene<2>::findClosestSilhouettePoints, nb::const_),
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
             "bounding_spheres"_a, "interactions"_a, "flip_normal_orientation"_a, "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
 
@@ -321,10 +323,12 @@ NB_MODULE(py, m) {
             &fcpw::Scene<3>::hasLineOfSight, nb::const_),
             "Checks whether there is a line of sight between between two sets of points in the scene.",
             "points_i"_a, "points_j"_a, "result"_a)
-        .def("find_closest_points", &fcpw::Scene<3>::findClosestPoints,
+        .def("find_closest_points", nb::overload_cast<BoundingSphere3DList&, Interaction3DList&, bool>(
+            &fcpw::Scene<3>::findClosestPoints, nb::const_),
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
             "bounding_spheres"_a, "interactions"_a, "record_normal"_a=false)
-        .def("find_closest_silhouette_points", &fcpw::Scene<3>::findClosestSilhouettePoints,
+        .def("find_closest_silhouette_points", nb::overload_cast<BoundingSphere3DList&, Interaction3DList&, const UInt32List&, float, float, bool>(
+            &fcpw::Scene<3>::findClosestSilhouettePoints, nb::const_),
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
             "bounding_spheres"_a, "interactions"_a, "flip_normal_orientation"_a, "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
 
@@ -397,10 +401,12 @@ NB_MODULE(py, m) {
             &fcpw::GPUScene<2>::intersect),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3] (float_3D.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
-        .def("find_closest_points", &fcpw::GPUScene<2>::findClosestPoints,
+        .def("find_closest_points", nb::overload_cast<GPUBoundingSphereList&, GPUInteractionList&, bool>(
+            &fcpw::GPUScene<2>::findClosestPoints),
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
             "bounding_spheres"_a, "interactions"_a, "record_normals"_a=false)
-        .def("find_closest_silhouette_points", &fcpw::GPUScene<2>::findClosestSilhouettePoints,
+        .def("find_closest_silhouette_points", nb::overload_cast<GPUBoundingSphereList&, UInt32List&, GPUInteractionList&, float, float>(
+            &fcpw::GPUScene<2>::findClosestSilhouettePoints),
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
             "bounding_spheres"_a, "flip_normal_orientation"_a, "interactions"_a,
             "squared_min_radius"_a=0.0f, "precision"_a=1e-3f);
@@ -422,10 +428,12 @@ NB_MODULE(py, m) {
             &fcpw::GPUScene<3>::intersect),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3].\nThe selection pdf value is written to interaction.d along with the primitive index.",
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
-        .def("find_closest_points", &fcpw::GPUScene<3>::findClosestPoints,
+        .def("find_closest_points", nb::overload_cast<GPUBoundingSphereList&, GPUInteractionList&, bool>(
+            &fcpw::GPUScene<3>::findClosestPoints),
             "Finds the closest points in the scene to the given query points, encoded as bounding spheres.\nThe radius of each bounding sphere specifies the conservative radius guess around the query point inside which the search is performed.",
             "bounding_spheres"_a, "interactions"_a, "record_normals"_a=false)
-        .def("find_closest_silhouette_points", &fcpw::GPUScene<3>::findClosestSilhouettePoints,
+        .def("find_closest_silhouette_points", nb::overload_cast<GPUBoundingSphereList&, UInt32List&, GPUInteractionList&, float, float>(
+            &fcpw::GPUScene<3>::findClosestSilhouettePoints),
             "Finds the closest points on the visibility silhouette in the scene to the given query points, encoded as bounding spheres.\nOptionally specify a minimum radius to stop the closest silhouette search, as well as a precision parameter to help classify silhouettes.",
             "bounding_spheres"_a, "flip_normal_orientation"_a, "interactions"_a,
             "squared_min_radius"_a=0.0f, "precision"_a=1e-3f);
