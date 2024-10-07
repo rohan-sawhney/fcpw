@@ -1129,6 +1129,39 @@ inline bool Scene<DIM>::findClosestSilhouettePoint(const Vector<DIM>& x, Interac
 }
 
 template<size_t DIM>
+inline void Scene<DIM>::intersect(const std::vector<Vector<DIM>>& rayOrigins,
+                                  const std::vector<Vector<DIM>>& rayDirections,
+                                  const std::vector<float>& rayDistanceBounds,
+                                  std::vector<Interaction<DIM>>& interactions,
+                                  bool checkForOcclusion) const
+{
+    int nQueries = (int)rayOrigins.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            Ray<DIM> ray(rayOrigins[i], rayDirections[i], rayDistanceBounds[i]);
+            sceneData->aggregate->intersect(ray, interactions[i], checkForOcclusion);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
 inline void Scene<DIM>::intersect(std::vector<Ray<DIM>>& rays,
                                   std::vector<Interaction<DIM>>& interactions,
                                   bool checkForOcclusion) const
@@ -1140,6 +1173,40 @@ inline void Scene<DIM>::intersect(std::vector<Ray<DIM>>& rays,
     auto callback = [&](int start, int end) {
         for (int i = start; i < end; i++) {
             sceneData->aggregate->intersect(rays[i], interactions[i], checkForOcclusion);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::intersect(const std::vector<Vector<DIM>>& sphereCenters,
+                                  const std::vector<float>& sphereSquaredRadii,
+                                  std::vector<Interaction<DIM>>& interactions,
+                                  const std::vector<Vector<DIM>>& randNums,
+                                  const std::function<float(float)>& branchTraversalWeight) const
+{
+    int nQueries = (int)sphereCenters.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            BoundingSphere<DIM> boundingSphere(sphereCenters[i], sphereSquaredRadii[i]);
+            sceneData->aggregate->intersect(boundingSphere, interactions[i],
+                                            randNums[i], branchTraversalWeight);
         }
     };
 
@@ -1250,6 +1317,38 @@ inline void Scene<DIM>::hasLineOfSight(const std::vector<Vector<DIM>>& pointsI,
 }
 
 template<size_t DIM>
+inline void Scene<DIM>::findClosestPoints(const std::vector<Vector<DIM>>& queryPoints,
+                                          const std::vector<float>& squaredMaxRadii,
+                                          std::vector<Interaction<DIM>>& interactions,
+                                          bool recordNormal) const
+{
+    int nQueries = (int)queryPoints.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            BoundingSphere<DIM> boundingSphere(queryPoints[i], squaredMaxRadii[i]);
+            sceneData->aggregate->findClosestPoint(boundingSphere, interactions[i], recordNormal);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
 inline void Scene<DIM>::findClosestPoints(std::vector<BoundingSphere<DIM>>& boundingSpheres,
                                           std::vector<Interaction<DIM>>& interactions,
                                           bool recordNormal) const
@@ -1261,6 +1360,42 @@ inline void Scene<DIM>::findClosestPoints(std::vector<BoundingSphere<DIM>>& boun
     auto callback = [&](int start, int end) {
         for (int i = start; i < end; i++) {
             sceneData->aggregate->findClosestPoint(boundingSpheres[i], interactions[i], recordNormal);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::findClosestSilhouettePoints(const std::vector<Vector<DIM>>& queryPoints,
+                                                    const std::vector<float>& squaredMaxRadii,
+                                                    std::vector<Interaction<DIM>>& interactions,
+                                                    const std::vector<uint32_t>& flipNormalOrientation,
+                                                    float squaredMinRadius, float precision,
+                                                    bool recordNormal) const
+{
+    int nQueries = (int)queryPoints.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            BoundingSphere<DIM> boundingSphere(queryPoints[i], squaredMaxRadii[i]);
+            sceneData->aggregate->findClosestSilhouettePoint(boundingSphere, interactions[i],
+                                                             flipNormalOrientation[i] == 1,
+                                                             squaredMinRadius, precision, recordNormal);
         }
     };
 
