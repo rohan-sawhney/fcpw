@@ -21,57 +21,16 @@ def compute_bounding_box(positions):
 
     return BoundingBox(p_min, p_max)
 
-def split_box_recursive(bounding_box, depth):
-    boxes = []
-    if depth == 0:
-        boxes.append(bounding_box)
-
-    else:
-        split_dim = bounding_box.max_dimension()
-        split_coord = (bounding_box.p_min[split_dim] + bounding_box.p_max[split_dim]) * 0.5
-
-        box_left = BoundingBox(bounding_box.p_min, bounding_box.p_max)
-        box_left.p_max[split_dim] = split_coord
-        boxes_left = split_box_recursive(box_left, depth - 1)
-        boxes.extend(boxes_left)
-
-        box_right = BoundingBox(bounding_box.p_min, bounding_box.p_max)
-        box_right.p_min[split_dim] = split_coord
-        boxes_right = split_box_recursive(box_right, depth - 1)
-        boxes.extend(boxes_right)
-
-    return boxes
-
 def generate_scattered_points_and_rays(n_queries, bounding_box, dim):
     epsilon = 1e-6
-    boxes = split_box_recursive(bounding_box, 6)
-    n_boxes = len(boxes)
-    n_queries_per_box = int(np.ceil(n_queries / n_boxes))
-
-    scattered_points = [None] * n_boxes * n_queries_per_box
-    random_directions = [None] * n_boxes * n_queries_per_box
-    random_squared_radii = [None] * n_boxes * n_queries_per_box
-
-    count = 0
-    for box in boxes:
-        e = box.p_max - box.p_min
-        for _ in range(n_queries_per_box):
-            o = box.p_min + e * np.random.rand(dim)
-            d = np.random.rand(dim) * 2 - 1
-            r2 = 0.1 * np.random.rand() * np.linalg.norm(e)
-            if np.abs(e[dim - 1]) < 5 * epsilon:
-                o[dim - 1] = 0
-                d[dim - 1] = 0
-            d /= np.linalg.norm(d)
-
-            scattered_points[count] = o
-            random_directions[count] = d
-            random_squared_radii[count] = r2
-            count += 1
-
-    scattered_points = scattered_points[:n_queries]
-    random_directions = random_directions[:n_queries]
-    random_squared_radii = random_squared_radii[:n_queries]
+    extents = bounding_box.p_max - bounding_box.p_min
+    scattered_points = bounding_box.p_min + extents * np.random.rand(n_queries, dim)
+    random_directions = np.random.rand(n_queries, dim) * 2 - 1
+    random_squared_radii = 0.1 * np.random.rand(n_queries) * np.linalg.norm(extents)
+    if np.abs(extents[dim - 1]) < 5 * epsilon:
+        scattered_points[:, dim - 1] = 0
+        random_directions[:, dim - 1] = 0
+    random_directions /= np.linalg.norm(random_directions, axis=1)[:, None]
 
     return scattered_points, random_directions, random_squared_radii
 
@@ -145,15 +104,8 @@ def load_fcpw_scene(positions, indices, aggregate_type, compute_silhouettes, vec
 
     return scene
 
-def init_gpu_data(n_queries, query_points, random_directions, random_squared_radii,
-                  cpu_rand_nums, cpu_flip_normal_orientation, dim):
+def init_gpu_data(n_queries, dim):
     scene = None
-    ray_list = [None] * n_queries
-    bounding_sphere_list = [None] * n_queries
-    infinite_sphere_list = [None] * n_queries
-    rand_nums = [None] * n_queries
-    flip_normal_orientation = [None] * n_queries
-
     fcpw_directory_path = str(Path.cwd().parent)
     if dim == 2:
         scene = fcpw.gpu_scene_2D(fcpw_directory_path, True)
@@ -161,50 +113,21 @@ def init_gpu_data(n_queries, query_points, random_directions, random_squared_rad
     elif dim == 3:
         scene = fcpw.gpu_scene_3D(fcpw_directory_path, True)
 
-    for q in range(n_queries):
-        query_point = fcpw.gpu_float_3D(query_points[q][0], query_points[q][1], 0.0)
-        random_direction = fcpw.gpu_float_3D(random_directions[q][0], random_directions[q][1], 0.0)
-        rand_num = fcpw.gpu_float_3D(cpu_rand_nums[q][0], cpu_rand_nums[q][1], 0.0)
-        if dim == 3:
-            query_point.z = query_points[q][2]
-            random_direction.z = random_directions[q][2]
-            rand_num.z = cpu_rand_nums[q][2]
+    return scene
 
-        ray_list[q] = fcpw.gpu_ray(query_point, random_direction)
-        bounding_sphere_list[q] = fcpw.gpu_bounding_sphere(query_point, random_squared_radii[q])
-        infinite_sphere_list[q] = fcpw.gpu_bounding_sphere(query_point, np.inf)
-        rand_nums[q] = rand_num
-        flip_normal_orientation[q] = 1 if cpu_flip_normal_orientation[q] else 0
-
-    return scene, fcpw.gpu_ray_list(ray_list), fcpw.gpu_bounding_sphere_list(bounding_sphere_list), \
-           fcpw.gpu_bounding_sphere_list(infinite_sphere_list), fcpw.gpu_float_3D_list(rand_nums), \
-           fcpw.uint32_list(flip_normal_orientation)
-
-def run_cpu_ray_intersection_queries(scene, ray_origins, ray_directions,
+def run_cpu_ray_intersection_queries(scene, ray_origins, ray_directions, ray_distance_bounds,
                                      dim, run_bundled_queries = True):
     n_queries = len(ray_origins)
     if run_bundled_queries:
-        rays = None
         interactions = None
-
         if dim == 2:
-            rays = fcpw.ray_2D_list()
             interactions = fcpw.interaction_2D_list()
 
-            for q in range(n_queries):
-                rays.append(fcpw.ray_2D(ray_origins[q], ray_directions[q]))
-                interactions.append(fcpw.interaction_2D())
-
         elif dim == 3:
-            rays = fcpw.ray_3D_list()
             interactions = fcpw.interaction_3D_list()
 
-            for q in range(n_queries):
-                rays.append(fcpw.ray_3D(ray_origins[q], ray_directions[q]))
-                interactions.append(fcpw.interaction_3D())
-
         start_time = time.perf_counter()
-        scene.intersect(rays, interactions, False)
+        scene.intersect(ray_origins, ray_directions, ray_distance_bounds, interactions, False)
         end_time = time.perf_counter()
         print(f"{n_queries} ray intersection queries took {end_time - start_time} seconds")
 
@@ -216,13 +139,13 @@ def run_cpu_ray_intersection_queries(scene, ray_origins, ray_directions,
 
         if dim == 2:
             for q in range(n_queries):
-                ray = fcpw.ray_2D(ray_origins[q], ray_directions[q])
+                ray = fcpw.ray_2D(ray_origins[q], ray_directions[q], ray_distance_bounds[q])
                 interactions[q] = fcpw.interaction_2D()
                 hit = scene.intersect(ray, interactions[q], False)
 
         elif dim == 3:
             for q in range(n_queries):
-                ray = fcpw.ray_3D(ray_origins[q], ray_directions[q])
+                ray = fcpw.ray_3D(ray_origins[q], ray_directions[q], ray_distance_bounds[q])
                 interactions[q] = fcpw.interaction_3D()
                 hit = scene.intersect(ray, interactions[q], False)
 
@@ -238,27 +161,15 @@ def run_cpu_sphere_intersection_queries(scene, sphere_centers, sphere_squared_ra
                                         rand_nums, dim, run_bundled_queries = True):
     n_queries = len(sphere_centers)
     if run_bundled_queries:
-        bounding_spheres = None
         interactions = None
-
         if dim == 2:
-            bounding_spheres = fcpw.bounding_sphere_2D_list()
             interactions = fcpw.interaction_2D_list()
 
-            for q in range(n_queries):
-                bounding_spheres.append(fcpw.bounding_sphere_2D(sphere_centers[q], sphere_squared_radii[q]))
-                interactions.append(fcpw.interaction_2D())
-
         elif dim == 3:
-            bounding_spheres = fcpw.bounding_sphere_3D_list()
             interactions = fcpw.interaction_3D_list()
 
-            for q in range(n_queries):
-                bounding_spheres.append(fcpw.bounding_sphere_3D(sphere_centers[q], sphere_squared_radii[q]))
-                interactions.append(fcpw.interaction_3D())
-
         start_time = time.perf_counter()
-        scene.intersect(bounding_spheres, interactions, rand_nums, None)
+        scene.intersect(sphere_centers, sphere_squared_radii, interactions, rand_nums, None)
         end_time = time.perf_counter()
         print(f"{n_queries} sphere intersection queries took {end_time - start_time} seconds")
 
@@ -285,30 +196,18 @@ def run_cpu_sphere_intersection_queries(scene, sphere_centers, sphere_squared_ra
 
         return interactions
 
-def run_cpu_closest_point_queries(scene, query_points, dim, run_bundled_queries = True):
+def run_cpu_closest_point_queries(scene, query_points, squared_max_radii, dim, run_bundled_queries = True):
     n_queries = len(query_points)
     if run_bundled_queries:
-        bounding_spheres = None
         interactions = None
-
         if dim == 2:
-            bounding_spheres = fcpw.bounding_sphere_2D_list()
             interactions = fcpw.interaction_2D_list()
 
-            for q in range(n_queries):
-                bounding_spheres.append(fcpw.bounding_sphere_2D(query_points[q], np.inf))
-                interactions.append(fcpw.interaction_2D())
-
         elif dim == 3:
-            bounding_spheres = fcpw.bounding_sphere_3D_list()
             interactions = fcpw.interaction_3D_list()
 
-            for q in range(n_queries):
-                bounding_spheres.append(fcpw.bounding_sphere_3D(query_points[q], np.inf))
-                interactions.append(fcpw.interaction_3D())
-
         start_time = time.perf_counter()
-        scene.find_closest_points(bounding_spheres, interactions)
+        scene.find_closest_points(query_points, squared_max_radii, interactions)
         end_time = time.perf_counter()
         print(f"{n_queries} closest point queries took {end_time - start_time} seconds")
 
@@ -321,46 +220,31 @@ def run_cpu_closest_point_queries(scene, query_points, dim, run_bundled_queries 
         if dim == 2:
             for q in range(n_queries):
                 interactions[q] = fcpw.interaction_2D()
-                found = scene.find_closest_point(query_points[q], interactions[q])
+                found = scene.find_closest_point(query_points[q], interactions[q], squared_max_radii[q])
 
         elif dim == 3:
             for q in range(n_queries):
                 interactions[q] = fcpw.interaction_3D()
-                found = scene.find_closest_point(query_points[q], interactions[q])
+                found = scene.find_closest_point(query_points[q], interactions[q], squared_max_radii[q])
 
         end_time = time.perf_counter()
         print(f"{n_queries} closest point queries took {end_time - start_time} seconds")
 
         return interactions
 
-def run_cpu_closest_silhouette_point_queries(scene, query_points, flip_normal_orientation,
+def run_cpu_closest_silhouette_point_queries(scene, query_points, squared_max_radii, flip_normal_orientation,
                                              dim, run_bundled_queries = True):
     n_queries = len(query_points)
     if run_bundled_queries:
-        bounding_spheres = None
         interactions = None
-        flip_normal_orientation_list = fcpw.uint32_list()
-
         if dim == 2:
-            bounding_spheres = fcpw.bounding_sphere_2D_list()
             interactions = fcpw.interaction_2D_list()
 
-            for q in range(n_queries):
-                bounding_spheres.append(fcpw.bounding_sphere_2D(query_points[q], np.inf))
-                interactions.append(fcpw.interaction_2D())
-                flip_normal_orientation_list.append(1 if flip_normal_orientation[q] else 0)
-
         elif dim == 3:
-            bounding_spheres = fcpw.bounding_sphere_3D_list()
             interactions = fcpw.interaction_3D_list()
 
-            for q in range(n_queries):
-                bounding_spheres.append(fcpw.bounding_sphere_3D(query_points[q], np.inf))
-                interactions.append(fcpw.interaction_3D())
-                flip_normal_orientation_list.append(1 if flip_normal_orientation[q] else 0)
-
         start_time = time.perf_counter()
-        scene.find_closest_silhouette_points(bounding_spheres, interactions, flip_normal_orientation_list)
+        scene.find_closest_silhouette_points(query_points, squared_max_radii, interactions, flip_normal_orientation)
         end_time = time.perf_counter()
         print(f"{n_queries} closest silhouette point queries took {end_time - start_time} seconds")
 
@@ -373,12 +257,14 @@ def run_cpu_closest_silhouette_point_queries(scene, query_points, flip_normal_or
         if dim == 2:
             for q in range(n_queries):
                 interactions[q] = fcpw.interaction_2D()
-                found = scene.find_closest_silhouette_point(query_points[q], interactions[q], flip_normal_orientation[q])
+                found = scene.find_closest_silhouette_point(query_points[q], interactions[q],
+                                                            flip_normal_orientation[q], squared_max_radii[q])
 
         elif dim == 3:
             for q in range(n_queries):
                 interactions[q] = fcpw.interaction_3D()
-                found = scene.find_closest_silhouette_point(query_points[q], interactions[q], flip_normal_orientation[q])
+                found = scene.find_closest_silhouette_point(query_points[q], interactions[q],
+                                                            flip_normal_orientation[q], squared_max_radii[q])
 
         end_time = time.perf_counter()
         print(f"{n_queries} closest silhouette point queries took {end_time - start_time} seconds")
@@ -547,15 +433,12 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
 
     print("\nGenerating query data")
     bounding_box = compute_bounding_box(positions)
-    query_points, random_directions, random_squared_radii = \
-        generate_scattered_points_and_rays(n_queries, bounding_box, dim)
+    query_points, random_directions, random_squared_radii = generate_scattered_points_and_rays(n_queries, bounding_box, dim)
 
-    rand_nums = [None] * n_queries
-    flip_normal_orientation = [None] * n_queries
+    query_bounds = np.inf * np.ones(n_queries, dtype=np.float32)
+    rand_nums = np.random.rand(n_queries, dim)
     is_interior = tag_interior_points(scene, query_points)
-    for q in range(n_queries):
-        rand_nums[q] = np.random.rand(dim)
-        flip_normal_orientation[q] = not is_interior[q]
+    flip_normal_orientation = np.array([0 if not is_interior[q] else 1 for q in range(n_queries)], dtype=int)
 
     baseline_cpu_ray_interactions = None
     baseline_cpu_sphere_interactions = None
@@ -567,14 +450,14 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
 
         print("\nRunning Baseline CPU Queries")
         baseline_cpu_ray_interactions = run_cpu_ray_intersection_queries(
-            baseline_scene, query_points, random_directions, dim)
+            baseline_scene, query_points, random_directions, query_bounds, dim)
         baseline_cpu_sphere_interactions = run_cpu_sphere_intersection_queries(
             baseline_scene, query_points, random_squared_radii, rand_nums, dim)
         baseline_cpu_cpq_interactions = run_cpu_closest_point_queries(
-            baseline_scene, query_points, dim)
+            baseline_scene, query_points, query_bounds, dim)
         if compute_silhouettes:
             baseline_cpu_cspq_interactions = run_cpu_closest_silhouette_point_queries(
-                baseline_scene, query_points, flip_normal_orientation, dim)
+                baseline_scene, query_points, query_bounds, flip_normal_orientation, dim)
 
     gpu_ray_interactions = None
     gpu_sphere_interactions = None
@@ -582,10 +465,7 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     gpu_cspq_interactions = None
     if run_gpu_queries:
         print("\nTransferring CPU BVH to GPU")
-        gpu_scene, gpu_ray_list, gpu_bounding_sphere_list, gpu_infinite_sphere_list, \
-        gpu_rand_nums, gpu_flip_normal_orientation = \
-            init_gpu_data(n_queries, query_points, random_directions, random_squared_radii,
-                          rand_nums, flip_normal_orientation, dim)
+        gpu_scene = init_gpu_data(n_queries, dim)
         gpu_scene.transfer_to_gpu(scene)
 
         if refit_gpu_scene:
@@ -594,18 +474,18 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
 
         print("\nRunning BVH GPU Queries")
         gpu_ray_interactions = fcpw.gpu_interaction_list()
-        gpu_scene.intersect(gpu_ray_list, gpu_ray_interactions)
+        gpu_scene.intersect(query_points, random_directions, query_bounds, gpu_ray_interactions)
 
         gpu_sphere_interactions = fcpw.gpu_interaction_list()
-        gpu_scene.intersect(gpu_bounding_sphere_list, gpu_rand_nums, gpu_sphere_interactions)
+        gpu_scene.intersect(query_points, random_squared_radii, rand_nums, gpu_sphere_interactions)
 
         gpu_cpq_interactions = fcpw.gpu_interaction_list()
-        gpu_scene.find_closest_points(gpu_infinite_sphere_list, gpu_cpq_interactions)
+        gpu_scene.find_closest_points(query_points, query_bounds, gpu_cpq_interactions)
 
         if compute_silhouettes:
             gpu_cspq_interactions = fcpw.gpu_interaction_list()
-            gpu_scene.find_closest_silhouette_points(gpu_infinite_sphere_list,
-                                                     gpu_flip_normal_orientation,
+            gpu_scene.find_closest_silhouette_points(query_points, query_bounds,
+                                                     flip_normal_orientation,
                                                      gpu_cspq_interactions)
 
     if compare_with_warp and run_gpu_queries and dim == 3:
@@ -667,13 +547,13 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
         scene, query_points, random_squared_radii, rand_nums, dim)
     scene.build(fcpw.aggregate_type.bvh_overlap_surface_area, True, True)
     cpu_ray_interactions = run_cpu_ray_intersection_queries(
-        scene, query_points, random_directions, dim)
+        scene, query_points, random_directions, query_bounds, dim)
     cpu_cpq_interactions = run_cpu_closest_point_queries(
-        scene, query_points, dim)
+        scene, query_points, query_bounds, dim)
     cpu_cspq_interactions = None
     if compute_silhouettes:
         cpu_cspq_interactions = run_cpu_closest_silhouette_point_queries(
-            scene, query_points, flip_normal_orientation, dim)
+            scene, query_points, query_bounds, flip_normal_orientation, dim)
 
     if compare_with_cpu_baseline:
         print("\nComparing CPU ray intersection query results...")

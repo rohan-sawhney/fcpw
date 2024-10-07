@@ -92,7 +92,7 @@ inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& rayOrigins,
                        DIM == 2 ? 0.0f : rayDirections(i, 2)};
         ray.dInv = float3{1.0f / ray.d.x,
                           1.0f / ray.d.y,
-                          DIM == 2 ? 0.0f : 1.0f / ray.d.z};
+                          1.0f / ray.d.z};
         ray.tMax = rayDistanceBounds(i);
         rays.emplace_back(ray);
     }
