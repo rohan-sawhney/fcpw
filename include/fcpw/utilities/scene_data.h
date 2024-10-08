@@ -3,6 +3,7 @@
 #include <fcpw/aggregates/csg_node.h>
 #include <fcpw/geometry/line_segments.h>
 #include <fcpw/geometry/triangles.h>
+#include <fcpw/geometry/quads.h>
 #include <fcpw/geometry/silhouette_vertices.h>
 #include <fcpw/geometry/silhouette_edges.h>
 #include <unordered_map>
@@ -11,7 +12,8 @@ namespace fcpw {
 
 enum class ObjectType {
     LineSegments,
-    Triangles
+    Triangles,
+    Quads
 };
 
 enum class AggregateType {
@@ -47,6 +49,7 @@ public:
 
     std::vector<std::unique_ptr<std::vector<LineSegment>>> lineSegmentObjects;
     std::vector<std::unique_ptr<std::vector<Triangle>>> triangleObjects;
+    std::vector<std::unique_ptr<std::vector<Quad>>> quadObjects;
     std::vector<std::unique_ptr<std::vector<SilhouetteVertex>>> silhouetteVertexObjects;
     std::vector<std::unique_ptr<std::vector<SilhouetteEdge>>> silhouetteEdgeObjects;
     std::vector<std::vector<Transform<DIM>>> instanceTransforms;
@@ -55,6 +58,7 @@ public:
 
     std::vector<std::vector<LineSegment *>> lineSegmentObjectPtrs;
     std::vector<std::vector<Triangle *>> triangleObjectPtrs;
+    std::vector<std::vector<Quad *>> quadObjectPtrs;
     std::vector<std::vector<SilhouetteVertex *>> silhouetteVertexObjectPtrs;
     std::vector<std::vector<SilhouetteEdge *>> silhouetteEdgeObjectPtrs;
     std::vector<SilhouettePrimitive<DIM> *> silhouetteObjectPtrStub;
