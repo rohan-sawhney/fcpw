@@ -59,14 +59,9 @@ aggregate_type = fcpw.aggregate_type.bvh_surface_area
 build_vectorized_bvh = True
 scene.build(aggregate_type, build_vectorized_bvh)
 
-# initialize bounding spheres
-bounding_spheres = fcpw.bounding_sphere_3D_list()
-for q in query_points:
-	bounding_spheres.append(fcpw.bounding_sphere_3D(q, np.inf))
-
 # perform several closest point queries
 interactions = fcpw.interaction_3D_list()
-scene.find_closest_points(bounding_spheres, interactions)
+scene.find_closest_points(query_points, squared_max_radii, interactions)
 
 # extract closest points
 closest_points = [i.p for i in interactions]
@@ -123,15 +118,9 @@ scene.build(fcpw.aggregate_type.bvh_surface_area, build_vectorized_cpu_bvh)
 gpu_scene = fcpw.gpu_scene_3D("PATH_TO_FCPW_DIRECTORY")
 gpu_scene.transfer_to_gpu(scene)
 
-# initialize bounding spheres
-bounding_spheres = fcpw.gpu_bounding_sphere_list()
-for q in query_points:
-	gpu_query_point = fcpw.float_3D(q[0], q[1], q[2])
-	bounding_spheres.append(fcpw.gpu_bounding_sphere(gpu_query_point, np.inf))
-
 # perform several closest point queries on GPU
 interactions = fcpw.gpu_interaction_list()
-gpu_scene.find_closest_points(bounding_spheres, interactions)
+gpu_scene.find_closest_points(query_points, squared_max_radii, interactions)
 ```
 
 Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.cpp) and [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.py) for complete demos. GPU support is available on Linux and Windows ([Slang](https://shader-slang.com/slang/user-guide/) currently only has unofficial support for macOS).
