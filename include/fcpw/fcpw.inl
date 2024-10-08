@@ -1258,6 +1258,34 @@ inline void Scene<DIM>::intersect(const std::vector<BoundingSphere<DIM>>& boundi
 }
 
 template<size_t DIM>
+inline void Scene<DIM>::contains(const Eigen::MatrixXf& points,
+                                 Eigen::VectorXi& result) const
+{
+    int nQueries = (int)points.rows();
+    result = Eigen::VectorXi::Zero(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            result(i) = sceneData->aggregate->contains(points.row(i)) ? 1 : 0;
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
 inline void Scene<DIM>::contains(const std::vector<Vector<DIM>>& points,
                                  std::vector<uint32_t>& result) const
 {
@@ -1268,6 +1296,35 @@ inline void Scene<DIM>::contains(const std::vector<Vector<DIM>>& points,
     auto callback = [&](int start, int end) {
         for (int i = start; i < end; i++) {
             result[i] = sceneData->aggregate->contains(points[i]) ? 1 : 0;
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::hasLineOfSight(const Eigen::MatrixXf& pointsI,
+                                       const Eigen::MatrixXf& pointsJ,
+                                       Eigen::VectorXi& result) const
+{
+    int nQueries = (int)pointsI.rows();
+    result = Eigen::VectorXi::Zero(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            result(i) = sceneData->aggregate->hasLineOfSight(pointsI.row(i), pointsJ.row(i)) ? 1 : 0;
         }
     };
 

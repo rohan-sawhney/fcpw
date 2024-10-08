@@ -227,10 +227,18 @@ NB_MODULE(py, m) {
             &fcpw::Scene<2>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_2D.p) using the random numbers randNums[2].\nThe selection pdf value is written to interaction_2D.d along with the primitive index.",
             "bounding_spheres"_a, "interactions"_a, "rand_nums"_a, "branch_traversal_weight"_a.none())
+        .def("contains", nb::overload_cast<const Eigen::MatrixXf&, Eigen::VectorXi&>(
+            &fcpw::Scene<2>::contains, nb::const_),
+            "Checks whether points are contained inside a scene. NOTE: the scene must be watertight.",
+            "points"_a, "result"_a)
         .def("contains", nb::overload_cast<const Float2DList&, UInt32List&>(
             &fcpw::Scene<2>::contains, nb::const_),
             "Checks whether points are contained inside a scene. NOTE: the scene must be watertight.",
             "points"_a, "result"_a)
+        .def("has_line_of_sight", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, Eigen::VectorXi&>(
+            &fcpw::Scene<2>::hasLineOfSight, nb::const_),
+            "Checks whether there is a line of sight between between two sets of points in the scene.",
+            "points_i"_a, "points_j"_a, "result"_a)
         .def("has_line_of_sight", nb::overload_cast<const Float2DList&, const Float2DList&, UInt32List&>(
             &fcpw::Scene<2>::hasLineOfSight, nb::const_),
             "Checks whether there is a line of sight between between two sets of points in the scene.",
@@ -341,10 +349,18 @@ NB_MODULE(py, m) {
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_3D.p) using the random numbers randNums[3].\nThe selection pdf value is written to interaction_3D.d along with the primitive index.",
             "bounding_spheres"_a, "interactions"_a, "rand_nums"_a, "branch_traversal_weight"_a.none())
+        .def("contains", nb::overload_cast<const Eigen::MatrixXf&, Eigen::VectorXi&>(
+            &fcpw::Scene<3>::contains, nb::const_),
+            "Checks whether points are contained inside a scene. NOTE: the scene must be watertight.",
+            "points"_a, "result"_a)
         .def("contains", nb::overload_cast<const Float3DList&, UInt32List&>(
             &fcpw::Scene<3>::contains, nb::const_),
             "Checks whether points are contained inside a scene. NOTE: the scene must be watertight.",
             "points"_a, "result"_a)
+        .def("has_line_of_sight", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, Eigen::VectorXi&>(
+            &fcpw::Scene<3>::hasLineOfSight, nb::const_),
+            "Checks whether there is a line of sight between between two sets of points in the scene.",
+            "points_i"_a, "points_j"_a, "result"_a)
         .def("has_line_of_sight", nb::overload_cast<const Float3DList&, const Float3DList&, UInt32List&>(
             &fcpw::Scene<3>::hasLineOfSight, nb::const_),
             "Checks whether there is a line of sight between between two sets of points in the scene.",

@@ -186,10 +186,15 @@ public:
                    const std::function<float(float)>& branchTraversalWeight={}) const;
 
     // checks whether points are contained inside a scene; NOTE: the scene must be watertight
+    void contains(const Eigen::MatrixXf& points,
+                  Eigen::VectorXi& result) const;
     void contains(const std::vector<Vector<DIM>>& points,
                   std::vector<uint32_t>& result) const;
 
     // checks whether there is a line of sight between between two sets of points in the scene
+    void hasLineOfSight(const Eigen::MatrixXf& pointsI,
+                        const Eigen::MatrixXf& pointsJ,
+                        Eigen::VectorXi& result) const;
     void hasLineOfSight(const std::vector<Vector<DIM>>& pointsI,
                         const std::vector<Vector<DIM>>& pointsJ,
                         std::vector<uint32_t>& result) const;
