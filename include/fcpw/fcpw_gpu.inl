@@ -78,23 +78,37 @@ inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& rayOrigins,
                                      std::vector<GPUInteraction>& interactions,
                                      bool checkForOcclusion)
 {
-    size_t nRays = rayOrigins.rows();
-    std::vector<GPURay> rays;
-    rays.reserve(nRays);
+    int nQueries = (int)rayOrigins.rows();
+    std::vector<GPURay> rays(nQueries);
 
-    for (size_t i = 0; i < nRays; i++) {
-        GPURay ray;
-        ray.o = float3{rayOrigins(i, 0),
-                       rayOrigins(i, 1),
-                       DIM == 2 ? 0.0f : rayOrigins(i, 2)};
-        ray.d = float3{rayDirections(i, 0),
-                       rayDirections(i, 1),
-                       DIM == 2 ? 0.0f : rayDirections(i, 2)};
-        ray.dInv = float3{1.0f / ray.d.x,
-                          1.0f / ray.d.y,
-                          1.0f / ray.d.z};
-        ray.tMax = rayDistanceBounds(i);
-        rays.emplace_back(ray);
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            GPURay& ray = rays[i];
+            ray.o = float3{rayOrigins(i, 0),
+                           rayOrigins(i, 1),
+                           DIM == 2 ? 0.0f : rayOrigins(i, 2)};
+            ray.d = float3{rayDirections(i, 0),
+                           rayDirections(i, 1),
+                           DIM == 2 ? 0.0f : rayDirections(i, 2)};
+            ray.dInv = float3{1.0f / ray.d.x,
+                              1.0f / ray.d.y,
+                              1.0f / ray.d.z};
+            ray.tMax = rayDistanceBounds(i);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
     }
 
     intersect(rays, interactions, checkForOcclusion);
@@ -129,24 +143,36 @@ inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& sphereCenters,
                                      Eigen::MatrixXf& randNums,
                                      std::vector<GPUInteraction>& interactions)
 {
-    size_t nSpheres = sphereCenters.rows();
-    std::vector<GPUBoundingSphere> boundingSpheres;
-    std::vector<float3> randNums3;
-    boundingSpheres.reserve(nSpheres);
-    randNums3.reserve(nSpheres);
+    int nQueries = (int)sphereCenters.rows();
+    std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
+    std::vector<float3> randNums3(nQueries);
 
-    for (size_t i = 0; i < nSpheres; i++) {
-        GPUBoundingSphere boundingSphere;
-        boundingSphere.c = float3{sphereCenters(i, 0),
-                                  sphereCenters(i, 1),
-                                  DIM == 2 ? 0.0f : sphereCenters(i, 2)};
-        boundingSphere.r2 = sphereSquaredRadii(i);
-        boundingSpheres.emplace_back(boundingSphere);
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            GPUBoundingSphere& boundingSphere = boundingSpheres[i];
+            boundingSphere.c = float3{sphereCenters(i, 0),
+                                      sphereCenters(i, 1),
+                                      DIM == 2 ? 0.0f : sphereCenters(i, 2)};
+            boundingSphere.r2 = sphereSquaredRadii(i);
 
-        float3 nums{randNums(i, 0),
-                    randNums(i, 1),
-                    DIM == 2 ? 0.0f : randNums(i, 2)};
-        randNums3.emplace_back(nums);
+            randNums3[i] = float3{randNums(i, 0),
+                                  randNums(i, 1),
+                                  DIM == 2 ? 0.0f : randNums(i, 2)};
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
     }
 
     intersect(boundingSpheres, randNums3, interactions);
@@ -180,17 +206,31 @@ inline void GPUScene<DIM>::findClosestPoints(Eigen::MatrixXf& queryPoints,
                                              std::vector<GPUInteraction>& interactions,
                                              bool recordNormals)
 {
-    size_t nQueryPoints = queryPoints.rows();
-    std::vector<GPUBoundingSphere> boundingSpheres;
-    boundingSpheres.reserve(nQueryPoints);
+    int nQueries = (int)queryPoints.rows();
+    std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
 
-    for (size_t i = 0; i < nQueryPoints; i++) {
-        GPUBoundingSphere boundingSphere;
-        boundingSphere.c = float3{queryPoints(i, 0),
-                                  queryPoints(i, 1),
-                                  DIM == 2 ? 0.0f : queryPoints(i, 2)};
-        boundingSphere.r2 = squaredMaxRadii(i);
-        boundingSpheres.emplace_back(boundingSphere);
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            GPUBoundingSphere& boundingSphere = boundingSpheres[i];
+            boundingSphere.c = float3{queryPoints(i, 0),
+                                      queryPoints(i, 1),
+                                      DIM == 2 ? 0.0f : queryPoints(i, 2)};
+            boundingSphere.r2 = squaredMaxRadii(i);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
     }
 
     findClosestPoints(boundingSpheres, interactions, recordNormals);
@@ -226,21 +266,34 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(Eigen::MatrixXf& queryPoi
                                                        std::vector<GPUInteraction>& interactions,
                                                        float squaredMinRadius, float precision)
 {
-    size_t nQueryPoints = queryPoints.rows();
-    std::vector<GPUBoundingSphere> boundingSpheres;
-    std::vector<uint32_t> flipNormalOrientationVec;
-    boundingSpheres.reserve(nQueryPoints);
-    flipNormalOrientationVec.reserve(nQueryPoints);
+    int nQueries = (int)queryPoints.rows();
+    std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
+    std::vector<uint32_t> flipNormalOrientationVec(nQueries);
 
-    for (size_t i = 0; i < nQueryPoints; i++) {
-        GPUBoundingSphere boundingSphere;
-        boundingSphere.c = float3{queryPoints(i, 0),
-                                  queryPoints(i, 1),
-                                  DIM == 2 ? 0.0f : queryPoints(i, 2)};
-        boundingSphere.r2 = squaredMaxRadii(i);
-        boundingSpheres.emplace_back(boundingSphere);
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            GPUBoundingSphere& boundingSphere = boundingSpheres[i];
+            boundingSphere.c = float3{queryPoints(i, 0),
+                                      queryPoints(i, 1),
+                                      DIM == 2 ? 0.0f : queryPoints(i, 2)};
+            boundingSphere.r2 = squaredMaxRadii(i);
 
-        flipNormalOrientationVec.emplace_back(flipNormalOrientation(i));
+            flipNormalOrientationVec[i] = flipNormalOrientation(i);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
     }
 
     findClosestSilhouettePoints(boundingSpheres, flipNormalOrientationVec,
