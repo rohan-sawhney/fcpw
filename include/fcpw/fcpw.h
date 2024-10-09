@@ -22,12 +22,15 @@ public:
     void setObjectCount(int nObjects);
 
     // sets the vertex positions for an object
+    void setObjectVertices(const Eigen::MatrixXf& positions, int objectIndex);
     void setObjectVertices(const std::vector<Vector<DIM>>& positions, int objectIndex);
 
     // sets the vertex indices of line segments for an object
+    void setObjectLineSegments(const Eigen::MatrixXi& indices, int objectIndex);
     void setObjectLineSegments(const std::vector<Vector2i>& indices, int objectIndex);
 
     // sets the vertex indices of triangles for an object
+    void setObjectTriangles(const Eigen::MatrixXi& indices, int objectIndex);
     void setObjectTriangles(const std::vector<Vector3i>& indices, int objectIndex);
 
     /////////////////////////////////////////////////////////////////////////////////////////////

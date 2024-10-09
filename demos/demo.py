@@ -26,7 +26,7 @@ def load_obj(obj_file_path):
                 index = [int(idx.split('/')[0]) - 1 for idx in line.strip().split()[1:]]
                 indices.append(np.array(index, dtype=np.int32, order='C'))
 
-    return positions, indices
+    return np.array(positions), np.array(indices)
 
 def load_fcpw_scene(positions, indices, build_vectorized_cpu_bvh):
     # load positions and indices
@@ -93,7 +93,7 @@ def visualize(scene, positions, indices, query_points, use_gpu):
     ps.set_ground_plane_mode("none")
 
     # register mesh and callback
-    ps.register_surface_mesh("mesh", np.array(positions), np.array(indices))
+    ps.register_surface_mesh("mesh", positions, indices)
     gui_callback_no_args = lambda: gui_callback(scene, query_points, use_gpu)
     ps.set_user_callback(gui_callback_no_args)
 

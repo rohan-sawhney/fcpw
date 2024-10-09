@@ -216,6 +216,17 @@ inline void Scene<DIM>::setObjectCount(int nObjects)
 }
 
 template<size_t DIM>
+inline void Scene<DIM>::setObjectVertices(const Eigen::MatrixXf& positions, int objectIndex)
+{
+    int nVertices = (int)positions.rows();
+    setObjectVertexCount(nVertices, objectIndex);
+
+    for (int i = 0; i < nVertices; i++) {
+        setObjectVertex(positions.row(i), i, objectIndex);
+    }
+}
+
+template<size_t DIM>
 inline void Scene<DIM>::setObjectVertices(const std::vector<Vector<DIM>>& positions, int objectIndex)
 {
     int nVertices = (int)positions.size();
@@ -223,6 +234,44 @@ inline void Scene<DIM>::setObjectVertices(const std::vector<Vector<DIM>>& positi
 
     for (int i = 0; i < nVertices; i++) {
         setObjectVertex(positions[i], i, objectIndex);
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectLineSegments(const Eigen::MatrixXi& indices, int objectIndex)
+{
+    std::cerr << "setObjectLineSegments(): DIM: " << DIM << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+template<>
+inline void Scene<2>::setObjectLineSegments(const Eigen::MatrixXi& indices, int objectIndex)
+{
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::LineSegments) {
+            std::cerr << "Already set line segments!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // create line segments
+    int nLineSegments = (int)indices.rows();
+    int nLineSegmentObjects = (int)sceneData->lineSegmentObjects.size();
+    sceneData->soupToObjectsMap[objectIndex].emplace_back(std::make_pair(ObjectType::LineSegments,
+                                                                         nLineSegmentObjects));
+    sceneData->lineSegmentObjects.resize(nLineSegmentObjects + 1);
+    sceneData->lineSegmentObjects[nLineSegmentObjects] =
+        std::unique_ptr<std::vector<LineSegment>>(new std::vector<LineSegment>(nLineSegments));
+
+    // resize soup indices
+    PolygonSoup<2>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + 2*nLineSegments);
+
+    // set line segments
+    for (int i = 0; i < nLineSegments; i++) {
+        setObjectLineSegment(indices.row(i), i, objectIndex);
     }
 }
 
@@ -261,6 +310,44 @@ inline void Scene<2>::setObjectLineSegments(const std::vector<Vector2i>& indices
     // set line segments
     for (int i = 0; i < nLineSegments; i++) {
         setObjectLineSegment(indices[i], i, objectIndex);
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectTriangles(const Eigen::MatrixXi& indices, int objectIndex)
+{
+    std::cerr << "setObjectTriangles(): DIM: " << DIM << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+template<>
+inline void Scene<3>::setObjectTriangles(const Eigen::MatrixXi& indices, int objectIndex)
+{
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::Triangles) {
+            std::cerr << "Already set triangles!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // create line segment object
+    int nTriangles = (int)indices.rows();
+    int nTriangleObjects = (int)sceneData->triangleObjects.size();
+    sceneData->soupToObjectsMap[objectIndex].emplace_back(std::make_pair(ObjectType::Triangles,
+                                                                         nTriangleObjects));
+    sceneData->triangleObjects.resize(nTriangleObjects + 1);
+    sceneData->triangleObjects[nTriangleObjects] =
+        std::unique_ptr<std::vector<Triangle>>(new std::vector<Triangle>(nTriangles));
+
+    // resize soup indices
+    PolygonSoup<3>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + 3*nTriangles);
+
+    // set triangles
+    for (int i = 0; i < nTriangles; i++) {
+        setObjectTriangle(indices.row(i), i, objectIndex);
     }
 }
 

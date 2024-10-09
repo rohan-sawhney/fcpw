@@ -145,10 +145,20 @@ NB_MODULE(py, m) {
         .def("set_object_count", &fcpw::Scene<2>::setObjectCount,
             "Sets the number of objects in the scene. Each call to this function resets the scene data.",
             "n_objects"_a)
-        .def("set_object_vertices", &fcpw::Scene<2>::setObjectVertices,
+        .def("set_object_vertices", nb::overload_cast<const Eigen::MatrixXf&, int>(
+            &fcpw::Scene<2>::setObjectVertices),
             "Sets the vertex positions for an object.",
             "positions"_a, "object_index"_a)
-        .def("set_object_line_segments", &fcpw::Scene<2>::setObjectLineSegments,
+        .def("set_object_vertices", nb::overload_cast<const Float2DList&, int>(
+            &fcpw::Scene<2>::setObjectVertices),
+            "Sets the vertex positions for an object.",
+            "positions"_a, "object_index"_a)
+        .def("set_object_line_segments", nb::overload_cast<const Eigen::MatrixXi&, int>(
+            &fcpw::Scene<2>::setObjectLineSegments),
+            "Sets the vertex indices of line segments for an object.",
+            "indices"_a, "object_index"_a)
+        .def("set_object_line_segments", nb::overload_cast<const Int2DList&, int>(
+            &fcpw::Scene<2>::setObjectLineSegments),
             "Sets the vertex indices of line segments for an object.",
             "indices"_a, "object_index"_a)
         .def("set_object_instance_transforms",
@@ -267,10 +277,20 @@ NB_MODULE(py, m) {
         .def("set_object_count", &fcpw::Scene<3>::setObjectCount,
             "Sets the number of objects in the scene. Each call to this function resets the scene data.",
             "n_objects"_a)
-        .def("set_object_vertices", &fcpw::Scene<3>::setObjectVertices,
+        .def("set_object_vertices", nb::overload_cast<const Eigen::MatrixXf&, int>(
+            &fcpw::Scene<3>::setObjectVertices),
             "Sets the vertex positions for an object.",
             "positions"_a, "object_index"_a)
-        .def("set_object_triangles", &fcpw::Scene<3>::setObjectTriangles,
+        .def("set_object_vertices", nb::overload_cast<const Float3DList&, int>(
+            &fcpw::Scene<3>::setObjectVertices),
+            "Sets the vertex positions for an object.",
+            "positions"_a, "object_index"_a)
+        .def("set_object_triangles", nb::overload_cast<const Eigen::MatrixXi&, int>(
+            &fcpw::Scene<3>::setObjectTriangles),
+            "Sets the vertex indices of triangles for an object.",
+            "indices"_a, "object_index"_a)
+        .def("set_object_triangles", nb::overload_cast<const Int3DList&, int>(
+            &fcpw::Scene<3>::setObjectTriangles),
             "Sets the vertex indices of triangles for an object.",
             "indices"_a, "object_index"_a)
         .def("set_object_instance_transforms",

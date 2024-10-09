@@ -45,7 +45,7 @@ def isolate_interior_points(scene, query_points):
     is_interior = tag_interior_points(scene, query_points)
     interior_points = [query_point for query_point, interior in zip(query_points, is_interior) if interior]
 
-    return interior_points
+    return np.array(interior_points)
 
 def load_obj(file_path, dim):
     positions = []
@@ -75,7 +75,7 @@ def load_obj(file_path, dim):
                     index = [int(idx.split('/')[0]) - 1 for idx in line.strip().split()[1:]]
                     indices.append(np.array(index, dtype=np.int32, order='C'))
 
-    return positions, indices
+    return np.array(positions), np.array(indices)
 
 def ignore_silhouette(angle: float, index: int):
     return False # stub
@@ -406,18 +406,18 @@ def compare_warp_and_gpu_interactions(warp_faces, warp_points, warp_dist, gpu_in
 def visualize_polyscope_scene(positions, indices, query_points, random_directions,
                               random_squared_radii, interior_points, dim):
     ps.init()
-    ps.register_point_cloud("query points", np.array(query_points))
+    ps.register_point_cloud("query points", query_points)
     if len(interior_points) > 0:
-        ps.register_point_cloud("interior points", np.array(interior_points))
+        ps.register_point_cloud("interior points", interior_points)
 
     if dim == 2:
-        ps.register_curve_network("scene", np.array(positions), np.array(indices))
+        ps.register_curve_network("scene", positions, indices)
 
     elif dim == 3:
-        ps.register_surface_mesh("scene", np.array(positions), np.array(indices))
+        ps.register_surface_mesh("scene", positions, indices)
 
-    ps.get_point_cloud("query points").add_vector_quantity("random directions", np.array(random_directions))
-    ps.get_point_cloud("query points").add_scalar_quantity("random squared radii", np.array(random_squared_radii))
+    ps.get_point_cloud("query points").add_vector_quantity("random directions", random_directions)
+    ps.get_point_cloud("query points").add_scalar_quantity("random squared radii", random_squared_radii)
     ps.get_point_cloud("query points").set_point_radius_quantity("random squared radii")
 
     ps.show()
@@ -490,11 +490,11 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
 
     if compare_with_warp and run_gpu_queries and dim == 3:
         wp.init()
-        device_points = wp.array(data=np.array(query_points), dtype=wp.vec3, device="cuda:0")
-        device_directions = wp.array(data=np.array(random_directions), dtype=wp.vec3, device="cuda:0")
+        device_points = wp.array(data=query_points, dtype=wp.vec3, device="cuda:0")
+        device_directions = wp.array(data=random_directions, dtype=wp.vec3, device="cuda:0")
         device_parametric_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cuda:0")
-        wp_mesh = wp.Mesh(points=wp.array(data=np.array(positions), dtype=wp.vec3, device="cuda:0"),
-                          indices=wp.array(data=np.array(indices).flatten(), dtype=int, device="cuda:0"),
+        wp_mesh = wp.Mesh(points=wp.array(data=positions, dtype=wp.vec3, device="cuda:0"),
+                          indices=wp.array(data=indices.flatten(), dtype=int, device="cuda:0"),
                           velocities=None)
 
         host_intersection_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cpu")
