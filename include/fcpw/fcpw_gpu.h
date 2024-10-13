@@ -79,6 +79,7 @@ private:
     // members
     GPUContext gpuContext;
     GPUBvhBuffers gpuBvhBuffers;
+    std::string fcpwModule;
     std::string refitShaderModule;
     std::string traversalShaderModule;
     Shader refitShader;

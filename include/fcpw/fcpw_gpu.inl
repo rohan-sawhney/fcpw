@@ -9,6 +9,7 @@ printLogs(printLogs_)
 {
     std::filesystem::path fcpwDirectoryPath(fcpwDirectoryPath_);
     std::filesystem::path shaderDirectoryPath = fcpwDirectoryPath / "include" / "fcpw" / "gpu";
+    fcpwModule = (shaderDirectoryPath / "fcpw.slang").string();
     refitShaderModule = (shaderDirectoryPath / "bvh-refit.cs.slang").string();
     traversalShaderModule = (shaderDirectoryPath / "bvh-traversal.cs.slang").string();
 }
@@ -46,6 +47,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
 
     // initialize shader
     if (refitShader.reflection == nullptr) {
+        loadModuleLibrary(gpuContext, fcpwModule, refitShader);
         loadShader(gpuContext, refitShaderModule, "refit", refitShader);
     }
 
@@ -121,6 +123,7 @@ inline void GPUScene<DIM>::intersect(std::vector<GPURay>& rays,
 {
     // initialize shader
     if (rayIntersectionShader.reflection == nullptr) {
+        loadModuleLibrary(gpuContext, fcpwModule, rayIntersectionShader);
         loadShader(gpuContext, traversalShaderModule, "rayIntersection", rayIntersectionShader);
     }
 
@@ -185,6 +188,7 @@ inline void GPUScene<DIM>::intersect(std::vector<GPUBoundingSphere>& boundingSph
 {
     // initialize shader
     if (sphereIntersectionShader.reflection == nullptr) {
+        loadModuleLibrary(gpuContext, fcpwModule, sphereIntersectionShader);
         loadShader(gpuContext, traversalShaderModule, "sphereIntersection", sphereIntersectionShader);
     }
 
@@ -243,6 +247,7 @@ inline void GPUScene<DIM>::findClosestPoints(std::vector<GPUBoundingSphere>& bou
 {
     // initialize shader
     if (closestPointShader.reflection == nullptr) {
+        loadModuleLibrary(gpuContext, fcpwModule, closestPointShader);
         loadShader(gpuContext, traversalShaderModule, "closestPoint", closestPointShader);
     }
 
@@ -308,6 +313,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(std::vector<GPUBoundingSp
 {
     // initialize shader
     if (closestSilhouettePointShader.reflection == nullptr) {
+        loadModuleLibrary(gpuContext, fcpwModule, closestSilhouettePointShader);
         loadShader(gpuContext, traversalShaderModule, "closestSilhouettePoint", closestSilhouettePointShader);
     }
 

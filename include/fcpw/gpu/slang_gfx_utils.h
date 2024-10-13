@@ -18,6 +18,7 @@ public:
     void initDevice(slang::PreprocessorMacroDesc& macro, int nMacros) {
         deviceDesc.slang.preprocessorMacros = &macro;
         deviceDesc.slang.preprocessorMacroCount = nMacros;
+        deviceDesc.slang.optimizationLevel = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_HIGH;
         SlangResult createDeviceResult = gfxCreateDevice(&deviceDesc, device.writeRef());
         if (createDeviceResult != SLANG_OK) {
             std::cout << "failed to create device" << std::endl;
@@ -42,29 +43,51 @@ public:
 
 class Shader {
 public:
+    std::vector<slang::IModule *> moduleLibraries;
     ComPtr<IShaderProgram> program;
     slang::ProgramLayout* reflection = nullptr;
     ComputePipelineStateDesc pipelineDesc = {};
     ComPtr<IPipelineState> pipelineState;
 
-    Slang::Result loadComputeProgram(ComPtr<IDevice>& device,
-                                     const char* shaderModuleName,
-                                     const char* entryPointName) {
-        // load shader module
+    Slang::Result loadModuleLibrary(ComPtr<IDevice>& device,
+                                    const char* moduleLibraryName) {
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
         ComPtr<slang::IBlob> diagnosticsBlob;
-        slang::IModule* module = slangSession->loadModule(shaderModuleName, diagnosticsBlob.writeRef());
+        slang::IModule* moduleLibrary = slangSession->loadModule(moduleLibraryName,
+                                                                 diagnosticsBlob.writeRef());
         diagnoseIfNeeded(diagnosticsBlob);
-        if (!module) return SLANG_FAIL;
+        if (!moduleLibrary) return SLANG_FAIL;
+
+        moduleLibraries.emplace_back(moduleLibrary);
+        return SLANG_OK;
+    }
+
+    Slang::Result loadComputeProgram(ComPtr<IDevice>& device,
+                                     const char* moduleName,
+                                     const char* entryPointName) {
+        // load module
+        ComPtr<slang::ISession> slangSession;
+        SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
+        ComPtr<slang::IBlob> diagnosticsBlob;
+        slang::IModule* mainModule = slangSession->loadModule(moduleName, diagnosticsBlob.writeRef());
+        diagnoseIfNeeded(diagnosticsBlob);
+        if (!mainModule) return SLANG_FAIL;
 
         // set entry point and create composite program
         ComPtr<slang::IEntryPoint> computeEntryPoint;
-        SLANG_RETURN_ON_FAIL(module->findEntryPointByName(entryPointName, computeEntryPoint.writeRef()));
+        SLANG_RETURN_ON_FAIL(mainModule->findEntryPointByName(entryPointName, computeEntryPoint.writeRef()));
 
-        slang::IComponentType* componentTypes[] = { module, computeEntryPoint };
+        std::vector<slang::IComponentType *> componentTypes;
+        for (auto moduleLibrary: moduleLibraries) {
+            componentTypes.emplace_back(moduleLibrary);
+        }
+        componentTypes.emplace_back(mainModule);
+        componentTypes.emplace_back(computeEntryPoint);
+
         ComPtr<slang::IComponentType> composedProgram;
-        SlangResult result = slangSession->createCompositeComponentType(componentTypes, 2,
+        SlangResult result = slangSession->createCompositeComponentType(componentTypes.data(),
+                                                                        componentTypes.size(),
                                                                         composedProgram.writeRef(),
                                                                         diagnosticsBlob.writeRef());
         diagnoseIfNeeded(diagnosticsBlob);
@@ -79,7 +102,7 @@ public:
         composedProgram = linkedProgram;
         reflection = composedProgram->getLayout();
 
-        // create shader pipeline state
+        // create pipeline state
         IShaderProgram::Desc programDesc = {};
         programDesc.slangGlobalScope = composedProgram.get();
 

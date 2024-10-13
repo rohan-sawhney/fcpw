@@ -4,6 +4,22 @@
 
 namespace fcpw {
 
+void loadModuleLibrary(GPUContext& gpuContext,
+                       const std::string& moduleLibrary,
+                       Shader& shader)
+{
+    Slang::Result loadModuleLibraryResult = shader.loadModuleLibrary(
+        gpuContext.device, moduleLibrary.c_str());
+
+    if (loadModuleLibraryResult != SLANG_OK) {
+        std::cout << "failed to load " << moduleLibrary << " module library" << std::endl;
+        exit(EXIT_FAILURE);
+
+    } else {
+        std::cout << "loaded " << moduleLibrary << " module library" << std::endl;
+    }
+}
+
 void loadShader(GPUContext& gpuContext,
                 const std::string& shaderModule,
                 const std::string& entryPointName,
