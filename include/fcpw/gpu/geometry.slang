@@ -34,6 +34,48 @@ public interface IPrimitive
     uint getIndex();
 };
 
+public bool intersectLineSegment(float3 pa, float3 pb,
+                                 float3 ro, float3 rd, float rtMax, bool checkForOcclusion,
+                                 inout float3 p, inout float3 n, inout float2 uv, inout float d)
+{
+    float3 u = pa - ro;
+    float3 v = pb - pa;
+
+    // return if line segment and ray are parallel
+    float dv = cross(rd, v)[2];
+    if (abs(dv) <= FLT_EPSILON)
+    {
+        return false;
+    }
+
+    // solve ro + t*rd = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
+    // s = (u x rd)/(rd x v)
+    float ud = cross(u, rd)[2];
+    float s = ud / dv;
+
+    if (s >= 0.0 && s <= 1.0)
+    {
+        // t = (u x v)/(rd x v)
+        float t = cross(u, v)[2] / dv;
+
+        if (t >= 0.0 && t <= rtMax)
+        {
+            if (checkForOcclusion)
+            {
+                return true;
+            }
+
+            p = pa + s * v;
+            n = normalize(float3(v[1], -v[0], 0.0));
+            uv = float2(s, 0.0);
+            d = t;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 public float findClosestPointLineSegment(float3 pa, float3 pb, float3 x, out float3 p, out float t)
 {
     float3 u = pb - pa;
@@ -98,42 +140,11 @@ public struct LineSegment : IPrimitive
     // NOTE: specialized to 2D (z coordinate == 0)
     public bool intersect(Ray r, bool checkForOcclusion, inout Interaction i)
     {
-        float3 u = pa - r.o;
-        float3 v = pb - pa;
-
-        // return if line segment and ray are parallel
-        float dv = cross(r.d, v)[2];
-        if (abs(dv) <= FLT_EPSILON)
+        bool didIntersect = intersectLineSegment(pa, pb, r.o, r.d, r.tMax, checkForOcclusion, i.p, i.n, i.uv, i.d);
+        if (didIntersect)
         {
-            return false;
-        }
-
-        // solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
-        // s = (u x r.d)/(r.d x v)
-        float ud = cross(u, r.d)[2];
-        float s = ud / dv;
-
-        if (s >= 0.0 && s <= 1.0)
-        {
-            // t = (u x v)/(r.d x v)
-            float uv = cross(u, v)[2];
-            float t = uv / dv;
-
-            if (t >= 0.0 && t <= r.tMax)
-            {
-                if (checkForOcclusion)
-                {
-                    i.index = index;
-                    return true;
-                }
-
-                i.p = pa + s * v;
-                i.n = normalize(float3(v[1], -v[0], 0.0));
-                i.uv = float2(s, 0.0);
-                i.d = t;
-                i.index = index;
-                return true;
-            }
+            i.index = index;
+            return true;
         }
 
         return false;
@@ -187,6 +198,55 @@ public struct LineSegment : IPrimitive
         return index;
     }
 };
+
+public bool intersectTriangle(float3 pa, float3 pb, float3 pc,
+                              float3 ro, float3 rd, float rtMax, bool checkForOcclusion,
+                              inout float3 p, inout float3 n, inout float2 uv, inout float d)
+{
+    // Möller–Trumbore intersection algorithm
+    float3 v1 = pb - pa;
+    float3 v2 = pc - pa;
+    float3 q = cross(rd, v2);
+    float det = dot(v1, q);
+
+    // ray and triangle are parallel if det is close to 0
+    if (abs(det) <= FLT_EPSILON)
+    {
+        return false;
+    }
+    float invDet = 1.0 / det;
+
+    float3 r = ro - pa;
+    float v = dot(r, q) * invDet;
+    if (v < 0.0 || v > 1.0)
+    {
+        return false;
+    }
+
+    float3 s = cross(r, v1);
+    float w = dot(rd, s) * invDet;
+    if (w < 0.0 || v + w > 1.0)
+    {
+        return false;
+    }
+
+    float t = dot(v2, s) * invDet;
+    if (t >= 0.0 && t <= rtMax)
+    {
+        if (checkForOcclusion)
+        {
+            return true;
+        }
+
+        p = pa + v1 * v + v2 * w;
+        n = normalize(cross(v1, v2));
+        uv = float2(1.0 - v - w, v);
+        d = t;
+        return true;
+    }
+
+    return false;
+}
 
 public float findClosestPointTriangle(float3 pa, float3 pb, float3 pc, float3 x, out float3 p, out float2 t)
 {
@@ -308,46 +368,9 @@ public struct Triangle : IPrimitive
     // intersects primitive with ray
     public bool intersect(Ray r, bool checkForOcclusion, inout Interaction i)
     {
-        // Möller–Trumbore intersection algorithm
-        float3 v1 = pb - pa;
-        float3 v2 = pc - pa;
-        float3 p = cross(r.d, v2);
-        float det = dot(v1, p);
-
-        // ray and triangle are parallel if det is close to 0
-        if (abs(det) <= FLT_EPSILON)
+        bool didIntersect = intersectTriangle(pa, pb, pc, r.o, r.d, r.tMax, checkForOcclusion, i.p, i.n, i.uv, i.d);
+        if (didIntersect)
         {
-            return false;
-        }
-        float invDet = 1.0 / det;
-
-        float3 s = r.o - pa;
-        float v = dot(s, p) * invDet;
-        if (v < 0.0 || v > 1.0)
-        {
-            return false;
-        }
-
-        float3 q = cross(s, v1);
-        float w = dot(r.d, q) * invDet;
-        if (w < 0.0 || v + w > 1.0)
-        {
-            return false;
-        }
-
-        float t = dot(v2, q) * invDet;
-        if (t >= 0.0 && t <= r.tMax)
-        {
-            if (checkForOcclusion)
-            {
-                i.index = index;
-                return true;
-            }
-
-            i.p = pa + v1 * v + v2 * w;
-            i.n = normalize(cross(v1, v2));
-            i.uv = float2(1.0 - v - w, v);
-            i.d = t;
             i.index = index;
             return true;
         }

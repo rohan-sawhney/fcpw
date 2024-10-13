@@ -5,24 +5,24 @@ __include bvh_node;
 
 public static const uint FCPW_BVH_MAX_DEPTH = 64;
 
+public struct TraversalStack
+{
+    public uint node;      // node index
+    public float distance; // minimum distance (parametric, squared, ...) to this node
+
+    // constructor
+    public __init()
+    {
+        node = 0;
+        distance = 0.0;
+    }
+};
+
 public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
 {
     public RWStructuredBuffer<N> nodes;
     public StructuredBuffer<P> primitives;
     public StructuredBuffer<S> silhouettes;
-
-    public struct TraversalStack
-    {
-        public uint node;      // node index
-        public float distance; // minimum distance (parametric, squared, ...) to this node
-
-        // constructor
-        public __init()
-        {
-            node = 0;
-            distance = 0.0;
-        }
-    };
 
     // updates the bounding volume of an aggregate leaf node
     [mutating]
