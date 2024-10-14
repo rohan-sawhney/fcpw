@@ -512,7 +512,8 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
             }
         }
 
-        if (!notFound && recordNormal) {
+        if (!notFound && recordNormal)
+        {
             i.n = primitives[i.index].getNormal();
         }
 
