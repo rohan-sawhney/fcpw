@@ -15,7 +15,10 @@ public:
     ICommandQueue::Desc queueDesc = { ICommandQueue::QueueType::Graphics };
     ComPtr<ICommandQueue> queue;
 
-    void initDevice(slang::PreprocessorMacroDesc& macro, int nMacros) {
+    void initDevice(const char* searchPaths[], int nSearchPaths,
+                    slang::PreprocessorMacroDesc& macro, int nMacros) {
+        deviceDesc.slang.searchPaths = searchPaths;
+        deviceDesc.slang.searchPathCount = nSearchPaths;
         deviceDesc.slang.preprocessorMacros = &macro;
         deviceDesc.slang.preprocessorMacroCount = nMacros;
         deviceDesc.slang.optimizationLevel = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_HIGH;

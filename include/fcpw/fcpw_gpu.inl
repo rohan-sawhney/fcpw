@@ -26,7 +26,7 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     std::string macroValue = hasSilhouetteGeometry ? (hasLineSegmentGeometry ? "3" : "4") :
                                                      (hasLineSegmentGeometry ? "1" : "2");
     slang::PreprocessorMacroDesc macro = { "_BVH_TYPE", macroValue.c_str() };
-    gpuContext.initDevice(macro, 1);
+    gpuContext.initDevice({}, 0, macro, 1);
 
     // create GPU buffers
     gpuBvhBuffers.template allocate<DIM>(gpuContext.device, sceneData, true,
