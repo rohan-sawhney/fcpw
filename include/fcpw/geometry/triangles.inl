@@ -232,16 +232,16 @@ inline bool Triangle::intersect(const Ray<3>& r, Interaction<3>& i, bool checkFo
     float det = v1.dot(p);
 
     // ray and triangle are parallel if det is close to 0
-    if (std::fabs(det) <= epsilon) return 0;
+    if (std::fabs(det) <= epsilon) return false;
     float invDet = 1.0f/det;
 
     Vector3 s = r.o - pa;
     float v = s.dot(p)*invDet;
-    if (v < 0 || v > 1) return 0;
+    if (v < 0 || v > 1) return false;
 
     Vector3 q = s.cross(v1);
     float w = r.d.dot(q)*invDet;
-    if (w < 0 || v + w > 1) return 0;
+    if (w < 0 || v + w > 1) return false;
 
     float t = v2.dot(q)*invDet;
     if (t >= 0.0f && t <= r.tMax) {

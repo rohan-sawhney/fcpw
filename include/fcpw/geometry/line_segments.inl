@@ -147,7 +147,7 @@ inline bool LineSegment::intersect(const Ray<2>& r, Interaction<2>& i, bool chec
 
     // return if line segment and ray are parallel
     float dv = r.d[0]*v[1] - r.d[1]*v[0];
-    if (std::fabs(dv) <= epsilon) return 0;
+    if (std::fabs(dv) <= epsilon) return false;
 
     // solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
     // s = (u x r.d)/(r.d x v)
