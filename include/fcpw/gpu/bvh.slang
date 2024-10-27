@@ -18,11 +18,11 @@ public struct TraversalStack
     }
 };
 
-public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
+public struct Bvh<Node : IBvhNode, Primitive : IPrimitive, Silhouette : ISilhouette> : IAggregate
 {
-    public RWStructuredBuffer<N> nodes;
-    public StructuredBuffer<P> primitives;
-    public StructuredBuffer<S> silhouettes;
+    public RWStructuredBuffer<Node> nodes;
+    public StructuredBuffer<Primitive> primitives;
+    public StructuredBuffer<Silhouette> silhouettes;
 
     // updates the bounding volume of an aggregate leaf node
     [mutating]
@@ -31,7 +31,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
         // update leaf node's bounding box
         float3 pMin = float3(FLT_MAX, FLT_MAX, FLT_MAX);
         float3 pMax = float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-        N node = nodes[nodeIndex];
+        Node node = nodes[nodeIndex];
         uint nPrimitives = node.getNumPrimitives();
 
         for (uint p = 0; p < nPrimitives; p++)
@@ -58,7 +58,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
             for (uint p = 0; p < nSilhouettes; p++)
             {
                 uint silhouetteIndex = node.getSilhouetteOffset() + p;
-                S silhouette = silhouettes[silhouetteIndex];
+                Silhouette silhouette = silhouettes[silhouetteIndex];
                 axis += silhouette.getNormal(0);
                 axis += silhouette.getNormal(1);
                 radius = max(radius, length(silhouette.getCentroid() - centroid));
@@ -85,9 +85,10 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     for (uint p = 0; p < nSilhouettes; p++)
                     {
                         uint silhouetteIndex = node.getSilhouetteOffset() + p;
+                        Silhouette silhouette = silhouettes[silhouetteIndex];
                         for (uint k = 0; k < 2; k++)
                         {
-                            float3 n = silhouettes[silhouetteIndex].getNormal(k);
+                            float3 n = silhouette.getNormal(k);
                             float angle = acos(max(-1.0, min(1.0, dot(axis, n))));
                             halfAngle = max(halfAngle, angle);
                         }
@@ -104,11 +105,11 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
     internal void refitInternalNode(uint nodeIndex)
     {
         // update internal node's bounding box
-        N node = nodes[nodeIndex];
+        Node node = nodes[nodeIndex];
         uint leftNodeIndex = nodeIndex + 1;
         uint rightNodeIndex = nodeIndex + node.getRightChildOffset();
-        N leftNode = nodes[leftNodeIndex];
-        N rightNode = nodes[rightNodeIndex];
+        Node leftNode = nodes[leftNodeIndex];
+        Node rightNode = nodes[rightNodeIndex];
 
         BoundingBox leftBox = leftNode.getBoundingBox();
         BoundingBox rightBox = rightNode.getBoundingBox();
@@ -170,7 +171,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     continue;
                 }
 
-                N node = nodes[currentNodeIndex];
+                Node node = nodes[currentNodeIndex];
                 if (node.isLeaf())
                 {
                     // intersect primitives in leaf node
@@ -279,7 +280,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                 // pop off the next node to work on
                 stackPtr--;
 
-                N node = nodes[currentNodeIndex];
+                Node node = nodes[currentNodeIndex];
                 if (node.isLeaf())
                 {
                     // probabilistically select a primitive
@@ -290,7 +291,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                         Interaction c;
                         bool didIntersectPrimitive = false;
                         uint primitiveIndex = node.getPrimitiveOffset() + p;
-                        P primitive = primitives[primitiveIndex];
+                        Primitive primitive = primitives[primitiveIndex];
 
                         if (maxDistToChildNode <= s.r2)
                         {
@@ -423,7 +424,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     continue;
                 }
 
-                N node = nodes[currentNodeIndex];
+                Node node = nodes[currentNodeIndex];
                 if (node.isLeaf())
                 {
                     // compute distance to primitives in leaf node
@@ -554,7 +555,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     continue;
                 }
 
-                N node = nodes[currentNodeIndex];
+                Node node = nodes[currentNodeIndex];
                 if (node.isLeaf())
                 {
                     // compute distance to silhouettes in leaf node
@@ -562,7 +563,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     for (uint p = 0; p < nSilhouettes; p++)
                     {
                         uint silhouetteIndex = node.getSilhouetteOffset() + p;
-                        S silhouette = silhouettes[silhouetteIndex];
+                        Silhouette silhouette = silhouettes[silhouetteIndex];
                         if (silhouette.getIndex() == i.index)
                         {
                             // silhouette has already been checked
@@ -592,7 +593,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     // find distance to child nodes
                     // NOTE: Slang does not support short-circuiting with the && operator, hence the clunky code
                     uint leftNodeIndex = currentNodeIndex + 1;
-                    N leftNode = nodes[leftNodeIndex];
+                    Node leftNode = nodes[leftNodeIndex];
                     BoundingCone leftCone = leftNode.getBoundingCone();
                     bool overlapsLeft = leftCone.isValid();
                     if (overlapsLeft)
@@ -608,7 +609,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                     }
 
                     uint rightNodeIndex = currentNodeIndex + node.getRightChildOffset();
-                    N rightNode = nodes[rightNodeIndex];
+                    Node rightNode = nodes[rightNodeIndex];
                     BoundingCone rightCone = rightNode.getBoundingCone();
                     bool overlapsRight = rightCone.isValid();
                     if (overlapsRight)
