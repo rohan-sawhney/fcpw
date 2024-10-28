@@ -161,16 +161,16 @@ public interface IPrimitives
 public struct LineSegments : IPrimitives
 {
     public typealias PrimitiveType = LineSegment;
-    public StructuredBuffer<float> pax, pay, paz;
-    public StructuredBuffer<float> pbx, pby, pbz;
+    public StructuredBuffer<float> pax, pay;
+    public StructuredBuffer<float> pbx, pby;
     public StructuredBuffer<uint> indices;
 
     public __subscript(int i) -> PrimitiveType
     {
         get {
             PrimitiveType primitive;
-            primitive.pa = float3(pax[i], pay[i], paz[i]);
-            primitive.pb = float3(pbx[i], pby[i], pbz[i]);
+            primitive.pa = float3(pax[i], pay[i], 0.0);
+            primitive.pb = float3(pbx[i], pby[i], 0.0);
             primitive.index = indices[i];
 
             return primitive;
@@ -225,9 +225,9 @@ public struct NoSilhouettes : ISilhouettes
 public struct Vertices : ISilhouettes
 {
     public typealias SilhouetteType = Vertex;
-    public StructuredBuffer<float> px, py, pz;
-    public StructuredBuffer<float> n0x, n0y, n0z;
-    public StructuredBuffer<float> n1x, n1y, n1z;
+    public StructuredBuffer<float> px, py;
+    public StructuredBuffer<float> n0x, n0y;
+    public StructuredBuffer<float> n1x, n1y;
     public StructuredBuffer<uint> indices;
     public StructuredBuffer<uint> hasOneAdjacentFace;
 
@@ -235,9 +235,9 @@ public struct Vertices : ISilhouettes
     {
         get {
             SilhouetteType silhouette;
-            silhouette.p = float3(px[i], py[i], pz[i]);
-            silhouette.n0 = float3(n0x[i], n0y[i], n0z[i]);
-            silhouette.n1 = float3(n1x[i], n1y[i], n1z[i]);
+            silhouette.p = float3(px[i], py[i], 0.0);
+            silhouette.n0 = float3(n0x[i], n0y[i], 0.0);
+            silhouette.n1 = float3(n1x[i], n1y[i], 0.0);
             silhouette.index = indices[i];
             silhouette.hasOneAdjacentFace = hasOneAdjacentFace[i];
 
