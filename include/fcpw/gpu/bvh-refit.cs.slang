@@ -11,16 +11,16 @@ import fcpw;
 #endif
 
 #if _BVH_TYPE == LINE_SEGMENT_BVH
-uniform ParameterBlock<Bvh<BvhNode, LineSegment, NoSilhouette>> gBvh;
+uniform ParameterBlock<Bvh<BvhNodesSOA, LineSegmentsSOA, NoSilhouettesSOA>> gBvh;
 
 #elif _BVH_TYPE == TRIANGLE_BVH
-uniform ParameterBlock<Bvh<BvhNode, Triangle, NoSilhouette>> gBvh;
+uniform ParameterBlock<Bvh<BvhNodesSOA, TrianglesSOA, NoSilhouettesSOA>> gBvh;
 
 #elif _BVH_TYPE == LINE_SEGMENT_SNCH
-uniform ParameterBlock<Bvh<SnchNode, LineSegment, Vertex>> gBvh;
+uniform ParameterBlock<Bvh<SnchNodesSOA, LineSegmentsSOA, VerticesSOA>> gBvh;
 
 #elif _BVH_TYPE == TRIANGLE_SNCH
-uniform ParameterBlock<Bvh<SnchNode, Triangle, Edge>> gBvh;
+uniform ParameterBlock<Bvh<SnchNodesSOA, TrianglesSOA, EdgesSOA>> gBvh;
 
 #else
 // Compile time error
