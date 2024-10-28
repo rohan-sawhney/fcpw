@@ -2,7 +2,7 @@ implementing fcpw;
 __include aggregate;
 __include geometry;
 __include bvh_node;
-__include soa;
+__include structure_of_arrays;
 
 public static const uint FCPW_BVH_MAX_DEPTH = 64;
 
@@ -20,9 +20,9 @@ public struct TraversalStack
 };
 
 public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
-    where Nodes : IBvhNodesSOA
-    where Primitives : IPrimitivesSOA
-    where Silhouettes : ISilhouettesSOA
+    where Nodes : IBvhNodes
+    where Primitives : IPrimitives
+    where Silhouettes : ISilhouettes
 {
     public Nodes nodes;
     public Primitives primitives;

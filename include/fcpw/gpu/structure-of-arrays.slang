@@ -2,7 +2,7 @@ implementing fcpw;
 __include geometry;
 __include bvh_node;
 
-public struct RaysSOA
+public struct Rays
 {
     public StructuredBuffer<float> ox, oy, oz;
     public StructuredBuffer<float> dx, dy, dz;
@@ -19,7 +19,7 @@ public struct RaysSOA
     }
 };
 
-public struct BoundingSpheresSOA
+public struct BoundingSpheres
 {
     public StructuredBuffer<float> cx, cy, cz;
     public StructuredBuffer<float> r2;
@@ -34,7 +34,7 @@ public struct BoundingSpheresSOA
     }
 };
 
-public struct RandNumsSOA
+public struct RandNums
 {
     public StructuredBuffer<float> u0, u1, u2;
 
@@ -46,7 +46,7 @@ public struct RandNumsSOA
     }
 };
 
-public struct InteractionsSOA
+public struct Interactions
 {
     public RWStructuredBuffer<float> px, py, pz;
     public RWStructuredBuffer<float> nx, ny, nz;
@@ -87,14 +87,14 @@ public struct InteractionsSOA
     }
 };
 
-public interface IBvhNodesSOA
+public interface IBvhNodes
 {
     associatedtype NodeType : IBvhNode;
 
     public __subscript(int i) -> NodeType { get; }
 };
 
-public struct BvhNodesSOA : IBvhNodesSOA
+public struct BvhNodes : IBvhNodes
 {
     public typealias NodeType = BvhNode;
     public StructuredBuffer<float> pxMin, pyMin, pzMin;
@@ -118,7 +118,7 @@ public struct BvhNodesSOA : IBvhNodesSOA
     }
 };
 
-public struct SnchNodesSOA : IBvhNodesSOA
+public struct SnchNodes : IBvhNodes
 {
     public typealias NodeType = SnchNode;
     public StructuredBuffer<float> pxMin, pyMin, pzMin;
@@ -151,14 +151,14 @@ public struct SnchNodesSOA : IBvhNodesSOA
     }
 };
 
-public interface IPrimitivesSOA
+public interface IPrimitives
 {
     associatedtype PrimitiveType : IPrimitive;
 
     public __subscript(int i) -> PrimitiveType { get; }
 };
 
-public struct LineSegmentsSOA : IPrimitivesSOA
+public struct LineSegments : IPrimitives
 {
     public typealias PrimitiveType = LineSegment;
     public StructuredBuffer<float> pax, pay, paz;
@@ -178,7 +178,7 @@ public struct LineSegmentsSOA : IPrimitivesSOA
     }
 };
 
-public struct TrianglesSOA : IPrimitivesSOA
+public struct Triangles : IPrimitives
 {
     public typealias PrimitiveType = Triangle;
     public StructuredBuffer<float> pax, pay, paz;
@@ -200,14 +200,14 @@ public struct TrianglesSOA : IPrimitivesSOA
     }
 };
 
-public interface ISilhouettesSOA
+public interface ISilhouettes
 {
     associatedtype SilhouetteType : ISilhouette;
 
     public __subscript(int i) -> SilhouetteType { get; }
 };
 
-public struct NoSilhouettesSOA : ISilhouettesSOA
+public struct NoSilhouettes : ISilhouettes
 {
     public typealias SilhouetteType = NoSilhouette;
 
@@ -222,7 +222,7 @@ public struct NoSilhouettesSOA : ISilhouettesSOA
     }
 };
 
-public struct VerticesSOA : ISilhouettesSOA
+public struct Vertices : ISilhouettes
 {
     public typealias SilhouetteType = Vertex;
     public StructuredBuffer<float> px, py, pz;
@@ -246,7 +246,7 @@ public struct VerticesSOA : ISilhouettesSOA
     }
 };
 
-public struct EdgesSOA : ISilhouettesSOA
+public struct Edges : ISilhouettes
 {
     public typealias SilhouetteType = Edge;
     public StructuredBuffer<float> pax, pay, paz;

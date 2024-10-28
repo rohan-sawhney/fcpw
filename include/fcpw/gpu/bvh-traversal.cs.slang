@@ -11,19 +11,19 @@ import fcpw;
 #endif
 
 #if _BVH_TYPE == LINE_SEGMENT_BVH
-uniform ParameterBlock<Bvh<BvhNodesSOA, LineSegmentsSOA, NoSilhouettesSOA>> gBvh;
+uniform ParameterBlock<Bvh<BvhNodes, LineSegments, NoSilhouettes>> gBvh;
 #define _BVH_HAS_SILHOUETTE_DATA 0
 
 #elif _BVH_TYPE == TRIANGLE_BVH
-uniform ParameterBlock<Bvh<BvhNodesSOA, TrianglesSOA, NoSilhouettesSOA>> gBvh;
+uniform ParameterBlock<Bvh<BvhNodes, Triangles, NoSilhouettes>> gBvh;
 #define _BVH_HAS_SILHOUETTE_DATA 0
 
 #elif _BVH_TYPE == LINE_SEGMENT_SNCH
-uniform ParameterBlock<Bvh<SnchNodesSOA, LineSegmentsSOA, VerticesSOA>> gBvh;
+uniform ParameterBlock<Bvh<SnchNodes, LineSegments, Vertices>> gBvh;
 #define _BVH_HAS_SILHOUETTE_DATA 1
 
 #elif _BVH_TYPE == TRIANGLE_SNCH
-uniform ParameterBlock<Bvh<SnchNodesSOA, TrianglesSOA, EdgesSOA>> gBvh;
+uniform ParameterBlock<Bvh<SnchNodes, Triangles, Edges>> gBvh;
 #define _BVH_HAS_SILHOUETTE_DATA 1
 
 #else
@@ -34,9 +34,9 @@ uniform ParameterBlock<Bvh<SnchNodesSOA, TrianglesSOA, EdgesSOA>> gBvh;
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void rayIntersection(uint3 threadId: SV_DispatchThreadID,
-                     uniform RaysSOA rays,
+                     uniform Rays rays,
                      uniform bool checkForOcclusion,
-                     uniform InteractionsSOA interactions,
+                     uniform Interactions interactions,
                      uniform uint nQueries)
 {
     uint index = threadId.x;
@@ -57,9 +57,9 @@ void rayIntersection(uint3 threadId: SV_DispatchThreadID,
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void sphereIntersection(uint3 threadId: SV_DispatchThreadID,
-                        uniform BoundingSpheresSOA boundingSpheres,
-                        uniform RandNumsSOA randNums,
-                        uniform InteractionsSOA interactions,
+                        uniform BoundingSpheres boundingSpheres,
+                        uniform RandNums randNums,
+                        uniform Interactions interactions,
                         uniform uint nQueries)
 {
     uint index = threadId.x;
@@ -82,8 +82,8 @@ void sphereIntersection(uint3 threadId: SV_DispatchThreadID,
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void closestPoint(uint3 threadId: SV_DispatchThreadID,
-                  uniform BoundingSpheresSOA boundingSpheres,
-                  uniform InteractionsSOA interactions,
+                  uniform BoundingSpheres boundingSpheres,
+                  uniform Interactions interactions,
                   uniform bool recordNormals,
                   uniform uint nQueries)
 {
@@ -105,11 +105,11 @@ void closestPoint(uint3 threadId: SV_DispatchThreadID,
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void closestSilhouettePoint(uint3 threadId: SV_DispatchThreadID,
-                            uniform BoundingSpheresSOA boundingSpheres,
+                            uniform BoundingSpheres boundingSpheres,
                             uniform StructuredBuffer<uint> flipNormalOrientation,
                             uniform float squaredMinRadius,
                             uniform float precision,
-                            uniform InteractionsSOA interactions,
+                            uniform Interactions interactions,
                             uniform uint nQueries)
 {
     uint index = threadId.x;
