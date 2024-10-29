@@ -2,91 +2,6 @@ implementing fcpw;
 __include geometry;
 __include bvh_node;
 
-public struct Rays
-{
-    public StructuredBuffer<float> ox, oy, oz;
-    public StructuredBuffer<float> dx, dy, dz;
-    public StructuredBuffer<float> tMax;
-
-    public __subscript(int i) -> Ray
-    {
-        get {
-            float3 o = float3(ox[i], oy[i], oz[i]);
-            float3 d = float3(dx[i], dy[i], dz[i]);
-
-            return Ray(o, d, tMax[i]);
-        }
-    }
-};
-
-public struct BoundingSpheres
-{
-    public StructuredBuffer<float> cx, cy, cz;
-    public StructuredBuffer<float> r2;
-
-    public __subscript(int i) -> BoundingSphere
-    {
-        get {
-            float3 c = float3(cx[i], cy[i], cz[i]);
-
-            return BoundingSphere(c, r2[i]);
-        }
-    }
-};
-
-public struct RandNums
-{
-    public StructuredBuffer<float> u0, u1, u2;
-
-    public __subscript(int i) -> float3
-    {
-        get {
-            return float3(u0[i], u1[i], u2[i]);
-        }
-    }
-};
-
-public struct Interactions
-{
-    public RWStructuredBuffer<float> px, py, pz;
-    public RWStructuredBuffer<float> nx, ny, nz;
-    public RWStructuredBuffer<float> uvx, uvy;
-    public RWStructuredBuffer<float> d;
-    public RWStructuredBuffer<uint> indices;
-
-    public __subscript(int i) -> Interaction
-    {
-        get {
-            Interaction interaction;
-            interaction.p[0] = px[i];
-            interaction.p[1] = py[i];
-            interaction.p[2] = pz[i];
-            interaction.n[0] = nx[i];
-            interaction.n[1] = ny[i];
-            interaction.n[2] = nz[i];
-            interaction.uv[0] = uvx[i];
-            interaction.uv[1] = uvy[i];
-            interaction.d = d[i];
-            interaction.index = indices[i];
-
-            return interaction;
-        }
-
-        set(Interaction interaction) {
-            px[i] = interaction.p[0];
-            py[i] = interaction.p[1];
-            pz[i] = interaction.p[2];
-            nx[i] = interaction.n[0];
-            ny[i] = interaction.n[1];
-            nz[i] = interaction.n[2];
-            uvx[i] = interaction.uv[0];
-            uvy[i] = interaction.uv[1];
-            d[i] = interaction.d;
-            indices[i] = interaction.index;
-        }
-    }
-};
-
 public interface IBvhNodes
 {
     associatedtype NodeType : IBvhNode;
@@ -268,6 +183,91 @@ public struct Edges : ISilhouettes
             silhouette.hasOneAdjacentFace = hasOneAdjacentFace[i];
 
             return silhouette;
+        }
+    }
+};
+
+public struct Rays
+{
+    public StructuredBuffer<float> ox, oy, oz;
+    public StructuredBuffer<float> dx, dy, dz;
+    public StructuredBuffer<float> tMax;
+
+    public __subscript(int i)->Ray
+    {
+        get {
+            float3 o = float3(ox[i], oy[i], oz[i]);
+            float3 d = float3(dx[i], dy[i], dz[i]);
+
+            return Ray(o, d, tMax[i]);
+        }
+    }
+};
+
+public struct BoundingSpheres
+{
+    public StructuredBuffer<float> cx, cy, cz;
+    public StructuredBuffer<float> r2;
+
+    public __subscript(int i)->BoundingSphere
+    {
+        get {
+            float3 c = float3(cx[i], cy[i], cz[i]);
+
+            return BoundingSphere(c, r2[i]);
+        }
+    }
+};
+
+public struct RandNums
+{
+    public StructuredBuffer<float> u0, u1, u2;
+
+    public __subscript(int i)->float3
+    {
+        get {
+            return float3(u0[i], u1[i], u2[i]);
+        }
+    }
+};
+
+public struct Interactions
+{
+    public RWStructuredBuffer<float> px, py, pz;
+    public RWStructuredBuffer<float> nx, ny, nz;
+    public RWStructuredBuffer<float> uvx, uvy;
+    public RWStructuredBuffer<float> d;
+    public RWStructuredBuffer<uint> indices;
+
+    public __subscript(int i)->Interaction
+    {
+        get {
+            Interaction interaction;
+            interaction.p[0] = px[i];
+            interaction.p[1] = py[i];
+            interaction.p[2] = pz[i];
+            interaction.n[0] = nx[i];
+            interaction.n[1] = ny[i];
+            interaction.n[2] = nz[i];
+            interaction.uv[0] = uvx[i];
+            interaction.uv[1] = uvy[i];
+            interaction.d = d[i];
+            interaction.index = indices[i];
+
+            return interaction;
+        }
+
+        set(Interaction interaction) {
+            px[i] = interaction.p[0];
+            py[i] = interaction.p[1];
+            pz[i] = interaction.p[2];
+            nx[i] = interaction.n[0];
+            ny[i] = interaction.n[1];
+            nz[i] = interaction.n[2];
+            uvx[i] = interaction.uv[0];
+            uvy[i] = interaction.uv[1];
+            d[i] = interaction.d;
+            indices[i] = interaction.index;
         }
     }
 };
