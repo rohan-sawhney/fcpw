@@ -310,7 +310,7 @@ struct GPUNoSilhouettes {
         // do nothing
     }
 
-    void setResources(ShaderCursor& shaderCursor) const {
+    void setResources(ShaderCursor& silhouettesCursor) const {
         // do nothing
     }
 };
@@ -798,7 +798,7 @@ public:
         exitOnError(result, "failed to create nodeIndices object");
     }
 
-    ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device, const Shader& shader, bool printLogs) const {
+    ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device, const Shader& shader) const {
         // create shader object
         ComPtr<IShaderObject> shaderObject;
         Slang::Result result = device->createShaderObject(
@@ -806,8 +806,10 @@ public:
             ShaderObjectContainerType::None, shaderObject.writeRef());
         exitOnError(result, "failed to create bvh shader object");
 
-        // set shader object resources
-        ShaderCursor shaderCursor(shaderObject);
+        return shaderObject;
+    }
+
+    int setResources(ShaderCursor& shaderCursor) const {
         ShaderCursor nodesCursor = shaderCursor["nodes"];
         nodes.setResources(nodesCursor);
         ShaderCursor primitivesCursor = shaderCursor["primitives"];
@@ -815,14 +817,13 @@ public:
         ShaderCursor silhouettesCursor = shaderCursor["silhouettes"];
         silhouettes.setResources(silhouettesCursor);
 
-        if (printLogs) {
-            std::cout << "BvhReflectionType: " << shaderObject->getElementTypeLayout()->getName() << std::endl;
-            std::cout << "\tcursor[0]: " << shaderCursor.getTypeLayout()->getFieldByIndex(0)->getName() << std::endl;
-            std::cout << "\tcursor[1]: " << shaderCursor.getTypeLayout()->getFieldByIndex(1)->getName() << std::endl;
-            std::cout << "\tcursor[2]: " << shaderCursor.getTypeLayout()->getFieldByIndex(2)->getName() << std::endl;   
-        }
+        return 3;
+    }
 
-        return shaderObject;
+    int setRefitResources(ShaderCursor& entryPointCursor) const {
+        entryPointCursor.getPath("nodeIndices").setResource(nodeIndices.view);
+
+        return 1;
     }
 
 private:
@@ -871,11 +872,25 @@ public:
         else if (snch3DBuffers != nullptr) snch3DBuffers->allocateRefitData(device, cpuSceneData);
     }
 
-    ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device, const Shader& shader, bool printLogs) const {
-        if (bvh2DBuffers != nullptr) return bvh2DBuffers->createShaderObject(device, shader, printLogs);
-        else if (snch2DBuffers != nullptr) return snch2DBuffers->createShaderObject(device, shader, printLogs);
-        else if (bvh3DBuffers != nullptr) return bvh3DBuffers->createShaderObject(device, shader, printLogs);
-        else if (snch3DBuffers != nullptr) return snch3DBuffers->createShaderObject(device, shader, printLogs);
+    ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device, const Shader& shader) const {
+        if (bvh2DBuffers != nullptr) return bvh2DBuffers->createShaderObject(device, shader);
+        else if (snch2DBuffers != nullptr) return snch2DBuffers->createShaderObject(device, shader);
+        else if (bvh3DBuffers != nullptr) return bvh3DBuffers->createShaderObject(device, shader);
+        else if (snch3DBuffers != nullptr) return snch3DBuffers->createShaderObject(device, shader);
+    }
+
+    int setResources(ShaderCursor& shaderCursor) const {
+        if (bvh2DBuffers != nullptr) return bvh2DBuffers->setResources(shaderCursor);
+        else if (snch2DBuffers != nullptr) return snch2DBuffers->setResources(shaderCursor);
+        else if (bvh3DBuffers != nullptr) return bvh3DBuffers->setResources(shaderCursor);
+        else if (snch3DBuffers != nullptr) return snch3DBuffers->setResources(shaderCursor);
+    }
+
+    int setRefitResources(ShaderCursor& entryPointCursor) const {
+        if (bvh2DBuffers != nullptr) return bvh2DBuffers->setRefitResources(entryPointCursor);
+        else if (snch2DBuffers != nullptr) return snch2DBuffers->setRefitResources(entryPointCursor);
+        else if (bvh3DBuffers != nullptr) return bvh3DBuffers->setRefitResources(entryPointCursor);
+        else if (snch3DBuffers != nullptr) return snch3DBuffers->setRefitResources(entryPointCursor);
     }
 
 private:
@@ -1137,15 +1152,15 @@ struct GPURayQueryBuffers {
         interactions.allocate(device);
     }
 
-    int setResources(ShaderCursor& shaderCursor) const {
-        ShaderCursor raysCursor = shaderCursor.getPath("rays");
+    int setResources(ShaderCursor& entryPointCursor) const {
+        ShaderCursor raysCursor = entryPointCursor.getPath("rays");
         rays.setResources(raysCursor);
-        shaderCursor.getPath("checkForOcclusion").setData(checkForOcclusion);
-        ShaderCursor interactionsCursor = shaderCursor.getPath("interactions");
+        entryPointCursor.getPath("checkForOcclusion").setData(checkForOcclusion);
+        ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
         interactions.setResources(interactionsCursor);
-        shaderCursor.getPath("nQueries").setData(nQueries);
+        entryPointCursor.getPath("nQueries").setData(nQueries);
 
-        return 5;
+        return 4;
     }
 
 private:
@@ -1170,16 +1185,16 @@ struct GPUSphereIntersectionQueryBuffers {
         interactions.allocate(device);
     }
 
-    int setResources(ShaderCursor& shaderCursor) const {
-        ShaderCursor boundingSpheresCursor = shaderCursor.getPath("boundingSpheres");
+    int setResources(ShaderCursor& entryPointCursor) const {
+        ShaderCursor boundingSpheresCursor = entryPointCursor.getPath("boundingSpheres");
         boundingSpheres.setResources(boundingSpheresCursor);
-        ShaderCursor randNumsCursor = shaderCursor.getPath("randNums");
+        ShaderCursor randNumsCursor = entryPointCursor.getPath("randNums");
         randNums.setResources(randNumsCursor);
-        ShaderCursor interactionsCursor = shaderCursor.getPath("interactions");
+        ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
         interactions.setResources(interactionsCursor);
-        shaderCursor.getPath("nQueries").setData(nQueries);
+        entryPointCursor.getPath("nQueries").setData(nQueries);
 
-        return 5;
+        return 4;
     }
 
 private:
@@ -1202,15 +1217,15 @@ struct GPUClosestPointQueryBuffers {
         interactions.allocate(device);
     }
 
-    int setResources(ShaderCursor& shaderCursor) const {
-        ShaderCursor boundingSpheresCursor = shaderCursor.getPath("boundingSpheres");
+    int setResources(ShaderCursor& entryPointCursor) const {
+        ShaderCursor boundingSpheresCursor = entryPointCursor.getPath("boundingSpheres");
         boundingSpheres.setResources(boundingSpheresCursor);
-        ShaderCursor interactionsCursor = shaderCursor.getPath("interactions");
+        ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
         interactions.setResources(interactionsCursor);
-        shaderCursor.getPath("recordNormals").setData(recordNormals);
-        shaderCursor.getPath("nQueries").setData(nQueries);
+        entryPointCursor.getPath("recordNormals").setData(recordNormals);
+        entryPointCursor.getPath("nQueries").setData(nQueries);
 
-        return 5;
+        return 4;
     }
 
 private:
@@ -1239,17 +1254,17 @@ struct GPUClosestSilhouettePointQueryBuffers {
         interactions.allocate(device);
     }
 
-    int setResources(ShaderCursor& shaderCursor) const {
-        ShaderCursor boundingSpheresCursor = shaderCursor.getPath("boundingSpheres");
+    int setResources(ShaderCursor& entryPointCursor) const {
+        ShaderCursor boundingSpheresCursor = entryPointCursor.getPath("boundingSpheres");
         boundingSpheres.setResources(boundingSpheresCursor);
-        shaderCursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
-        shaderCursor.getPath("squaredMinRadius").setData(squaredMinRadius);
-        shaderCursor.getPath("precision").setData(precision);
-        ShaderCursor interactionsCursor = shaderCursor.getPath("interactions");
+        entryPointCursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
+        entryPointCursor.getPath("squaredMinRadius").setData(squaredMinRadius);
+        entryPointCursor.getPath("precision").setData(precision);
+        ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
         interactions.setResources(interactionsCursor);
-        shaderCursor.getPath("nQueries").setData(nQueries);
+        entryPointCursor.getPath("nQueries").setData(nQueries);
 
-        return 7;
+        return 6;
     }
 
 private:
