@@ -58,7 +58,7 @@ void rayIntersection(uint3 threadId: SV_DispatchThreadID,
 [numthreads(256, 1, 1)]
 void sphereIntersection(uint3 threadId: SV_DispatchThreadID,
                         uniform BoundingSpheres boundingSpheres,
-                        uniform RandNums randNums,
+                        uniform Float3List randNums,
                         uniform Interactions interactions,
                         uniform uint nQueries)
 {

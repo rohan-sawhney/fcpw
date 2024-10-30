@@ -219,14 +219,14 @@ public struct BoundingSpheres
     }
 };
 
-public struct RandNums
+public struct Float3List
 {
-    public StructuredBuffer<float> u0, u1, u2;
+    public StructuredBuffer<float> x, y, z;
 
     public __subscript(int i)->float3
     {
         get {
-            return float3(u0[i], u1[i], u2[i]);
+            return float3(x[i], y[i], z[i]);
         }
     }
 };
