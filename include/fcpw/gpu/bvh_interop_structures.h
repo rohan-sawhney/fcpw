@@ -479,31 +479,26 @@ template<size_t DIM,
          typename GPUSilhouettesType>
 class CPUBvhDataExtractor {
 public:
-    // constructor
     CPUBvhDataExtractor(const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh_) {
         std::cerr << "CPUBvhDataExtractor() not supported" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    // extracts CPU bvh nodes data
     void extractNodes(GPUNodesType& gpuNodes) {
         std::cerr << "CPUBvhDataExtractor::extractNodes() not supported" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    // extracts CPU bvh primitives data
     void extractPrimitives(GPUPrimitivesType& gpuPrimitives) {
         std::cerr << "CPUBvhDataExtractor::extractPrimitives() not supported" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    // extracts CPU bvh silhouettes data
     void extractSilhouettes(GPUSilhouettesType& gpuSilhouettes) {
         std::cerr << "CPUBvhDataExtractor::extractSilhouettes() not supported" << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    // returns reflection type
     std::string getReflectionType() const {
         std::cerr << "CPUBvhDataExtractor::getReflectionType() not supported" << std::endl;
         exit(EXIT_FAILURE);
@@ -515,120 +510,96 @@ public:
 template<>
 class CPUBvhDataExtractor<2, BvhNode<2>, LineSegment, SilhouettePrimitive<2>, GPUBvhNodes, GPULineSegments, GPUNoSilhouettes> {
 public:
-    // constructor
     CPUBvhDataExtractor(const Bvh<2, BvhNode<2>, LineSegment, SilhouettePrimitive<2>> *bvh_): bvh(bvh_) {}
 
-    // extracts CPU bvh nodes data
     void extractNodes(GPUBvhNodes& gpuBvhNodes) {
         gpuBvhNodes.extract<2>(bvh->flatTree);
     }
 
-    // extracts CPU bvh primitives data
     void extractPrimitives(GPULineSegments& gpuLineSegments) {
         gpuLineSegments.extract(bvh->primitives);
     }
 
-    // extracts CPU bvh silhouettes data
     void extractSilhouettes(GPUNoSilhouettes& gpuSilhouettes) {
         // do nothing
     }
 
-    // returns reflection type
     std::string getReflectionType() const {
         return "Bvh<BvhNodes, LineSegments, NoSilhouettes>";
     }
 
-    // member
     const Bvh<2, BvhNode<2>, LineSegment, SilhouettePrimitive<2>> *bvh;
 };
 
 template<>
 class CPUBvhDataExtractor<2, SnchNode<2>, LineSegment, SilhouetteVertex, GPUSnchNodes, GPULineSegments, GPUSilhouetteVertices> {
 public:
-    // constructor
     CPUBvhDataExtractor(const Bvh<2, SnchNode<2>, LineSegment, SilhouetteVertex> *bvh_): bvh(bvh_) {}
 
-    // extracts CPU bvh nodes data
     void extractNodes(GPUSnchNodes& gpuSnchNodes) {
         gpuSnchNodes.extract<2>(bvh->flatTree);
     }
 
-    // extracts CPU bvh primitives data
     void extractPrimitives(GPULineSegments& gpuLineSegments) {
         gpuLineSegments.extract(bvh->primitives);
     }
 
-    // extracts CPU bvh silhouettes data
     void extractSilhouettes(GPUSilhouetteVertices& gpuSilhouetteVertices) {
         gpuSilhouetteVertices.extract(bvh->silhouetteRefs);
     }
 
-    // returns reflection type
     std::string getReflectionType() const {
         return "Bvh<SnchNodes, LineSegments, Vertices>";
     }
 
-    // member
     const Bvh<2, SnchNode<2>, LineSegment, SilhouetteVertex> *bvh;
 };
 
 template<>
 class CPUBvhDataExtractor<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>, GPUBvhNodes, GPUTriangles, GPUNoSilhouettes> {
 public:
-    // constructor
     CPUBvhDataExtractor(const Bvh<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>> *bvh_): bvh(bvh_) {}
 
-    // extracts CPU bvh nodes data
     void extractNodes(GPUBvhNodes& gpuBvhNodes) {
         gpuBvhNodes.extract<3>(bvh->flatTree);
     }
 
-    // extracts CPU bvh primitives data
     void extractPrimitives(GPUTriangles& gpuTriangles) {
         gpuTriangles.extract(bvh->primitives);
     }
 
-    // extracts CPU bvh silhouettes data
     void extractSilhouettes(GPUNoSilhouettes& gpuSilhouettes) {
         // do nothing
     }
 
-    // returns reflection type
     std::string getReflectionType() const {
         return "Bvh<BvhNodes, Triangles, NoSilhouettes>";
     }
 
-    // member
     const Bvh<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>> *bvh;
 };
 
 template<>
 class CPUBvhDataExtractor<3, SnchNode<3>, Triangle, SilhouetteEdge, GPUSnchNodes, GPUTriangles, GPUSilhouetteEdges> {
 public:
-    // constructor
     CPUBvhDataExtractor(const Bvh<3, SnchNode<3>, Triangle, SilhouetteEdge> *bvh_): bvh(bvh_) {}
 
-    // extracts CPU bvh nodes data
     void extractNodes(GPUSnchNodes& gpuSnchNodes) {
         gpuSnchNodes.extract<3>(bvh->flatTree);
     }
 
-    // extracts CPU bvh primitives data
     void extractPrimitives(GPUTriangles& gpuTriangles) {
         gpuTriangles.extract(bvh->primitives);
     }
 
-    // extracts CPU bvh silhouettes data
     void extractSilhouettes(GPUSilhouetteEdges& gpuSilhouetteEdges) {
         gpuSilhouetteEdges.extract(bvh->silhouetteRefs);
     }
 
-    // returns reflection type
     std::string getReflectionType() const {
         return "Bvh<SnchNodes, Triangles, Edges>";
     }
 
-    // member
     const Bvh<3, SnchNode<3>, Triangle, SilhouetteEdge> *bvh;
 };
 
@@ -638,10 +609,8 @@ template<size_t DIM,
          typename SilhouetteType>
 class CPUBvhUpdateDataExtractor {
 public:
-    // constructor
     CPUBvhUpdateDataExtractor(const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh_): bvh(bvh_) {}
 
-    // populates update data from CPU bvh
     // source: https://github.com/NVIDIAGameWorks/Falcor/blob/58ce2d1eafce67b4cb9d304029068c7fb31bd831/Source/Falcor/Rendering/Lights/LightBVH.cpp#L219
     uint32_t extract(std::vector<uint32_t>& nodeIndicesData,
                      std::vector<std::pair<uint32_t, uint32_t>>& updateEntryData) {
@@ -675,7 +644,6 @@ public:
         return maxDepth;
     }
 
-    // member
     const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh;
 
 private:
