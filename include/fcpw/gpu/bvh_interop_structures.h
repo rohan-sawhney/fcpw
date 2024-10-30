@@ -743,8 +743,8 @@ public:
         nodes.allocate(device);
     }
 
-    void allocateGeometry(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
-        // extract primitives and silhouettes data from cpu bvh
+    void allocatePrimitives(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
+        // extract primitives data from cpu bvh
         const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh =
             reinterpret_cast<const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *>(
                 cpuSceneData->aggregate.get());
@@ -756,10 +756,26 @@ public:
                             GPUPrimitivesType,
                             GPUSilhouettesType> cpuBvhDataExtractor(bvh);
         cpuBvhDataExtractor.extractPrimitives(primitives);
-        cpuBvhDataExtractor.extractSilhouettes(silhouettes);
 
         // allocate gpu buffers
         primitives.allocate(device);
+    }
+
+    void allocateSilhouettes(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
+        // extract silhouettes data from cpu bvh
+        const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh =
+            reinterpret_cast<const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *>(
+                cpuSceneData->aggregate.get());
+        CPUBvhDataExtractor<DIM,
+                            NodeType,
+                            PrimitiveType,
+                            SilhouetteType,
+                            GPUNodesType,
+                            GPUPrimitivesType,
+                            GPUSilhouettesType> cpuBvhDataExtractor(bvh);
+        cpuBvhDataExtractor.extractSilhouettes(silhouettes);
+
+        // allocate gpu buffers
         silhouettes.allocate(device);
     }
 
