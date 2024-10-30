@@ -768,13 +768,10 @@ public:
         const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh =
             reinterpret_cast<const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *>(
                 cpuSceneData->aggregate.get());
-        CPUBvhDataExtractor<DIM,
-                            NodeType,
-                            PrimitiveType,
-                            SilhouetteType,
-                            GPUNodesType,
-                            GPUPrimitivesType,
-                            GPUSilhouettesType> cpuBvhDataExtractor(bvh);
+        CPUBvhUpdateDataExtractor<DIM,
+                                  NodeType,
+                                  PrimitiveType,
+                                  SilhouetteType> cpuBvhUpdateDataExtractor(bvh);
         updateEntryData.clear();
         std::vector<uint32_t> nodeIndicesData;
         maxUpdateDepth = cpuBvhUpdateDataExtractor.extract(nodeIndicesData, updateEntryData);
@@ -1597,89 +1594,6 @@ public:
 
     // member
     const Bvh<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>> *bvh;
-};
-
-template<size_t DIM,
-         typename NodeType,
-         typename PrimitiveType,
-         typename SilhouetteType>
-class CPUBvhUpdateDataExtractor {
-public:
-    // constructor
-    CPUBvhUpdateDataExtractor(const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh_): bvh(bvh_) {}
-
-    // populates update data from CPU bvh
-    // source: https://github.com/NVIDIAGameWorks/Falcor/blob/58ce2d1eafce67b4cb9d304029068c7fb31bd831/Source/Falcor/Rendering/Lights/LightBVH.cpp#L219
-    uint32_t extract(std::vector<uint32_t>& nodeIndicesData,
-                     std::vector<std::pair<uint32_t, uint32_t>>& updateEntryData) {
-        // count number of nodes at each level
-        int maxDepth = bvh->maxDepth;
-        updateEntryData.resize(maxDepth + 1, std::make_pair(0, 0));
-        updateEntryData[maxDepth].second = bvh->nLeafs;
-        traverseBvh(
-            [&updateEntryData](int index, int depth) { ++updateEntryData[depth].second; },
-            [](int index, int depth) { /* do nothing */ }
-        );
-
-        // record offsets into nodeIndicesData
-        std::vector<uint32_t> offsets(maxDepth + 1, 0);
-        for (uint32_t i = 1; i < maxDepth + 1; i++) {
-            uint32_t currentOffset = updateEntryData[i - 1].first + updateEntryData[i - 1].second;
-            offsets[i] = updateEntryData[i].first = currentOffset;
-        }
-
-        // populate nodeIndicesData such that:
-        //  level 0: indices to all internal nodes at level 0
-        //  ...
-        //  level (maxDepth - 1): indices to all internal nodes at level (maxDepth - 1)
-        //  level maxDepth: indices to all leaf nodes
-        nodeIndicesData.resize(bvh->nNodes, 0);
-        traverseBvh(
-            [&nodeIndicesData, &offsets](int index, int depth) { nodeIndicesData[offsets[depth]++] = index; },
-            [&nodeIndicesData, &offsets](int index, int depth) { nodeIndicesData[offsets.back()++] = index; }
-        );
-
-        return maxDepth;
-    }
-
-    // member
-    const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh;
-
-private:
-    void traverseBvh(const std::function<void(int index, int depth)>& evalInternalNode,
-                     const std::function<void(int index, int depth)>& evalLeafNode) {
-        struct TraversalStack {
-            int nodeIndex;
-            int nodeDepth;
-        };
-
-        TraversalStack stack[FCPW_BVH_MAX_DEPTH];
-        stack[0].nodeIndex = 0;
-        stack[0].nodeDepth = 0;
-        int stackPtr = 0;
-
-        while (stackPtr >= 0) {
-            // pop off the next node to work on
-            int nodeIndex = stack[stackPtr].nodeIndex;
-            int nodeDepth = stack[stackPtr].nodeDepth;
-            stackPtr--;
-
-            const NodeType& node(bvh->flatTree[nodeIndex]);
-            if (node.nReferences > 0) { // leaf
-                evalLeafNode(nodeIndex, nodeDepth);
-
-            } else { // internal node
-                evalInternalNode(nodeIndex, nodeDepth);
-
-                stackPtr++;
-                stack[stackPtr].nodeIndex = nodeIndex + 1;
-                stack[stackPtr].nodeDepth = nodeDepth + 1;
-                stackPtr++;
-                stack[stackPtr].nodeIndex = nodeIndex + node.secondChildOffset;
-                stack[stackPtr].nodeDepth = nodeDepth + 1;
-            }
-        }
-    }
 };
 
 class GPUBvhBuffers {
