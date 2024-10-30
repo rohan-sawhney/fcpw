@@ -826,6 +826,14 @@ public:
         return 1;
     }
 
+    uint32_t getMaxUpdateDepth() const {
+        return maxUpdateDepth;
+    }
+
+    std::pair<uint32_t, uint32_t> getUpdateEntryData(uint32_t depth) {
+        return updateEntryData[depth];
+    }
+
 private:
     GPUNodesType nodes;
     GPUPrimitivesType primitives;
@@ -891,6 +899,20 @@ public:
         else if (snch2DBuffers != nullptr) return snch2DBuffers->setRefitResources(entryPointCursor);
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->setRefitResources(entryPointCursor);
         else if (snch3DBuffers != nullptr) return snch3DBuffers->setRefitResources(entryPointCursor);
+    }
+
+    uint32_t getMaxUpdateDepth() const {
+        if (bvh2DBuffers != nullptr) return bvh2DBuffers->getMaxUpdateDepth();
+        else if (snch2DBuffers != nullptr) return snch2DBuffers->getMaxUpdateDepth();
+        else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getMaxUpdateDepth();
+        else if (snch3DBuffers != nullptr) return snch3DBuffers->getMaxUpdateDepth();
+    }
+
+    std::pair<uint32_t, uint32_t> getUpdateEntryData(uint32_t depth) {
+        if (bvh2DBuffers != nullptr) return bvh2DBuffers->getUpdateEntryData(depth);
+        else if (snch2DBuffers != nullptr) return snch2DBuffers->getUpdateEntryData(depth);
+        else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getUpdateEntryData(depth);
+        else if (snch3DBuffers != nullptr) return snch3DBuffers->getUpdateEntryData(depth);
     }
 
 private:
