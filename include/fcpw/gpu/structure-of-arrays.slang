@@ -193,7 +193,7 @@ public struct Rays
     public StructuredBuffer<float> dx, dy, dz;
     public StructuredBuffer<float> tMax;
 
-    public __subscript(int i)->Ray
+    public __subscript(int i) -> Ray
     {
         get {
             float3 o = float3(ox[i], oy[i], oz[i]);
@@ -209,7 +209,7 @@ public struct BoundingSpheres
     public StructuredBuffer<float> cx, cy, cz;
     public StructuredBuffer<float> r2;
 
-    public __subscript(int i)->BoundingSphere
+    public __subscript(int i) -> BoundingSphere
     {
         get {
             float3 c = float3(cx[i], cy[i], cz[i]);
@@ -223,7 +223,7 @@ public struct Float3List
 {
     public StructuredBuffer<float> x, y, z;
 
-    public __subscript(int i)->float3
+    public __subscript(int i) -> float3
     {
         get {
             return float3(x[i], y[i], z[i]);
@@ -239,7 +239,7 @@ public struct Interactions
     public RWStructuredBuffer<float> d;
     public RWStructuredBuffer<uint> indices;
 
-    public __subscript(int i)->Interaction
+    public __subscript(int i) -> Interaction
     {
         get {
             Interaction interaction;
