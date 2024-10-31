@@ -61,6 +61,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
     if (allocateRefitData) {
         gpuBvhBuffers.template allocateRefitData<DIM>(gpuContext.device, sceneData);
     }
+
     if (updateGeometry) {
         gpuBvhBuffers.template allocatePrimitives<DIM>(gpuContext.device, sceneData);
         if (hasSilhouetteGeometry) {
