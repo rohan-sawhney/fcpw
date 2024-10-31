@@ -822,34 +822,26 @@ public:
 
     template<size_t DIM>
     void allocateNodes(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
-        if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateNodes(device, cpuSceneData);
-        else if (snch2DBuffers != nullptr) snch2DBuffers->allocateNodes(device, cpuSceneData);
-        else if (bvh3DBuffers != nullptr) bvh3DBuffers->allocateNodes(device, cpuSceneData);
-        else if (snch3DBuffers != nullptr) snch3DBuffers->allocateNodes(device, cpuSceneData);
+        std::cerr << "GPUBvhBuffers::allocateNodes()" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     template<size_t DIM>
     void allocatePrimitives(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
-        if (bvh2DBuffers != nullptr) bvh2DBuffers->allocatePrimitives(device, cpuSceneData);
-        else if (snch2DBuffers != nullptr) snch2DBuffers->allocatePrimitives(device, cpuSceneData);
-        else if (bvh3DBuffers != nullptr) bvh3DBuffers->allocatePrimitives(device, cpuSceneData);
-        else if (snch3DBuffers != nullptr) snch3DBuffers->allocatePrimitives(device, cpuSceneData);
+        std::cerr << "GPUBvhBuffers::allocatePrimitives()" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     template<size_t DIM>
     void allocateSilhouettes(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
-        if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateSilhouettes(device, cpuSceneData);
-        else if (snch2DBuffers != nullptr) snch2DBuffers->allocateSilhouettes(device, cpuSceneData);
-        else if (bvh3DBuffers != nullptr) bvh3DBuffers->allocateSilhouettes(device, cpuSceneData);
-        else if (snch3DBuffers != nullptr) snch3DBuffers->allocateSilhouettes(device, cpuSceneData);
+        std::cerr << "GPUBvhBuffers::allocateSilhouettes()" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     template<size_t DIM>
     void allocateRefitData(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
-        if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateRefitData(device, cpuSceneData);
-        else if (snch2DBuffers != nullptr) snch2DBuffers->allocateRefitData(device, cpuSceneData);
-        else if (bvh3DBuffers != nullptr) bvh3DBuffers->allocateRefitData(device, cpuSceneData);
-        else if (snch3DBuffers != nullptr) snch3DBuffers->allocateRefitData(device, cpuSceneData);
+        std::cerr << "GPUBvhBuffers::allocateRefitData()" << std::endl;
+        exit(EXIT_FAILURE);
     }
 
     ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device, const Shader& shader) const {
@@ -931,6 +923,62 @@ void GPUBvhBuffers::init<3, true>()
 {
     reset();
     snch3DBuffers = std::unique_ptr<Snch3DBuffers>(new Snch3DBuffers());
+}
+
+template<>
+void GPUBvhBuffers::allocateNodes<2>(ComPtr<IDevice>& device, const SceneData<2> *cpuSceneData)
+{
+    if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateNodes(device, cpuSceneData);
+    else if (snch2DBuffers != nullptr) snch2DBuffers->allocateNodes(device, cpuSceneData);
+}
+
+template<>
+void GPUBvhBuffers::allocateNodes<3>(ComPtr<IDevice>& device, const SceneData<3> *cpuSceneData)
+{
+    if (bvh3DBuffers != nullptr) bvh3DBuffers->allocateNodes(device, cpuSceneData);
+    else if (snch3DBuffers != nullptr) snch3DBuffers->allocateNodes(device, cpuSceneData);
+}
+
+template<>
+void GPUBvhBuffers::allocatePrimitives<2>(ComPtr<IDevice>& device, const SceneData<2> *cpuSceneData)
+{
+    if (bvh2DBuffers != nullptr) bvh2DBuffers->allocatePrimitives(device, cpuSceneData);
+    else if (snch2DBuffers != nullptr) snch2DBuffers->allocatePrimitives(device, cpuSceneData);
+}
+
+template<>
+void GPUBvhBuffers::allocatePrimitives<3>(ComPtr<IDevice>& device, const SceneData<3> *cpuSceneData)
+{
+    if (bvh3DBuffers != nullptr) bvh3DBuffers->allocatePrimitives(device, cpuSceneData);
+    else if (snch3DBuffers != nullptr) snch3DBuffers->allocatePrimitives(device, cpuSceneData);
+}
+
+template<>
+void GPUBvhBuffers::allocateSilhouettes<2>(ComPtr<IDevice>& device, const SceneData<2> *cpuSceneData)
+{
+    if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateSilhouettes(device, cpuSceneData);
+    else if (snch2DBuffers != nullptr) snch2DBuffers->allocateSilhouettes(device, cpuSceneData);
+}
+
+template<>
+void GPUBvhBuffers::allocateSilhouettes<3>(ComPtr<IDevice>& device, const SceneData<3> *cpuSceneData)
+{
+    if (bvh3DBuffers != nullptr) bvh3DBuffers->allocateSilhouettes(device, cpuSceneData);
+    else if (snch3DBuffers != nullptr) snch3DBuffers->allocateSilhouettes(device, cpuSceneData);
+}
+
+template<>
+void GPUBvhBuffers::allocateRefitData<2>(ComPtr<IDevice>& device, const SceneData<2> *cpuSceneData)
+{
+    if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateRefitData(device, cpuSceneData);
+    else if (snch2DBuffers != nullptr) snch2DBuffers->allocateRefitData(device, cpuSceneData);
+}
+
+template<>
+void GPUBvhBuffers::allocateRefitData<3>(ComPtr<IDevice>& device, const SceneData<3> *cpuSceneData)
+{
+    if (bvh3DBuffers != nullptr) bvh3DBuffers->allocateRefitData(device, cpuSceneData);
+    else if (snch3DBuffers != nullptr) snch3DBuffers->allocateRefitData(device, cpuSceneData);
 }
 
 struct GPURays {
