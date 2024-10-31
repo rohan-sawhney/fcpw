@@ -92,40 +92,8 @@ inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& rayOrigins,
                                      GPUInteractions& interactions,
                                      bool checkForOcclusion)
 {
-    int nQueries = (int)rayOrigins.rows();
-    std::vector<GPURay> rays(nQueries);
-
-    auto callback = [&](int start, int end) {
-        for (int i = start; i < end; i++) {
-            GPURay& ray = rays[i];
-            ray.o = float3{rayOrigins(i, 0),
-                           rayOrigins(i, 1),
-                           DIM == 2 ? 0.0f : rayOrigins(i, 2)};
-            ray.d = float3{rayDirections(i, 0),
-                           rayDirections(i, 1),
-                           DIM == 2 ? 0.0f : rayDirections(i, 2)};
-            ray.dInv = float3{1.0f / ray.d.x,
-                              1.0f / ray.d.y,
-                              1.0f / ray.d.z};
-            ray.tMax = rayDistanceBounds(i);
-        }
-    };
-
-    int nThreads = std::thread::hardware_concurrency();
-    int nQueriesPerThread = nQueries/nThreads;
-    std::vector<std::thread> threads;
-
-    for (int i = 0; i < nThreads; i++) {
-        int start = i*nQueriesPerThread;
-        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
-        threads.emplace_back(callback, start, end);
-    }
-
-    for (auto& t: threads) {
-        t.join();
-    }
-
-    intersect(rays, interactions, checkForOcclusion);
+    intersect(rayOrigins.data(), rayDirections.data(), rayDistanceBounds.data(),
+              interactions, checkForOcclusion);
 }
 
 template<size_t DIM>
@@ -135,6 +103,7 @@ inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& rayOrigins,
                                      GPUInteractions& interactions,
                                      bool checkForOcclusion)
 {
+    /*
     // initialize shader
     if (rayIntersectionShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, rayIntersectionShader);
@@ -152,6 +121,7 @@ inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& rayOrigins,
     runTraversal<GPUBvhBuffers, GPUQueryRayIntersectionBuffers>(gpuContext, rayIntersectionShader,
                                                                 gpuBvhBuffers, gpuQueryRayIntersectionBuffers,
                                                                 interactions, nThreadGroups, printLogs);
+    */
 }
 
 template<size_t DIM>
@@ -160,39 +130,7 @@ inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& sphereCenters,
                                      Eigen::MatrixXf& randNums,
                                      GPUInteractions& interactions)
 {
-    int nQueries = (int)sphereCenters.rows();
-    std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
-    std::vector<float3> randNums3(nQueries);
-
-    auto callback = [&](int start, int end) {
-        for (int i = start; i < end; i++) {
-            GPUBoundingSphere& boundingSphere = boundingSpheres[i];
-            boundingSphere.c = float3{sphereCenters(i, 0),
-                                      sphereCenters(i, 1),
-                                      DIM == 2 ? 0.0f : sphereCenters(i, 2)};
-            boundingSphere.r2 = sphereSquaredRadii(i);
-
-            randNums3[i] = float3{randNums(i, 0),
-                                  randNums(i, 1),
-                                  DIM == 2 ? 0.0f : randNums(i, 2)};
-        }
-    };
-
-    int nThreads = std::thread::hardware_concurrency();
-    int nQueriesPerThread = nQueries/nThreads;
-    std::vector<std::thread> threads;
-
-    for (int i = 0; i < nThreads; i++) {
-        int start = i*nQueriesPerThread;
-        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
-        threads.emplace_back(callback, start, end);
-    }
-
-    for (auto& t: threads) {
-        t.join();
-    }
-
-    intersect(boundingSpheres, randNums3, interactions);
+    intersect(sphereCenters.data(), sphereSquaredRadii.data(), randNums3.data(), interactions);
 }
 
 template<size_t DIM>
@@ -201,6 +139,7 @@ inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& sphereCenters,
                                      std::vector<Vector<DIM>>& randNums,
                                      GPUInteractions& interactions)
 {
+    /*
     // initialize shader
     if (sphereIntersectionShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, sphereIntersectionShader);
@@ -217,6 +156,7 @@ inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& sphereCenters,
     runTraversal<GPUBvhBuffers, GPUQuerySphereIntersectionBuffers>(gpuContext, sphereIntersectionShader,
                                                                    gpuBvhBuffers, gpuQuerySphereIntersectionBuffers,
                                                                    interactions, nThreadGroups, printLogs);
+    */
 }
 
 template<size_t DIM>
@@ -225,34 +165,7 @@ inline void GPUScene<DIM>::findClosestPoints(Eigen::MatrixXf& queryPoints,
                                              GPUInteractions& interactions,
                                              bool recordNormals)
 {
-    int nQueries = (int)queryPoints.rows();
-    std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
-
-    auto callback = [&](int start, int end) {
-        for (int i = start; i < end; i++) {
-            GPUBoundingSphere& boundingSphere = boundingSpheres[i];
-            boundingSphere.c = float3{queryPoints(i, 0),
-                                      queryPoints(i, 1),
-                                      DIM == 2 ? 0.0f : queryPoints(i, 2)};
-            boundingSphere.r2 = squaredMaxRadii(i);
-        }
-    };
-
-    int nThreads = std::thread::hardware_concurrency();
-    int nQueriesPerThread = nQueries/nThreads;
-    std::vector<std::thread> threads;
-
-    for (int i = 0; i < nThreads; i++) {
-        int start = i*nQueriesPerThread;
-        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
-        threads.emplace_back(callback, start, end);
-    }
-
-    for (auto& t: threads) {
-        t.join();
-    }
-
-    findClosestPoints(boundingSpheres, interactions, recordNormals);
+    findClosestPoints(queryPoints.data(), squaredMaxRadii.data(), interactions, recordNormals);
 }
 
 template<size_t DIM>
@@ -261,6 +174,7 @@ inline void GPUScene<DIM>::findClosestPoints(std::vector<Vector<DIM>>& queryPoin
                                              GPUInteractions& interactions,
                                              bool recordNormals)
 {
+    /*
     // initialize shader
     if (closestPointShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, closestPointShader);
@@ -278,6 +192,7 @@ inline void GPUScene<DIM>::findClosestPoints(std::vector<Vector<DIM>>& queryPoin
     runTraversal<GPUBvhBuffers, GPUQueryClosestPointBuffers>(gpuContext, closestPointShader,
                                                              gpuBvhBuffers, gpuQueryClosestPointBuffers,
                                                              interactions, nThreadGroups, printLogs);
+    */
 }
 
 template<size_t DIM>
@@ -287,38 +202,9 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(Eigen::MatrixXf& queryPoi
                                                        GPUInteractions& interactions,
                                                        float squaredMinRadius, float precision)
 {
-    int nQueries = (int)queryPoints.rows();
-    std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
-    std::vector<uint32_t> flipNormalOrientationVec(nQueries);
-
-    auto callback = [&](int start, int end) {
-        for (int i = start; i < end; i++) {
-            GPUBoundingSphere& boundingSphere = boundingSpheres[i];
-            boundingSphere.c = float3{queryPoints(i, 0),
-                                      queryPoints(i, 1),
-                                      DIM == 2 ? 0.0f : queryPoints(i, 2)};
-            boundingSphere.r2 = squaredMaxRadii(i);
-
-            flipNormalOrientationVec[i] = flipNormalOrientation(i);
-        }
-    };
-
-    int nThreads = std::thread::hardware_concurrency();
-    int nQueriesPerThread = nQueries/nThreads;
-    std::vector<std::thread> threads;
-
-    for (int i = 0; i < nThreads; i++) {
-        int start = i*nQueriesPerThread;
-        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
-        threads.emplace_back(callback, start, end);
-    }
-
-    for (auto& t: threads) {
-        t.join();
-    }
-
-    findClosestSilhouettePoints(boundingSpheres, flipNormalOrientationVec,
-                                interactions, squaredMinRadius, precision);
+    findClosestSilhouettePoints(queryPoints.data(), squaredMaxRadii.data(),
+                                flipNormalOrientation.data(), interactions,
+                                squaredMinRadius, precision);
 }
 
 template<size_t DIM>
@@ -328,6 +214,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(std::vector<Vector<DIM>>&
                                                        GPUInteractions& interactions,
                                                        float squaredMinRadius, float precision)
 {
+    /*
     // initialize shader
     if (closestSilhouettePointShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, closestSilhouettePointShader);
@@ -346,6 +233,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(std::vector<Vector<DIM>>&
     runTraversal<GPUBvhBuffers, GPUQueryClosestSilhouettePointBuffers>(gpuContext, closestSilhouettePointShader,
                                                                        gpuBvhBuffers, gpuQueryClosestSilhouettePointBuffers,
                                                                        interactions, nThreadGroups, printLogs);
+    */
 }
 
 } // namespace fcpw
