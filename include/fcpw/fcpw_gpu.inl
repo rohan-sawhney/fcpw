@@ -135,25 +135,21 @@ inline void GPUScene<DIM>::intersect(GPURays& rays,
                                      GPUInteractions& interactions,
                                      bool checkForOcclusion)
 {
-    /*
     // initialize shader
     if (rayIntersectionShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, rayIntersectionShader);
         loadShader(gpuContext, traversalShaderModule, "rayIntersection", rayIntersectionShader);
     }
 
-    // create GPU buffers
-    GPUQueryRayIntersectionBuffers gpuQueryRayIntersectionBuffers;
-    gpuQueryRayIntersectionBuffers.allocate(gpuContext.device, rays);
-    gpuQueryRayIntersectionBuffers.checkForOcclusion = checkForOcclusion;
+    // allocate GPU buffers
+    GPURayIntersectionQueryBuffers gpuQueryBuffers(rays, interactions, checkForOcclusion);
+    gpuQueryBuffers.allocate(gpuContext.device);
 
     // run ray intersection shader
-    int nQueries = (int)rays.size();
-    int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runTraversal<GPUBvhBuffers, GPUQueryRayIntersectionBuffers>(gpuContext, rayIntersectionShader,
-                                                                gpuBvhBuffers, gpuQueryRayIntersectionBuffers,
-                                                                interactions, nThreadGroups, printLogs);
-    */
+    int nThreadGroups = countThreadGroups(gpuQueryBuffers.nQueries, nThreadsPerGroup, printLogs);
+    runTraversal<GPUBvhBuffers, GPURayIntersectionQueryBuffers>(gpuContext, rayIntersectionShader,
+                                                                gpuBvhBuffers, gpuQueryBuffers,
+                                                                nThreadGroups, printLogs);
 }
 
 template<size_t DIM>
@@ -204,24 +200,21 @@ inline void GPUScene<DIM>::intersect(GPUBoundingSpheres& boundingSpheres,
                                      GPURandNums& randNums,
                                      GPUInteractions& interactions)
 {
-    /*
     // initialize shader
     if (sphereIntersectionShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, sphereIntersectionShader);
         loadShader(gpuContext, traversalShaderModule, "sphereIntersection", sphereIntersectionShader);
     }
 
-    // create GPU buffers
-    GPUQuerySphereIntersectionBuffers gpuQuerySphereIntersectionBuffers;
-    gpuQuerySphereIntersectionBuffers.allocate(gpuContext.device, boundingSpheres, randNums);
+    // allocate GPU buffers
+    GPUSphereIntersectionQueryBuffers gpuQueryBuffers(boundingSpheres, randNums, interactions);
+    gpuQueryBuffers.allocate(gpuContext.device);
 
     // run sphere intersection shader
-    int nQueries = (int)boundingSpheres.size();
-    int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runTraversal<GPUBvhBuffers, GPUQuerySphereIntersectionBuffers>(gpuContext, sphereIntersectionShader,
-                                                                   gpuBvhBuffers, gpuQuerySphereIntersectionBuffers,
-                                                                   interactions, nThreadGroups, printLogs);
-    */
+    int nThreadGroups = countThreadGroups(gpuQueryBuffers.nQueries, nThreadsPerGroup, printLogs);
+    runTraversal<GPUBvhBuffers, GPUSphereIntersectionQueryBuffers>(gpuContext, sphereIntersectionShader,
+                                                                   gpuBvhBuffers, gpuQueryBuffers,
+                                                                   nThreadGroups, printLogs);
 }
 
 template<size_t DIM>
@@ -267,25 +260,21 @@ inline void GPUScene<DIM>::findClosestPoints(GPUBoundingSpheres& boundingSpheres
                                              GPUInteractions& interactions,
                                              bool recordNormals)
 {
-    /*
     // initialize shader
     if (closestPointShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, closestPointShader);
         loadShader(gpuContext, traversalShaderModule, "closestPoint", closestPointShader);
     }
 
-    // create GPU buffers
-    GPUQueryClosestPointBuffers gpuQueryClosestPointBuffers;
-    gpuQueryClosestPointBuffers.allocate(gpuContext.device, boundingSpheres);
-    gpuQueryClosestPointBuffers.recordNormals = recordNormals;
+    // allocate GPU buffers
+    GPUClosestPointQueryBuffers gpuQueryBuffers(boundingSpheres, interactions, recordNormals);
+    gpuQueryBuffers.allocate(gpuContext.device);
 
     // run closest point shader
-    int nQueries = (int)boundingSpheres.size();
-    int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runTraversal<GPUBvhBuffers, GPUQueryClosestPointBuffers>(gpuContext, closestPointShader,
-                                                             gpuBvhBuffers, gpuQueryClosestPointBuffers,
-                                                             interactions, nThreadGroups, printLogs);
-    */
+    int nThreadGroups = countThreadGroups(gpuQueryBuffers.nQueries, nThreadsPerGroup, printLogs);
+    runTraversal<GPUBvhBuffers, GPUClosestPointQueryBuffers>(gpuContext, closestPointShader,
+                                                             gpuBvhBuffers, gpuQueryBuffers,
+                                                             nThreadGroups, printLogs);
 }
 
 template<size_t DIM>
@@ -337,26 +326,22 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(GPUBoundingSpheres& bound
                                                        GPUInteractions& interactions,
                                                        float squaredMinRadius, float precision)
 {
-    /*
     // initialize shader
     if (closestSilhouettePointShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, closestSilhouettePointShader);
         loadShader(gpuContext, traversalShaderModule, "closestSilhouettePoint", closestSilhouettePointShader);
     }
 
-    // create GPU buffers
-    GPUQueryClosestSilhouettePointBuffers gpuQueryClosestSilhouettePointBuffers;
-    gpuQueryClosestSilhouettePointBuffers.allocate(gpuContext.device, boundingSpheres, flipNormalOrientation);
-    gpuQueryClosestSilhouettePointBuffers.squaredMinRadius = squaredMinRadius;
-    gpuQueryClosestSilhouettePointBuffers.precision = precision;
+    // allocate GPU buffers
+    GPUClosestSilhouettePointQueryBuffers gpuQueryBuffers(
+        boundingSpheres, flipNormalOrientation, interactions, squaredMinRadius, precision);
+    gpuQueryBuffers.allocate(gpuContext.device);
 
     // run closest silhouette point shader
-    int nQueries = (int)boundingSpheres.size();
-    int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runTraversal<GPUBvhBuffers, GPUQueryClosestSilhouettePointBuffers>(gpuContext, closestSilhouettePointShader,
-                                                                       gpuBvhBuffers, gpuQueryClosestSilhouettePointBuffers,
-                                                                       interactions, nThreadGroups, printLogs);
-    */
+    int nThreadGroups = countThreadGroups(gpuQueryBuffers.nQueries, nThreadsPerGroup, printLogs);
+    runTraversal<GPUBvhBuffers, GPUClosestSilhouettePointQueryBuffers>(gpuContext, closestSilhouettePointShader,
+                                                                       gpuBvhBuffers, gpuQueryBuffers,
+                                                                       nThreadGroups, printLogs);
 }
 
 } // namespace fcpw
