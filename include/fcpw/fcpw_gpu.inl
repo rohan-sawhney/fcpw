@@ -332,8 +332,8 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(GPUBoundingSpheres& gpuBo
     }
 
     // allocate GPU buffers
-    GPUClosestSilhouettePointQueryBuffers gpuQueryBuffers(
-        gpuBoundingSpheres, gpuFlipNormalOrientation, gpuInteractions, squaredMinRadius, precision);
+    GPUClosestSilhouettePointQueryBuffers gpuQueryBuffers(gpuBoundingSpheres, gpuFlipNormalOrientation,
+                                                          gpuInteractions, squaredMinRadius, precision);
     gpuQueryBuffers.allocate(gpuContext.device);
 
     // run closest silhouette point shader
