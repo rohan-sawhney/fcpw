@@ -794,7 +794,7 @@ public:
         return 1;
     }
 
-    uint32_t getMaxUpdateDepth() const {
+    int getMaxUpdateDepth() const {
         return maxUpdateDepth;
     }
 
@@ -808,7 +808,7 @@ private:
     GPUSilhouettesType silhouettes;
     GPUBuffer nodeIndices = {};
     std::vector<std::pair<uint32_t, uint32_t>> updateEntryData;
-    uint32_t maxUpdateDepth = 0;
+    int maxUpdateDepth = -1;
     std::string reflectionType = "";
 };
 
@@ -873,7 +873,7 @@ public:
         else if (snch3DBuffers != nullptr) return snch3DBuffers->setRefitResources(entryPointCursor);
     }
 
-    uint32_t getMaxUpdateDepth() const {
+    int getMaxUpdateDepth() const {
         if (bvh2DBuffers != nullptr) return bvh2DBuffers->getMaxUpdateDepth();
         else if (snch2DBuffers != nullptr) return snch2DBuffers->getMaxUpdateDepth();
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getMaxUpdateDepth();
