@@ -42,7 +42,7 @@ void runTraversal(GPUContext& gpuContext,
                   const Shader& shader,
                   const T& gpuBvhBuffers,
                   const S& gpuQueryBuffers,
-                  std::vector<GPUInteraction>& interactions,
+                  GPUInteractions& interactions,
                   int nThreadGroups = 4096,
                   bool printLogs = false)
 {
@@ -52,17 +52,30 @@ void runTraversal(GPUContext& gpuContext,
 
     // create shader objects
     auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
-    ComPtr<IShaderObject> bvhShaderObject = gpuBvhBuffers.createShaderObject(
-                                                gpuContext.device, shader, printLogs);
+    ComPtr<IShaderObject> bvhShaderObject = gpuBvhBuffers.createShaderObject(gpuContext.device, shader);
+
+    // bind bvh resources
+    ShaderCursor bvhCursor(bvhShaderObject);
+    int bvhFieldCount = gpuBvhBuffers.setResources(bvhCursor);
+    if (printLogs) {
+        std::cout << "BvhReflectionType: " << bvhShaderObject->getElementTypeLayout()->getName() << std::endl;
+        for (int i = 0; i < bvhFieldCount; i++) {
+            std::cout << "\tcursor[" << i << "]: " << bvhCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
+        }
+    }
+
     ShaderCursor rootCursor(rootShaderObject);
     rootCursor.getPath("gBvh").setObject(bvhShaderObject);
 
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
-    int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor);
+    ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
+    interactions.setResources(interactionsCursor);
+    int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor) + 1;
+
     if (printLogs) {
         std::cout << "runTraversal" << std::endl;
-        for (int i = 0; i < entryPointFieldCount; i++) {
+        for (int i = 0; i < entryPointFieldCount + 1; i++) {
             std::cout << "\tcursor[" << i << "]: " << entryPointCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
         }
     }
@@ -73,10 +86,7 @@ void runTraversal(GPUContext& gpuContext,
     queryDesc.type = QueryType::Timestamp;
     queryDesc.count = 2;
     Slang::Result createQueryPoolResult = gpuContext.device->createQueryPool(queryDesc, queryPool.writeRef());
-    if (createQueryPoolResult != SLANG_OK) {
-        std::cout << "failed to create query pool" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    exitOnError(createQueryPoolResult, "failed to create query pool");
 
     encoder->writeTimestamp(queryPool, 0);
     encoder->dispatchCompute(nThreadGroups, 1, 1);
@@ -93,13 +103,10 @@ void runTraversal(GPUContext& gpuContext,
     double timestampFrequency = (double)deviceInfo.timestampFrequency;
     uint64_t timestampData[2] = { 0, 0 };
     Slang::Result getQueryPoolResult = queryPool->getResult(0, 2, timestampData);
-    if (getQueryPoolResult != SLANG_OK) {
-        std::cout << "failed to get query pool result" << std::endl;
-        exit(EXIT_FAILURE);
-    }
+    exitOnError(getQueryPoolResult, "failed to get query pool result");
 
     // read back results from GPU
-    gpuQueryBuffers.read(gpuContext.device, interactions);
+    interactions.read(gpuContext.device);
 
     // synchronize and reset transient heap
     gpuContext.transientHeap->finish();
@@ -107,7 +114,7 @@ void runTraversal(GPUContext& gpuContext,
 
     if (printLogs) {
         double timeSpan = (timestampData[1] - timestampData[0])*1000/timestampFrequency;
-        std::cout << interactions.size() << " queries"
+        std::cout << gpuQueryBuffers.nQueries << " queries"
                   << " took " << timeSpan << " ms"
                   << std::endl;
     }
@@ -125,20 +132,29 @@ void runUpdate(GPUContext& gpuContext,
 
     // create shader objects
     auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
-    ComPtr<IShaderObject> bvhShaderObject = gpuBvhBuffers.createShaderObject(
-                                                gpuContext.device, shader, printLogs);
+    ComPtr<IShaderObject> bvhShaderObject = gpuBvhBuffers.createShaderObject(gpuContext.device, shader);
+
+    // bind bvh resources
+    ShaderCursor bvhCursor(bvhShaderObject);
+    int bvhFieldCount = gpuBvhBuffers.setResources(bvhCursor);
+    if (printLogs) {
+        std::cout << "BvhReflectionType: " << bvhShaderObject->getElementTypeLayout()->getName() << std::endl;
+        for (int i = 0; i < bvhFieldCount; i++) {
+            std::cout << "\tcursor[" << i << "]: " << bvhCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
+        }
+    }
+
     ShaderCursor rootCursor(rootShaderObject);
     rootCursor.getPath("gBvh").setObject(bvhShaderObject);
 
-    // bind entry point arguments
+    // bind entry point arguments and perform refit
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
-    entryPointCursor.getPath("nodeIndices").setResource(gpuBvhBuffers.nodeIndices.view);
+    gpuBvhBuffers.setRefitResources(entryPointCursor);
 
-    for (int depth = gpuBvhBuffers.maxUpdateDepth; depth >= 0; --depth) {
-        uint32_t firstNodeOffset = gpuBvhBuffers.updateEntryData[depth].first;
-        uint32_t nodeCount = gpuBvhBuffers.updateEntryData[depth].second;
-        entryPointCursor.getPath("firstNodeOffset").setData(firstNodeOffset);
-        entryPointCursor.getPath("nodeCount").setData(nodeCount);
+    for (int depth = gpuBvhBuffers.getMaxUpdateDepth(); depth >= 0; --depth) {
+        std::pair<uint32_t, uint32_t> updateEntryData = gpuBvhBuffers.getUpdateEntryData(depth);
+        entryPointCursor.getPath("firstNodeOffset").setData(updateEntryData.first);
+        entryPointCursor.getPath("nodeCount").setData(updateEntryData.second);
 
         encoder->dispatchCompute(nodeCount, 1, 1);
         encoder->bufferBarrier(gpuBvhBuffers.nodes.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
