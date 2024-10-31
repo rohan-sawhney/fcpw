@@ -86,9 +86,9 @@ inline int countThreadGroups(int nQueries, int nThreadsPerGroup, bool printLogs)
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& rayOrigins,
-                                     Eigen::MatrixXf& rayDirections,
-                                     Eigen::VectorXf& rayDistanceBounds,
+inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
+                                     const Eigen::MatrixXf& rayDirections,
+                                     const Eigen::VectorXf& rayDistanceBounds,
                                      GPUInteractions& interactions,
                                      bool checkForOcclusion)
 {
@@ -97,13 +97,12 @@ inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& rayOrigins,
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& rayOrigins,
-                                     std::vector<Vector<DIM>>& rayDirections,
-                                     std::vector<float>& rayDistanceBounds,
+inline void GPUScene<DIM>::intersect(const std::vector<Vector<DIM>>& rayOrigins,
+                                     const std::vector<Vector<DIM>>& rayDirections,
+                                     const std::vector<float>& rayDistanceBounds,
                                      GPUInteractions& interactions,
                                      bool checkForOcclusion)
 {
-    /*
     // initialize shader
     if (rayIntersectionShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, rayIntersectionShader);
@@ -121,22 +120,21 @@ inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& rayOrigins,
     runTraversal<GPUBvhBuffers, GPUQueryRayIntersectionBuffers>(gpuContext, rayIntersectionShader,
                                                                 gpuBvhBuffers, gpuQueryRayIntersectionBuffers,
                                                                 interactions, nThreadGroups, printLogs);
-    */
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& sphereCenters,
-                                     Eigen::VectorXf& sphereSquaredRadii,
-                                     Eigen::MatrixXf& randNums,
+inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& sphereCenters,
+                                     const Eigen::VectorXf& sphereSquaredRadii,
+                                     const Eigen::MatrixXf& randNums,
                                      GPUInteractions& interactions)
 {
     intersect(sphereCenters.data(), sphereSquaredRadii.data(), randNums.data(), interactions);
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& sphereCenters,
-                                     std::vector<float>& sphereSquaredRadii,
-                                     std::vector<Vector<DIM>>& randNums,
+inline void GPUScene<DIM>::intersect(const std::vector<Vector<DIM>>& sphereCenters,
+                                     const std::vector<float>& sphereSquaredRadii,
+                                     const std::vector<Vector<DIM>>& randNums,
                                      GPUInteractions& interactions)
 {
     /*
@@ -160,8 +158,8 @@ inline void GPUScene<DIM>::intersect(std::vector<Vector<DIM>>& sphereCenters,
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestPoints(Eigen::MatrixXf& queryPoints,
-                                             Eigen::VectorXf& squaredMaxRadii,
+inline void GPUScene<DIM>::findClosestPoints(const Eigen::MatrixXf& queryPoints,
+                                             const Eigen::VectorXf& squaredMaxRadii,
                                              GPUInteractions& interactions,
                                              bool recordNormals)
 {
@@ -169,8 +167,8 @@ inline void GPUScene<DIM>::findClosestPoints(Eigen::MatrixXf& queryPoints,
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestPoints(std::vector<Vector<DIM>>& queryPoints,
-                                             std::vector<float>& squaredMaxRadii,
+inline void GPUScene<DIM>::findClosestPoints(const std::vector<Vector<DIM>>& queryPoints,
+                                             const std::vector<float>& squaredMaxRadii,
                                              GPUInteractions& interactions,
                                              bool recordNormals)
 {
@@ -196,9 +194,9 @@ inline void GPUScene<DIM>::findClosestPoints(std::vector<Vector<DIM>>& queryPoin
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestSilhouettePoints(Eigen::MatrixXf& queryPoints,
-                                                       Eigen::VectorXf& squaredMaxRadii,
-                                                       Eigen::VectorXi& flipNormalOrientation,
+inline void GPUScene<DIM>::findClosestSilhouettePoints(const Eigen::MatrixXf& queryPoints,
+                                                       const Eigen::VectorXf& squaredMaxRadii,
+                                                       const Eigen::VectorXi& flipNormalOrientation,
                                                        GPUInteractions& interactions,
                                                        float squaredMinRadius, float precision)
 {
@@ -208,9 +206,9 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(Eigen::MatrixXf& queryPoi
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestSilhouettePoints(std::vector<Vector<DIM>>& queryPoints,
-                                                       std::vector<float>& squaredMaxRadii,
-                                                       std::vector<uint32_t>& flipNormalOrientation,
+inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<Vector<DIM>>& queryPoints,
+                                                       const std::vector<float>& squaredMaxRadii,
+                                                       const std::vector<uint32_t>& flipNormalOrientation,
                                                        GPUInteractions& interactions,
                                                        float squaredMinRadius, float precision)
 {
