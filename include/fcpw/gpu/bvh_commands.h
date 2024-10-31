@@ -69,7 +69,6 @@ void runTraversal(GPUContext& gpuContext,
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
     int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor);
-
     if (printLogs) {
         std::cout << "runTraversal" << std::endl;
         for (int i = 0; i < entryPointFieldCount + 1; i++) {
