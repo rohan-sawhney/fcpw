@@ -49,7 +49,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
     SceneData<DIM> *sceneData = scene.getSceneData();
     bool hasSilhouetteGeometry = sceneData->silhouetteVertexObjects.size() > 0 ||
                                  sceneData->silhouetteEdgeObjects.size() > 0;
-    bool allocateRefitData = gpuBvhBuffers.getMaxUpdateDepth >= 0;
+    bool allocateRefitData = gpuBvhBuffers.getMaxUpdateDepth() >= 0;
 
     // initialize shader
     if (refitShader.reflection == nullptr) {
