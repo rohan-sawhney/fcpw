@@ -245,13 +245,12 @@ void runCPUClosestSilhouettePointQueries(const std::unique_ptr<Aggregate<DIM>>& 
 
 template<size_t DIM>
 void compareInteractions(const std::vector<Interaction<DIM>>& cpuInteractions,
-                         const std::vector<GPUInteraction>& gpuInteractions)
+                         const GPUInteractions& gpuInteractions)
 {
     for (int i = 0; i < nQueries; i++) {
         const Interaction<DIM>& cpuInteraction = cpuInteractions[i];
-        const GPUInteraction& gpuInteraction = gpuInteractions[i];
-        bool differentIndices = (cpuInteraction.primitiveIndex == -1 && gpuInteraction.index != FCPW_GPU_UINT_MAX) ||
-                                (cpuInteraction.primitiveIndex != -1 && gpuInteraction.index == FCPW_GPU_UINT_MAX);
+        bool differentIndices = (cpuInteraction.primitiveIndex == -1 && gpuInteractions.indices[i] != FCPW_GPU_UINT_MAX) ||
+                                (cpuInteraction.primitiveIndex != -1 && gpuInteractions.indices[i] == FCPW_GPU_UINT_MAX);
 
         if (differentIndices) {
             std::cout << "#" << i << "/" << nQueries << std::endl;
@@ -263,11 +262,11 @@ void compareInteractions(const std::vector<Interaction<DIM>>& cpuInteractions,
                       << "\n\tindex: " << cpuInteraction.primitiveIndex
                       << std::endl;
             std::cout << "GPU Interaction"
-                      << "\n\tp: " << gpuInteraction.p.x << " " << gpuInteraction.p.y << " " << gpuInteraction.p.z
-                      << "\n\tn: " << gpuInteraction.n.x << " " << gpuInteraction.n.y << " " << gpuInteraction.n.z
-                      << "\n\tuv: " << gpuInteraction.uv.x << " " << gpuInteraction.uv.y
-                      << "\n\td: " << gpuInteraction.d
-                      << "\n\tindex: " << gpuInteraction.index
+                      << "\n\tp: " << gpuInteractions.px[i] << " " << gpuInteractions.py[i] << " " << gpuInteractions.pz[i]
+                      << "\n\tn: " << gpuInteractions.nx[i] << " " << gpuInteractions.ny[i] << " " << gpuInteractions.nz[i]
+                      << "\n\tuv: " << gpuInteractions.uvx[i] << " " << gpuInteractions.uvy[i]
+                      << "\n\td: " << gpuInteractions.d[i]
+                      << "\n\tindex: " << gpuInteractions.indices[i]
                       << std::endl;
             std::cout << std::endl;
         }
@@ -370,34 +369,38 @@ void run()
     std::vector<int> indices;
     std::vector<Vector<DIM>> randNums;
     std::vector<bool> flipNormalOrientation;
-    std::vector<GPURay> gpuRays(nQueries);
-    std::vector<GPUBoundingSphere> gpuBoundingSpheres(nQueries);
-    std::vector<GPUBoundingSphere> gpuInfiniteSpheres(nQueries);
-    std::vector<float3> gpuRandNums(nQueries);
-    std::vector<uint32_t> gpuFlipNormalOrientation(nQueries);
+    GPURays gpuRays;
+    GPUBoundingSpheres gpuBoundingSpheres;
+    GPUBoundingSpheres gpuInfiniteSpheres;
+    GPURandNums gpuRandNums;
+    GPUFlipNormalOrientation gpuFlipNormalOrientation;
 
     std::vector<bool> isInterior;
     tagInteriorPoints<DIM>(sceneData->aggregate, queryPoints, isInterior);
 
     for (int i = 0; i < nQueries; i++) {
-        float3 queryPoint = float3{queryPoints[i][0],
-                                   queryPoints[i][1],
-                                   DIM == 2 ? 0.0f : queryPoints[i][2]};
-        float3 randomDirection = float3{randomDirections[i][0],
-                                        randomDirections[i][1],
-                                        DIM == 2 ? 0.0f : randomDirections[i][2]};
-        float randomSquaredRadius = randomSquaredRadii[i];
+        Vector<DIM> q = queryPoints[i];
+        Vector<DIM> d = randomDirections[i];
+        Vector<DIM> u = uniformRealRandomVector<DIM>();
+        if (DIM == 2) {
+            q[2] = 0.0f;
+            d[2] = 0.0f;
+            u[2] = 0.0f;
+        }
 
         indices.emplace_back(i);
-        randNums.emplace_back(uniformRealRandomVector<DIM>());
+        randNums.emplace_back(u);
         flipNormalOrientation.emplace_back(!isInterior[i]);
-        gpuRays[i] = GPURay(queryPoint, randomDirection);
-        gpuBoundingSpheres[i] = GPUBoundingSphere(queryPoint, randomSquaredRadius);
-        gpuInfiniteSpheres[i] = GPUBoundingSphere(queryPoint, maxFloat);
-        gpuRandNums[i] = float3{randNums[i][0],
-                                randNums[i][1],
-                                DIM == 2 ? 0.0f : randNums[i][2]};
-        gpuFlipNormalOrientation[i] = flipNormalOrientation[i] ? 1 : 0;
+        gpuRays.ox[i] = q[0]; gpuRays.oy[i] = q[1]; gpuRays.oz[i] = q[2];
+        gpuRays.dx[i] = d[0]; gpuRays.dy[i] = d[1]; gpuRays.dz[i] = d[2];
+        gpuRays.tMax[i] = maxFloat;
+        gpuBoundingSpheres.cx[i] = q[0]; gpuInfiniteSpheres.cx[i] = q[0];
+        gpuBoundingSpheres.cy[i] = q[1]; gpuInfiniteSpheres.cy[i] = q[1];
+        gpuBoundingSpheres.cz[i] = q[2]; gpuInfiniteSpheres.cz[i] = q[2];
+        gpuBoundingSpheres.r2[i] = randomSquaredRadii[i];
+        gpuInfiniteSpheres.r2[i] = maxFloat;
+        gpuRandNums.x[i] = u[0]; gpuRandNums.y[i] = u[1]; gpuRandNums.z[i] = u[2];
+        gpuFlipNormalOrientation.val[i] = flipNormalOrientation[i] ? 1 : 0;
     }
 
     // transfer scene to GPU
@@ -413,16 +416,16 @@ void run()
 
     // run GPU queries
     std::cout << "Running GPU queries..." << std::endl;
-    std::vector<GPUInteraction> gpuRayInteractions;
+    GPUInteractions gpuRayInteractions;
     gpuScene.intersect(gpuRays, gpuRayInteractions);
 
-    std::vector<GPUInteraction> gpuSphereInteractions;
+    GPUInteractions gpuSphereInteractions;
     gpuScene.intersect(gpuBoundingSpheres, gpuRandNums, gpuSphereInteractions);
 
-    std::vector<GPUInteraction> gpuCPQInteractions;
+    GPUInteractions gpuCPQInteractions;
     gpuScene.findClosestPoints(gpuInfiniteSpheres, gpuCPQInteractions);
 
-    std::vector<GPUInteraction> gpuCSPQInteractions;
+    GPUInteractions gpuCSPQInteractions;
     if (computeSilhouettes) {
         gpuScene.findClosestSilhouettePoints(gpuInfiniteSpheres, gpuFlipNormalOrientation, gpuCSPQInteractions);
     }
