@@ -944,6 +944,11 @@ struct GPURays {
         tMax.resize(size, 0.0f);
     }
 
+    std::vector<float> ox, oy, oz;
+    std::vector<float> dx, dy, dz;
+    std::vector<float> tMax;
+
+private:
     void allocate(ComPtr<IDevice>& device) {
         Slang::Result result = oxBuffer.create<float>(device, false, ox.data(), ox.size());
         exitOnError(result, "failed to allocate GPURays buffer");
@@ -971,14 +976,10 @@ struct GPURays {
         raysCursor["tMax"].setResource(tMaxBuffer.view);
     }
 
-    std::vector<float> ox, oy, oz;
-    std::vector<float> dx, dy, dz;
-    std::vector<float> tMax;
-
-private:
     GPUBuffer oxBuffer = {}, oyBuffer = {}, ozBuffer = {};
     GPUBuffer dxBuffer = {}, dyBuffer = {}, dzBuffer = {};
     GPUBuffer tMaxBuffer = {};
+    friend struct GPURayQueryBuffers;
 };
 
 struct GPUBoundingSpheres {
@@ -989,6 +990,10 @@ struct GPUBoundingSpheres {
         r2.resize(size, 0.0f);
     }
 
+    std::vector<float> cx, cy, cz;
+    std::vector<float> r2;
+
+private:
     void allocate(ComPtr<IDevice>& device) {
         Slang::Result result = cxBuffer.create<float>(device, false, cx.data(), cx.size());
         exitOnError(result, "failed to allocate GPUBoundingSpheres buffer");
@@ -1007,28 +1012,30 @@ struct GPUBoundingSpheres {
         boundingSpheresCursor["r2"].setResource(r2Buffer.view);
     }
 
-    std::vector<float> cx, cy, cz;
-    std::vector<float> r2;
-
-private:
     GPUBuffer cxBuffer = {}, cyBuffer = {}, czBuffer = {};
     GPUBuffer r2Buffer = {};
+    friend struct GPUSphereIntersectionQueryBuffers;
+    friend struct GPUClosestPointQueryBuffers;
+    friend struct GPUClosestSilhouettePointQueryBuffers;
 };
 
-struct GPUFloat3List {
+struct GPURandNums {
     void setSize(int size) {
         x.resize(size, 0.0f);
         y.resize(size, 0.0f);
         z.resize(size, 0.0f);
     }
 
+    std::vector<float> x, y, z;
+
+private:
     void allocate(ComPtr<IDevice>& device) {
         Slang::Result result = xBuffer.create<float>(device, false, x.data(), x.size());
-        exitOnError(result, "failed to allocate GPUFloat3List buffer");
+        exitOnError(result, "failed to allocate GPURandNums buffer");
         result = yBuffer.create<float>(device, false, y.data(), y.size());
-        exitOnError(result, "failed to allocate GPUFloat3List buffer");
+        exitOnError(result, "failed to allocate GPURandNums buffer");
         result = zBuffer.create<float>(device, false, z.data(), z.size());
-        exitOnError(result, "failed to allocate GPUFloat3List buffer");
+        exitOnError(result, "failed to allocate GPURandNums buffer");
     }
 
     void setResources(ShaderCursor& float3Cursor) const {
@@ -1037,33 +1044,39 @@ struct GPUFloat3List {
         float3Cursor["z"].setResource(zBuffer.view);
     }
 
-    std::vector<float> x, y, z;
-
-private:
     GPUBuffer xBuffer = {}, yBuffer = {}, zBuffer = {};
+    friend struct GPUSphereIntersectionQueryBuffers;
 };
 
-struct GPUUintList {
+struct GPUFlipNormalOrientation {
     void setSize(int size) {
         val.resize(size, 0);
     }
 
+    std::vector<uint32_t> val;
+
+private:
     void allocate(ComPtr<IDevice>& device) {
         Slang::Result result = valBuffer.create<uint32_t>(device, false, val.data(), val.size());
-        exitOnError(result, "failed to allocate GPUFloat3List buffer");
+        exitOnError(result, "failed to allocate GPUFlipNormalOrientation buffer");
     }
 
     void setResources(ShaderCursor& uintCursor) const {
         uintCursor["val"].setResource(valBuffer.view);
     }
 
-    std::vector<uint32_t> val;
-
-private:
     GPUBuffer valBuffer = {};
+    friend struct GPUClosestSilhouettePointQueryBuffers;
 };
 
 struct GPUInteractions {
+    std::vector<float> px, py, pz;
+    std::vector<float> nx, ny, nz;
+    std::vector<float> uvx, uvy;
+    std::vector<float> d;
+    std::vector<uint32_t> indices;
+
+private:
     void setSize(int size) {
         px.resize(size, 0.0f);
         py.resize(size, 0.0f);
@@ -1136,18 +1149,15 @@ struct GPUInteractions {
         exitOnError(result, "failed to read GPUInteractions buffer");
     }
 
-    std::vector<float> px, py, pz;
-    std::vector<float> nx, ny, nz;
-    std::vector<float> uvx, uvy;
-    std::vector<float> d;
-    std::vector<uint32_t> indices;
-
-private:
     GPUBuffer pxBuffer = {}, pyBuffer = {}, pzBuffer = {};
     GPUBuffer nxBuffer = {}, nyBuffer = {}, nzBuffer = {};
     GPUBuffer uvxBuffer = {}, uvyBuffer = {};
     GPUBuffer dBuffer = {};
     GPUBuffer indicesBuffer = {};
+    friend struct GPURayQueryBuffers;
+    friend struct GPUSphereIntersectionQueryBuffers;
+    friend struct GPUClosestPointQueryBuffers;
+    friend struct GPUClosestSilhouettePointQueryBuffers;
 };
 
 struct GPURayQueryBuffers {
@@ -1185,12 +1195,12 @@ struct GPURayQueryBuffers {
 
 struct GPUSphereIntersectionQueryBuffers {
     GPUBoundingSpheres& boundingSpheres;
-    GPUFloat3List& randNums;
+    GPURandNums& randNums;
     GPUInteractions& interactions;
     int nQueries;
 
     GPUSphereIntersectionQueryBuffers(GPUBoundingSpheres& boundingSpheres_,
-                                      GPUFloat3List& randNums_,
+                                      GPURandNums& randNums_,
                                       GPUInteractions& interactions_):
                                       boundingSpheres(boundingSpheres_),
                                       randNums(randNums_),
@@ -1253,14 +1263,14 @@ struct GPUClosestPointQueryBuffers {
 
 struct GPUClosestSilhouettePointQueryBuffers {
     GPUBoundingSpheres& boundingSpheres;
-    GPUUintList& flipNormalOrientation;
+    GPUFlipNormalOrientation& flipNormalOrientation;
     GPUInteractions& interactions;
     float squaredMinRadius;
     float precision;
     int nQueries;
 
     GPUClosestSilhouettePointQueryBuffers(GPUBoundingSpheres& boundingSpheres_,
-                                          GPUUintList& flipNormalOrientation_,
+                                          GPUFlipNormalOrientation& flipNormalOrientation_,
                                           GPUInteractions& interactions_,
                                           float squaredMinRadius_,
                                           float precision_):

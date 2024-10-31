@@ -201,7 +201,7 @@ inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& sphereCenters,
 
 template<size_t DIM>
 inline void GPUScene<DIM>::intersect(GPUBoundingSpheres& boundingSpheres,
-                                     GPUFloat3List& randNums,
+                                     GPURandNums& randNums,
                                      GPUInteractions& interactions)
 {
     /*
@@ -333,7 +333,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const Eigen::MatrixXf& qu
 
 template<size_t DIM>
 inline void GPUScene<DIM>::findClosestSilhouettePoints(GPUBoundingSpheres& boundingSpheres,
-                                                       GPUUintList& flipNormalOrientation,
+                                                       GPUFlipNormalOrientation& flipNormalOrientation,
                                                        GPUInteractions& interactions,
                                                        float squaredMinRadius, float precision)
 {

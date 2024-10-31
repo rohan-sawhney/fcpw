@@ -41,14 +41,14 @@ public:
 
     // intersects the scene with the given spheres, randomly selecting one geometric primitive
     // contained inside each sphere and sampling a random point on that primitive (written to 
-    // GPUInteraction.p) using the random numbers randNums[3] (float3.z is ignored for DIM = 2);
+    // GPUInteraction.px,py,pz) using the random numbers randNums (randNums[2] is ignored if DIM = 2);
     // the selection pdf value is written to GPUInteraction.d along with the primitive index
     void intersect(const Eigen::MatrixXf& sphereCenters,
                    const Eigen::VectorXf& sphereSquaredRadii,
                    const Eigen::MatrixXf& randNums,
                    GPUInteractions& interactions);
     void intersect(GPUBoundingSpheres& boundingSpheres,
-                   GPUFloat3List& randNums,
+                   GPURandNums& randNums,
                    GPUInteractions& interactions);
 
     // finds the closest points in the scene to the given query points. The max radius specifies
@@ -71,7 +71,7 @@ public:
                                      GPUInteractions& interactions,
                                      float squaredMinRadius=0.0f, float precision=1e-3f);
     void findClosestSilhouettePoints(GPUBoundingSpheres& boundingSpheres,
-                                     GPUUintList& flipNormalOrientation,
+                                     GPUFlipNormalOrientation& flipNormalOrientation,
                                      GPUInteractions& interactions,
                                      float squaredMinRadius=0.0f, float precision=1e-3f);
 
