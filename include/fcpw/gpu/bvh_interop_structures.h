@@ -1167,11 +1167,11 @@ struct GPURayIntersectionQueryBuffers {
     int nQueries;
 
     GPURayIntersectionQueryBuffers(GPURays& rays_,
-                       GPUInteractions& interactions_,
-                       bool checkForOcclusion_):
-                       rays(rays_),
-                       interactions(interactions_),
-                       checkForOcclusion(checkForOcclusion_) {
+                                   GPUInteractions& interactions_,
+                                   bool checkForOcclusion_):
+                                   rays(rays_),
+                                   interactions(interactions_),
+                                   checkForOcclusion(checkForOcclusion_) {
         nQueries = (int)rays.ox.size();
         interactions.setSize(nQueries);
     }
