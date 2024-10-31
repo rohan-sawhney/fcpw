@@ -1115,7 +1115,7 @@ private:
     }
 
     void setResources(ShaderCursor& uintCursor) const {
-        uintCursor["val"].setResource(valBuffer.view);
+        uintCursor.setResource(valBuffer.view);
     }
 
     GPUBuffer valBuffer = {};
