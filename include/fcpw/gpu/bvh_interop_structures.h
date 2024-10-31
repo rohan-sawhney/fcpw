@@ -820,6 +820,7 @@ public:
         exit(EXIT_FAILURE);
     }
 
+    template<size_t DIM>
     void allocateNodes(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
         if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateNodes(device, cpuSceneData);
         else if (snch2DBuffers != nullptr) snch2DBuffers->allocateNodes(device, cpuSceneData);
@@ -827,6 +828,7 @@ public:
         else if (snch3DBuffers != nullptr) snch3DBuffers->allocateNodes(device, cpuSceneData);
     }
 
+    template<size_t DIM>
     void allocatePrimitives(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
         if (bvh2DBuffers != nullptr) bvh2DBuffers->allocatePrimitives(device, cpuSceneData);
         else if (snch2DBuffers != nullptr) snch2DBuffers->allocatePrimitives(device, cpuSceneData);
@@ -834,6 +836,7 @@ public:
         else if (snch3DBuffers != nullptr) snch3DBuffers->allocatePrimitives(device, cpuSceneData);
     }
 
+    template<size_t DIM>
     void allocateSilhouettes(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
         if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateSilhouettes(device, cpuSceneData);
         else if (snch2DBuffers != nullptr) snch2DBuffers->allocateSilhouettes(device, cpuSceneData);
@@ -841,6 +844,7 @@ public:
         else if (snch3DBuffers != nullptr) snch3DBuffers->allocateSilhouettes(device, cpuSceneData);
     }
 
+    template<size_t DIM>
     void allocateRefitData(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
         if (bvh2DBuffers != nullptr) bvh2DBuffers->allocateRefitData(device, cpuSceneData);
         else if (snch2DBuffers != nullptr) snch2DBuffers->allocateRefitData(device, cpuSceneData);
