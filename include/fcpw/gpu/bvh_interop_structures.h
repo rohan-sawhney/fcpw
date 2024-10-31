@@ -1163,7 +1163,7 @@ private:
         uvx.resize(size, 0.0f);
         uvy.resize(size, 0.0f);
         d.resize(size, 0.0f);
-        indices.resize(size, 0);
+        indices.resize(size, FCPW_GPU_UINT_MAX);
     }
 
     void allocate(ComPtr<IDevice>& device) {
