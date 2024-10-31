@@ -7,7 +7,12 @@ public struct BoundingSphere
     public float3 c; // sphere center
     public float r2; // sphere squared radius
 
-    // constructor
+    // constructors
+    public __init()
+    {
+        c = float3(0.0, 0.0, 0.0);
+        r2 = 0.0;
+    }
     public __init(float3 c_, float r2_)
     {
         c = c_;
@@ -21,6 +26,11 @@ public struct BoundingBox
     public float3 pMax; // aabb max position
 
     // constructor
+    public __init()
+    {
+        pMin = float3(FLT_MAX, FLT_MAX, FLT_MAX);
+        pMax = float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    }
     public __init(float3 pMin_, float3 pMax_)
     {
         pMin = pMin_;
