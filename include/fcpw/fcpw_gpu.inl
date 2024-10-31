@@ -130,7 +130,7 @@ inline void GPUScene<DIM>::intersect(Eigen::MatrixXf& sphereCenters,
                                      Eigen::MatrixXf& randNums,
                                      GPUInteractions& interactions)
 {
-    intersect(sphereCenters.data(), sphereSquaredRadii.data(), randNums3.data(), interactions);
+    intersect(sphereCenters.data(), sphereSquaredRadii.data(), randNums.data(), interactions);
 }
 
 template<size_t DIM>
