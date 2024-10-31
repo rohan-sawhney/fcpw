@@ -849,6 +849,7 @@ public:
         else if (snch2DBuffers != nullptr) return snch2DBuffers->createShaderObject(device, shader);
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->createShaderObject(device, shader);
         else if (snch3DBuffers != nullptr) return snch3DBuffers->createShaderObject(device, shader);
+        return nullptr;
     }
 
     int setResources(ShaderCursor& shaderCursor) const {
@@ -856,6 +857,7 @@ public:
         else if (snch2DBuffers != nullptr) return snch2DBuffers->setResources(shaderCursor);
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->setResources(shaderCursor);
         else if (snch3DBuffers != nullptr) return snch3DBuffers->setResources(shaderCursor);
+        return 0;
     }
 
     int setRefitResources(ShaderCursor& entryPointCursor) const {
@@ -863,6 +865,7 @@ public:
         else if (snch2DBuffers != nullptr) return snch2DBuffers->setRefitResources(entryPointCursor);
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->setRefitResources(entryPointCursor);
         else if (snch3DBuffers != nullptr) return snch3DBuffers->setRefitResources(entryPointCursor);
+        return 0;
     }
 
     int getMaxUpdateDepth() const {
@@ -870,6 +873,7 @@ public:
         else if (snch2DBuffers != nullptr) return snch2DBuffers->getMaxUpdateDepth();
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getMaxUpdateDepth();
         else if (snch3DBuffers != nullptr) return snch3DBuffers->getMaxUpdateDepth();
+        return -1;
     }
 
     std::pair<uint32_t, uint32_t> getUpdateEntryData(int depth) const {
@@ -877,6 +881,7 @@ public:
         else if (snch2DBuffers != nullptr) return snch2DBuffers->getUpdateEntryData(depth);
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getUpdateEntryData(depth);
         else if (snch3DBuffers != nullptr) return snch3DBuffers->getUpdateEntryData(depth);
+        return std::make_pair(0, 0);
     }
 
 private:
