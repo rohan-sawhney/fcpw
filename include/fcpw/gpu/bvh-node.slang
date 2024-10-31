@@ -45,6 +45,13 @@ public struct BvhNode : IBvhNode
     public uint nPrimitives;
     public uint offset;
 
+    // constructor
+    public __init()
+    {
+        nPrimitives = 0;
+        offset = 0;
+    }
+
     // returns the bounding box of the node
     public BoundingBox getBoundingBox()
     {
@@ -122,6 +129,15 @@ public struct SnchNode : IBvhNode
     public uint offset;
     public uint nSilhouettes;
     public uint silhouetteOffset;
+
+    // constructor
+    public __init()
+    {
+        nPrimitives = 0;
+        offset = 0;
+        nSilhouettes = 0;
+        silhouetteOffset = 0;        
+    }
 
     // returns the bounding box of the node
     public BoundingBox getBoundingBox()

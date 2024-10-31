@@ -108,6 +108,14 @@ public struct LineSegment : IPrimitive
     public float3 pb;
     public uint index;
 
+    // constructor
+    public __init()
+    {
+        pa = float3(0.0, 0.0, 0.0);
+        pb = float3(0.0, 0.0, 0.0);
+        index = UINT_MAX;
+    }
+
     // returns the bounding box of the primitive
     public BoundingBox getBoundingBox()
     {
@@ -338,6 +346,15 @@ public struct Triangle : IPrimitive
     public float3 pc;
     public uint index;
 
+    // constructor
+    public __init()
+    {
+        pa = float3(0.0, 0.0, 0.0);
+        pb = float3(0.0, 0.0, 0.0);
+        pc = float3(0.0, 0.0, 0.0);
+        index = UINT_MAX;
+    }
+
     // returns the bounding box of the primitive
     public BoundingBox getBoundingBox()
     {
@@ -454,6 +471,12 @@ public struct NoSilhouette : ISilhouette
 {
     public uint index;
 
+    // constructor
+    public __init()
+    {
+        index = UINT_MAX;
+    }
+
     // returns the centroid of the silhouette
     public float3 getCentroid()
     {
@@ -528,6 +551,16 @@ public struct Vertex : ISilhouette
     public float3 n1;
     public uint index;
     public uint hasOneAdjacentFace;
+
+    // constructor
+    public __init()
+    {
+        p = float3(0.0, 0.0, 0.0);
+        n0 = float3(0.0, 0.0, 0.0);
+        n1 = float3(0.0, 0.0, 0.0);
+        index = UINT_MAX;
+        hasOneAdjacentFace = 0;
+    }
 
     // returns the centroid of the silhouette
     public float3 getCentroid()
@@ -640,6 +673,17 @@ public struct Edge : ISilhouette
     public float3 n1;
     public uint index;
     public uint hasOneAdjacentFace;
+
+    // constructor
+    public __init()
+    {
+        pa = float3(0.0, 0.0, 0.0);
+        pb = float3(0.0, 0.0, 0.0);
+        n0 = float3(0.0, 0.0, 0.0);
+        n1 = float3(0.0, 0.0, 0.0);
+        index = UINT_MAX;
+        hasOneAdjacentFace = 0;
+    }
 
     // returns the centroid of the silhouette
     public float3 getCentroid()
