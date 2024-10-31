@@ -94,7 +94,7 @@ inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
                                      bool checkForOcclusion)
 {
     int nQueries = (int)rayOrigins.rows();
-    GPURay gpuRays;
+    GPURays gpuRays;
     gpuRays.setSize(nQueries);
 
     auto callback = [&](int start, int end) {
