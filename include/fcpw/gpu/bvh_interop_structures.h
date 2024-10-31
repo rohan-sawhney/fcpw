@@ -979,7 +979,7 @@ private:
     GPUBuffer oxBuffer = {}, oyBuffer = {}, ozBuffer = {};
     GPUBuffer dxBuffer = {}, dyBuffer = {}, dzBuffer = {};
     GPUBuffer tMaxBuffer = {};
-    friend struct GPURayQueryBuffers;
+    friend struct GPURayIntersectionQueryBuffers;
 };
 
 struct GPUBoundingSpheres {
@@ -1154,19 +1154,19 @@ private:
     GPUBuffer uvxBuffer = {}, uvyBuffer = {};
     GPUBuffer dBuffer = {};
     GPUBuffer indicesBuffer = {};
-    friend struct GPURayQueryBuffers;
+    friend struct GPURayIntersectionQueryBuffers;
     friend struct GPUSphereIntersectionQueryBuffers;
     friend struct GPUClosestPointQueryBuffers;
     friend struct GPUClosestSilhouettePointQueryBuffers;
 };
 
-struct GPURayQueryBuffers {
+struct GPURayIntersectionQueryBuffers {
     GPURays& rays;
     GPUInteractions& interactions;
     bool checkForOcclusion;
     int nQueries;
 
-    GPURayQueryBuffers(GPURays& rays_,
+    GPURayIntersectionQueryBuffers(GPURays& rays_,
                        GPUInteractions& interactions_,
                        bool checkForOcclusion_):
                        rays(rays_),
