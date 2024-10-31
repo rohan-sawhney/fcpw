@@ -149,7 +149,7 @@ void runUpdate(GPUContext& gpuContext,
 
     // bind entry point arguments and perform refit
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
-    gpuBvhBuffers.setRefitResources(entryPointCursor);
+    int entryPointFieldCount = gpuBvhBuffers.setRefitResources(entryPointCursor) + 2;
 
     for (int depth = gpuBvhBuffers.getMaxUpdateDepth(); depth >= 0; --depth) {
         std::pair<uint32_t, uint32_t> updateEntryData = gpuBvhBuffers.getUpdateEntryData(depth);
@@ -162,8 +162,7 @@ void runUpdate(GPUContext& gpuContext,
 
     if (printLogs) {
         std::cout << "runUpdate" << std::endl;
-        int entryPointFieldCount = 4;
-        for (int i = 0; i < entryPointFieldCount; i++) {
+        for (int i = 0; i < entryPointFieldCount + 1; i++) {
             std::cout << "\tcursor[" << i << "]: " << entryPointCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
         }
     }
