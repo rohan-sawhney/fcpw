@@ -153,8 +153,10 @@ void runUpdate(GPUContext& gpuContext,
 
     for (int depth = gpuBvhBuffers.getMaxUpdateDepth(); depth >= 0; --depth) {
         std::pair<uint32_t, uint32_t> updateEntryData = gpuBvhBuffers.getUpdateEntryData(depth);
-        entryPointCursor.getPath("firstNodeOffset").setData(updateEntryData.first);
-        entryPointCursor.getPath("nodeCount").setData(updateEntryData.second);
+        uint32_t firstNodeOffset = updateEntryData.first;
+        uint32_t nodeCount = updateEntryData.second;
+        entryPointCursor.getPath("firstNodeOffset").setData(firstNodeOffset);
+        entryPointCursor.getPath("nodeCount").setData(nodeCount);
 
         encoder->dispatchCompute(nodeCount, 1, 1);
         encoder->bufferBarrier(gpuBvhBuffers.nodes.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
