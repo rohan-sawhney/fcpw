@@ -47,7 +47,7 @@ public:
                    const Eigen::VectorXf& sphereSquaredRadii,
                    const Eigen::MatrixXf& randNums,
                    GPUInteractions& interactions);
-    void intersect(GPUBoundingSphere& boundingSpheres,
+    void intersect(GPUBoundingSpheres& boundingSpheres,
                    GPUFloat3List& randNums,
                    GPUInteractions& interactions);
 
@@ -57,7 +57,7 @@ public:
                            const Eigen::VectorXf& squaredMaxRadii,
                            GPUInteractions& interactions,
                            bool recordNormals=false);
-    void findClosestPoints(GPUBoundingSphere& boundingSpheres,
+    void findClosestPoints(GPUBoundingSpheres& boundingSpheres,
                            GPUInteractions& interactions,
                            bool recordNormals=false);
 
@@ -70,7 +70,7 @@ public:
                                      const Eigen::VectorXi& flipNormalOrientation,
                                      GPUInteractions& interactions,
                                      float squaredMinRadius=0.0f, float precision=1e-3f);
-    void findClosestSilhouettePoints(GPUBoundingSphere& boundingSpheres,
+    void findClosestSilhouettePoints(GPUBoundingSpheres& boundingSpheres,
                                      GPUUintList& flipNormalOrientation,
                                      GPUInteractions& interactions,
                                      float squaredMinRadius=0.0f, float precision=1e-3f);
