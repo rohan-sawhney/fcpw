@@ -798,7 +798,7 @@ public:
         return maxUpdateDepth;
     }
 
-    std::pair<uint32_t, uint32_t> getUpdateEntryData(uint32_t depth) {
+    std::pair<uint32_t, uint32_t> getUpdateEntryData(int depth) const {
         return updateEntryData[depth];
     }
 
@@ -876,7 +876,7 @@ public:
         else if (snch3DBuffers != nullptr) return snch3DBuffers->getMaxUpdateDepth();
     }
 
-    std::pair<uint32_t, uint32_t> getUpdateEntryData(uint32_t depth) {
+    std::pair<uint32_t, uint32_t> getUpdateEntryData(int depth) const {
         if (bvh2DBuffers != nullptr) return bvh2DBuffers->getUpdateEntryData(depth);
         else if (snch2DBuffers != nullptr) return snch2DBuffers->getUpdateEntryData(depth);
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getUpdateEntryData(depth);
