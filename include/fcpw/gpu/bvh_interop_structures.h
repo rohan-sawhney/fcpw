@@ -1131,16 +1131,16 @@ private:
 };
 
 struct GPURayQueryBuffers {
-    GPURays rays;
-    bool checkForOcclusion = false;
-    GPUInteractions interactions;
+    GPURays& rays;
+    GPUInteractions& interactions;
+    bool checkForOcclusion;
     int nQueries;
 
-    void setQueryCount(int nQueries_) {
-        nQueries = nQueries_;
-        rays.setSize(nQueries);
-        interactions.setSize(nQueries);
-    }
+    GPURayQueryBuffers(GPURays& rays_, GPUInteractions& interactions_,
+                       bool checkForOcclusion_, int nQueries_):
+                       rays(rays_), interactions(interactions_),
+                       checkForOcclusion(checkForOcclusion_),
+                       nQueries(nQueries_) {}
 
     void allocate(ComPtr<IDevice>& device) {
         rays.allocate(device);
@@ -1150,9 +1150,9 @@ struct GPURayQueryBuffers {
     int setResources(ShaderCursor& entryPointCursor) const {
         ShaderCursor raysCursor = entryPointCursor.getPath("rays");
         rays.setResources(raysCursor);
-        entryPointCursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
         interactions.setResources(interactionsCursor);
+        entryPointCursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         entryPointCursor.getPath("nQueries").setData(nQueries);
 
         return 4;
@@ -1160,17 +1160,15 @@ struct GPURayQueryBuffers {
 };
 
 struct GPUSphereIntersectionQueryBuffers {
-    GPUBoundingSpheres boundingSpheres;
-    GPUFloat3List randNums;
-    GPUInteractions interactions;
+    GPUBoundingSpheres& boundingSpheres;
+    GPUFloat3List& randNums;
+    GPUInteractions& interactions;
     int nQueries;
 
-    void setQueryCount(int nQueries_) {
-        nQueries = nQueries_;
-        boundingSpheres.setSize(nQueries);
-        randNums.setSize(nQueries);
-        interactions.setSize(nQueries);
-    }
+    GPUSphereIntersectionQueryBuffers(GPUBoundingSpheres& boundingSpheres_, GPUFloat3List& randNums_,
+                                      GPUInteractions& interactions_, int nQueries_):
+                                      boundingSpheres(boundingSpheres_), randNums(randNums_),
+                                      interactions(interactions_), nQueries(nQueries_) {}
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
@@ -1192,16 +1190,18 @@ struct GPUSphereIntersectionQueryBuffers {
 };
 
 struct GPUClosestPointQueryBuffers {
-    GPUBoundingSpheres boundingSpheres;
-    GPUInteractions interactions;
-    float recordNormals = false;
+    GPUBoundingSpheres& boundingSpheres;
+    GPUInteractions& interactions;
+    float recordNormals;
     int nQueries;
 
-    void setQueryCount(int nQueries_) {
-        nQueries = nQueries_;
-        boundingSpheres.setSize(nQueries);
-        interactions.setSize(nQueries);
-    }
+    GPUClosestPointQueryBuffers(GPUBoundingSpheres& boundingSpheres_,
+                                GPUInteractions& interactions_,
+                                float recordNormals_, int nQueries_):
+                                boundingSpheres(boundingSpheres_),
+                                interactions(interactions_),
+                                recordNormals(recordNormals_),
+                                nQueries(nQueries_) {}
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
@@ -1221,19 +1221,22 @@ struct GPUClosestPointQueryBuffers {
 };
 
 struct GPUClosestSilhouettePointQueryBuffers {
-    GPUBoundingSpheres boundingSpheres;
-    std::vector<uint32_t> flipNormalOrientationData;
-    float squaredMinRadius = 1e-6f;
-    float precision = 1e-3f;
-    GPUInteractions interactions;
+    GPUBoundingSpheres& boundingSpheres;
+    std::vector<uint32_t>& flipNormalOrientationData;
+    GPUInteractions& interactions;
+    float squaredMinRadius;
+    float precision;
     int nQueries;
 
-    void setQueryCount(int nQueries_) {
-        nQueries = nQueries_;
-        boundingSpheres.setSize(nQueries);
-        flipNormalOrientationData.resize(nQueries, 0);
-        interactions.setSize(nQueries);
-    }
+    GPUClosestSilhouettePointQueryBuffers(GPUBoundingSpheres& boundingSpheres_,
+                                          std::vector<uint32_t>& flipNormalOrientationData_,
+                                          GPUInteractions& interactions_, float squaredMinRadius_,
+                                          float precision_, int nQueries_):
+                                          boundingSpheres(boundingSpheres_),
+                                          flipNormalOrientationData(flipNormalOrientationData_),
+                                          interactions(interactions_),
+                                          squaredMinRadius(squaredMinRadius_),
+                                          precision(precision_), nQueries(nQueries_) {}
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
@@ -1247,10 +1250,10 @@ struct GPUClosestSilhouettePointQueryBuffers {
         ShaderCursor boundingSpheresCursor = entryPointCursor.getPath("boundingSpheres");
         boundingSpheres.setResources(boundingSpheresCursor);
         entryPointCursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
-        entryPointCursor.getPath("squaredMinRadius").setData(squaredMinRadius);
-        entryPointCursor.getPath("precision").setData(precision);
         ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
         interactions.setResources(interactionsCursor);
+        entryPointCursor.getPath("squaredMinRadius").setData(squaredMinRadius);
+        entryPointCursor.getPath("precision").setData(precision);
         entryPointCursor.getPath("nQueries").setData(nQueries);
 
         return 6;
