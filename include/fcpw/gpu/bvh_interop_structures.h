@@ -802,10 +802,6 @@ public:
         return updateEntryData[depth];
     }
 
-    ComPtr<IBufferResource> getNodesBuffer() {
-        return nodes.buffer;
-    }
-
 private:
     GPUNodesType nodes;
     GPUPrimitivesType primitives;
@@ -886,14 +882,6 @@ public:
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getUpdateEntryData(depth);
         else if (snch3DBuffers != nullptr) return snch3DBuffers->getUpdateEntryData(depth);
         return std::make_pair(0, 0);
-    }
-
-    ComPtr<IBufferResource> getNodesBuffer() {
-        if (bvh2DBuffers != nullptr) return bvh2DBuffers->getNodesBuffer();
-        else if (snch2DBuffers != nullptr) return snch2DBuffers->getNodesBuffer();
-        else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getNodesBuffer();
-        else if (snch3DBuffers != nullptr) return snch3DBuffers->getNodesBuffer();
-        return nullptr;
     }
 
 private:
