@@ -1130,6 +1130,7 @@ struct GPURayQueryBuffers {
     GPURays rays;
     bool checkForOcclusion = false;
     GPUInteractions interactions;
+    int nQueries;
 
     void setQueryCount(int nQueries_) {
         nQueries = nQueries_;
@@ -1152,15 +1153,13 @@ struct GPURayQueryBuffers {
 
         return 4;
     }
-
-private:
-    int nQueries;
 };
 
 struct GPUSphereIntersectionQueryBuffers {
     GPUBoundingSpheres boundingSpheres;
     GPUFloat3List randNums;
     GPUInteractions interactions;
+    int nQueries;
 
     void setQueryCount(int nQueries_) {
         nQueries = nQueries_;
@@ -1186,15 +1185,13 @@ struct GPUSphereIntersectionQueryBuffers {
 
         return 4;
     }
-
-private:
-    int nQueries;
 };
 
 struct GPUClosestPointQueryBuffers {
     GPUBoundingSpheres boundingSpheres;
     GPUInteractions interactions;
     float recordNormals = false;
+    int nQueries;
 
     void setQueryCount(int nQueries_) {
         nQueries = nQueries_;
@@ -1217,9 +1214,6 @@ struct GPUClosestPointQueryBuffers {
 
         return 4;
     }
-
-private:
-    int nQueries;
 };
 
 struct GPUClosestSilhouettePointQueryBuffers {
@@ -1228,6 +1222,7 @@ struct GPUClosestSilhouettePointQueryBuffers {
     float squaredMinRadius = 1e-6f;
     float precision = 1e-3f;
     GPUInteractions interactions;
+    int nQueries;
 
     void setQueryCount(int nQueries_) {
         nQueries = nQueries_;
@@ -1259,7 +1254,6 @@ struct GPUClosestSilhouettePointQueryBuffers {
 
 private:
     GPUBuffer flipNormalOrientation = {};
-    int nQueries;
 };
 
 } // namespace fcpw
