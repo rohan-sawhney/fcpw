@@ -30,13 +30,11 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
 
     // create GPU buffers
     if (hasSilhouetteGeometry) {
-        if (DIM == 2) gpuBvhBuffers.template init<2, true>();
-        else if (DIM == 3) gpuBvhBuffers.template init<3, true>();
+        gpuBvhBuffers.template init<DIM, true>();
         gpuBvhBuffers.template allocateSilhouettes<DIM>(gpuContext.device, sceneData);
 
     } else {
-        if (DIM == 2) gpuBvhBuffers.template init<2, false>();
-        else if (DIM == 3) gpuBvhBuffers.template init<3, false>();
+        gpuBvhBuffers.template init<DIM, false>();
     }
     gpuBvhBuffers.template allocatePrimitives<DIM>(gpuContext.device, sceneData);
     gpuBvhBuffers.template allocateNodes<DIM>(gpuContext.device, sceneData);
