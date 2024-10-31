@@ -33,10 +33,10 @@ public:
     void intersect(const Eigen::MatrixXf& rayOrigins,
                    const Eigen::MatrixXf& rayDirections,
                    const Eigen::VectorXf& rayDistanceBounds,
-                   GPUInteractions& interactions,
+                   GPUInteractions& gpuInteractions,
                    bool checkForOcclusion=false);
-    void intersect(GPURays& rays,
-                   GPUInteractions& interactions,
+    void intersect(GPURays& gpuRays,
+                   GPUInteractions& gpuInteractions,
                    bool checkForOcclusion=false);
 
     // intersects the scene with the given spheres, randomly selecting one geometric primitive
@@ -46,19 +46,19 @@ public:
     void intersect(const Eigen::MatrixXf& sphereCenters,
                    const Eigen::VectorXf& sphereSquaredRadii,
                    const Eigen::MatrixXf& randNums,
-                   GPUInteractions& interactions);
-    void intersect(GPUBoundingSpheres& boundingSpheres,
-                   GPURandNums& randNums,
-                   GPUInteractions& interactions);
+                   GPUInteractions& gpuInteractions);
+    void intersect(GPUBoundingSpheres& gpuBoundingSpheres,
+                   GPURandNums& gpuRandNums,
+                   GPUInteractions& gpuInteractions);
 
     // finds the closest points in the scene to the given query points. The max radius specifies
     // a conservative radius guess around the query point inside which the search is performed.
     void findClosestPoints(const Eigen::MatrixXf& queryPoints,
                            const Eigen::VectorXf& squaredMaxRadii,
-                           GPUInteractions& interactions,
+                           GPUInteractions& gpuInteractions,
                            bool recordNormals=false);
-    void findClosestPoints(GPUBoundingSpheres& boundingSpheres,
-                           GPUInteractions& interactions,
+    void findClosestPoints(GPUBoundingSpheres& gpuBoundingSpheres,
+                           GPUInteractions& gpuInteractions,
                            bool recordNormals=false);
 
     // finds the closest points on the visibility silhouette in the scene to the given query points.
@@ -68,11 +68,11 @@ public:
     void findClosestSilhouettePoints(const Eigen::MatrixXf& queryPoints,
                                      const Eigen::VectorXf& squaredMaxRadii,
                                      const Eigen::VectorXi& flipNormalOrientation,
-                                     GPUInteractions& interactions,
+                                     GPUInteractions& gpuInteractions,
                                      float squaredMinRadius=0.0f, float precision=1e-3f);
-    void findClosestSilhouettePoints(GPUBoundingSpheres& boundingSpheres,
-                                     GPUFlipNormalOrientation& flipNormalOrientation,
-                                     GPUInteractions& interactions,
+    void findClosestSilhouettePoints(GPUBoundingSpheres& gpuBoundingSpheres,
+                                     GPUFlipNormalOrientation& gpuFlipNormalOrientation,
+                                     GPUInteractions& gpuInteractions,
                                      float squaredMinRadius=0.0f, float precision=1e-3f);
 
 private:
