@@ -1133,41 +1133,49 @@ private:
 struct GPURayQueryBuffers {
     GPURays rays;
     bool checkForOcclusion = false;
+    GPUInteractions interactions;
     int nQueries;
 
     void setQueryCount(int nQueries_) {
         nQueries = nQueries_;
         rays.setSize(nQueries);
+        interactions.setSize(nQueries);
     }
 
     void allocate(ComPtr<IDevice>& device) {
         rays.allocate(device);
+        interactions.allocate(device);
     }
 
     int setResources(ShaderCursor& entryPointCursor) const {
         ShaderCursor raysCursor = entryPointCursor.getPath("rays");
         rays.setResources(raysCursor);
         entryPointCursor.getPath("checkForOcclusion").setData(checkForOcclusion);
+        ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
+        interactions.setResources(interactionsCursor);
         entryPointCursor.getPath("nQueries").setData(nQueries);
 
-        return 3;
+        return 4;
     }
 };
 
 struct GPUSphereIntersectionQueryBuffers {
     GPUBoundingSpheres boundingSpheres;
     GPUFloat3List randNums;
+    GPUInteractions interactions;
     int nQueries;
 
     void setQueryCount(int nQueries_) {
         nQueries = nQueries_;
         boundingSpheres.setSize(nQueries);
         randNums.setSize(nQueries);
+        interactions.setSize(nQueries);
     }
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
         randNums.allocate(device);
+        interactions.allocate(device);
     }
 
     int setResources(ShaderCursor& entryPointCursor) const {
@@ -1175,33 +1183,40 @@ struct GPUSphereIntersectionQueryBuffers {
         boundingSpheres.setResources(boundingSpheresCursor);
         ShaderCursor randNumsCursor = entryPointCursor.getPath("randNums");
         randNums.setResources(randNumsCursor);
+        ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
+        interactions.setResources(interactionsCursor);
         entryPointCursor.getPath("nQueries").setData(nQueries);
 
-        return 3;
+        return 4;
     }
 };
 
 struct GPUClosestPointQueryBuffers {
     GPUBoundingSpheres boundingSpheres;
+    GPUInteractions interactions;
     float recordNormals = false;
     int nQueries;
 
     void setQueryCount(int nQueries_) {
         nQueries = nQueries_;
         boundingSpheres.setSize(nQueries);
+        interactions.setSize(nQueries);
     }
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
+        interactions.allocate(device);
     }
 
     int setResources(ShaderCursor& entryPointCursor) const {
         ShaderCursor boundingSpheresCursor = entryPointCursor.getPath("boundingSpheres");
         boundingSpheres.setResources(boundingSpheresCursor);
+        ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
+        interactions.setResources(interactionsCursor);
         entryPointCursor.getPath("recordNormals").setData(recordNormals);
         entryPointCursor.getPath("nQueries").setData(nQueries);
 
-        return 3;
+        return 4;
     }
 };
 
@@ -1210,12 +1225,14 @@ struct GPUClosestSilhouettePointQueryBuffers {
     std::vector<uint32_t> flipNormalOrientationData;
     float squaredMinRadius = 1e-6f;
     float precision = 1e-3f;
+    GPUInteractions interactions;
     int nQueries;
 
     void setQueryCount(int nQueries_) {
         nQueries = nQueries_;
         boundingSpheres.setSize(nQueries);
         flipNormalOrientationData.resize(nQueries, 0);
+        interactions.setSize(nQueries);
     }
 
     void allocate(ComPtr<IDevice>& device) {
@@ -1223,6 +1240,7 @@ struct GPUClosestSilhouettePointQueryBuffers {
         Slang::Result result = flipNormalOrientation.create<uint32_t>(
             device, false, flipNormalOrientationData.data(), flipNormalOrientationData.size());
         exitOnError(result, "failed to allocate GPUClosestSilhouettePointQueryBuffers buffer");
+        interactions.allocate(device);
     }
 
     int setResources(ShaderCursor& entryPointCursor) const {
@@ -1231,9 +1249,11 @@ struct GPUClosestSilhouettePointQueryBuffers {
         entryPointCursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
         entryPointCursor.getPath("squaredMinRadius").setData(squaredMinRadius);
         entryPointCursor.getPath("precision").setData(precision);
+        ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
+        interactions.setResources(interactionsCursor);
         entryPointCursor.getPath("nQueries").setData(nQueries);
 
-        return 5;
+        return 6;
     }
 
 private:

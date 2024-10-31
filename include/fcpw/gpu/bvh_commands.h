@@ -42,7 +42,6 @@ void runTraversal(GPUContext& gpuContext,
                   const Shader& shader,
                   const T& gpuBvhBuffers,
                   const S& gpuQueryBuffers,
-                  GPUInteractions& interactions,
                   int nThreadGroups = 4096,
                   bool printLogs = false)
 {
@@ -69,9 +68,7 @@ void runTraversal(GPUContext& gpuContext,
 
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
-    ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
-    interactions.setResources(interactionsCursor);
-    int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor) + 1;
+    int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor);
 
     if (printLogs) {
         std::cout << "runTraversal" << std::endl;
@@ -106,7 +103,7 @@ void runTraversal(GPUContext& gpuContext,
     exitOnError(getQueryPoolResult, "failed to get query pool result");
 
     // read back results from GPU
-    interactions.read(gpuContext.device);
+    gpuQueryBuffers.interactions.read(gpuContext.device);
 
     // synchronize and reset transient heap
     gpuContext.transientHeap->finish();
