@@ -166,20 +166,27 @@ void performClosestPointQueries(const std::vector<Vector<3>>& queryPoints,
                                 GPUScene<3>& gpuScene)
 {
     // initialize bounding spheres
-    std::vector<GPUBoundingSphere> boundingSpheres;
-    for (const Vector<3>& q: queryPoints) {
-        float3 queryPoint = float3{q[0], q[1], q[2]};
-        boundingSpheres.emplace_back(GPUBoundingSphere(queryPoint, maxFloat));
+    int nQueries = (int)queryPoints.size();
+    GPUBoundingSpheres gpuBoundingSpheres;
+    gpuBoundingSpheres.setSize(nQueries);
+
+    for (int i = 0; i < nQueries; i++) {
+        const Vector<3>& q = queryPoints[i];
+        gpuBoundingSpheres.cx[i] = q[0];
+        gpuBoundingSpheres.cy[i] = q[1];
+        gpuBoundingSpheres.cz[i] = q[2];
+        gpuBoundingSpheres.r2[i] = maxFloat;
     }
 
     // perform cpqs on GPU
-    std::vector<GPUInteraction> interactions;
-    gpuScene.findClosestPoints(boundingSpheres, interactions);
+    GPUInteractions gpuInteractions;
+    gpuScene.findClosestPoints(gpuBoundingSpheres, gpuInteractions);
 
     // extract closest points
     closestPoints.clear();
-    for (const GPUInteraction& i: interactions) {
-        closestPoints.emplace_back(Vector<3>(i.p.x, i.p.y, i.p.z));
+    for (int i = 0; i < nQueries; i++) {
+        Vector<3> cp(gpuInteractions.px[i], gpuInteractions.py[i], gpuInteractions.pz[i]);
+        closestPoints.emplace_back(cp);
     }
 }
 
