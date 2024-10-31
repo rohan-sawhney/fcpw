@@ -1156,11 +1156,15 @@ struct GPURayQueryBuffers {
     bool checkForOcclusion;
     int nQueries;
 
-    GPURayQueryBuffers(GPURays& rays_, GPUInteractions& interactions_,
-                       bool checkForOcclusion_, int nQueries_):
-                       rays(rays_), interactions(interactions_),
-                       checkForOcclusion(checkForOcclusion_),
-                       nQueries(nQueries_) {}
+    GPURayQueryBuffers(GPURays& rays_,
+                       GPUInteractions& interactions_,
+                       bool checkForOcclusion_):
+                       rays(rays_),
+                       interactions(interactions_),
+                       checkForOcclusion(checkForOcclusion_) {
+        nQueries = (int)rays.ox.size();
+        interactions.setSize(nQueries);
+    }
 
     void allocate(ComPtr<IDevice>& device) {
         rays.allocate(device);
@@ -1185,10 +1189,15 @@ struct GPUSphereIntersectionQueryBuffers {
     GPUInteractions& interactions;
     int nQueries;
 
-    GPUSphereIntersectionQueryBuffers(GPUBoundingSpheres& boundingSpheres_, GPUFloat3List& randNums_,
-                                      GPUInteractions& interactions_, int nQueries_):
-                                      boundingSpheres(boundingSpheres_), randNums(randNums_),
-                                      interactions(interactions_), nQueries(nQueries_) {}
+    GPUSphereIntersectionQueryBuffers(GPUBoundingSpheres& boundingSpheres_,
+                                      GPUFloat3List& randNums_,
+                                      GPUInteractions& interactions_):
+                                      boundingSpheres(boundingSpheres_),
+                                      randNums(randNums_),
+                                      interactions(interactions_) {
+        nQueries = (int)boundingSpheres.cx.size();
+        interactions.setSize(nQueries);
+    }
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
@@ -1217,11 +1226,13 @@ struct GPUClosestPointQueryBuffers {
 
     GPUClosestPointQueryBuffers(GPUBoundingSpheres& boundingSpheres_,
                                 GPUInteractions& interactions_,
-                                float recordNormals_, int nQueries_):
+                                float recordNormals_):
                                 boundingSpheres(boundingSpheres_),
                                 interactions(interactions_),
-                                recordNormals(recordNormals_),
-                                nQueries(nQueries_) {}
+                                recordNormals(recordNormals_) {
+        nQueries = (int)boundingSpheres.cx.size();
+        interactions.setSize(nQueries);
+    }
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
@@ -1250,13 +1261,17 @@ struct GPUClosestSilhouettePointQueryBuffers {
 
     GPUClosestSilhouettePointQueryBuffers(GPUBoundingSpheres& boundingSpheres_,
                                           GPUUintList& flipNormalOrientation_,
-                                          GPUInteractions& interactions_, float squaredMinRadius_,
-                                          float precision_, int nQueries_):
+                                          GPUInteractions& interactions_,
+                                          float squaredMinRadius_,
+                                          float precision_):
                                           boundingSpheres(boundingSpheres_),
                                           flipNormalOrientation(flipNormalOrientation_),
                                           interactions(interactions_),
                                           squaredMinRadius(squaredMinRadius_),
-                                          precision(precision_), nQueries(nQueries_) {}
+                                          precision(precision_) {
+        nQueries = (int)boundingSpheres.cx.size();
+        interactions.setSize(nQueries);
+    }
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
