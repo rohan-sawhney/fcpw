@@ -1031,16 +1031,36 @@ struct GPUFloat3List {
         exitOnError(result, "failed to allocate GPUFloat3List buffer");
     }
 
-    void setResources(ShaderCursor& randNumsCursor) const {
-        randNumsCursor["x"].setResource(xBuffer.view);
-        randNumsCursor["y"].setResource(yBuffer.view);
-        randNumsCursor["z"].setResource(zBuffer.view);
+    void setResources(ShaderCursor& float3Cursor) const {
+        float3Cursor["x"].setResource(xBuffer.view);
+        float3Cursor["y"].setResource(yBuffer.view);
+        float3Cursor["z"].setResource(zBuffer.view);
     }
 
     std::vector<float> x, y, z;
 
 private:
     GPUBuffer xBuffer = {}, yBuffer = {}, zBuffer = {};
+};
+
+struct GPUUintList {
+    void setSize(int size) {
+        val.resize(size, 0);
+    }
+
+    void allocate(ComPtr<IDevice>& device) {
+        Slang::Result result = valBuffer.create<uint32_t>(device, false, val.data(), val.size());
+        exitOnError(result, "failed to allocate GPUFloat3List buffer");
+    }
+
+    void setResources(ShaderCursor& uintCursor) const {
+        uintCursor["val"].setResource(valBuffer.view);
+    }
+
+    std::vector<uint32_t> val;
+
+private:
+    GPUBuffer valBuffer = {};
 };
 
 struct GPUInteractions {
@@ -1222,34 +1242,33 @@ struct GPUClosestPointQueryBuffers {
 
 struct GPUClosestSilhouettePointQueryBuffers {
     GPUBoundingSpheres& boundingSpheres;
-    std::vector<uint32_t>& flipNormalOrientationData;
+    GPUUintList& flipNormalOrientation;
     GPUInteractions& interactions;
     float squaredMinRadius;
     float precision;
     int nQueries;
 
     GPUClosestSilhouettePointQueryBuffers(GPUBoundingSpheres& boundingSpheres_,
-                                          std::vector<uint32_t>& flipNormalOrientationData_,
+                                          GPUUintList& flipNormalOrientation_,
                                           GPUInteractions& interactions_, float squaredMinRadius_,
                                           float precision_, int nQueries_):
                                           boundingSpheres(boundingSpheres_),
-                                          flipNormalOrientationData(flipNormalOrientationData_),
+                                          flipNormalOrientation(flipNormalOrientation_),
                                           interactions(interactions_),
                                           squaredMinRadius(squaredMinRadius_),
                                           precision(precision_), nQueries(nQueries_) {}
 
     void allocate(ComPtr<IDevice>& device) {
         boundingSpheres.allocate(device);
-        Slang::Result result = flipNormalOrientation.create<uint32_t>(
-            device, false, flipNormalOrientationData.data(), flipNormalOrientationData.size());
-        exitOnError(result, "failed to allocate GPUClosestSilhouettePointQueryBuffers buffer");
+        flipNormalOrientation.allocate(device);
         interactions.allocate(device);
     }
 
     int setResources(ShaderCursor& entryPointCursor) const {
         ShaderCursor boundingSpheresCursor = entryPointCursor.getPath("boundingSpheres");
         boundingSpheres.setResources(boundingSpheresCursor);
-        entryPointCursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
+        ShaderCursor flipNormalOrientationCursor = entryPointCursor.getPath("flipNormalOrientation");
+        flipNormalOrientation.setResources(flipNormalOrientationCursor);
         ShaderCursor interactionsCursor = entryPointCursor.getPath("interactions");
         interactions.setResources(interactionsCursor);
         entryPointCursor.getPath("squaredMinRadius").setData(squaredMinRadius);
@@ -1258,9 +1277,6 @@ struct GPUClosestSilhouettePointQueryBuffers {
 
         return 6;
     }
-
-private:
-    GPUBuffer flipNormalOrientation = {};
 };
 
 } // namespace fcpw
