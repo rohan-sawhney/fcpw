@@ -135,6 +135,7 @@ inline void GPUScene<DIM>::intersect(GPURays& rays,
                                      GPUInteractions& interactions,
                                      bool checkForOcclusion)
 {
+    /*
     // initialize shader
     if (rayIntersectionShader.reflection == nullptr) {
         loadModuleLibrary(gpuContext, fcpwModule, rayIntersectionShader);
@@ -152,6 +153,7 @@ inline void GPUScene<DIM>::intersect(GPURays& rays,
     runTraversal<GPUBvhBuffers, GPUQueryRayIntersectionBuffers>(gpuContext, rayIntersectionShader,
                                                                 gpuBvhBuffers, gpuQueryRayIntersectionBuffers,
                                                                 interactions, nThreadGroups, printLogs);
+    */
 }
 
 template<size_t DIM>
