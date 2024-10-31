@@ -1124,6 +1124,29 @@ struct GPUInteractions {
     std::vector<float> d;
     std::vector<uint32_t> indices;
 
+    void read(ComPtr<IDevice>& device) {
+        Slang::Result result = pxBuffer.read<float>(device, px.size(), px);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = pyBuffer.read<float>(device, py.size(), py);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = pzBuffer.read<float>(device, pz.size(), pz);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = nxBuffer.read<float>(device, nx.size(), nx);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = nyBuffer.read<float>(device, ny.size(), ny);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = nzBuffer.read<float>(device, nz.size(), nz);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = uvxBuffer.read<float>(device, uvx.size(), uvx);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = uvyBuffer.read<float>(device, uvy.size(), uvy);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = dBuffer.read<float>(device, d.size(), d);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+        result = indicesBuffer.read<uint32_t>(device, indices.size(), indices);
+        exitOnError(result, "failed to read GPUInteractions buffer");
+    }
+
 private:
     void setSize(int size) {
         px.resize(size, 0.0f);
@@ -1172,29 +1195,6 @@ private:
         interactionsCursor["uvy"].setResource(uvyBuffer.view);
         interactionsCursor["d"].setResource(dBuffer.view);
         interactionsCursor["indices"].setResource(indicesBuffer.view);
-    }
-
-    void read(ComPtr<IDevice>& device) {
-        Slang::Result result = pxBuffer.read<float>(device, px.size(), px);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = pyBuffer.read<float>(device, py.size(), py);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = pzBuffer.read<float>(device, pz.size(), pz);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = nxBuffer.read<float>(device, nx.size(), nx);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = nyBuffer.read<float>(device, ny.size(), ny);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = nzBuffer.read<float>(device, nz.size(), nz);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = uvxBuffer.read<float>(device, uvx.size(), uvx);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = uvyBuffer.read<float>(device, uvy.size(), uvy);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = dBuffer.read<float>(device, d.size(), d);
-        exitOnError(result, "failed to read GPUInteractions buffer");
-        result = indicesBuffer.read<uint32_t>(device, indices.size(), indices);
-        exitOnError(result, "failed to read GPUInteractions buffer");
     }
 
     GPUBuffer pxBuffer = {}, pyBuffer = {}, pzBuffer = {};
