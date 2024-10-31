@@ -369,11 +369,11 @@ void run()
     std::vector<int> indices;
     std::vector<Vector<DIM>> randNums;
     std::vector<bool> flipNormalOrientation;
-    GPURays gpuRays;
-    GPUBoundingSpheres gpuBoundingSpheres;
-    GPUBoundingSpheres gpuInfiniteSpheres;
-    GPURandNums gpuRandNums;
-    GPUFlipNormalOrientation gpuFlipNormalOrientation;
+    GPURays gpuRays; gpuRays.setSize(nQueries);
+    GPUBoundingSpheres gpuBoundingSpheres; gpuBoundingSpheres.setSize(nQueries);
+    GPUBoundingSpheres gpuInfiniteSpheres; gpuInfiniteSpheres.setSize(nQueries);
+    GPURandNums gpuRandNums; gpuRandNums.setSize(nQueries);
+    GPUFlipNormalOrientation gpuFlipNormalOrientation; gpuFlipNormalOrientation.setSize(nQueries);
 
     std::vector<bool> isInterior;
     tagInteriorPoints<DIM>(sceneData->aggregate, queryPoints, isInterior);
