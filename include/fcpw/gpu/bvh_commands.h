@@ -46,11 +46,11 @@ void runTraversal(GPUContext& gpuContext,
                   bool printLogs = false)
 {
     // setup command buffer
-    auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
-    auto encoder = commandBuffer->encodeComputeCommands();
+    ComPtr<ICommandBuffer> commandBuffer = gpuContext.transientHeap->createCommandBuffer();
+    IComputeCommandEncoder *encoder = commandBuffer->encodeComputeCommands();
 
     // create shader objects
-    auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
+    IShaderObject *rootShaderObject = encoder->bindPipeline(shader.pipelineState);
     ComPtr<IShaderObject> bvhShaderObject = gpuBvhBuffers.createShaderObject(gpuContext.device, shader);
 
     // bind bvh resources
@@ -124,11 +124,11 @@ void runUpdate(GPUContext& gpuContext,
 {
     /*
     // setup command buffer
-    auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
-    auto encoder = commandBuffer->encodeComputeCommands();
+    ComPtr<ICommandBuffer> commandBuffer = gpuContext.transientHeap->createCommandBuffer();
+    IComputeCommandEncoder *encoder = commandBuffer->encodeComputeCommands();
 
     // create shader objects
-    auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
+    IShaderObject *rootShaderObject = encoder->bindPipeline(shader.pipelineState);
     ComPtr<IShaderObject> bvhShaderObject = gpuBvhBuffers.createShaderObject(gpuContext.device, shader);
 
     // bind bvh resources
