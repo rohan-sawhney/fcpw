@@ -90,14 +90,16 @@ GPUScene<3> gpuScene("PATH_TO_FCPW_DIRECTORY");
 gpuScene.transferToGPU(scene);
 
 // initialize bounding spheres 
-std::vector<GPUBoundingSphere> boundingSpheres;
-for (auto q: queryPoints) {
-	float3 queryPoint = float3{q[0], q[1], q[2]};
-	boundingSpheres.emplace_back(GPUBoundingSphere(queryPoint, INFINITY));
+GPUBoundingSpheres boundingSpheres;
+for (size_t i = 0; i < queryPoints.size(); i++) {
+	boundingSpheres.cx[i] = queryPoints[i][0];
+	boundingSpheres.cy[i] = queryPoints[i][1];
+	boundingSpheres.cz[i] = queryPoints[i][2];
+	boundingSpheres.r2[i] = INFINITY;
 }
 
 // perform several closest point queries on GPU
-std::vector<GPUInteraction> interactions;
+GPUInteractions interactions;
 gpuScene.findClosestPoints(boundingSpheres, interactions);
 ```
 
