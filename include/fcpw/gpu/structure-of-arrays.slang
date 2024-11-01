@@ -6,6 +6,15 @@ public interface IBvhNodes
 {
     associatedtype NodeType : IBvhNode;
 
+    public BoundingBox getBoundingBox(uint i);
+    public bool hasBoundingCone(uint i);
+    public BoundingCone getBoundingCone(uint i);
+    public bool isLeaf(uint i);
+    public uint getRightChildOffset(uint i);
+    public uint getNumPrimitives(uint i);
+    public uint getPrimitiveOffset(uint i);
+    public uint getNumSilhouettes(uint i);
+    public uint getSilhouetteOffset(uint i);
     public __subscript(uint i) -> NodeType { get; set; }
 };
 
@@ -16,6 +25,54 @@ public struct BvhNodes : IBvhNodes
     public RWStructuredBuffer<float> pxMax, pyMax, pzMax;
     public StructuredBuffer<uint> nPrimitives;
     public StructuredBuffer<uint> offsets;
+
+    public BoundingBox getBoundingBox(uint i)
+    {
+        float3 pMin = float3(pxMin[i], pyMin[i], pzMin[i]);
+        float3 pMax = float3(pxMax[i], pyMax[i], pzMax[i]);
+
+        return BoundingBox(pMin, pMax);
+    }
+
+    public bool hasBoundingCone(uint i)
+    {
+        return false;
+    }
+
+    public BoundingCone getBoundingCone(uint i)
+    {
+        return BoundingCone();
+    }
+
+    public bool isLeaf(uint i)
+    {
+        return nPrimitives[i] > 0;
+    }
+
+    public uint getRightChildOffset(uint i)
+    {
+        return offsets[i];
+    }
+
+    public uint getNumPrimitives(uint i)
+    {
+        return nPrimitives[i];
+    }
+
+    public uint getPrimitiveOffset(uint i)
+    {
+        return offsets[i];
+    }
+
+    public uint getNumSilhouettes(uint i)
+    {
+        return 0;
+    }
+
+    public uint getSilhouetteOffset(uint i)
+    {
+        return 0;
+    }
 
     public __subscript(uint i) -> NodeType
     {
@@ -55,6 +112,56 @@ public struct SnchNodes : IBvhNodes
     public StructuredBuffer<uint> offsets;
     public StructuredBuffer<uint> nSilhouettes;
     public StructuredBuffer<uint> silhouetteOffsets;
+
+    public BoundingBox getBoundingBox(uint i)
+    {
+        float3 pMin = float3(pxMin[i], pyMin[i], pzMin[i]);
+        float3 pMax = float3(pxMax[i], pyMax[i], pzMax[i]);
+
+        return BoundingBox(pMin, pMax);
+    }
+
+    public bool hasBoundingCone(uint i)
+    {
+        return true;
+    }
+
+    public BoundingCone getBoundingCone(uint i)
+    {
+        float3 axis = float3(axesx[i], axesy[i], axesz[i]);
+
+        return BoundingCone(axis, halfAngles[i], radii[i]);
+    }
+
+    public bool isLeaf(uint i)
+    {
+        return nPrimitives[i] > 0;
+    }
+
+    public uint getRightChildOffset(uint i)
+    {
+        return offsets[i];
+    }
+
+    public uint getNumPrimitives(uint i)
+    {
+        return nPrimitives[i];
+    }
+
+    public uint getPrimitiveOffset(uint i)
+    {
+        return offsets[i];
+    }
+
+    public uint getNumSilhouettes(uint i)
+    {
+        return nSilhouettes[i];
+    }
+
+    public uint getSilhouetteOffset(uint i)
+    {
+        return silhouetteOffsets[i];
+    }
 
     public __subscript(uint i) -> NodeType
     {

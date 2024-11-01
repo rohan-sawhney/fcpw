@@ -157,7 +157,7 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
     {
         TraversalStack traversalStack[FCPW_BVH_MAX_DEPTH];
         float4 distToChildNodes = float4(0.0, 0.0, 0.0, 0.0);
-        BoundingBox rootBox = nodes[0].getBoundingBox();
+        BoundingBox rootBox = nodes.getBoundingBox(0);
         bool didIntersect = false;
 
         if (rootBox.intersect(r, distToChildNodes[0], distToChildNodes[1]))
@@ -179,15 +179,14 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                     continue;
                 }
 
-                Nodes.NodeType node = nodes[currentNodeIndex];
-                if (node.isLeaf())
+                if (nodes.isLeaf(currentNodeIndex))
                 {
                     // intersect primitives in leaf node
-                    uint nPrimitives = node.getNumPrimitives();
+                    uint nPrimitives = nodes.getNumPrimitives(currentNodeIndex);
                     for (uint p = 0; p < nPrimitives; p++)
                     {
                         Interaction c;
-                        uint primitiveIndex = node.getPrimitiveOffset() + p;
+                        uint primitiveIndex = nodes.getPrimitiveOffset(currentNodeIndex) + p;
                         bool didIntersectPrimitive = primitives[primitiveIndex].intersect(r, checkForOcclusion, c);
 
                         if (didIntersectPrimitive)
@@ -208,11 +207,11 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                 {
                     // intersect child nodes
                     uint leftNodeIndex = currentNodeIndex + 1;
-                    BoundingBox leftBox = nodes[leftNodeIndex].getBoundingBox();
+                    BoundingBox leftBox = nodes.getBoundingBox(leftNodeIndex);
                     bool didIntersectLeft = leftBox.intersect(r, distToChildNodes[0], distToChildNodes[1]);
 
-                    uint rightNodeIndex = currentNodeIndex + node.getRightChildOffset();
-                    BoundingBox rightBox = nodes[rightNodeIndex].getBoundingBox();
+                    uint rightNodeIndex = currentNodeIndex + nodes.getRightChildOffset(currentNodeIndex);
+                    BoundingBox rightBox = nodes.getBoundingBox(rightNodeIndex);
                     bool didIntersectRight = rightBox.intersect(r, distToChildNodes[2], distToChildNodes[3]);
 
                     // which nodes did we intersect?
@@ -271,7 +270,7 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                                                       inout Interaction i)
     {
         float4 distToChildNodes = float4(0.0, 0.0, 0.0, 0.0);
-        BoundingBox rootBox = nodes[0].getBoundingBox();
+        BoundingBox rootBox = nodes.getBoundingBox(0);
         uint currentNodeIndex = 0;
         uint selectedPrimitiveIndex = UINT_MAX;
         bool didIntersect = false;
@@ -288,17 +287,16 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                 // pop off the next node to work on
                 stackPtr--;
 
-                Nodes.NodeType node = nodes[currentNodeIndex];
-                if (node.isLeaf())
+                if (nodes.isLeaf(currentNodeIndex))
                 {
                     // probabilistically select a primitive
                     float totalPrimitiveWeight = 0.0;
-                    uint nPrimitives = node.getNumPrimitives();
+                    uint nPrimitives = nodes.getNumPrimitives(currentNodeIndex);
                     for (uint p = 0; p < nPrimitives; p++)
                     {
                         Interaction c;
                         bool didIntersectPrimitive = false;
-                        uint primitiveIndex = node.getPrimitiveOffset() + p;
+                        uint primitiveIndex = nodes.getPrimitiveOffset(currentNodeIndex) + p;
                         Primitives.PrimitiveType primitive = primitives[primitiveIndex];
 
                         if (maxDistToChildNode <= s.r2)
@@ -341,7 +339,7 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                 {
                     // probabilistically select one child node to traverse
                     uint leftNodeIndex = currentNodeIndex + 1;
-                    BoundingBox leftBox = nodes[leftNodeIndex].getBoundingBox();
+                    BoundingBox leftBox = nodes.getBoundingBox(leftNodeIndex);
                     bool overlapsLeft = leftBox.overlap(s, distToChildNodes[0], distToChildNodes[1]);
                     float weightLeft = overlapsLeft ? 1.0 : 0.0;
                     if (weightLeft > 0.0)
@@ -350,8 +348,8 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                         weightLeft *= branchTraversalWeight.compute(dot(u, u));
                     }
 
-                    uint rightNodeIndex = currentNodeIndex + node.getRightChildOffset();
-                    BoundingBox rightBox = nodes[rightNodeIndex].getBoundingBox();
+                    uint rightNodeIndex = currentNodeIndex + nodes.getRightChildOffset(currentNodeIndex);
+                    BoundingBox rightBox = nodes.getBoundingBox(rightNodeIndex);
                     bool overlapsRight = rightBox.overlap(s, distToChildNodes[2], distToChildNodes[3]);
                     float weightRight = overlapsRight ? 1.0 : 0.0;
                     if (weightRight > 0.0)
@@ -409,7 +407,7 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
     {
         TraversalStack traversalStack[FCPW_BVH_MAX_DEPTH];
         float4 distToChildNodes = float4(0.0, 0.0, 0.0, 0.0);
-        BoundingBox rootBox = nodes[0].getBoundingBox();
+        BoundingBox rootBox = nodes.getBoundingBox(0);
         bool notFound = true;
 
         if (rootBox.overlap(s, distToChildNodes[0], distToChildNodes[1]))
@@ -432,15 +430,14 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                     continue;
                 }
 
-                Nodes.NodeType node = nodes[currentNodeIndex];
-                if (node.isLeaf())
+                if (nodes.isLeaf(currentNodeIndex))
                 {
                     // compute distance to primitives in leaf node
-                    uint nPrimitives = node.getNumPrimitives();
+                    uint nPrimitives = nodes.getNumPrimitives(currentNodeIndex);
                     for (uint p = 0; p < nPrimitives; p++)
                     {
                         Interaction c;
-                        uint primitiveIndex = node.getPrimitiveOffset() + p;
+                        uint primitiveIndex = nodes.getPrimitiveOffset(currentNodeIndex) + p;
                         bool found = primitives[primitiveIndex].findClosestPoint(s, c);
 
                         // keep the closest point only
@@ -456,12 +453,12 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                 {
                     // find distance to child nodes
                     uint leftNodeIndex = currentNodeIndex + 1;
-                    BoundingBox leftBox = nodes[leftNodeIndex].getBoundingBox();
+                    BoundingBox leftBox = nodes.getBoundingBox(leftNodeIndex);
                     bool overlapsLeft = leftBox.overlap(s, distToChildNodes[0], distToChildNodes[1]);
                     s.r2 = min(s.r2, distToChildNodes[1]);
 
-                    uint rightNodeIndex = currentNodeIndex + node.getRightChildOffset();
-                    BoundingBox rightBox = nodes[rightNodeIndex].getBoundingBox();
+                    uint rightNodeIndex = currentNodeIndex + nodes.getRightChildOffset(currentNodeIndex);
+                    BoundingBox rightBox = nodes.getBoundingBox(rightNodeIndex);
                     bool overlapsRight = rightBox.overlap(s, distToChildNodes[2], distToChildNodes[3]);
                     s.r2 = min(s.r2, distToChildNodes[3]);
 
@@ -541,7 +538,7 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
 
         TraversalStack traversalStack[FCPW_BVH_MAX_DEPTH];
         float2 distToChildNodes = float2(0.0, 0.0);
-        BoundingBox rootBox = nodes[0].getBoundingBox();
+        BoundingBox rootBox = nodes.getBoundingBox(0);
         bool notFound = true;
 
         if (rootBox.overlap(s, distToChildNodes[0]))
@@ -563,14 +560,13 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                     continue;
                 }
 
-                Nodes.NodeType node = nodes[currentNodeIndex];
-                if (node.isLeaf())
+                if (nodes.isLeaf(currentNodeIndex))
                 {
                     // compute distance to silhouettes in leaf node
-                    uint nSilhouettes = node.getNumSilhouettes();
+                    uint nSilhouettes = nodes.getNumSilhouettes(currentNodeIndex);
                     for (uint p = 0; p < nSilhouettes; p++)
                     {
-                        uint silhouetteIndex = node.getSilhouetteOffset() + p;
+                        uint silhouetteIndex = nodes.getSilhouetteOffset(currentNodeIndex) + p;
                         Silhouettes.SilhouetteType silhouette = silhouettes[silhouetteIndex];
                         if (silhouette.getIndex() == i.index)
                         {
@@ -601,12 +597,11 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                     // find distance to child nodes
                     // NOTE: Slang does not support short-circuiting with the && operator, hence the clunky code
                     uint leftNodeIndex = currentNodeIndex + 1;
-                    Nodes.NodeType leftNode = nodes[leftNodeIndex];
-                    BoundingCone leftCone = leftNode.getBoundingCone();
+                    BoundingCone leftCone = nodes.getBoundingCone(leftNodeIndex);
                     bool overlapsLeft = leftCone.isValid();
                     if (overlapsLeft)
                     {
-                        BoundingBox leftBox = leftNode.getBoundingBox();
+                        BoundingBox leftBox = nodes.getBoundingBox(leftNodeIndex);
                         overlapsLeft = leftBox.overlap(s, distToChildNodes[0]);
                         if (overlapsLeft)
                         {
@@ -616,13 +611,12 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                         }
                     }
 
-                    uint rightNodeIndex = currentNodeIndex + node.getRightChildOffset();
-                    Nodes.NodeType rightNode = nodes[rightNodeIndex];
-                    BoundingCone rightCone = rightNode.getBoundingCone();
+                    uint rightNodeIndex = currentNodeIndex + nodes.getRightChildOffset(currentNodeIndex);
+                    BoundingCone rightCone = nodes.getBoundingCone(rightNodeIndex);
                     bool overlapsRight = rightCone.isValid();
                     if (overlapsRight)
                     {
-                        BoundingBox rightBox = rightNode.getBoundingBox();
+                        BoundingBox rightBox = nodes.getBoundingBox(rightNodeIndex);
                         overlapsRight = rightBox.overlap(s, distToChildNodes[1]);
                         if (overlapsRight)
                         {
