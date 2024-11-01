@@ -102,6 +102,8 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
 
             node.setBoundingCone(BoundingCone(axis, halfAngle, radius));
         }
+
+        nodes[nodeIndex] = node;
     }
 
     // updates the bounding volume of an aggregate internal node
@@ -131,6 +133,8 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                                                          mergedBox.getCentroid());
             node.setBoundingCone(mergedCone);
         }
+
+        nodes[nodeIndex] = node;
     }
 
     // updates the bounding volume of an aggregate node

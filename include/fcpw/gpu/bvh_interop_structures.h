@@ -41,17 +41,17 @@ struct GPUBvhNodes {
     }
 
     void allocate(ComPtr<IDevice>& device) {
-        Slang::Result result = pxMinBuffer.create<float>(device, false, pxMin.data(), pxMin.size());
+        Slang::Result result = pxMinBuffer.create<float>(device, true, pxMin.data(), pxMin.size());
         exitOnError(result, "failed to allocate GPUBvhNodes buffer");
-        result = pyMinBuffer.create<float>(device, false, pyMin.data(), pyMin.size());
+        result = pyMinBuffer.create<float>(device, true, pyMin.data(), pyMin.size());
         exitOnError(result, "failed to allocate GPUBvhNodes buffer");
-        result = pzMinBuffer.create<float>(device, false, pzMin.data(), pzMin.size());
+        result = pzMinBuffer.create<float>(device, true, pzMin.data(), pzMin.size());
         exitOnError(result, "failed to allocate GPUBvhNodes buffer");
-        result = pxMaxBuffer.create<float>(device, false, pxMax.data(), pxMax.size());
+        result = pxMaxBuffer.create<float>(device, true, pxMax.data(), pxMax.size());
         exitOnError(result, "failed to allocate GPUBvhNodes buffer");
-        result = pyMaxBuffer.create<float>(device, false, pyMax.data(), pyMax.size());
+        result = pyMaxBuffer.create<float>(device, true, pyMax.data(), pyMax.size());
         exitOnError(result, "failed to allocate GPUBvhNodes buffer");
-        result = pzMaxBuffer.create<float>(device, false, pzMax.data(), pzMax.size());
+        result = pzMaxBuffer.create<float>(device, true, pzMax.data(), pzMax.size());
         exitOnError(result, "failed to allocate GPUBvhNodes buffer");
         result = nPrimitivesBuffer.create<uint32_t>(device, false, nPrimitives.data(), nPrimitives.size());
         exitOnError(result, "failed to allocate GPUBvhNodes buffer");
@@ -68,6 +68,15 @@ struct GPUBvhNodes {
         nodesCursor["pzMax"].setResource(pzMaxBuffer.view);
         nodesCursor["nPrimitives"].setResource(nPrimitivesBuffer.view);
         nodesCursor["offsets"].setResource(offsetsBuffer.view);
+    }
+
+    void applyRefitBarrier(IComputeCommandEncoder *encoder) const {
+        encoder->bufferBarrier(pxMinBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pyMinBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pzMinBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pxMaxBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pyMaxBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pzMaxBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
     }
 
 private:
@@ -114,27 +123,27 @@ struct GPUSnchNodes {
     }
 
     void allocate(ComPtr<IDevice>& device) {
-        Slang::Result result = pxMinBuffer.create<float>(device, false, pxMin.data(), pxMin.size());
+        Slang::Result result = pxMinBuffer.create<float>(device, true, pxMin.data(), pxMin.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = pyMinBuffer.create<float>(device, false, pyMin.data(), pyMin.size());
+        result = pyMinBuffer.create<float>(device, true, pyMin.data(), pyMin.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = pzMinBuffer.create<float>(device, false, pzMin.data(), pzMin.size());
+        result = pzMinBuffer.create<float>(device, true, pzMin.data(), pzMin.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = pxMaxBuffer.create<float>(device, false, pxMax.data(), pxMax.size());
+        result = pxMaxBuffer.create<float>(device, true, pxMax.data(), pxMax.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = pyMaxBuffer.create<float>(device, false, pyMax.data(), pyMax.size());
+        result = pyMaxBuffer.create<float>(device, true, pyMax.data(), pyMax.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = pzMaxBuffer.create<float>(device, false, pzMax.data(), pzMax.size());
+        result = pzMaxBuffer.create<float>(device, true, pzMax.data(), pzMax.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = axesxBuffer.create<float>(device, false, axesx.data(), axesx.size());
+        result = axesxBuffer.create<float>(device, true, axesx.data(), axesx.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = axesyBuffer.create<float>(device, false, axesy.data(), axesy.size());
+        result = axesyBuffer.create<float>(device, true, axesy.data(), axesy.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = axeszBuffer.create<float>(device, false, axesz.data(), axesz.size());
+        result = axeszBuffer.create<float>(device, true, axesz.data(), axesz.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = halfAnglesBuffer.create<float>(device, false, halfAngles.data(), halfAngles.size());
+        result = halfAnglesBuffer.create<float>(device, true, halfAngles.data(), halfAngles.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
-        result = radiiBuffer.create<float>(device, false, radii.data(), radii.size());
+        result = radiiBuffer.create<float>(device, true, radii.data(), radii.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
         result = nPrimitivesBuffer.create<uint32_t>(device, false, nPrimitives.data(), nPrimitives.size());
         exitOnError(result, "failed to allocate GPUSnchNodes buffer");
@@ -162,6 +171,20 @@ struct GPUSnchNodes {
         nodesCursor["offsets"].setResource(offsetsBuffer.view);
         nodesCursor["nSilhouettes"].setResource(nSilhouettesBuffer.view);
         nodesCursor["silhouetteOffsets"].setResource(silhouetteOffsetsBuffer.view);
+    }
+
+    void applyRefitBarrier(IComputeCommandEncoder *encoder) const {
+        encoder->bufferBarrier(pxMinBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pyMinBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pzMinBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pxMaxBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pyMaxBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(pzMaxBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(axesxBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(axesyBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(axeszBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(halfAnglesBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        encoder->bufferBarrier(radiiBuffer.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
     }
 
 private:
@@ -802,6 +825,10 @@ public:
         return updateEntryData[depth];
     }
 
+    void applyRefitBarrier(IComputeCommandEncoder *encoder) const {
+        nodes.applyRefitBarrier(encoder);
+    }
+
 private:
     GPUNodesType nodes;
     GPUPrimitivesType primitives;
@@ -882,6 +909,13 @@ public:
         else if (bvh3DBuffers != nullptr) return bvh3DBuffers->getUpdateEntryData(depth);
         else if (snch3DBuffers != nullptr) return snch3DBuffers->getUpdateEntryData(depth);
         return std::make_pair(0, 0);
+    }
+
+    void applyRefitBarrier(IComputeCommandEncoder *encoder) const {
+        if (bvh2DBuffers != nullptr) return bvh2DBuffers->applyRefitBarrier(encoder);
+        else if (snch2DBuffers != nullptr) return snch2DBuffers->applyRefitBarrier(encoder);
+        else if (bvh3DBuffers != nullptr) return bvh3DBuffers->applyRefitBarrier(encoder);
+        else if (snch3DBuffers != nullptr) return snch3DBuffers->applyRefitBarrier(encoder);
     }
 
 private:

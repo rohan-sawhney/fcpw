@@ -6,14 +6,14 @@ public interface IBvhNodes
 {
     associatedtype NodeType : IBvhNode;
 
-    public __subscript(int i) -> NodeType { get; }
+    public __subscript(int i) -> NodeType { get; set; }
 };
 
 public struct BvhNodes : IBvhNodes
 {
     public typealias NodeType = BvhNode;
-    public StructuredBuffer<float> pxMin, pyMin, pzMin;
-    public StructuredBuffer<float> pxMax, pyMax, pzMax;
+    public RWStructuredBuffer<float> pxMin, pyMin, pzMin;
+    public RWStructuredBuffer<float> pxMax, pyMax, pzMax;
     public StructuredBuffer<uint> nPrimitives;
     public StructuredBuffer<uint> offsets;
 
@@ -30,17 +30,27 @@ public struct BvhNodes : IBvhNodes
 
             return node;
         }
+
+        set(NodeType node) {
+            BoundingBox box = node.getBoundingBox();
+            pxMin[i] = box.pMin[0];
+            pyMin[i] = box.pMin[1];
+            pzMin[i] = box.pMin[2];
+            pxMax[i] = box.pMax[0];
+            pyMax[i] = box.pMax[1];
+            pzMax[i] = box.pMax[2];
+        }
     }
 };
 
 public struct SnchNodes : IBvhNodes
 {
     public typealias NodeType = SnchNode;
-    public StructuredBuffer<float> pxMin, pyMin, pzMin;
-    public StructuredBuffer<float> pxMax, pyMax, pzMax;
-    public StructuredBuffer<float> axesx, axesy, axesz;
-    public StructuredBuffer<float> halfAngles;
-    public StructuredBuffer<float> radii;
+    public RWStructuredBuffer<float> pxMin, pyMin, pzMin;
+    public RWStructuredBuffer<float> pxMax, pyMax, pzMax;
+    public RWStructuredBuffer<float> axesx, axesy, axesz;
+    public RWStructuredBuffer<float> halfAngles;
+    public RWStructuredBuffer<float> radii;
     public StructuredBuffer<uint> nPrimitives;
     public StructuredBuffer<uint> offsets;
     public StructuredBuffer<uint> nSilhouettes;
@@ -62,6 +72,23 @@ public struct SnchNodes : IBvhNodes
             node.silhouetteOffset = silhouetteOffsets[i];
 
             return node;
+        }
+
+        set(NodeType node) {
+            BoundingBox box = node.getBoundingBox();
+            pxMin[i] = box.pMin[0];
+            pyMin[i] = box.pMin[1];
+            pzMin[i] = box.pMin[2];
+            pxMax[i] = box.pMax[0];
+            pyMax[i] = box.pMax[1];
+            pzMax[i] = box.pMax[2];
+
+            BoundingCone cone = node.getBoundingCone();
+            axesx[i] = cone.axis[0];
+            axesy[i] = cone.axis[1];
+            axesz[i] = cone.axis[2];
+            halfAngles[i] = cone.halfAngle;
+            radii[i] = cone.radius;
         }
     }
 };

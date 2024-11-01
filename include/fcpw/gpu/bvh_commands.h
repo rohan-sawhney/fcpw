@@ -122,7 +122,6 @@ void runUpdate(GPUContext& gpuContext,
                const T& gpuBvhBuffers,
                bool printLogs = false)
 {
-    /*
     // setup command buffer
     ComPtr<ICommandBuffer> commandBuffer = gpuContext.transientHeap->createCommandBuffer();
     IComputeCommandEncoder *encoder = commandBuffer->encodeComputeCommands();
@@ -156,7 +155,7 @@ void runUpdate(GPUContext& gpuContext,
         entryPointCursor.getPath("nodeCount").setData(nodeCount);
 
         encoder->dispatchCompute(nodeCount, 1, 1);
-        encoder->bufferBarrier(gpuBvhBuffers.nodes.buffer.get(), ResourceState::UnorderedAccess, ResourceState::UnorderedAccess);
+        gpuBvhBuffers.applyRefitBarrier(encoder);
     }
 
     if (printLogs) {
@@ -175,7 +174,6 @@ void runUpdate(GPUContext& gpuContext,
     // synchronize and reset transient heap
     gpuContext.transientHeap->finish();
     gpuContext.transientHeap->synchronizeAndReset();
-    */
 }
 
 } // namespace fcpw
