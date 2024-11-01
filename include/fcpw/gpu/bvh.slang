@@ -35,20 +35,19 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
         // update leaf node's bounding box
         float3 pMin = float3(FLT_MAX, FLT_MAX, FLT_MAX);
         float3 pMax = float3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
-        Nodes.NodeType node = nodes[nodeIndex];
-        uint nPrimitives = node.getNumPrimitives();
+        uint nPrimitives = nodes.getNumPrimitives(nodeIndex);
 
         for (uint p = 0; p < nPrimitives; p++)
         {
-            uint primitiveIndex = node.getPrimitiveOffset() + p;
+            uint primitiveIndex = nodes.getPrimitiveOffset(nodeIndex) + p;
             BoundingBox primitiveBox = primitives[primitiveIndex].getBoundingBox();
             pMin = min(pMin, primitiveBox.pMin);
             pMax = max(pMax, primitiveBox.pMax);
         }
 
-        node.setBoundingBox(BoundingBox(pMin, pMax));
+        nodes.setBoundingBox(nodeIndex, BoundingBox(pMin, pMax));
 
-        if (node.hasBoundingCone())
+        if (nodes.hasBoundingCone(nodeIndex))
         {
             // update leaf node's bounding cone
             float3 axis = float3(0.0, 0.0, 0.0);
@@ -57,11 +56,11 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
             float radius = 0.0;
             bool anySilhouettes = false;
             bool silhouettesHaveTwoAdjacentFaces = true;
-            uint nSilhouettes = node.getNumSilhouettes();
+            uint nSilhouettes = nodes.getNumSilhouettes(nodeIndex);
 
             for (uint p = 0; p < nSilhouettes; p++)
             {
-                uint silhouetteIndex = node.getSilhouetteOffset() + p;
+                uint silhouetteIndex = nodes.getSilhouetteOffset(nodeIndex) + p;
                 Silhouettes.SilhouetteType silhouette = silhouettes[silhouetteIndex];
                 axis += silhouette.getNormal(0);
                 axis += silhouette.getNormal(1);
@@ -88,7 +87,7 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
 
                     for (uint p = 0; p < nSilhouettes; p++)
                     {
-                        uint silhouetteIndex = node.getSilhouetteOffset() + p;
+                        uint silhouetteIndex = nodes.getSilhouetteOffset(nodeIndex) + p;
                         Silhouettes.SilhouetteType silhouette = silhouettes[silhouetteIndex];
                         for (uint k = 0; k < 2; k++)
                         {
@@ -100,10 +99,8 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
                 }
             }
 
-            node.setBoundingCone(BoundingCone(axis, halfAngle, radius));
+            nodes.setBoundingCone(nodeIndex, BoundingCone(axis, halfAngle, radius));
         }
-
-        nodes[nodeIndex] = node;
     }
 
     // updates the bounding volume of an aggregate internal node
@@ -111,30 +108,24 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
     internal void refitInternalNode(uint nodeIndex)
     {
         // update internal node's bounding box
-        Nodes.NodeType node = nodes[nodeIndex];
         uint leftNodeIndex = nodeIndex + 1;
-        uint rightNodeIndex = nodeIndex + node.getRightChildOffset();
-        Nodes.NodeType leftNode = nodes[leftNodeIndex];
-        Nodes.NodeType rightNode = nodes[rightNodeIndex];
-
-        BoundingBox leftBox = leftNode.getBoundingBox();
-        BoundingBox rightBox = rightNode.getBoundingBox();
+        uint rightNodeIndex = nodeIndex + nodes.getRightChildOffset(nodeIndex);
+        BoundingBox leftBox = nodes.getBoundingBox(leftNodeIndex);
+        BoundingBox rightBox = nodes.getBoundingBox(rightNodeIndex);
         BoundingBox mergedBox = mergeBoundingBoxes(leftBox, rightBox);
-        node.setBoundingBox(mergedBox);
+        nodes.setBoundingBox(nodeIndex, mergedBox);
 
-        if (node.hasBoundingCone())
+        if (nodes.hasBoundingCone(nodeIndex))
         {
             // update internal node's bounding cone
-            BoundingCone leftCone = leftNode.getBoundingCone();
-            BoundingCone rightCone = rightNode.getBoundingCone();
+            BoundingCone leftCone = nodes.getBoundingCone(leftNodeIndex);
+            BoundingCone rightCone = nodes.getBoundingCone(rightNodeIndex);
             BoundingCone mergedCone = mergeBoundingCones(leftCone, rightCone,
                                                          leftBox.getCentroid(),
                                                          rightBox.getCentroid(),
                                                          mergedBox.getCentroid());
-            node.setBoundingCone(mergedCone);
+            nodes.setBoundingCone(nodeIndex, mergedCone);
         }
-
-        nodes[nodeIndex] = node;
     }
 
     // updates the bounding volume of an aggregate node
@@ -142,7 +133,7 @@ public struct Bvh<Nodes, Primitives, Silhouettes> : IAggregate
     [mutating]
     public void refit(uint nodeIndex)
     {
-        if (nodes[nodeIndex].isLeaf())
+        if (nodes.isLeaf(nodeIndex))
         {
             refitLeafNode(nodeIndex);
         }

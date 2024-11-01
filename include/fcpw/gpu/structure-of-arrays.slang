@@ -6,16 +6,20 @@ public interface IBvhNodes
 {
     associatedtype NodeType : IBvhNode;
 
-    public BoundingBox getBoundingBox(uint i);
-    public bool hasBoundingCone(uint i);
-    public BoundingCone getBoundingCone(uint i);
-    public bool isLeaf(uint i);
-    public uint getRightChildOffset(uint i);
-    public uint getNumPrimitives(uint i);
-    public uint getPrimitiveOffset(uint i);
-    public uint getNumSilhouettes(uint i);
-    public uint getSilhouetteOffset(uint i);
-    public __subscript(uint i) -> NodeType { get; set; }
+    BoundingBox getBoundingBox(uint i);
+    [mutating]
+    void setBoundingBox(uint i, BoundingBox box);
+    bool hasBoundingCone(uint i);
+    BoundingCone getBoundingCone(uint i);
+    [mutating]
+    void setBoundingCone(uint i, BoundingCone cone);
+    bool isLeaf(uint i);
+    uint getRightChildOffset(uint i);
+    uint getNumPrimitives(uint i);
+    uint getPrimitiveOffset(uint i);
+    uint getNumSilhouettes(uint i);
+    uint getSilhouetteOffset(uint i);
+    __subscript(uint i) -> NodeType { get; set; }
 };
 
 public struct BvhNodes : IBvhNodes
@@ -34,6 +38,17 @@ public struct BvhNodes : IBvhNodes
         return BoundingBox(pMin, pMax);
     }
 
+    [mutating]
+    public void setBoundingBox(uint i, BoundingBox box)
+    {
+        pxMin[i] = box.pMin[0];
+        pyMin[i] = box.pMin[1];
+        pzMin[i] = box.pMin[2];
+        pxMax[i] = box.pMax[0];
+        pyMax[i] = box.pMax[1];
+        pzMax[i] = box.pMax[2];
+    }
+
     public bool hasBoundingCone(uint i)
     {
         return false;
@@ -42,6 +57,12 @@ public struct BvhNodes : IBvhNodes
     public BoundingCone getBoundingCone(uint i)
     {
         return BoundingCone();
+    }
+
+    [mutating]
+    public void setBoundingCone(uint i, BoundingCone cone)
+    {
+        // do nothing
     }
 
     public bool isLeaf(uint i)
@@ -121,6 +142,17 @@ public struct SnchNodes : IBvhNodes
         return BoundingBox(pMin, pMax);
     }
 
+    [mutating]
+    public void setBoundingBox(uint i, BoundingBox box)
+    {
+        pxMin[i] = box.pMin[0];
+        pyMin[i] = box.pMin[1];
+        pzMin[i] = box.pMin[2];
+        pxMax[i] = box.pMax[0];
+        pyMax[i] = box.pMax[1];
+        pzMax[i] = box.pMax[2];
+    }
+
     public bool hasBoundingCone(uint i)
     {
         return true;
@@ -131,6 +163,16 @@ public struct SnchNodes : IBvhNodes
         float3 axis = float3(axesx[i], axesy[i], axesz[i]);
 
         return BoundingCone(axis, halfAngles[i], radii[i]);
+    }
+
+    [mutating]
+    public void setBoundingCone(uint i, BoundingCone cone)
+    {
+        axesx[i] = cone.axis[0];
+        axesy[i] = cone.axis[1];
+        axesz[i] = cone.axis[2];
+        halfAngles[i] = cone.halfAngle;
+        radii[i] = cone.radius;
     }
 
     public bool isLeaf(uint i)
@@ -204,7 +246,7 @@ public interface IPrimitives
 {
     associatedtype PrimitiveType : IPrimitive;
 
-    public __subscript(uint i) -> PrimitiveType { get; }
+    __subscript(uint i) -> PrimitiveType { get; }
 };
 
 public struct LineSegments : IPrimitives
@@ -253,7 +295,7 @@ public interface ISilhouettes
 {
     associatedtype SilhouetteType : ISilhouette;
 
-    public __subscript(uint i) -> SilhouetteType { get; }
+    __subscript(uint i) -> SilhouetteType { get; }
 };
 
 public struct NoSilhouettes : ISilhouettes
