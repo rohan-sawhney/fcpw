@@ -17,7 +17,7 @@ struct GPUInteraction {
         n = fcpw::Vector3::Zero();
         uv = fcpw::Vector2::Zero();
         d = fcpw::maxFloat;
-        index = fcpw::FCPW_GPU_UINT_MAX;
+        index = FCPW_GPU_UINT_MAX;
     }
 
     fcpw::Vector3 p;       // interaction point associated with query
