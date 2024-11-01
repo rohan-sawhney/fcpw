@@ -6,7 +6,7 @@ public interface IBvhNodes
 {
     associatedtype NodeType : IBvhNode;
 
-    public __subscript(int i) -> NodeType { get; set; }
+    public __subscript(uint i) -> NodeType { get; set; }
 };
 
 public struct BvhNodes : IBvhNodes
@@ -17,7 +17,7 @@ public struct BvhNodes : IBvhNodes
     public StructuredBuffer<uint> nPrimitives;
     public StructuredBuffer<uint> offsets;
 
-    public __subscript(int i) -> NodeType
+    public __subscript(uint i) -> NodeType
     {
         get {
             float3 pMin = float3(pxMin[i], pyMin[i], pzMin[i]);
@@ -56,7 +56,7 @@ public struct SnchNodes : IBvhNodes
     public StructuredBuffer<uint> nSilhouettes;
     public StructuredBuffer<uint> silhouetteOffsets;
 
-    public __subscript(int i) -> NodeType
+    public __subscript(uint i) -> NodeType
     {
         get {
             float3 pMin = float3(pxMin[i], pyMin[i], pzMin[i]);
@@ -97,7 +97,7 @@ public interface IPrimitives
 {
     associatedtype PrimitiveType : IPrimitive;
 
-    public __subscript(int i) -> PrimitiveType { get; }
+    public __subscript(uint i) -> PrimitiveType { get; }
 };
 
 public struct LineSegments : IPrimitives
@@ -107,7 +107,7 @@ public struct LineSegments : IPrimitives
     public StructuredBuffer<float> pbx, pby;
     public StructuredBuffer<uint> indices;
 
-    public __subscript(int i) -> PrimitiveType
+    public __subscript(uint i) -> PrimitiveType
     {
         get {
             PrimitiveType primitive;
@@ -128,7 +128,7 @@ public struct Triangles : IPrimitives
     public StructuredBuffer<float> pcx, pcy, pcz;
     public StructuredBuffer<uint> indices;
 
-    public __subscript(int i) -> PrimitiveType
+    public __subscript(uint i) -> PrimitiveType
     {
         get {
             PrimitiveType primitive;
@@ -146,14 +146,14 @@ public interface ISilhouettes
 {
     associatedtype SilhouetteType : ISilhouette;
 
-    public __subscript(int i) -> SilhouetteType { get; }
+    public __subscript(uint i) -> SilhouetteType { get; }
 };
 
 public struct NoSilhouettes : ISilhouettes
 {
     public typealias SilhouetteType = NoSilhouette;
 
-    public __subscript(int i) -> SilhouetteType
+    public __subscript(uint i) -> SilhouetteType
     {
         get {
             SilhouetteType silhouette;
@@ -173,7 +173,7 @@ public struct Vertices : ISilhouettes
     public StructuredBuffer<uint> indices;
     public StructuredBuffer<uint> hasOneAdjacentFace;
 
-    public __subscript(int i) -> SilhouetteType
+    public __subscript(uint i) -> SilhouetteType
     {
         get {
             SilhouetteType silhouette;
@@ -198,7 +198,7 @@ public struct Edges : ISilhouettes
     public StructuredBuffer<uint> indices;
     public StructuredBuffer<uint> hasOneAdjacentFace;
 
-    public __subscript(int i) -> SilhouetteType
+    public __subscript(uint i) -> SilhouetteType
     {
         get {
             SilhouetteType silhouette;
@@ -220,7 +220,7 @@ public struct Rays
     public StructuredBuffer<float> dx, dy, dz;
     public StructuredBuffer<float> tMax;
 
-    public __subscript(int i) -> Ray
+    public __subscript(uint i) -> Ray
     {
         get {
             float3 o = float3(ox[i], oy[i], oz[i]);
@@ -236,7 +236,7 @@ public struct BoundingSpheres
     public StructuredBuffer<float> cx, cy, cz;
     public StructuredBuffer<float> r2;
 
-    public __subscript(int i) -> BoundingSphere
+    public __subscript(uint i) -> BoundingSphere
     {
         get {
             float3 c = float3(cx[i], cy[i], cz[i]);
@@ -250,7 +250,7 @@ public struct Float3List
 {
     public StructuredBuffer<float> x, y, z;
 
-    public __subscript(int i) -> float3
+    public __subscript(uint i) -> float3
     {
         get {
             return float3(x[i], y[i], z[i]);
@@ -266,7 +266,7 @@ public struct Interactions
     public RWStructuredBuffer<float> d;
     public RWStructuredBuffer<uint> indices;
 
-    public __subscript(int i) -> Interaction
+    public __subscript(uint i) -> Interaction
     {
         get {
             Interaction interaction;
