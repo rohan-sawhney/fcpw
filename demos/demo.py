@@ -62,7 +62,7 @@ def perform_gpu_closest_point_queries(gpu_scene, query_points):
     gpu_scene.find_closest_points(query_points, squared_max_radii, interactions)
 
     # extract closest points
-    closest_points = np.array([np.array([i.p.x, i.p.y, i.p.z], dtype=np.float32, order='C') for i in interactions])
+    closest_points = np.array([i.p for i in interactions])
 
     return closest_points
 
