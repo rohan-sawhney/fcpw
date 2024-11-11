@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.14...3.27)
+cmake_minimum_required(VERSION 3.15...3.27)
 project(fcpw-python)
 
 nanobind_add_module(py NOMINSIZE STABLE_ABI NB_STATIC fcpw_py.cpp)
