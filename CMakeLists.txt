@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15...3.27)
+cmake_minimum_required(VERSION 3.14...3.27)
 project(fcpw)
 
 option(FCPW_USE_ENOKI "Build enoki" ON)
@@ -43,7 +43,7 @@ endif()
 
 if(FCPW_ENABLE_GPU_SUPPORT)
     # download slang
-    set(FCPW_SLANG_VERSION "2024.14.1")
+    set(FCPW_SLANG_VERSION "2024.14.5")
     set(FCPW_SLANG_URL_BASE "https://github.com/shader-slang/slang/releases/download/v${FCPW_SLANG_VERSION}")
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
