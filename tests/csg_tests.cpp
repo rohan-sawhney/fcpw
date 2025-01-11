@@ -1,6 +1,6 @@
 #include <fcpw/utilities/scene_loader.h>
-#include "tbb/parallel_for.h"
-#include "tbb/blocked_range.h"
+#include "oneapi/tbb/parallel_for.h"
+#include "oneapi/tbb/blocked_range.h"
 
 #include "polyscope/polyscope.h"
 #include "polyscope/surface_mesh.h"
