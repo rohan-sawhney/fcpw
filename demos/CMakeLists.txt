@@ -9,7 +9,6 @@ if(FCPW_USE_ENOKI)
     target_include_directories(demo PRIVATE ${FCPW_ENOKI_INCLUDES})
 endif()
 
-target_include_directories(demo PRIVATE ${FCPW_TESTS_TBB_INCLUDES})
 target_include_directories(demo PRIVATE ${FCPW_ARGS_INCLUDES})
 
 target_link_libraries(demo polyscope)

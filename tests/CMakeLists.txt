@@ -3,6 +3,14 @@ project(fcpw-tests)
 
 ################################################################################
 # build tests
+if(FCPW_BUILD_TESTS)
+    set(TBB_TEST          OFF CACHE BOOL " " FORCE)
+    set(TBB_INSTALL       OFF CACHE BOOL " " FORCE)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb)
+
+    set(FCPW_TESTS_TBB_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb/include)
+endif()
+
 add_executable(aggregate_tests aggregate_tests.cpp)
 target_link_libraries(aggregate_tests fcpw)
 target_include_directories(aggregate_tests PRIVATE ${FCPW_EIGEN_INCLUDES})

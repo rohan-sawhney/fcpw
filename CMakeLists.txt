@@ -111,18 +111,6 @@ if(FCPW_ENABLE_GPU_SUPPORT)
     message(STATUS "GFX LIBRARY: " ${FCPW_GFX_LIBRARY})
 endif()
 
-if(FCPW_BUILD_TESTS)
-    set(TBB_TEST          OFF CACHE BOOL " " FORCE)
-    set(TBB_INSTALL       OFF CACHE BOOL " " FORCE)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb)
-
-    if(hasParent)
-        set(FCPW_TESTS_TBB_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb/include PARENT_SCOPE)
-    else()
-        set(FCPW_TESTS_TBB_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb/include)
-    endif()
-endif()
-
 if(FCPW_USE_ENOKI)
     add_subdirectory(deps/enoki)
     if(hasParent)
