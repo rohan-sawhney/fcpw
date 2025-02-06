@@ -398,7 +398,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
     public bool findClosestPoint(inout BoundingSphere s, inout Interaction i,
                                  bool recordNormal = false)
     {
-        TraversalStack traversalStack[FCPW_BVH_MAX_DEPTH];
+        uint traversalStack[FCPW_BVH_MAX_DEPTH];
         float4 distToChildNodes = float4(0.0, 0.0, 0.0, 0.0);
         BoundingBox rootBox = nodes[0].getBoundingBox();
         bool notFound = true;
@@ -406,24 +406,23 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
         if (rootBox.overlap(s, distToChildNodes[0], distToChildNodes[1]))
         {
             s.r2 = min(s.r2, distToChildNodes[1]);
-            traversalStack[0].node = 0;
-            traversalStack[0].distance = distToChildNodes[0];
+            traversalStack[0] = 0;
             int stackPtr = 0;
 
             while (stackPtr >= 0)
             {
                 // pop off the next node to work on
-                uint currentNodeIndex = traversalStack[stackPtr].node;
-                float currentDist = traversalStack[stackPtr].distance;
+                uint currentNodeIndex = traversalStack[stackPtr];
+                N node = nodes[currentNodeIndex];
                 stackPtr--;
 
                 // if this node is further than the closest found primitive, continue
-                if (currentDist > s.r2)
+                BoundingBox currentBox = node.getBoundingBox();
+                if (!currentBox.overlap(s, distToChildNodes[0]))
                 {
                     continue;
                 }
 
-                N node = nodes[currentNodeIndex];
                 if (node.isLeaf())
                 {
                     // compute distance to primitives in leaf node
@@ -464,21 +463,8 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                         uint other = rightNodeIndex;
 
                         // ... if the right child was actually closer, swap the relavent values
-                        if (distToChildNodes[0] == 0.0 && distToChildNodes[2] == 0.0)
+                        if (distToChildNodes[2] < distToChildNodes[0])
                         {
-                            if (distToChildNodes[3] < distToChildNodes[1])
-                            {
-                                uint tmpNodeIndex = closer;
-                                closer = other;
-                                other = tmpNodeIndex;
-                            }
-                        }
-                        else if (distToChildNodes[2] < distToChildNodes[0])
-                        {
-                            float tmpDist = distToChildNodes[0];
-                            distToChildNodes[0] = distToChildNodes[2];
-                            distToChildNodes[2] = tmpDist;
-
                             uint tmpNodeIndex = closer;
                             closer = other;
                             other = tmpNodeIndex;
@@ -489,24 +475,20 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
 
                         // push the further node first, then the closer node
                         stackPtr++;
-                        traversalStack[stackPtr].node = other;
-                        traversalStack[stackPtr].distance = distToChildNodes[2];
+                        traversalStack[stackPtr] = other;
 
                         stackPtr++;
-                        traversalStack[stackPtr].node = closer;
-                        traversalStack[stackPtr].distance = distToChildNodes[0];
+                        traversalStack[stackPtr] = closer;
                     }
                     else if (overlapsLeft)
                     {
                         stackPtr++;
-                        traversalStack[stackPtr].node = leftNodeIndex;
-                        traversalStack[stackPtr].distance = distToChildNodes[0];
+                        traversalStack[stackPtr] = leftNodeIndex;
                     }
                     else if (overlapsRight)
                     {
                         stackPtr++;
-                        traversalStack[stackPtr].node = rightNodeIndex;
-                        traversalStack[stackPtr].distance = distToChildNodes[2];
+                        traversalStack[stackPtr] = rightNodeIndex;
                     }
                 }
             }
@@ -530,31 +512,30 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
             return false;
         }
 
-        TraversalStack traversalStack[FCPW_BVH_MAX_DEPTH];
+        uint traversalStack[FCPW_BVH_MAX_DEPTH];
         float2 distToChildNodes = float2(0.0, 0.0);
         BoundingBox rootBox = nodes[0].getBoundingBox();
         bool notFound = true;
 
         if (rootBox.overlap(s, distToChildNodes[0]))
         {
-            traversalStack[0].node = 0;
-            traversalStack[0].distance = distToChildNodes[0];
+            traversalStack[0] = 0;
             int stackPtr = 0;
 
             while (stackPtr >= 0)
             {
                 // pop off the next node to work on
-                uint currentNodeIndex = traversalStack[stackPtr].node;
-                float currentDist = traversalStack[stackPtr].distance;
+                uint currentNodeIndex = traversalStack[stackPtr];
+                N node = nodes[currentNodeIndex];
                 stackPtr--;
 
                 // if this node is further than the closest found primitive, continue
-                if (currentDist > s.r2)
+                BoundingBox currentBox = node.getBoundingBox();
+                if (!currentBox.overlap(s, distToChildNodes[0]))
                 {
                     continue;
                 }
 
-                N node = nodes[currentNodeIndex];
                 if (node.isLeaf())
                 {
                     // compute distance to silhouettes in leaf node
@@ -633,10 +614,6 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                         // ... if the right child was actually closer, swap the relavent values
                         if (distToChildNodes[1] < distToChildNodes[0])
                         {
-                            float tmpDist = distToChildNodes[0];
-                            distToChildNodes[0] = distToChildNodes[1];
-                            distToChildNodes[1] = tmpDist;
-
                             uint tmpNodeIndex = closer;
                             closer = other;
                             other = tmpNodeIndex;
@@ -647,24 +624,20 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
 
                         // push the further node first, then the closer node
                         stackPtr++;
-                        traversalStack[stackPtr].node = other;
-                        traversalStack[stackPtr].distance = distToChildNodes[1];
+                        traversalStack[stackPtr] = other;
 
                         stackPtr++;
-                        traversalStack[stackPtr].node = closer;
-                        traversalStack[stackPtr].distance = distToChildNodes[0];
+                        traversalStack[stackPtr] = closer;
                     }
                     else if (overlapsLeft)
                     {
                         stackPtr++;
-                        traversalStack[stackPtr].node = leftNodeIndex;
-                        traversalStack[stackPtr].distance = distToChildNodes[0];
+                        traversalStack[stackPtr] = leftNodeIndex;
                     }
                     else if (overlapsRight)
                     {
                         stackPtr++;
-                        traversalStack[stackPtr].node = rightNodeIndex;
-                        traversalStack[stackPtr].distance = distToChildNodes[1];
+                        traversalStack[stackPtr] = rightNodeIndex;
                     }
                 }
             }

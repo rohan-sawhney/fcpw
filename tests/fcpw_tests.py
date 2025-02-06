@@ -495,7 +495,7 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
         device_parametric_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cuda:0")
         wp_mesh = wp.Mesh(points=wp.array(data=positions, dtype=wp.vec3, device="cuda:0"),
                           indices=wp.array(data=indices.flatten(), dtype=int, device="cuda:0"),
-                          velocities=None)
+                          velocities=None, bvh_constructor="sah")
 
         host_intersection_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cpu")
         host_intersection_hit_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cpu")
