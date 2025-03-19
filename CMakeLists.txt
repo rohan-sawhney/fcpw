@@ -3,10 +3,10 @@ project(fcpw)
 
 option(FCPW_USE_ENOKI "Build enoki" ON)
 option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
-option(FCPW_ENABLE_GPU_SUPPORT "Enable GPU support" OFF)
+option(FCPW_ENABLE_GPU_SUPPORT "Enable GPU support" ON)
 option(FCPW_BUILD_BINDINGS "Build bindings" OFF)
-option(FCPW_BUILD_DEMO "Build demo" OFF)
-option(FCPW_BUILD_TESTS "Build tests" OFF)
+option(FCPW_BUILD_DEMO "Build demo" ON)
+option(FCPW_BUILD_TESTS "Build tests" ON)
 
 ################################################################################
 if(FCPW_BUILD_BINDINGS)
@@ -43,7 +43,7 @@ endif()
 
 if(FCPW_ENABLE_GPU_SUPPORT)
     # download slang
-    set(FCPW_SLANG_VERSION "2025.3.2")
+    set(FCPW_SLANG_VERSION "2025.6.2")
     set(FCPW_SLANG_URL_BASE "https://github.com/shader-slang/slang/releases/download/v${FCPW_SLANG_VERSION}")
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
