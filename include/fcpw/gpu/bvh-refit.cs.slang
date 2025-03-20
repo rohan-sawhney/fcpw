@@ -11,21 +11,23 @@ import fcpw;
 #endif
 
 #if _BVH_TYPE == LINE_SEGMENT_BVH
-uniform ParameterBlock<Bvh<BvhNode, LineSegment, NoSilhouette>> gBvh;
+typdef Bvh<BvhNode, LineSegment, NoSilhouette> BvhType;
 
 #elif _BVH_TYPE == TRIANGLE_BVH
-uniform ParameterBlock<Bvh<BvhNode, Triangle, NoSilhouette>> gBvh;
+typedef Bvh<BvhNode, Triangle, NoSilhouette> BvhType;
 
 #elif _BVH_TYPE == LINE_SEGMENT_SNCH
-uniform ParameterBlock<Bvh<SnchNode, LineSegment, Vertex>> gBvh;
+typedef Bvh<SnchNode, LineSegment, Vertex> BvhType;
 
 #elif _BVH_TYPE == TRIANGLE_SNCH
-uniform ParameterBlock<Bvh<SnchNode, Triangle, Edge>> gBvh;
+typedef Bvh<SnchNode, Triangle, Edge> BvhType;
 
 #else
 // Compile time error
 #error _BVH_TYPE is not set to a supported type
 #endif
+
+uniform ParameterBlock<BvhType> gBvh;
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
