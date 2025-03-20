@@ -10,6 +10,7 @@ printLogs(printLogs_)
     std::filesystem::path fcpwDirectoryPath(fcpwDirectoryPath_);
     std::filesystem::path shaderDirectoryPath = fcpwDirectoryPath / "include" / "fcpw" / "gpu";
     fcpwModule = (shaderDirectoryPath / "fcpw.slang").string();
+    searchPaths[0] = shaderDirectoryPath.string();
     refitShaderModule = (shaderDirectoryPath / "bvh-refit.cs.slang").string();
     traversalShaderModule = (shaderDirectoryPath / "bvh-traversal.cs.slang").string();
 }
@@ -26,7 +27,8 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     std::string macroValue = hasSilhouetteGeometry ? (hasLineSegmentGeometry ? "3" : "4") :
                                                      (hasLineSegmentGeometry ? "1" : "2");
     slang::PreprocessorMacroDesc macro = { "_BVH_TYPE", macroValue.c_str() };
-    gpuContext.initDevice({}, 0, macro, 1);
+    const char* searchPathList[] = { searchPaths[0].c_str() };
+    gpuContext.initDevice(searchPathList, 1, macro, 1);
 
     // create GPU buffers
     gpuBvhBuffers.template allocate<DIM>(gpuContext.device, sceneData, true,
