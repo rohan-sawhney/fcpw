@@ -1,34 +1,34 @@
 import fcpw;
 
-#define UNDEFINED_BVH_TYPE 0
-#define LINE_SEGMENT_BVH 1
-#define TRIANGLE_BVH 2
-#define LINE_SEGMENT_SNCH 3
-#define TRIANGLE_SNCH 4
+#define FCPW_UNDEFINED_BVH 0
+#define FCPW_LINE_SEGMENT_BVH 1
+#define FCPW_TRIANGLE_BVH 2
+#define FCPW_LINE_SEGMENT_SNCH 3
+#define FCPW_TRIANGLE_SNCH 4
 
-#ifndef _BVH_TYPE
-#define _BVH_TYPE UNDEFINED_BVH_TYPE
+#ifndef FCPW_BVH_TYPE
+#define FCPW_BVH_TYPE FCPW_UNDEFINED_BVH
 #endif
 
-#if _BVH_TYPE == LINE_SEGMENT_BVH
+#if FCPW_BVH_TYPE == FCPW_LINE_SEGMENT_BVH
 typdef Bvh<BvhNode, LineSegment, NoSilhouette> BvhType;
-#define _BVH_HAS_SILHOUETTE_DATA 0
+#define FCPW_BVH_HAS_SILHOUETTE_DATA 0
 
-#elif _BVH_TYPE == TRIANGLE_BVH
+#elif FCPW_BVH_TYPE == FCPW_TRIANGLE_BVH
 typedef Bvh<BvhNode, Triangle, NoSilhouette> BvhType;
-#define _BVH_HAS_SILHOUETTE_DATA 0
+#define FCPW_BVH_HAS_SILHOUETTE_DATA 0
 
-#elif _BVH_TYPE == LINE_SEGMENT_SNCH
+#elif FCPW_BVH_TYPE == FCPW_LINE_SEGMENT_SNCH
 typedef Bvh<SnchNode, LineSegment, Vertex> BvhType;
-#define _BVH_HAS_SILHOUETTE_DATA 1
+#define FCPW_BVH_HAS_SILHOUETTE_DATA 1
 
-#elif _BVH_TYPE == TRIANGLE_SNCH
+#elif FCPW_BVH_TYPE == FCPW_TRIANGLE_SNCH
 typedef Bvh<SnchNode, Triangle, Edge> BvhType;
-#define _BVH_HAS_SILHOUETTE_DATA 1
+#define FCPW_BVH_HAS_SILHOUETTE_DATA 1
 
 #else
 // Compile time error
-#error _BVH_TYPE is not set to a supported type
+#error FCPW_BVH_TYPE is not set to a supported type
 #endif
 
 uniform ParameterBlock<BvhType> gBvh;
@@ -121,7 +121,7 @@ void closestSilhouettePoint(uint3 threadId: SV_DispatchThreadID,
     }
 
     Interaction i;
-#if _BVH_HAS_SILHOUETTE_DATA
+#if FCPW_BVH_HAS_SILHOUETTE_DATA
     BoundingSphere s = boundingSpheres[index];
     bool flipNormal = flipNormalOrientation[index] == 1 ? true : false;
     bool found = gBvh.findClosestSilhouettePoint(s, flipNormal, squaredMinRadius, precision, i);
