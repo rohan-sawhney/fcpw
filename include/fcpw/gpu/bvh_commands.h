@@ -38,13 +38,13 @@ void loadShader(GPUContext& gpuContext,
 }
 
 template <typename T, typename S>
-void runTraversal(GPUContext& gpuContext,
-                  const Shader& shader,
-                  const T& gpuBvhBuffers,
-                  const S& gpuQueryBuffers,
-                  std::vector<GPUInteraction>& interactions,
-                  int nThreadGroups = 4096,
-                  bool printLogs = false)
+void runBvhTraversal(GPUContext& gpuContext,
+                     const Shader& shader,
+                     const T& gpuBvhBuffers,
+                     const S& gpuQueryBuffers,
+                     std::vector<GPUInteraction>& interactions,
+                     int nThreadGroups = 4096,
+                     bool printLogs = false)
 {
     // setup command buffer
     auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
@@ -61,7 +61,7 @@ void runTraversal(GPUContext& gpuContext,
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
     int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor);
     if (printLogs) {
-        std::cout << "runTraversal" << std::endl;
+        std::cout << "runBvhTraversal" << std::endl;
         for (int i = 0; i < entryPointFieldCount; i++) {
             std::cout << "\tcursor[" << i << "]: " << entryPointCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
         }
@@ -114,10 +114,10 @@ void runTraversal(GPUContext& gpuContext,
 }
 
 template <typename T>
-void runUpdate(GPUContext& gpuContext,
-               const Shader& shader,
-               const T& gpuBvhBuffers,
-               bool printLogs = false)
+void runBvhUpdate(GPUContext& gpuContext,
+                  const Shader& shader,
+                  const T& gpuBvhBuffers,
+                  bool printLogs = false)
 {
     // setup command buffer
     auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
@@ -145,7 +145,7 @@ void runUpdate(GPUContext& gpuContext,
     }
 
     if (printLogs) {
-        std::cout << "runUpdate" << std::endl;
+        std::cout << "runBvhUpdate" << std::endl;
         int entryPointFieldCount = 4;
         for (int i = 0; i < entryPointFieldCount; i++) {
             std::cout << "\tcursor[" << i << "]: " << entryPointCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;

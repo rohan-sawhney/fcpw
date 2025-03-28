@@ -65,7 +65,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
                                          allocateRefitData);
 
     // run refit shader
-    runUpdate<GPUBvhBuffers>(gpuContext, refitShader, gpuBvhBuffers, printLogs);
+    runBvhUpdate<GPUBvhBuffers>(gpuContext, refitShader, gpuBvhBuffers, printLogs);
 }
 
 inline int countThreadGroups(int nQueries, int nThreadsPerGroup, bool printLogs)
@@ -143,9 +143,9 @@ inline void GPUScene<DIM>::intersect(std::vector<GPURay>& rays,
     // run ray intersection shader
     int nQueries = (int)rays.size();
     int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runTraversal<GPUBvhBuffers, GPUQueryRayIntersectionBuffers>(gpuContext, rayIntersectionShader,
-                                                                gpuBvhBuffers, gpuQueryRayIntersectionBuffers,
-                                                                interactions, nThreadGroups, printLogs);
+    runBvhTraversal<GPUBvhBuffers, GPUQueryRayIntersectionBuffers>(gpuContext, rayIntersectionShader,
+                                                                   gpuBvhBuffers, gpuQueryRayIntersectionBuffers,
+                                                                   interactions, nThreadGroups, printLogs);
 }
 
 template<size_t DIM>
@@ -207,9 +207,9 @@ inline void GPUScene<DIM>::intersect(std::vector<GPUBoundingSphere>& boundingSph
     // run sphere intersection shader
     int nQueries = (int)boundingSpheres.size();
     int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runTraversal<GPUBvhBuffers, GPUQuerySphereIntersectionBuffers>(gpuContext, sphereIntersectionShader,
-                                                                   gpuBvhBuffers, gpuQuerySphereIntersectionBuffers,
-                                                                   interactions, nThreadGroups, printLogs);
+    runBvhTraversal<GPUBvhBuffers, GPUQuerySphereIntersectionBuffers>(gpuContext, sphereIntersectionShader,
+                                                                      gpuBvhBuffers, gpuQuerySphereIntersectionBuffers,
+                                                                      interactions, nThreadGroups, printLogs);
 }
 
 template<size_t DIM>
@@ -267,9 +267,9 @@ inline void GPUScene<DIM>::findClosestPoints(std::vector<GPUBoundingSphere>& bou
     // run closest point shader
     int nQueries = (int)boundingSpheres.size();
     int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runTraversal<GPUBvhBuffers, GPUQueryClosestPointBuffers>(gpuContext, closestPointShader,
-                                                             gpuBvhBuffers, gpuQueryClosestPointBuffers,
-                                                             interactions, nThreadGroups, printLogs);
+    runBvhTraversal<GPUBvhBuffers, GPUQueryClosestPointBuffers>(gpuContext, closestPointShader,
+                                                                gpuBvhBuffers, gpuQueryClosestPointBuffers,
+                                                                interactions, nThreadGroups, printLogs);
 }
 
 template<size_t DIM>
@@ -334,9 +334,9 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(std::vector<GPUBoundingSp
     // run closest silhouette point shader
     int nQueries = (int)boundingSpheres.size();
     int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runTraversal<GPUBvhBuffers, GPUQueryClosestSilhouettePointBuffers>(gpuContext, closestSilhouettePointShader,
-                                                                       gpuBvhBuffers, gpuQueryClosestSilhouettePointBuffers,
-                                                                       interactions, nThreadGroups, printLogs);
+    runBvhTraversal<GPUBvhBuffers, GPUQueryClosestSilhouettePointBuffers>(gpuContext, closestSilhouettePointShader,
+                                                                          gpuBvhBuffers, gpuQueryClosestSilhouettePointBuffers,
+                                                                          interactions, nThreadGroups, printLogs);
 }
 
 } // namespace fcpw
