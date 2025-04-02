@@ -11,7 +11,7 @@ import fcpw;
 #endif
 
 #if FCPW_BVH_TYPE == FCPW_LINE_SEGMENT_BVH
-typdef Bvh<BvhNode, LineSegment, NoSilhouette> BvhType;
+typedef Bvh<BvhNode, LineSegment, NoSilhouette> BvhType;
 #define FCPW_BVH_HAS_SILHOUETTE_DATA 0
 
 #elif FCPW_BVH_TYPE == FCPW_TRIANGLE_BVH
@@ -130,4 +130,21 @@ void closestSilhouettePoint(uint3 threadId: SV_DispatchThreadID,
         interactions[index] = i;
     }
 #endif
+}
+
+[shader("compute")]
+[numthreads(256, 1, 1)]
+void refit(uint3 threadId: SV_DispatchThreadID,
+           uniform StructuredBuffer<uint> nodeIndices,
+           uniform uint firstNodeOffset,
+           uniform uint nodeCount)
+{
+    uint index = threadId.x;
+    if (index >= nodeCount)
+    {
+        return;
+    }
+
+    uint nodeIndex = nodeIndices[firstNodeOffset + index];
+    gBvh.refit(nodeIndex);
 }

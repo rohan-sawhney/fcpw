@@ -22,7 +22,6 @@ public struct ConstantBranchTraversalWeight : IBranchTraversalWeight
 public interface IAggregate
 {
     // updates the bounding volume of an aggregate node
-    [mutating]
     void refit(uint nodeIndex);
 
     // intersects aggregate geometry with ray
@@ -52,7 +51,6 @@ public struct TransformedAggregate<A : IAggregate> : IAggregate
     // updates the bounding volume of an aggregate node
     // NOTE: refitting of transformed aggregates is currently quite inefficient, since the
     // shared aggregate is refit every time this function is called
-    [mutating]
     public void refit(uint nodeIndex)
     {
         aggregate.refit(nodeIndex);

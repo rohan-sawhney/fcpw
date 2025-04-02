@@ -25,7 +25,6 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
     public StructuredBuffer<S> silhouettes;
 
     // updates the bounding volume of an aggregate leaf node
-    [mutating]
     internal void refitLeafNode(uint nodeIndex)
     {
         // update leaf node's bounding box
@@ -42,7 +41,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
             pMax = max(pMax, primitiveBox.pMax);
         }
 
-        node.setBoundingBox(BoundingBox(pMin, pMax));
+        nodes[nodeIndex].setBoundingBox(BoundingBox(pMin, pMax));
 
         if (node.hasBoundingCone())
         {
@@ -95,12 +94,11 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                 }
             }
 
-            node.setBoundingCone(BoundingCone(axis, halfAngle, radius));
+            nodes[nodeIndex].setBoundingCone(BoundingCone(axis, halfAngle, radius));
         }
     }
 
     // updates the bounding volume of an aggregate internal node
-    [mutating]
     internal void refitInternalNode(uint nodeIndex)
     {
         // update internal node's bounding box
@@ -113,7 +111,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
         BoundingBox leftBox = leftNode.getBoundingBox();
         BoundingBox rightBox = rightNode.getBoundingBox();
         BoundingBox mergedBox = mergeBoundingBoxes(leftBox, rightBox);
-        node.setBoundingBox(mergedBox);
+        nodes[nodeIndex].setBoundingBox(mergedBox);
 
         if (node.hasBoundingCone())
         {
@@ -124,13 +122,12 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                                                          leftBox.getCentroid(),
                                                          rightBox.getCentroid(),
                                                          mergedBox.getCentroid());
-            node.setBoundingCone(mergedCone);
+            nodes[nodeIndex].setBoundingCone(mergedCone);
         }
     }
 
     // updates the bounding volume of an aggregate node
     // NOTE: assumes node indices are provided in bottom-up order
-    [mutating]
     public void refit(uint nodeIndex)
     {
         if (nodes[nodeIndex].isLeaf())

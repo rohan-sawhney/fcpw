@@ -80,8 +80,7 @@ private:
     GPUContext gpuContext;
     GPUBvhBuffers gpuBvhBuffers;
     std::string fcpwModule;
-    std::string refitShaderModule;
-    std::string traversalShaderModule;
+    std::string shaderModule;
     std::string searchPaths[1];
     slang::PreprocessorMacroDesc macros[1];
     Shader refitShader;
