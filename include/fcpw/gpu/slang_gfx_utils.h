@@ -16,10 +16,10 @@ public:
     ComPtr<ICommandQueue> queue;
 
     void initDevice(const char* searchPaths[], int nSearchPaths,
-                    slang::PreprocessorMacroDesc& macro, int nMacros) {
+                    slang::PreprocessorMacroDesc macros[], int nMacros) {
         deviceDesc.slang.searchPaths = searchPaths;
         deviceDesc.slang.searchPathCount = nSearchPaths;
-        deviceDesc.slang.preprocessorMacros = &macro;
+        deviceDesc.slang.preprocessorMacros = macros;
         deviceDesc.slang.preprocessorMacroCount = nMacros;
         deviceDesc.slang.optimizationLevel = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_HIGH;
         SlangResult createDeviceResult = gfxCreateDevice(&deviceDesc, device.writeRef());

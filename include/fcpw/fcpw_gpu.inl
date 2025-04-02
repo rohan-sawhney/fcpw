@@ -29,12 +29,13 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
                                  sceneData->silhouetteEdgeObjects.size() > 0;
 
     // initialize GPU context
-    std::string macroValue = hasSilhouetteGeometry ?
-                             std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_SNCH : FCPW_TRIANGLE_SNCH) :
-                             std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH);
-    slang::PreprocessorMacroDesc macro = { "FCPW_BVH_TYPE", macroValue.c_str() };
     const char* searchPathList[] = { searchPaths[0].c_str() };
-    gpuContext.initDevice(searchPathList, 1, macro, 1);
+    macros[0].name = "FCPW_BVH_TYPE";
+    macros[0].value = hasSilhouetteGeometry ?
+                      std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_SNCH : FCPW_TRIANGLE_SNCH).c_str() :
+                      std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH).c_str();
+    slang::PreprocessorMacroDesc macrosList[] = { macros[0] };
+    gpuContext.initDevice(searchPathList, 1, macrosList, 1);
 
     // create GPU buffers
     gpuBvhBuffers.template allocate<DIM>(gpuContext.device, sceneData, true,

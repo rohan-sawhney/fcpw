@@ -83,6 +83,7 @@ private:
     std::string refitShaderModule;
     std::string traversalShaderModule;
     std::string searchPaths[1];
+    slang::PreprocessorMacroDesc macros[1];
     Shader refitShader;
     Shader rayIntersectionShader;
     Shader sphereIntersectionShader;
