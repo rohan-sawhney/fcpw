@@ -834,7 +834,7 @@ public:
     bool checkForOcclusion = false;
     GPUInteractionsBuffer interactionsBuffer;
 
-    void allocate(ComPtr<IDevice>& device, std::vector<GPURay>& raysData) {
+    void allocate(ComPtr<IDevice>& device, const std::vector<GPURay>& raysData) {
         Slang::Result createBufferResult = rays.create<GPURay>(
             device, false, raysData.data(), raysData.size());
         if (createBufferResult != SLANG_OK) {
@@ -867,8 +867,8 @@ public:
     GPUInteractionsBuffer interactionsBuffer;
 
     void allocate(ComPtr<IDevice>& device,
-                  std::vector<GPUBoundingSphere>& boundingSpheresData,
-                  std::vector<float3>& randNumsData) {
+                  const std::vector<GPUBoundingSphere>& boundingSpheresData,
+                  const std::vector<float3>& randNumsData) {
         Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
             device, false, boundingSpheresData.data(), boundingSpheresData.size());
         if (createBufferResult != SLANG_OK) {
@@ -908,7 +908,7 @@ public:
     float recordNormals = false;
 
     void allocate(ComPtr<IDevice>& device,
-                  std::vector<GPUBoundingSphere>& boundingSpheresData) {
+                  const std::vector<GPUBoundingSphere>& boundingSpheresData) {
         Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
             device, false, boundingSpheresData.data(), boundingSpheresData.size());
         if (createBufferResult != SLANG_OK) {
@@ -943,8 +943,8 @@ public:
     GPUInteractionsBuffer interactionsBuffer;
 
     void allocate(ComPtr<IDevice>& device,
-                  std::vector<GPUBoundingSphere>& boundingSpheresData,
-                  std::vector<uint32_t>& flipNormalOrientationData) {
+                  const std::vector<GPUBoundingSphere>& boundingSpheresData,
+                  const std::vector<uint32_t>& flipNormalOrientationData) {
         Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
             device, false, boundingSpheresData.data(), boundingSpheresData.size());
         if (createBufferResult != SLANG_OK) {

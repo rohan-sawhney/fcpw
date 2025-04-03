@@ -132,8 +132,8 @@ public:
 
     template<typename T>
     Slang::Result create(ComPtr<IDevice>& device, bool unorderedAccess,
-                         T* initialData, size_t elementCount) {
-        T *data = nullptr;
+                         const T* initialData, size_t elementCount) {
+        const T *data = nullptr;
         if (elementCount == 0) {
             elementCount = 1; // Slang requires buffers to be non-empty
 
