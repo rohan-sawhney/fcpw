@@ -3,10 +3,10 @@ project(fcpw)
 
 option(FCPW_USE_ENOKI "Build enoki" ON)
 option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
-option(FCPW_ENABLE_GPU_SUPPORT "Enable GPU support" ON)
+option(FCPW_ENABLE_GPU_SUPPORT "Enable GPU support" OFF)
 option(FCPW_BUILD_BINDINGS "Build bindings" OFF)
-option(FCPW_BUILD_DEMO "Build demo" ON)
-option(FCPW_BUILD_TESTS "Build tests" ON)
+option(FCPW_BUILD_DEMO "Build demo" OFF)
+option(FCPW_BUILD_TESTS "Build tests" OFF)
 
 ################################################################################
 if(FCPW_BUILD_BINDINGS)
