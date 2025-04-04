@@ -11,12 +11,20 @@
 
 namespace fcpw {
 
+struct float2 {
+    float x, y;
+};
+
 struct float3 {
     float x, y, z;
 };
 
-struct float2 {
-    float x, y;
+struct uint2 {
+    uint32_t x, y;
+};
+
+struct uint3 {
+    uint32_t x, y, z;
 };
 
 struct GPUBoundingBox {
