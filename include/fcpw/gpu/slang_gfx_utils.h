@@ -116,6 +116,20 @@ public:
         return SLANG_OK;
     }
 
+    ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device,
+                                             const char* reflectionType) const {
+        ComPtr<IShaderObject> shaderObject;
+        Slang::Result createShaderObjectResult = device->createShaderObject(
+            reflection->findTypeByName(reflectionType),
+            ShaderObjectContainerType::None, shaderObject.writeRef());
+        if (createShaderObjectResult != SLANG_OK) {
+            std::cout << "failed to create shader object" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        return shaderObject;
+    }
+
 private:
     void diagnoseIfNeeded(slang::IBlob* diagnosticsBlob) {
         if (diagnosticsBlob != nullptr) {

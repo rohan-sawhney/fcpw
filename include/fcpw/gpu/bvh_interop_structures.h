@@ -565,30 +565,11 @@ public:
         cursor["primitives"].setResource(primitives.view);
         cursor["silhouettes"].setResource(silhouettes.view);
         if (printLogs) {
-            std::cout << "BvhReflectionType: " << reflectionType << std::endl;
+            std::cout << "ReflectionType: " << reflectionType << std::endl;
             for (int i = 0; i < 3; i++) {
                 std::cout << "\tcursor[" << i << "]: " << cursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
             }
         }
-    }
-
-    ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device, const Shader& shader,
-                                             bool printLogs) const {
-        // create shader object
-        ComPtr<IShaderObject> shaderObject;
-        Slang::Result createShaderObjectResult = device->createShaderObject(
-            shader.reflection->findTypeByName(reflectionType.c_str()),
-            ShaderObjectContainerType::None, shaderObject.writeRef());
-        if (createShaderObjectResult != SLANG_OK) {
-            std::cout << "failed to create bvh shader object" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        // set shader object resources
-        ShaderCursor cursor(shaderObject);
-        setResources(cursor, printLogs);
-
-        return shaderObject;
     }
 
 private:
@@ -858,13 +839,13 @@ public:
         interactionsBuffer.allocate(device);
     }
 
-    int setResources(ShaderCursor& cursor) const {
+    int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("rays").setResource(rays.view);
         cursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
         cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
 
-        return 5;
+        return 4;
     }
 
     void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {
@@ -899,13 +880,13 @@ public:
         interactionsBuffer.allocate(device);
     }
 
-    int setResources(ShaderCursor& cursor) const {
+    int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("randNums").setResource(randNums.view);
         cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
         cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
 
-        return 5;
+        return 4;
     }
 
     void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {
@@ -932,13 +913,13 @@ public:
         interactionsBuffer.allocate(device);
     }
 
-    int setResources(ShaderCursor& cursor) const {
+    int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
         cursor.getPath("recordNormals").setData(recordNormals);
         cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
 
-        return 5;
+        return 4;
     }
 
     void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {
@@ -975,7 +956,7 @@ public:
         interactionsBuffer.allocate(device);
     }
 
-    int setResources(ShaderCursor& cursor) const {
+    int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
         cursor.getPath("squaredMinRadius").setData(squaredMinRadius);
@@ -983,7 +964,7 @@ public:
         cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
         cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
 
-        return 7;
+        return 6;
     }
 
     void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {

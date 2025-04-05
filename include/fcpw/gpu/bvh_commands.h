@@ -50,16 +50,20 @@ void runBvhTraversal(GPUContext& gpuContext,
     auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
     auto encoder = commandBuffer->encodeComputeCommands();
 
-    // create shader objects
+    // create bvh shader object
     auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
-    ComPtr<IShaderObject> bvhShaderObject = gpuBvhBuffers.createShaderObject(
-                                                gpuContext.device, shader, printLogs);
+    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(
+        gpuContext.device, gpuBvhBuffers.reflectionType.c_str());
+
+    // bind shader resources
+    ShaderCursor bvhCursor(bvhShaderObject);
+    gpuBvhBuffers.setResources(bvhCursor, printLogs);
     ShaderCursor rootCursor(rootShaderObject);
     rootCursor.getPath("gBvh").setObject(bvhShaderObject);
 
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
-    int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor);
+    int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor) + 1;
     if (printLogs) {
         std::cout << "runBvhTraversal" << std::endl;
         for (int i = 0; i < entryPointFieldCount; i++) {
@@ -123,10 +127,14 @@ void runBvhUpdate(GPUContext& gpuContext,
     auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
     auto encoder = commandBuffer->encodeComputeCommands();
 
-    // create shader objects
+    // create bvh shader object
     auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
-    ComPtr<IShaderObject> bvhShaderObject = gpuBvhBuffers.createShaderObject(
-                                                gpuContext.device, shader, printLogs);
+    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(
+        gpuContext.device, gpuBvhBuffers.reflectionType.c_str());
+
+    // bind shader resources
+    ShaderCursor bvhCursor(bvhShaderObject);
+    gpuBvhBuffers.setResources(bvhCursor, printLogs);
     ShaderCursor rootCursor(rootShaderObject);
     rootCursor.getPath("gBvh").setObject(bvhShaderObject);
 
