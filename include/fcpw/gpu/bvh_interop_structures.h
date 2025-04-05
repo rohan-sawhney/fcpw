@@ -560,6 +560,18 @@ public:
         exit(EXIT_FAILURE);
     }
 
+    void setResources(const ShaderCursor& cursor, bool printLogs) const {
+        cursor["nodes"].setResource(nodes.view);
+        cursor["primitives"].setResource(primitives.view);
+        cursor["silhouettes"].setResource(silhouettes.view);
+        if (printLogs) {
+            std::cout << "BvhReflectionType: " << reflectionType << std::endl;
+            for (int i = 0; i < 3; i++) {
+                std::cout << "\tcursor[" << i << "]: " << cursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
+            }
+        }
+    }
+
     ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device, const Shader& shader,
                                              bool printLogs) const {
         // create shader object
@@ -574,15 +586,7 @@ public:
 
         // set shader object resources
         ShaderCursor cursor(shaderObject);
-        cursor["nodes"].setResource(nodes.view);
-        cursor["primitives"].setResource(primitives.view);
-        cursor["silhouettes"].setResource(silhouettes.view);
-        if (printLogs) {
-            std::cout << "BvhReflectionType: " << shaderObject->getElementTypeLayout()->getName() << std::endl;
-            std::cout << "\tcursor[0]: " << cursor.getTypeLayout()->getFieldByIndex(0)->getName() << std::endl;
-            std::cout << "\tcursor[1]: " << cursor.getTypeLayout()->getFieldByIndex(1)->getName() << std::endl;
-            std::cout << "\tcursor[2]: " << cursor.getTypeLayout()->getFieldByIndex(2)->getName() << std::endl;   
-        }
+        setResources(cursor, printLogs);
 
         return shaderObject;
     }
