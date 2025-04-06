@@ -594,8 +594,8 @@ private:
         cpuBvhDataExtractor.extractSilhouettes(silhouettesData);
 
         // allocate gpu buffers
-        primitives.create<GPUPrimitiveType>(gpuContext, false, primitivesData);
-        silhouettes.create<GPUSilhouetteType>(gpuContext, false, silhouettesData);
+        primitives.allocate<GPUPrimitiveType>(gpuContext, false, primitivesData);
+        silhouettes.allocate<GPUSilhouetteType>(gpuContext, false, silhouettesData);
     }
 
     template<size_t DIM,
@@ -623,7 +623,7 @@ private:
         reflectionType = cpuBvhDataExtractor.getReflectionType();
 
         // allocate gpu buffer
-        nodes.create<GpuNodeType>(gpuContext, true, nodesData);
+        nodes.allocate<GpuNodeType>(gpuContext, true, nodesData);
     }
 
     template<size_t DIM,
@@ -645,7 +645,7 @@ private:
         maxUpdateDepth = cpuBvhUpdateDataExtractor.extract(nodeIndicesData, updateEntryData);
 
         // allocate gpu buffer
-        nodeIndices.create<uint32_t>(gpuContext, false, nodeIndicesData);
+        nodeIndices.allocate<uint32_t>(gpuContext, false, nodeIndicesData);
     }
 };
 
@@ -776,7 +776,7 @@ public:
 
     void allocate(GPUContext& gpuContext) {
         std::vector<GPUInteraction> interactionsData(nInteractions);
-        interactions.create<GPUInteraction>(gpuContext, true, interactionsData);
+        interactions.allocate<GPUInteraction>(gpuContext, true, interactionsData);
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
@@ -791,7 +791,7 @@ public:
     GPUInteractionsBuffer interactionsBuffer;
 
     void allocate(GPUContext& gpuContext, const std::vector<GPURay>& raysData) {
-        rays.create<GPURay>(gpuContext, false, raysData);
+        rays.allocate<GPURay>(gpuContext, false, raysData);
         interactionsBuffer.nInteractions = (uint32_t)raysData.size();
         interactionsBuffer.allocate(gpuContext);
     }
@@ -819,8 +819,8 @@ public:
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData,
                   const std::vector<float3>& randNumsData) {
-        boundingSpheres.create<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
-        randNums.create<float3>(gpuContext, false, randNumsData);
+        boundingSpheres.allocate<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
+        randNums.allocate<float3>(gpuContext, false, randNumsData);
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
         interactionsBuffer.allocate(gpuContext);
     }
@@ -847,7 +847,7 @@ public:
 
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData) {
-        boundingSpheres.create<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
+        boundingSpheres.allocate<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
         interactionsBuffer.allocate(gpuContext);
     }
@@ -877,8 +877,8 @@ public:
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData,
                   const std::vector<uint32_t>& flipNormalOrientationData) {
-        boundingSpheres.create<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
-        flipNormalOrientation.create<uint32_t>(gpuContext, false, flipNormalOrientationData);
+        boundingSpheres.allocate<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
+        flipNormalOrientation.allocate<uint32_t>(gpuContext, false, flipNormalOrientationData);
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
         interactionsBuffer.allocate(gpuContext);
     }

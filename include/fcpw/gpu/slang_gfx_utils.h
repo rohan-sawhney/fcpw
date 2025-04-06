@@ -170,8 +170,8 @@ public:
     ComPtr<IResourceView> view;
 
     template<typename T>
-    Slang::Result create(ComPtr<IDevice>& device, bool unorderedAccess,
-                         const T* initialData, size_t elementCount) {
+    Slang::Result allocate(ComPtr<IDevice>& device, bool unorderedAccess,
+                           const T* initialData, size_t elementCount) {
         const T *data = nullptr;
         if (elementCount == 0) {
             elementCount = 1; // Slang requires buffers to be non-empty
@@ -202,9 +202,10 @@ public:
     }
 
     template<typename T>
-    void create(GPUContext& gpuContext, bool unorderedAccess, const std::vector<T>& initialData) {
-        Slang::Result createBufferResult = create<T>(gpuContext.device, unorderedAccess,
-                                                     initialData.data(), initialData.size());
+    void allocate(GPUContext& gpuContext, bool unorderedAccess,
+                  const std::vector<T>& initialData) {
+        Slang::Result createBufferResult = allocate<T>(gpuContext.device, unorderedAccess,
+                                                       initialData.data(), initialData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create buffer" << std::endl;
             exit(EXIT_FAILURE);
