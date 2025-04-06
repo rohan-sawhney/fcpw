@@ -553,7 +553,7 @@ public:
     std::string reflectionType = "";
 
     template<size_t DIM>
-    void allocate(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData,
+    void allocate(GPUContext& gpuContext, const SceneData<DIM> *cpuSceneData,
                   bool allocatePrimitiveData, bool allocateSilhouetteData,
                   bool allocateNodeData, bool allocateRefitData) {
         std::cerr << "GPUBvhBuffers::allocate()" << std::endl;
@@ -575,7 +575,7 @@ private:
              typename GpuNodeType,
              typename GPUPrimitiveType,
              typename GPUSilhouetteType>
-    void allocateGeometryBuffers(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
+    void allocateGeometryBuffers(GPUContext& gpuContext, const SceneData<DIM> *cpuSceneData) {
         // extract primitives and silhouettes data from cpu bvh
         const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh =
             reinterpret_cast<const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *>(
@@ -595,14 +595,14 @@ private:
 
         // allocate gpu buffers
         Slang::Result createBufferResult = primitives.create<GPUPrimitiveType>(
-            device, false, primitivesData.data(), primitivesData.size());
+            gpuContext.device, false, primitivesData.data(), primitivesData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create primitives buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         createBufferResult = silhouettes.create<GPUSilhouetteType>(
-            device, false, silhouettesData.data(), silhouettesData.size());
+            gpuContext.device, false, silhouettesData.data(), silhouettesData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create silhouettes buffer" << std::endl;
             exit(EXIT_FAILURE);
@@ -616,7 +616,7 @@ private:
              typename GpuNodeType,
              typename GPUPrimitiveType,
              typename GPUSilhouetteType>
-    void allocateNodeBuffer(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
+    void allocateNodeBuffer(GPUContext& gpuContext, const SceneData<DIM> *cpuSceneData) {
         // extract nodes data from cpu bvh
         const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh =
             reinterpret_cast<const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *>(
@@ -635,7 +635,7 @@ private:
 
         // allocate gpu buffer
         Slang::Result createBufferResult = nodes.create<GpuNodeType>(
-            device, true, nodesData.data(), nodesData.size());
+            gpuContext.device, true, nodesData.data(), nodesData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create nodes buffer" << std::endl;
             exit(EXIT_FAILURE);
@@ -646,7 +646,7 @@ private:
              typename NodeType,
              typename PrimitiveType,
              typename SilhouetteType>
-    void allocateRefitBuffer(ComPtr<IDevice>& device, const SceneData<DIM> *cpuSceneData) {
+    void allocateRefitBuffer(GPUContext& gpuContext, const SceneData<DIM> *cpuSceneData) {
         // extract update data from cpu bvh
         const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *bvh =
             reinterpret_cast<const Bvh<DIM, NodeType, PrimitiveType, SilhouetteType> *>(
@@ -662,7 +662,7 @@ private:
 
         // allocate gpu buffer
         Slang::Result createBufferResult = nodeIndices.create<uint32_t>(
-            device, false, nodeIndicesData.data(), nodeIndicesData.size());
+            gpuContext.device, false, nodeIndicesData.data(), nodeIndicesData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create nodeIndices buffer" << std::endl;
             exit(EXIT_FAILURE);
@@ -671,75 +671,75 @@ private:
 };
 
 template<>
-void GPUBvhBuffers::allocate<2>(ComPtr<IDevice>& device, const SceneData<2> *cpuSceneData,
+void GPUBvhBuffers::allocate<2>(GPUContext& gpuContext, const SceneData<2> *cpuSceneData,
                                 bool allocatePrimitiveData, bool allocateSilhouetteData,
                                 bool allocateNodeData, bool allocateRefitData)
 {
     if (allocateSilhouetteData) {
         if (allocatePrimitiveData) {
             allocateGeometryBuffers<2, SnchNode<2>, LineSegment, SilhouetteVertex,
-                                    GPUSnchNode, GPULineSegment, GPUVertex>(device, cpuSceneData);
+                                    GPUSnchNode, GPULineSegment, GPUVertex>(gpuContext, cpuSceneData);
         }
 
         if (allocateNodeData) {
             allocateNodeBuffer<2, SnchNode<2>, LineSegment, SilhouetteVertex,
-                               GPUSnchNode, GPULineSegment, GPUVertex>(device, cpuSceneData);
+                               GPUSnchNode, GPULineSegment, GPUVertex>(gpuContext, cpuSceneData);
         }
 
         if (allocateRefitData) {
-            allocateRefitBuffer<2, SnchNode<2>, LineSegment, SilhouetteVertex>(device, cpuSceneData);
+            allocateRefitBuffer<2, SnchNode<2>, LineSegment, SilhouetteVertex>(gpuContext, cpuSceneData);
         }
 
     } else {
         if (allocatePrimitiveData) {
             allocateGeometryBuffers<2, BvhNode<2>, LineSegment, SilhouettePrimitive<2>,
-                                    GPUBvhNode, GPULineSegment, GPUNoSilhouette>(device, cpuSceneData);
+                                    GPUBvhNode, GPULineSegment, GPUNoSilhouette>(gpuContext, cpuSceneData);
         }
 
         if (allocateNodeData) {
             allocateNodeBuffer<2, BvhNode<2>, LineSegment, SilhouettePrimitive<2>,
-                               GPUBvhNode, GPULineSegment, GPUNoSilhouette>(device, cpuSceneData);
+                               GPUBvhNode, GPULineSegment, GPUNoSilhouette>(gpuContext, cpuSceneData);
         }
 
         if (allocateRefitData) {
-            allocateRefitBuffer<2, BvhNode<2>, LineSegment, SilhouettePrimitive<2>>(device, cpuSceneData);
+            allocateRefitBuffer<2, BvhNode<2>, LineSegment, SilhouettePrimitive<2>>(gpuContext, cpuSceneData);
         }
     }
 }
 
 template<>
-void GPUBvhBuffers::allocate<3>(ComPtr<IDevice>& device, const SceneData<3> *cpuSceneData,
+void GPUBvhBuffers::allocate<3>(GPUContext& gpuContext, const SceneData<3> *cpuSceneData,
                                 bool allocatePrimitiveData, bool allocateSilhouetteData,
                                 bool allocateNodeData, bool allocateRefitData)
 {
     if (allocateSilhouetteData) {
         if (allocatePrimitiveData) {
             allocateGeometryBuffers<3, SnchNode<3>, Triangle, SilhouetteEdge,
-                                    GPUSnchNode, GPUTriangle, GPUEdge>(device, cpuSceneData);
+                                    GPUSnchNode, GPUTriangle, GPUEdge>(gpuContext, cpuSceneData);
         }
 
         if (allocateNodeData) {
             allocateNodeBuffer<3, SnchNode<3>, Triangle, SilhouetteEdge,
-                               GPUSnchNode, GPUTriangle, GPUEdge>(device, cpuSceneData);
+                               GPUSnchNode, GPUTriangle, GPUEdge>(gpuContext, cpuSceneData);
         }
 
         if (allocateRefitData) {
-            allocateRefitBuffer<3, SnchNode<3>, Triangle, SilhouetteEdge>(device, cpuSceneData);
+            allocateRefitBuffer<3, SnchNode<3>, Triangle, SilhouetteEdge>(gpuContext, cpuSceneData);
         }
 
     } else {
         if (allocatePrimitiveData) {
             allocateGeometryBuffers<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>,
-                                    GPUBvhNode, GPUTriangle, GPUNoSilhouette>(device, cpuSceneData);
+                                    GPUBvhNode, GPUTriangle, GPUNoSilhouette>(gpuContext, cpuSceneData);
         }
 
         if (allocateNodeData) {
             allocateNodeBuffer<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>,
-                               GPUBvhNode, GPUTriangle, GPUNoSilhouette>(device, cpuSceneData);
+                               GPUBvhNode, GPUTriangle, GPUNoSilhouette>(gpuContext, cpuSceneData);
         }
 
         if (allocateRefitData) {
-            allocateRefitBuffer<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>>(device, cpuSceneData);
+            allocateRefitBuffer<3, BvhNode<3>, Triangle, SilhouettePrimitive<3>>(gpuContext, cpuSceneData);
         }
     }
 }
@@ -795,20 +795,20 @@ public:
     GPUBuffer interactions = {};
     uint32_t nInteractions = 0;
 
-    void allocate(ComPtr<IDevice>& device) {
+    void allocate(GPUContext& gpuContext) {
         std::vector<GPUInteraction> interactionsData(nInteractions);
         Slang::Result createBufferResult = interactions.create<GPUInteraction>(
-            device, true, interactionsData.data(), interactionsData.size());
+            gpuContext.device, true, interactionsData.data(), interactionsData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create interactions buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
 
-    void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {
+    void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactionsData.resize(nInteractions);
         Slang::Result readBufferResult = interactions.read<GPUInteraction>(
-            device, nInteractions, interactionsData);
+            gpuContext.device, nInteractions, interactionsData);
         if (readBufferResult != SLANG_OK) {
             std::cout << "failed to read interactions buffer from GPU" << std::endl;
             exit(EXIT_FAILURE);
@@ -822,16 +822,16 @@ public:
     bool checkForOcclusion = false;
     GPUInteractionsBuffer interactionsBuffer;
 
-    void allocate(ComPtr<IDevice>& device, const std::vector<GPURay>& raysData) {
+    void allocate(GPUContext& gpuContext, const std::vector<GPURay>& raysData) {
         Slang::Result createBufferResult = rays.create<GPURay>(
-            device, false, raysData.data(), raysData.size());
+            gpuContext.device, false, raysData.data(), raysData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create rays buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         interactionsBuffer.nInteractions = (uint32_t)raysData.size();
-        interactionsBuffer.allocate(device);
+        interactionsBuffer.allocate(gpuContext);
     }
 
     int setResources(const ShaderCursor& cursor) const {
@@ -843,8 +843,8 @@ public:
         return 4;
     }
 
-    void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsBuffer.read(device, interactionsData);
+    void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
+        interactionsBuffer.read(gpuContext, interactionsData);
     }
 };
 
@@ -854,25 +854,25 @@ public:
     GPUBuffer randNums = {};
     GPUInteractionsBuffer interactionsBuffer;
 
-    void allocate(ComPtr<IDevice>& device,
+    void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData,
                   const std::vector<float3>& randNumsData) {
         Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
-            device, false, boundingSpheresData.data(), boundingSpheresData.size());
+            gpuContext.device, false, boundingSpheresData.data(), boundingSpheresData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create boundingSpheres buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         createBufferResult = randNums.create<float3>(
-            device, false, randNumsData.data(), randNumsData.size());
+            gpuContext.device, false, randNumsData.data(), randNumsData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create randNums buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
-        interactionsBuffer.allocate(device);
+        interactionsBuffer.allocate(gpuContext);
     }
 
     int setResources(const ShaderCursor& cursor) const {
@@ -884,8 +884,8 @@ public:
         return 4;
     }
 
-    void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsBuffer.read(device, interactionsData);
+    void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
+        interactionsBuffer.read(gpuContext, interactionsData);
     }
 };
 
@@ -895,17 +895,17 @@ public:
     GPUInteractionsBuffer interactionsBuffer;
     float recordNormals = false;
 
-    void allocate(ComPtr<IDevice>& device,
+    void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData) {
         Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
-            device, false, boundingSpheresData.data(), boundingSpheresData.size());
+            gpuContext.device, false, boundingSpheresData.data(), boundingSpheresData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create boundingSpheres buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
-        interactionsBuffer.allocate(device);
+        interactionsBuffer.allocate(gpuContext);
     }
 
     int setResources(const ShaderCursor& cursor) const {
@@ -917,8 +917,8 @@ public:
         return 4;
     }
 
-    void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsBuffer.read(device, interactionsData);
+    void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
+        interactionsBuffer.read(gpuContext, interactionsData);
     }
 };
 
@@ -930,25 +930,25 @@ public:
     float precision = 1e-3f;
     GPUInteractionsBuffer interactionsBuffer;
 
-    void allocate(ComPtr<IDevice>& device,
+    void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData,
                   const std::vector<uint32_t>& flipNormalOrientationData) {
         Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
-            device, false, boundingSpheresData.data(), boundingSpheresData.size());
+            gpuContext.device, false, boundingSpheresData.data(), boundingSpheresData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create boundingSpheres buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         createBufferResult = flipNormalOrientation.create<uint32_t>(
-            device, false, flipNormalOrientationData.data(), flipNormalOrientationData.size());
+            gpuContext.device, false, flipNormalOrientationData.data(), flipNormalOrientationData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create flipNormalOrientation buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
 
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
-        interactionsBuffer.allocate(device);
+        interactionsBuffer.allocate(gpuContext);
     }
 
     int setResources(const ShaderCursor& cursor) const {
@@ -962,8 +962,8 @@ public:
         return 6;
     }
 
-    void read(ComPtr<IDevice>& device, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsBuffer.read(device, interactionsData);
+    void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
+        interactionsBuffer.read(gpuContext, interactionsData);
     }
 };
 

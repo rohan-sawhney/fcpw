@@ -64,7 +64,7 @@ void runBvhTraversal(GPUContext& gpuContext,
     }
 
     // read back results from GPU
-    gpuQueryBuffers.read(gpuContext.device, interactions);
+    gpuQueryBuffers.read(gpuContext, interactions);
 
     // synchronize and reset transient heap
     gpuContext.transientHeap->finish();

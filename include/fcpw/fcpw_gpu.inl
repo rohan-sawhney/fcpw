@@ -37,7 +37,7 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     gpuContext.initDevice(searchPathList, 1, macrosList, 1);
 
     // create GPU buffers
-    gpuBvhBuffers.template allocate<DIM>(gpuContext.device, sceneData, true,
+    gpuBvhBuffers.template allocate<DIM>(gpuContext, sceneData, true,
                                          hasSilhouetteGeometry, true, false);
 
     // initialize transient resources
@@ -60,7 +60,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
     }
 
     // update GPU buffers
-    gpuBvhBuffers.template allocate<DIM>(gpuContext.device, sceneData, updateGeometry,
+    gpuBvhBuffers.template allocate<DIM>(gpuContext, sceneData, updateGeometry,
                                          allocateSilhouetteGeometry, false,
                                          allocateRefitData);
 
@@ -137,7 +137,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
 
     // create GPU buffers
     GPUQueryRayIntersectionBuffers gpuQueryRayIntersectionBuffers;
-    gpuQueryRayIntersectionBuffers.allocate(gpuContext.device, rays);
+    gpuQueryRayIntersectionBuffers.allocate(gpuContext, rays);
     gpuQueryRayIntersectionBuffers.checkForOcclusion = checkForOcclusion;
 
     // run ray intersection shader
@@ -202,7 +202,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
 
     // create GPU buffers
     GPUQuerySphereIntersectionBuffers gpuQuerySphereIntersectionBuffers;
-    gpuQuerySphereIntersectionBuffers.allocate(gpuContext.device, boundingSpheres, randNums);
+    gpuQuerySphereIntersectionBuffers.allocate(gpuContext, boundingSpheres, randNums);
 
     // run sphere intersection shader
     int nQueries = (int)boundingSpheres.size();
@@ -261,7 +261,7 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
 
     // create GPU buffers
     GPUQueryClosestPointBuffers gpuQueryClosestPointBuffers;
-    gpuQueryClosestPointBuffers.allocate(gpuContext.device, boundingSpheres);
+    gpuQueryClosestPointBuffers.allocate(gpuContext, boundingSpheres);
     gpuQueryClosestPointBuffers.recordNormals = recordNormals;
 
     // run closest point shader
@@ -327,7 +327,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
 
     // create GPU buffers
     GPUQueryClosestSilhouettePointBuffers gpuQueryClosestSilhouettePointBuffers;
-    gpuQueryClosestSilhouettePointBuffers.allocate(gpuContext.device, boundingSpheres, flipNormalOrientation);
+    gpuQueryClosestSilhouettePointBuffers.allocate(gpuContext, boundingSpheres, flipNormalOrientation);
     gpuQueryClosestSilhouettePointBuffers.squaredMinRadius = squaredMinRadius;
     gpuQueryClosestSilhouettePointBuffers.precision = precision;
 
