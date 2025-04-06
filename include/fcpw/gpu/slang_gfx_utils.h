@@ -750,12 +750,14 @@ Result ShaderCursor::followPath(const char* path, ShaderCursor& ioCursor)
 
 class GPUShaderObject {
 public:
+    virtual ~GPUShaderObject() = default;
     virtual void setResources(const ShaderCursor& cursor, bool printLogs) const = 0;
     virtual std::string getReflectionType() const = 0;
 };
 
 class GPUShaderEntryPoint {
 public:
+    virtual ~GPUShaderEntryPoint() = default;
     virtual int setResources(const ShaderCursor& cursor) const = 0;
 };
 
