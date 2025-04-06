@@ -4,39 +4,6 @@
 
 namespace fcpw {
 
-void loadModuleLibrary(GPUContext& gpuContext,
-                       const std::string& moduleLibrary,
-                       Shader& shader)
-{
-    Slang::Result loadModuleLibraryResult = shader.loadModuleLibrary(
-        gpuContext.device, moduleLibrary.c_str());
-
-    if (loadModuleLibraryResult != SLANG_OK) {
-        std::cout << "failed to load " << moduleLibrary << " module library" << std::endl;
-        exit(EXIT_FAILURE);
-
-    } else {
-        std::cout << "loaded " << moduleLibrary << " module library" << std::endl;
-    }
-}
-
-void loadShader(GPUContext& gpuContext,
-                const std::string& shaderModule,
-                const std::string& entryPointName,
-                Shader& shader)
-{
-    Slang::Result loadComputeProgramResult = shader.loadComputeProgram(
-        gpuContext.device, shaderModule.c_str(), entryPointName.c_str());
-
-    if (loadComputeProgramResult != SLANG_OK) {
-        std::cout << "failed to load " << entryPointName << " compute program" << std::endl;
-        exit(EXIT_FAILURE);
-
-    } else {
-        std::cout << "loaded " << entryPointName << " compute program" << std::endl;
-    }
-}
-
 template <typename T, typename S>
 void runBvhTraversal(GPUContext& gpuContext,
                      const Shader& shader,
@@ -52,8 +19,7 @@ void runBvhTraversal(GPUContext& gpuContext,
 
     // create bvh shader object
     auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
-    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(
-        gpuContext.device, gpuBvhBuffers.reflectionType.c_str());
+    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(gpuContext, gpuBvhBuffers.reflectionType);
 
     // bind shader resources
     ShaderCursor bvhCursor(bvhShaderObject);
@@ -129,8 +95,7 @@ void runBvhUpdate(GPUContext& gpuContext,
 
     // create bvh shader object
     auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
-    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(
-        gpuContext.device, gpuBvhBuffers.reflectionType.c_str());
+    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(gpuContext, gpuBvhBuffers.reflectionType);
 
     // bind shader resources
     ShaderCursor bvhCursor(bvhShaderObject);

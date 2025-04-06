@@ -24,7 +24,7 @@ public:
         deviceDesc.slang.optimizationLevel = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_HIGH;
         SlangResult createDeviceResult = gfxCreateDevice(&deviceDesc, device.writeRef());
         if (createDeviceResult != SLANG_OK) {
-            std::cout << "failed to create device" << std::endl;
+            std::cerr << "failed to create device" << std::endl;
             exit(EXIT_FAILURE);
         }
 
@@ -36,7 +36,7 @@ public:
         SlangResult createTransientHeapResult = device->createTransientResourceHeap(
             transientHeapDesc, transientHeap.writeRef());
         if (createTransientHeapResult != SLANG_OK) {
-            std::cout << "failed to create transient resource heap" << std::endl;
+            std::cerr << "failed to create transient resource heap" << std::endl;
             exit(EXIT_FAILURE);
         }
 
@@ -64,6 +64,18 @@ public:
 
         moduleLibraries.emplace_back(moduleLibrary);
         return SLANG_OK;
+    }
+
+    void loadModuleLibrary(GPUContext& gpuContext,
+                           const std::string& moduleLibraryName) {
+        Slang::Result loadModuleLibraryResult = loadModuleLibrary(gpuContext.device,
+                                                                  moduleLibraryName.c_str());
+        if (loadModuleLibraryResult != SLANG_OK) {
+            std::cerr << "failed to load " << moduleLibraryName << " module library" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        std::cout << "loaded " << moduleLibraryName << " module library" << std::endl;
     }
 
     Slang::Result loadComputeProgram(ComPtr<IDevice>& device,
@@ -116,14 +128,27 @@ public:
         return SLANG_OK;
     }
 
-    ComPtr<IShaderObject> createShaderObject(ComPtr<IDevice>& device,
-                                             const char* reflectionType) const {
+    void loadComputeProgram(GPUContext& gpuContext,
+                            const std::string& moduleName,
+                            const std::string& entryPointName) {
+        Slang::Result loadComputeProgramResult = loadComputeProgram(
+            gpuContext.device, moduleName.c_str(), entryPointName.c_str());
+        if (loadComputeProgramResult != SLANG_OK) {
+            std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        std::cout << "loaded " << entryPointName << " compute program" << std::endl;
+    }
+
+    ComPtr<IShaderObject> createShaderObject(GPUContext& gpuContext,
+                                             const std::string& reflectionType) const {
         ComPtr<IShaderObject> shaderObject;
-        Slang::Result createShaderObjectResult = device->createShaderObject(
-            reflection->findTypeByName(reflectionType),
+        Slang::Result createShaderObjectResult = gpuContext.device->createShaderObject(
+            reflection->findTypeByName(reflectionType.c_str()),
             ShaderObjectContainerType::None, shaderObject.writeRef());
         if (createShaderObjectResult != SLANG_OK) {
-            std::cout << "failed to create shader object" << std::endl;
+            std::cerr << "failed to create shader object" << std::endl;
             exit(EXIT_FAILURE);
         }
 
@@ -182,7 +207,7 @@ public:
         size_t expectedBufferSize = elementCount * sizeof(T);
         SLANG_RETURN_ON_FAIL(device->readBufferResource(buffer, 0, expectedBufferSize, resultBlob.writeRef()));
         if (resultBlob->getBufferSize() != expectedBufferSize) {
-            std::cout << "incorrect GPU buffer size on read" << std::endl;
+            std::cerr << "incorrect GPU buffer size on read" << std::endl;
             return SLANG_FAIL;
         }
 
