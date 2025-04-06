@@ -728,4 +728,12 @@ Result ShaderCursor::followPath(const char* path, ShaderCursor& ioCursor)
     return SLANG_OK;
 }
 
+void printReflectionInfo(const ShaderCursor& cursor, int nFields,
+                         const std::string& reflectionType) {
+    std::cout << "ReflectionType: " << reflectionType << std::endl;
+    for (int i = 0; i < nFields; i++) {
+        std::cout << "\targument[" << i << "]: " << cursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
+    }
+}
+
 } // namespace fcpw

@@ -564,12 +564,7 @@ public:
         cursor["nodes"].setResource(nodes.view);
         cursor["primitives"].setResource(primitives.view);
         cursor["silhouettes"].setResource(silhouettes.view);
-        if (printLogs) {
-            std::cout << "ReflectionType: " << reflectionType << std::endl;
-            for (int i = 0; i < 3; i++) {
-                std::cout << "\tcursor[" << i << "]: " << cursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
-            }
-        }
+        if (printLogs) printReflectionInfo(cursor, 3, reflectionType);
     }
 
 private:

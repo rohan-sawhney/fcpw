@@ -30,12 +30,7 @@ void runBvhTraversal(GPUContext& gpuContext,
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
     int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor) + 1;
-    if (printLogs) {
-        std::cout << "runBvhTraversal" << std::endl;
-        for (int i = 0; i < entryPointFieldCount; i++) {
-            std::cout << "\tcursor[" << i << "]: " << entryPointCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
-        }
-    }
+    if (printLogs) printReflectionInfo(entryPointCursor, entryPointFieldCount, "runBvhTraversal");
 
     // perform query
     ComPtr<IQueryPool> queryPool;
@@ -118,11 +113,8 @@ void runBvhUpdate(GPUContext& gpuContext,
     }
 
     if (printLogs) {
-        std::cout << "runBvhUpdate" << std::endl;
         int entryPointFieldCount = 4;
-        for (int i = 0; i < entryPointFieldCount; i++) {
-            std::cout << "\tcursor[" << i << "]: " << entryPointCursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
-        }
+        printReflectionInfo(entryPointCursor, entryPointFieldCount, "runBvhUpdate");
     }
 
     // execute command buffer
