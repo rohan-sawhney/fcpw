@@ -769,44 +769,30 @@ struct GPUInteraction {
     uint32_t index; // index of primitive/silhouette associated with interaction point
 };
 
-class GPUInteractionsBuffer {
-public:
-    GPUBuffer interactions = {};
-    uint32_t nInteractions = 0;
-
-    void allocate(GPUContext& gpuContext) {
-        std::vector<GPUInteraction> interactionsData(nInteractions);
-        interactions.allocate<GPUInteraction>(gpuContext, true, interactionsData);
-    }
-
-    void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactions.read<GPUInteraction>(gpuContext, nInteractions, interactionsData);
-    }
-};
-
 class GPUQueryRayIntersectionBuffers {
 public:
     GPUBuffer rays = {};
+    GPUBuffer interactions = {};
     bool checkForOcclusion = false;
-    GPUInteractionsBuffer interactionsBuffer;
+    uint32_t nQueries = 0;
 
     void allocate(GPUContext& gpuContext, const std::vector<GPURay>& raysData) {
         rays.allocate<GPURay>(gpuContext, false, raysData);
-        interactionsBuffer.nInteractions = (uint32_t)raysData.size();
-        interactionsBuffer.allocate(gpuContext);
+        nQueries = (uint32_t)raysData.size();
+        interactions.allocate<GPUInteraction>(gpuContext, true, std::vector<GPUInteraction>(nQueries));
     }
 
     int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("rays").setResource(rays.view);
         cursor.getPath("checkForOcclusion").setData(checkForOcclusion);
-        cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
-        cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
+        cursor.getPath("interactions").setResource(interactions.view);
+        cursor.getPath("nQueries").setData(nQueries);
 
         return 4;
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsBuffer.read(gpuContext, interactionsData);
+        interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
 };
 
@@ -814,55 +800,57 @@ class GPUQuerySphereIntersectionBuffers {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer randNums = {};
-    GPUInteractionsBuffer interactionsBuffer;
+    GPUBuffer interactions = {};
+    uint32_t nQueries = 0;
 
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData,
                   const std::vector<float3>& randNumsData) {
         boundingSpheres.allocate<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
         randNums.allocate<float3>(gpuContext, false, randNumsData);
-        interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
-        interactionsBuffer.allocate(gpuContext);
+        nQueries = (uint32_t)boundingSpheresData.size();
+        interactions.allocate<GPUInteraction>(gpuContext, true, std::vector<GPUInteraction>(nQueries));
     }
 
     int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("randNums").setResource(randNums.view);
-        cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
-        cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
+        cursor.getPath("interactions").setResource(interactions.view);
+        cursor.getPath("nQueries").setData(nQueries);
 
         return 4;
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsBuffer.read(gpuContext, interactionsData);
+        interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
 };
 
 class GPUQueryClosestPointBuffers {
 public:
     GPUBuffer boundingSpheres = {};
-    GPUInteractionsBuffer interactionsBuffer;
-    float recordNormals = false;
+    GPUBuffer interactions = {};
+    bool recordNormals = false;
+    uint32_t nQueries = 0;
 
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData) {
         boundingSpheres.allocate<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
-        interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
-        interactionsBuffer.allocate(gpuContext);
+        nQueries = (uint32_t)boundingSpheresData.size();
+        interactions.allocate<GPUInteraction>(gpuContext, true, std::vector<GPUInteraction>(nQueries));
     }
 
     int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
-        cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
+        cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("recordNormals").setData(recordNormals);
-        cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
+        cursor.getPath("nQueries").setData(nQueries);
 
         return 4;
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsBuffer.read(gpuContext, interactionsData);
+        interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
 };
 
@@ -870,17 +858,18 @@ class GPUQueryClosestSilhouettePointBuffers {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer flipNormalOrientation = {};
+    GPUBuffer interactions = {};
     float squaredMinRadius = 1e-6f;
     float precision = 1e-3f;
-    GPUInteractionsBuffer interactionsBuffer;
+    uint32_t nQueries = 0;
 
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData,
                   const std::vector<uint32_t>& flipNormalOrientationData) {
         boundingSpheres.allocate<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
         flipNormalOrientation.allocate<uint32_t>(gpuContext, false, flipNormalOrientationData);
-        interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
-        interactionsBuffer.allocate(gpuContext);
+        nQueries = (uint32_t)boundingSpheresData.size();
+        interactions.allocate<GPUInteraction>(gpuContext, true, std::vector<GPUInteraction>(nQueries));
     }
 
     int setResources(const ShaderCursor& cursor) const {
@@ -888,14 +877,14 @@ public:
         cursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
         cursor.getPath("squaredMinRadius").setData(squaredMinRadius);
         cursor.getPath("precision").setData(precision);
-        cursor.getPath("interactions").setResource(interactionsBuffer.interactions.view);
-        cursor.getPath("nQueries").setData(interactionsBuffer.nInteractions);
+        cursor.getPath("interactions").setResource(interactions.view);
+        cursor.getPath("nQueries").setData(nQueries);
 
         return 6;
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsBuffer.read(gpuContext, interactionsData);
+        interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
 };
 
