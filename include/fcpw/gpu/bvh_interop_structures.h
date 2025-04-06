@@ -773,7 +773,7 @@ class GPUQueryRayIntersectionBuffers {
 public:
     GPUBuffer rays = {};
     GPUBuffer interactions = {};
-    bool checkForOcclusion = false;
+    uint32_t checkForOcclusion = 0;
     uint32_t nQueries = 0;
 
     void allocate(GPUContext& gpuContext, const std::vector<GPURay>& raysData) {
@@ -784,8 +784,8 @@ public:
 
     int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("rays").setResource(rays.view);
-        cursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         cursor.getPath("interactions").setResource(interactions.view);
+        cursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         cursor.getPath("nQueries").setData(nQueries);
 
         return 4;
@@ -830,7 +830,7 @@ class GPUQueryClosestPointBuffers {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer interactions = {};
-    bool recordNormals = false;
+    uint32_t recordNormals = 0;
     uint32_t nQueries = 0;
 
     void allocate(GPUContext& gpuContext,
@@ -875,9 +875,9 @@ public:
     int setResources(const ShaderCursor& cursor) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
+        cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("squaredMinRadius").setData(squaredMinRadius);
         cursor.getPath("precision").setData(precision);
-        cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("nQueries").setData(nQueries);
 
         return 6;

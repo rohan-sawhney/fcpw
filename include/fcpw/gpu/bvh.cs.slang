@@ -37,8 +37,8 @@ uniform ParameterBlock<BvhType> gBvh;
 [numthreads(256, 1, 1)]
 void rayIntersection(uint3 threadId: SV_DispatchThreadID,
                      uniform StructuredBuffer<Ray> rays,
-                     uniform bool checkForOcclusion,
                      uniform RWStructuredBuffer<Interaction> interactions,
+                     uniform uint checkForOcclusion,
                      uniform uint nQueries)
 {
     uint index = threadId.x;
@@ -49,7 +49,7 @@ void rayIntersection(uint3 threadId: SV_DispatchThreadID,
 
     Ray r = rays[index];
     Interaction i;
-    bool didIntersect = gBvh.intersect(r, checkForOcclusion, i);
+    bool didIntersect = gBvh.intersect(r, checkForOcclusion != 0 ? true : false, i);
     if (didIntersect)
     {
         interactions[index] = i;
@@ -86,7 +86,7 @@ void sphereIntersection(uint3 threadId: SV_DispatchThreadID,
 void closestPoint(uint3 threadId: SV_DispatchThreadID,
                   uniform StructuredBuffer<BoundingSphere> boundingSpheres,
                   uniform RWStructuredBuffer<Interaction> interactions,
-                  uniform bool recordNormals,
+                  uniform uint recordNormals,
                   uniform uint nQueries)
 {
     uint index = threadId.x;
@@ -97,7 +97,7 @@ void closestPoint(uint3 threadId: SV_DispatchThreadID,
 
     BoundingSphere s = boundingSpheres[index];
     Interaction i;
-    bool found = gBvh.findClosestPoint(s, i, recordNormals);
+    bool found = gBvh.findClosestPoint(s, i, recordNormals != 0 ? true : false);
     if (found)
     {
         interactions[index] = i;
@@ -109,9 +109,9 @@ void closestPoint(uint3 threadId: SV_DispatchThreadID,
 void closestSilhouettePoint(uint3 threadId: SV_DispatchThreadID,
                             uniform StructuredBuffer<BoundingSphere> boundingSpheres,
                             uniform StructuredBuffer<uint> flipNormalOrientation,
+                            uniform RWStructuredBuffer<Interaction> interactions,
                             uniform float squaredMinRadius,
                             uniform float precision,
-                            uniform RWStructuredBuffer<Interaction> interactions,
                             uniform uint nQueries)
 {
     uint index = threadId.x;

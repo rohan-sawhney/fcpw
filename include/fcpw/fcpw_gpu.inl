@@ -138,7 +138,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
     // create GPU buffers
     GPUQueryRayIntersectionBuffers gpuQueryRayIntersectionBuffers;
     gpuQueryRayIntersectionBuffers.allocate(gpuContext, rays);
-    gpuQueryRayIntersectionBuffers.checkForOcclusion = checkForOcclusion;
+    gpuQueryRayIntersectionBuffers.checkForOcclusion = checkForOcclusion ? 1 : 0;
 
     // run ray intersection shader
     int nQueries = (int)rays.size();
@@ -262,7 +262,7 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
     // create GPU buffers
     GPUQueryClosestPointBuffers gpuQueryClosestPointBuffers;
     gpuQueryClosestPointBuffers.allocate(gpuContext, boundingSpheres);
-    gpuQueryClosestPointBuffers.recordNormals = recordNormals;
+    gpuQueryClosestPointBuffers.recordNormals = recordNormals ? 1 : 0;
 
     // run closest point shader
     int nQueries = (int)boundingSpheres.size();
