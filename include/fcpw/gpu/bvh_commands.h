@@ -9,7 +9,6 @@ void runBvhTraversal(GPUContext& gpuContext,
                      const Shader& shader,
                      const T& gpuBvhBuffers,
                      const S& gpuQueryBuffers,
-                     std::vector<GPUInteraction>& interactions,
                      int nThreadGroups = 4096,
                      bool printLogs = false)
 {
@@ -19,7 +18,8 @@ void runBvhTraversal(GPUContext& gpuContext,
 
     // create bvh shader object
     auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
-    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(gpuContext, gpuBvhBuffers.reflectionType);
+    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(
+        gpuContext, gpuBvhBuffers.getReflectionType());
 
     // bind shader resources
     ShaderCursor bvhCursor(bvhShaderObject);
@@ -63,18 +63,13 @@ void runBvhTraversal(GPUContext& gpuContext,
         exit(EXIT_FAILURE);
     }
 
-    // read back results from GPU
-    gpuQueryBuffers.read(gpuContext, interactions);
-
     // synchronize and reset transient heap
     gpuContext.transientHeap->finish();
     gpuContext.transientHeap->synchronizeAndReset();
 
     if (printLogs) {
         double timeSpan = (timestampData[1] - timestampData[0])*1000/timestampFrequency;
-        std::cout << interactions.size() << " queries"
-                  << " took " << timeSpan << " ms"
-                  << std::endl;
+        std::cout << "Queries took " << timeSpan << " ms" << std::endl;
     }
 }
 
@@ -90,7 +85,8 @@ void runBvhUpdate(GPUContext& gpuContext,
 
     // create bvh shader object
     auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
-    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(gpuContext, gpuBvhBuffers.reflectionType);
+    ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(
+        gpuContext, gpuBvhBuffers.getReflectionType());
 
     // bind shader resources
     ShaderCursor bvhCursor(bvhShaderObject);

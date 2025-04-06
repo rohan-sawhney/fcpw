@@ -542,7 +542,7 @@ private:
     }
 };
 
-class GPUBvhBuffers {
+class GPUBvhBuffers : public GPUShaderObject {
 public:
     GPUBuffer nodes = {};
     GPUBuffer primitives = {};
@@ -565,6 +565,10 @@ public:
         cursor["primitives"].setResource(primitives.view);
         cursor["silhouettes"].setResource(silhouettes.view);
         if (printLogs) printReflectionInfo(cursor, 3, reflectionType);
+    }
+
+    std::string getReflectionType() const {
+        return reflectionType;
     }
 
 private:
@@ -769,7 +773,7 @@ struct GPUInteraction {
     uint32_t index; // index of primitive/silhouette associated with interaction point
 };
 
-class GPUQueryRayIntersectionBuffers {
+class GPUQueryRayIntersectionBuffers : public GPUShaderEntryPoint {
 public:
     GPUBuffer rays = {};
     GPUBuffer interactions = {};
@@ -796,7 +800,7 @@ public:
     }
 };
 
-class GPUQuerySphereIntersectionBuffers {
+class GPUQuerySphereIntersectionBuffers : public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer randNums = {};
@@ -826,7 +830,7 @@ public:
     }
 };
 
-class GPUQueryClosestPointBuffers {
+class GPUQueryClosestPointBuffers : public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer interactions = {};
@@ -854,7 +858,7 @@ public:
     }
 };
 
-class GPUQueryClosestSilhouettePointBuffers {
+class GPUQueryClosestSilhouettePointBuffers : public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer flipNormalOrientation = {};

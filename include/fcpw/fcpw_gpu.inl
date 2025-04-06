@@ -36,7 +36,7 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     slang::PreprocessorMacroDesc macrosList[] = { macros[0] };
     gpuContext.initDevice(searchPathList, 1, macrosList, 1);
 
-    // create GPU buffers
+    // allocate GPU buffers
     gpuBvhBuffers.template allocate<DIM>(gpuContext, sceneData, true,
                                          hasSilhouetteGeometry, true, false);
 
@@ -135,7 +135,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
         rayIntersectionShader.loadComputeProgram(gpuContext, shaderModule, "rayIntersection");
     }
 
-    // create GPU buffers
+    // allocate GPU buffers
     GPUQueryRayIntersectionBuffers gpuQueryRayIntersectionBuffers;
     gpuQueryRayIntersectionBuffers.allocate(gpuContext, rays);
     gpuQueryRayIntersectionBuffers.checkForOcclusion = checkForOcclusion ? 1 : 0;
@@ -145,7 +145,10 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
     int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
     runBvhTraversal<GPUBvhBuffers, GPUQueryRayIntersectionBuffers>(gpuContext, rayIntersectionShader,
                                                                    gpuBvhBuffers, gpuQueryRayIntersectionBuffers,
-                                                                   interactions, nThreadGroups, printLogs);
+                                                                   nThreadGroups, printLogs);
+
+    // read results from GPU
+    gpuQueryRayIntersectionBuffers.read(gpuContext, interactions);
 }
 
 template<size_t DIM>
@@ -200,7 +203,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
         sphereIntersectionShader.loadComputeProgram(gpuContext, shaderModule, "sphereIntersection");
     }
 
-    // create GPU buffers
+    // allocate GPU buffers
     GPUQuerySphereIntersectionBuffers gpuQuerySphereIntersectionBuffers;
     gpuQuerySphereIntersectionBuffers.allocate(gpuContext, boundingSpheres, randNums);
 
@@ -209,7 +212,10 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
     int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
     runBvhTraversal<GPUBvhBuffers, GPUQuerySphereIntersectionBuffers>(gpuContext, sphereIntersectionShader,
                                                                       gpuBvhBuffers, gpuQuerySphereIntersectionBuffers,
-                                                                      interactions, nThreadGroups, printLogs);
+                                                                      nThreadGroups, printLogs);
+
+    // read results from GPU
+    gpuQuerySphereIntersectionBuffers.read(gpuContext, interactions);
 }
 
 template<size_t DIM>
@@ -259,7 +265,7 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
         closestPointShader.loadComputeProgram(gpuContext, shaderModule, "closestPoint");
     }
 
-    // create GPU buffers
+    // allocate GPU buffers
     GPUQueryClosestPointBuffers gpuQueryClosestPointBuffers;
     gpuQueryClosestPointBuffers.allocate(gpuContext, boundingSpheres);
     gpuQueryClosestPointBuffers.recordNormals = recordNormals ? 1 : 0;
@@ -269,7 +275,10 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
     int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
     runBvhTraversal<GPUBvhBuffers, GPUQueryClosestPointBuffers>(gpuContext, closestPointShader,
                                                                 gpuBvhBuffers, gpuQueryClosestPointBuffers,
-                                                                interactions, nThreadGroups, printLogs);
+                                                                nThreadGroups, printLogs);
+
+    // read results from GPU
+    gpuQueryClosestPointBuffers.read(gpuContext, interactions);
 }
 
 template<size_t DIM>
@@ -325,7 +334,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
         closestSilhouettePointShader.loadComputeProgram(gpuContext, shaderModule, "closestSilhouettePoint");
     }
 
-    // create GPU buffers
+    // allocate GPU buffers
     GPUQueryClosestSilhouettePointBuffers gpuQueryClosestSilhouettePointBuffers;
     gpuQueryClosestSilhouettePointBuffers.allocate(gpuContext, boundingSpheres, flipNormalOrientation);
     gpuQueryClosestSilhouettePointBuffers.squaredMinRadius = squaredMinRadius;
@@ -336,7 +345,10 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
     int nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
     runBvhTraversal<GPUBvhBuffers, GPUQueryClosestSilhouettePointBuffers>(gpuContext, closestSilhouettePointShader,
                                                                           gpuBvhBuffers, gpuQueryClosestSilhouettePointBuffers,
-                                                                          interactions, nThreadGroups, printLogs);
+                                                                          nThreadGroups, printLogs);
+
+    // read results from GPU
+    gpuQueryClosestSilhouettePointBuffers.read(gpuContext, interactions);
 }
 
 } // namespace fcpw
