@@ -594,19 +594,8 @@ private:
         cpuBvhDataExtractor.extractSilhouettes(silhouettesData);
 
         // allocate gpu buffers
-        Slang::Result createBufferResult = primitives.create<GPUPrimitiveType>(
-            gpuContext.device, false, primitivesData.data(), primitivesData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create primitives buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        createBufferResult = silhouettes.create<GPUSilhouetteType>(
-            gpuContext.device, false, silhouettesData.data(), silhouettesData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create silhouettes buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
+        primitives.create<GPUPrimitiveType>(gpuContext, false, primitivesData);
+        silhouettes.create<GPUSilhouetteType>(gpuContext, false, silhouettesData);
     }
 
     template<size_t DIM,
@@ -634,12 +623,7 @@ private:
         reflectionType = cpuBvhDataExtractor.getReflectionType();
 
         // allocate gpu buffer
-        Slang::Result createBufferResult = nodes.create<GpuNodeType>(
-            gpuContext.device, true, nodesData.data(), nodesData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create nodes buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
+        nodes.create<GpuNodeType>(gpuContext, true, nodesData);
     }
 
     template<size_t DIM,
@@ -661,12 +645,7 @@ private:
         maxUpdateDepth = cpuBvhUpdateDataExtractor.extract(nodeIndicesData, updateEntryData);
 
         // allocate gpu buffer
-        Slang::Result createBufferResult = nodeIndices.create<uint32_t>(
-            gpuContext.device, false, nodeIndicesData.data(), nodeIndicesData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create nodeIndices buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
+        nodeIndices.create<uint32_t>(gpuContext, false, nodeIndicesData);
     }
 };
 
@@ -797,22 +776,11 @@ public:
 
     void allocate(GPUContext& gpuContext) {
         std::vector<GPUInteraction> interactionsData(nInteractions);
-        Slang::Result createBufferResult = interactions.create<GPUInteraction>(
-            gpuContext.device, true, interactionsData.data(), interactionsData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create interactions buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
+        interactions.create<GPUInteraction>(gpuContext, true, interactionsData);
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactionsData.resize(nInteractions);
-        Slang::Result readBufferResult = interactions.read<GPUInteraction>(
-            gpuContext.device, nInteractions, interactionsData);
-        if (readBufferResult != SLANG_OK) {
-            std::cout << "failed to read interactions buffer from GPU" << std::endl;
-            exit(EXIT_FAILURE);
-        }
+        interactions.read<GPUInteraction>(gpuContext, nInteractions, interactionsData);
     }
 };
 
@@ -823,13 +791,7 @@ public:
     GPUInteractionsBuffer interactionsBuffer;
 
     void allocate(GPUContext& gpuContext, const std::vector<GPURay>& raysData) {
-        Slang::Result createBufferResult = rays.create<GPURay>(
-            gpuContext.device, false, raysData.data(), raysData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create rays buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
+        rays.create<GPURay>(gpuContext, false, raysData);
         interactionsBuffer.nInteractions = (uint32_t)raysData.size();
         interactionsBuffer.allocate(gpuContext);
     }
@@ -857,20 +819,8 @@ public:
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData,
                   const std::vector<float3>& randNumsData) {
-        Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
-            gpuContext.device, false, boundingSpheresData.data(), boundingSpheresData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create boundingSpheres buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        createBufferResult = randNums.create<float3>(
-            gpuContext.device, false, randNumsData.data(), randNumsData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create randNums buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
+        boundingSpheres.create<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
+        randNums.create<float3>(gpuContext, false, randNumsData);
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
         interactionsBuffer.allocate(gpuContext);
     }
@@ -897,13 +847,7 @@ public:
 
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData) {
-        Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
-            gpuContext.device, false, boundingSpheresData.data(), boundingSpheresData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create boundingSpheres buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
+        boundingSpheres.create<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
         interactionsBuffer.allocate(gpuContext);
     }
@@ -933,20 +877,8 @@ public:
     void allocate(GPUContext& gpuContext,
                   const std::vector<GPUBoundingSphere>& boundingSpheresData,
                   const std::vector<uint32_t>& flipNormalOrientationData) {
-        Slang::Result createBufferResult = boundingSpheres.create<GPUBoundingSphere>(
-            gpuContext.device, false, boundingSpheresData.data(), boundingSpheresData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create boundingSpheres buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        createBufferResult = flipNormalOrientation.create<uint32_t>(
-            gpuContext.device, false, flipNormalOrientationData.data(), flipNormalOrientationData.size());
-        if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create flipNormalOrientation buffer" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
+        boundingSpheres.create<GPUBoundingSphere>(gpuContext, false, boundingSpheresData);
+        flipNormalOrientation.create<uint32_t>(gpuContext, false, flipNormalOrientationData);
         interactionsBuffer.nInteractions = (uint32_t)boundingSpheresData.size();
         interactionsBuffer.allocate(gpuContext);
     }

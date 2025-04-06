@@ -180,7 +180,7 @@ public:
             data = initialData;
         }
 
-        desc.sizeInBytes = elementCount * sizeof(T);
+        desc.sizeInBytes = elementCount*sizeof(T);
         desc.format = Format::Unknown;
         desc.elementSize = sizeof(T);
         desc.defaultState = unorderedAccess ? ResourceState::UnorderedAccess :
@@ -202,9 +202,19 @@ public:
     }
 
     template<typename T>
+    void create(GPUContext& gpuContext, bool unorderedAccess, const std::vector<T>& initialData) {
+        Slang::Result createBufferResult = create<T>(gpuContext.device, unorderedAccess,
+                                                     initialData.data(), initialData.size());
+        if (createBufferResult != SLANG_OK) {
+            std::cout << "failed to create buffer" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    template<typename T>
     Slang::Result read(ComPtr<IDevice>& device, size_t elementCount, std::vector<T>& result) const {
         ComPtr<ISlangBlob> resultBlob;
-        size_t expectedBufferSize = elementCount * sizeof(T);
+        size_t expectedBufferSize = elementCount*sizeof(T);
         SLANG_RETURN_ON_FAIL(device->readBufferResource(buffer, 0, expectedBufferSize, resultBlob.writeRef()));
         if (resultBlob->getBufferSize() != expectedBufferSize) {
             std::cerr << "incorrect GPU buffer size on read" << std::endl;
@@ -216,6 +226,15 @@ public:
         result.assign(resultPtr, resultPtr + elementCount);
 
         return SLANG_OK;
+    }
+
+    template<typename T>
+    void read(GPUContext& gpuContext, size_t elementCount, std::vector<T>& result) const {
+        Slang::Result readBufferResult = read<T>(gpuContext.device, elementCount, result);
+        if (readBufferResult != SLANG_OK) {
+            std::cout << "failed to read buffer from GPU" << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
 };
 
