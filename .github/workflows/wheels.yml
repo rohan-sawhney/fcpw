@@ -105,5 +105,5 @@ jobs:
         body: |
           FCPW release containing pre-built python wheels for Windows, macOS, and Ubuntu.
 
-          **NOTE:** Windows and Ubuntu wheels come with GPU and CPU vectorization support, while the macOS wheels do not.
+          **NOTE:** Windows and Ubuntu wheels come with GPU support, while the macOS wheels do not.
         files: ./dist/*.whl
