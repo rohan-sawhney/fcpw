@@ -49,7 +49,7 @@ void rayIntersection(uint3 threadId: SV_DispatchThreadID,
 
     Ray r = rays[index];
     Interaction i;
-    bool didIntersect = gBvh.intersect(r, checkForOcclusion != 0 ? true : false, i);
+    bool didIntersect = gBvh.intersect(r, checkForOcclusion != 0, i);
     if (didIntersect)
     {
         interactions[index] = i;
@@ -97,7 +97,7 @@ void closestPoint(uint3 threadId: SV_DispatchThreadID,
 
     BoundingSphere s = boundingSpheres[index];
     Interaction i;
-    bool found = gBvh.findClosestPoint(s, i, recordNormals != 0 ? true : false);
+    bool found = gBvh.findClosestPoint(s, i, recordNormals != 0);
     if (found)
     {
         interactions[index] = i;
@@ -123,7 +123,7 @@ void closestSilhouettePoint(uint3 threadId: SV_DispatchThreadID,
     Interaction i;
 #if FCPW_BVH_HAS_SILHOUETTE_DATA
     BoundingSphere s = boundingSpheres[index];
-    bool flipNormal = flipNormalOrientation[index] == 1 ? true : false;
+    bool flipNormal = flipNormalOrientation[index] != 0;
     bool found = gBvh.findClosestSilhouettePoint(s, flipNormal, squaredMinRadius, precision, i);
     if (found)
     {
