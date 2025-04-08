@@ -33,8 +33,7 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     macros[0].value = hasSilhouetteGeometry ?
                       std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_SNCH : FCPW_TRIANGLE_SNCH).c_str() :
                       std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH).c_str();
-    slang::PreprocessorMacroDesc macrosList[] = { macros[0] };
-    gpuContext.initDevice(searchPathList, 1, macrosList, 1);
+    gpuContext.initDevice(searchPathList, 1, macros, 1);
 
     // allocate GPU buffers
     gpuBvhBuffers.template allocate<DIM>(gpuContext, sceneData, true,
