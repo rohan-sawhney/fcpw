@@ -398,6 +398,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
         uint traversalStack[FCPW_BVH_MAX_DEPTH];
         float4 distToChildNodes = float4(0.0, 0.0, 0.0, 0.0);
         BoundingBox rootBox = nodes[0].getBoundingBox();
+        uint selectedPrimitiveIndex = UINT_MAX;
         bool notFound = true;
 
         if (rootBox.overlap(s, distToChildNodes[0], distToChildNodes[1]))
@@ -436,6 +437,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
                             notFound = false;
                             s.r2 = min(s.r2, c.d * c.d);
                             i = c;
+                            selectedPrimitiveIndex = primitiveIndex;
                         }
                     }
                 }
@@ -493,7 +495,7 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
 
         if (!notFound && recordNormal)
         {
-            i.n = primitives[i.index].getNormal();
+            i.n = primitives[selectedPrimitiveIndex].getNormal();
         }
 
         return !notFound;
