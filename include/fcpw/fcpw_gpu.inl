@@ -35,12 +35,15 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
                       std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH).c_str();
     gpuContext.initDevice(searchPathList, 1, macros, 1);
 
+    // initialize transient resources
+    gpuContext.initTransientResources();
+
+    // load library module
+    libraryModules.loadModule(gpuContext, fcpwModule);
+
     // allocate GPU buffers
     gpuBvhBuffers.template allocate<DIM>(gpuContext, sceneData, true,
                                          hasSilhouetteGeometry, true, false);
-
-    // initialize transient resources
-    gpuContext.initTransientResources();
 }
 
 template<size_t DIM>
@@ -54,8 +57,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
 
     // initialize shader
     if (refitShader.reflection == nullptr) {
-        refitShader.loadModuleLibrary(gpuContext, fcpwModule);
-        refitShader.loadProgram(gpuContext, shaderModule, "refit");
+        refitShader.loadProgram(gpuContext, libraryModules, shaderModule, "refit");
     }
 
     // update GPU buffers
@@ -130,8 +132,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
 {
     // initialize shader
     if (rayIntersectionShader.reflection == nullptr) {
-        rayIntersectionShader.loadModuleLibrary(gpuContext, fcpwModule);
-        rayIntersectionShader.loadProgram(gpuContext, shaderModule, "rayIntersection");
+        rayIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, "rayIntersection");
     }
 
     // allocate GPU buffers
@@ -198,8 +199,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
 {
     // initialize shader
     if (sphereIntersectionShader.reflection == nullptr) {
-        sphereIntersectionShader.loadModuleLibrary(gpuContext, fcpwModule);
-        sphereIntersectionShader.loadProgram(gpuContext, shaderModule, "sphereIntersection");
+        sphereIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, "sphereIntersection");
     }
 
     // allocate GPU buffers
@@ -260,8 +260,7 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
 {
     // initialize shader
     if (closestPointShader.reflection == nullptr) {
-        closestPointShader.loadModuleLibrary(gpuContext, fcpwModule);
-        closestPointShader.loadProgram(gpuContext, shaderModule, "closestPoint");
+        closestPointShader.loadProgram(gpuContext, libraryModules, shaderModule, "closestPoint");
     }
 
     // allocate GPU buffers
@@ -329,8 +328,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
 {
     // initialize shader
     if (closestSilhouettePointShader.reflection == nullptr) {
-        closestSilhouettePointShader.loadModuleLibrary(gpuContext, fcpwModule);
-        closestSilhouettePointShader.loadProgram(gpuContext, shaderModule, "closestSilhouettePoint");
+        closestSilhouettePointShader.loadProgram(gpuContext, libraryModules, shaderModule, "closestSilhouettePoint");
     }
 
     // allocate GPU buffers

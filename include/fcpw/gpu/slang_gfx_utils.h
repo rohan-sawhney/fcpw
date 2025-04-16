@@ -44,41 +44,49 @@ public:
     }
 };
 
+class LibraryModules {
+public:
+    std::vector<slang::IModule *> modules;
+
+    Slang::Result loadModule(ComPtr<IDevice>& device, const char* moduleName) {
+        ComPtr<slang::ISession> slangSession;
+        SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
+        ComPtr<slang::IBlob> diagnosticsBlob;
+        slang::IModule* module = slangSession->loadModule(moduleName, diagnosticsBlob.writeRef());
+        diagnoseIfNeeded(diagnosticsBlob);
+        if (!module) return SLANG_FAIL;
+
+        modules.emplace_back(module);
+        return SLANG_OK;
+    }
+
+    void loadModule(GPUContext& gpuContext, const std::string& moduleName) {
+        Slang::Result loadModuleResult = loadModule(gpuContext.device, moduleName.c_str());
+        if (loadModuleResult != SLANG_OK) {
+            std::cerr << "failed to load " << moduleName << " module" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        std::cout << "loaded " << moduleName << " module" << std::endl;
+    }
+
+private:
+    void diagnoseIfNeeded(slang::IBlob* diagnosticsBlob) {
+        if (diagnosticsBlob != nullptr) {
+            std::cerr << (const char*)diagnosticsBlob->getBufferPointer() << std::endl;
+        }
+    }
+};
+
 class ComputeShader {
 public:
-    std::vector<slang::IModule *> moduleLibraries;
     ComPtr<IShaderProgram> program;
     slang::ProgramLayout* reflection = nullptr;
     ComputePipelineStateDesc pipelineDesc = {};
     ComPtr<IPipelineState> pipelineState;
 
-    Slang::Result loadModuleLibrary(ComPtr<IDevice>& device,
-                                    const char* moduleLibraryName) {
-        ComPtr<slang::ISession> slangSession;
-        SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
-        ComPtr<slang::IBlob> diagnosticsBlob;
-        slang::IModule* moduleLibrary = slangSession->loadModule(moduleLibraryName,
-                                                                 diagnosticsBlob.writeRef());
-        diagnoseIfNeeded(diagnosticsBlob);
-        if (!moduleLibrary) return SLANG_FAIL;
-
-        moduleLibraries.emplace_back(moduleLibrary);
-        return SLANG_OK;
-    }
-
-    void loadModuleLibrary(GPUContext& gpuContext,
-                           const std::string& moduleLibraryName) {
-        Slang::Result loadModuleLibraryResult = loadModuleLibrary(gpuContext.device,
-                                                                  moduleLibraryName.c_str());
-        if (loadModuleLibraryResult != SLANG_OK) {
-            std::cerr << "failed to load " << moduleLibraryName << " module library" << std::endl;
-            exit(EXIT_FAILURE);
-        }
-
-        std::cout << "loaded " << moduleLibraryName << " module library" << std::endl;
-    }
-
     Slang::Result loadProgram(ComPtr<IDevice>& device,
+                              const LibraryModules& libraryModules,
                               const char* moduleName,
                               const char* entryPointName) {
         // load module
@@ -94,8 +102,8 @@ public:
         SLANG_RETURN_ON_FAIL(mainModule->findEntryPointByName(entryPointName, computeEntryPoint.writeRef()));
 
         std::vector<slang::IComponentType *> componentTypes;
-        for (auto moduleLibrary: moduleLibraries) {
-            componentTypes.emplace_back(moduleLibrary);
+        for (auto module: libraryModules.modules) {
+            componentTypes.emplace_back(module);
         }
         componentTypes.emplace_back(mainModule);
         componentTypes.emplace_back(computeEntryPoint);
@@ -129,10 +137,11 @@ public:
     }
 
     void loadProgram(GPUContext& gpuContext,
+                     const LibraryModules& libraryModules,
                      const std::string& moduleName,
                      const std::string& entryPointName) {
-        Slang::Result loadProgramResult = loadProgram(
-            gpuContext.device, moduleName.c_str(), entryPointName.c_str());
+        Slang::Result loadProgramResult = loadProgram(gpuContext.device, libraryModules,
+                                                      moduleName.c_str(), entryPointName.c_str());
         if (loadProgramResult != SLANG_OK) {
             std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;
             exit(EXIT_FAILURE);
