@@ -55,7 +55,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
     // initialize shader
     if (refitShader.reflection == nullptr) {
         refitShader.loadModuleLibrary(gpuContext, fcpwModule);
-        refitShader.loadComputeProgram(gpuContext, shaderModule, "refit");
+        refitShader.loadProgram(gpuContext, shaderModule, "refit");
     }
 
     // update GPU buffers
@@ -131,7 +131,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
     // initialize shader
     if (rayIntersectionShader.reflection == nullptr) {
         rayIntersectionShader.loadModuleLibrary(gpuContext, fcpwModule);
-        rayIntersectionShader.loadComputeProgram(gpuContext, shaderModule, "rayIntersection");
+        rayIntersectionShader.loadProgram(gpuContext, shaderModule, "rayIntersection");
     }
 
     // allocate GPU buffers
@@ -199,7 +199,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
     // initialize shader
     if (sphereIntersectionShader.reflection == nullptr) {
         sphereIntersectionShader.loadModuleLibrary(gpuContext, fcpwModule);
-        sphereIntersectionShader.loadComputeProgram(gpuContext, shaderModule, "sphereIntersection");
+        sphereIntersectionShader.loadProgram(gpuContext, shaderModule, "sphereIntersection");
     }
 
     // allocate GPU buffers
@@ -261,7 +261,7 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
     // initialize shader
     if (closestPointShader.reflection == nullptr) {
         closestPointShader.loadModuleLibrary(gpuContext, fcpwModule);
-        closestPointShader.loadComputeProgram(gpuContext, shaderModule, "closestPoint");
+        closestPointShader.loadProgram(gpuContext, shaderModule, "closestPoint");
     }
 
     // allocate GPU buffers
@@ -330,7 +330,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
     // initialize shader
     if (closestSilhouettePointShader.reflection == nullptr) {
         closestSilhouettePointShader.loadModuleLibrary(gpuContext, fcpwModule);
-        closestSilhouettePointShader.loadComputeProgram(gpuContext, shaderModule, "closestSilhouettePoint");
+        closestSilhouettePointShader.loadProgram(gpuContext, shaderModule, "closestSilhouettePoint");
     }
 
     // allocate GPU buffers

@@ -6,7 +6,7 @@ namespace fcpw {
 
 template <typename T, typename S>
 void runBvhTraversal(GPUContext& gpuContext,
-                     const Shader& shader,
+                     const ComputeShader& shader,
                      const T& gpuBvhBuffers,
                      const S& gpuQueryBuffers,
                      int nThreadGroups = 4096,
@@ -75,7 +75,7 @@ void runBvhTraversal(GPUContext& gpuContext,
 
 template <typename T>
 void runBvhUpdate(GPUContext& gpuContext,
-                  const Shader& shader,
+                  const ComputeShader& shader,
                   const T& gpuBvhBuffers,
                   bool printLogs = false)
 {

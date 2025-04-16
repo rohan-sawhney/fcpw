@@ -44,7 +44,7 @@ public:
     }
 };
 
-class Shader {
+class ComputeShader {
 public:
     std::vector<slang::IModule *> moduleLibraries;
     ComPtr<IShaderProgram> program;
@@ -78,9 +78,9 @@ public:
         std::cout << "loaded " << moduleLibraryName << " module library" << std::endl;
     }
 
-    Slang::Result loadComputeProgram(ComPtr<IDevice>& device,
-                                     const char* moduleName,
-                                     const char* entryPointName) {
+    Slang::Result loadProgram(ComPtr<IDevice>& device,
+                              const char* moduleName,
+                              const char* entryPointName) {
         // load module
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
@@ -128,12 +128,12 @@ public:
         return SLANG_OK;
     }
 
-    void loadComputeProgram(GPUContext& gpuContext,
-                            const std::string& moduleName,
-                            const std::string& entryPointName) {
-        Slang::Result loadComputeProgramResult = loadComputeProgram(
+    void loadProgram(GPUContext& gpuContext,
+                     const std::string& moduleName,
+                     const std::string& entryPointName) {
+        Slang::Result loadProgramResult = loadProgram(
             gpuContext.device, moduleName.c_str(), entryPointName.c_str());
-        if (loadComputeProgramResult != SLANG_OK) {
+        if (loadProgramResult != SLANG_OK) {
             std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;
             exit(EXIT_FAILURE);
         }
@@ -213,7 +213,8 @@ public:
     }
 
     template<typename T>
-    Slang::Result read(ComPtr<IDevice>& device, size_t elementCount, std::vector<T>& result) const {
+    Slang::Result read(ComPtr<IDevice>& device, size_t elementCount,
+                       std::vector<T>& result) const {
         ComPtr<ISlangBlob> resultBlob;
         size_t expectedBufferSize = elementCount*sizeof(T);
         SLANG_RETURN_ON_FAIL(device->readBufferResource(buffer, 0, expectedBufferSize, resultBlob.writeRef()));
@@ -230,7 +231,8 @@ public:
     }
 
     template<typename T>
-    void read(GPUContext& gpuContext, size_t elementCount, std::vector<T>& result) const {
+    void read(GPUContext& gpuContext, size_t elementCount,
+              std::vector<T>& result) const {
         Slang::Result readBufferResult = read<T>(gpuContext.device, elementCount, result);
         if (readBufferResult != SLANG_OK) {
             std::cout << "failed to read buffer from GPU" << std::endl;

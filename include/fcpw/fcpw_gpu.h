@@ -83,11 +83,11 @@ private:
     std::string shaderModule;
     std::string searchPaths[1];
     slang::PreprocessorMacroDesc macros[1];
-    Shader refitShader;
-    Shader rayIntersectionShader;
-    Shader sphereIntersectionShader;
-    Shader closestPointShader;
-    Shader closestSilhouettePointShader;
+    ComputeShader refitShader;
+    ComputeShader rayIntersectionShader;
+    ComputeShader sphereIntersectionShader;
+    ComputeShader closestPointShader;
+    ComputeShader closestSilhouettePointShader;
     uint32_t nThreadsPerGroup;
     bool printLogs;
 };
