@@ -183,14 +183,13 @@ public:
 
     template<typename T>
     Slang::Result allocate(ComPtr<IDevice>& device, bool unorderedAccess,
-                           const std::vector<T>& initialData) {
-        size_t elementCount = initialData.size();
+                           const T* initialData, size_t elementCount) {
         const T *data = nullptr;
         if (elementCount == 0) {
             elementCount = 1; // Slang requires buffers to be non-empty
 
         } else {
-            data = initialData.data();
+            data = initialData;
         }
 
         desc.sizeInBytes = elementCount*sizeof(T);
@@ -217,8 +216,8 @@ public:
     template<typename T>
     void allocate(GPUContext& gpuContext, bool unorderedAccess,
                   const std::vector<T>& initialData) {
-        Slang::Result createBufferResult = allocate<T>(
-            gpuContext.device, unorderedAccess, initialData);
+        Slang::Result createBufferResult = allocate<T>(gpuContext.device, unorderedAccess,
+                                                       initialData.data(), initialData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create buffer" << std::endl;
             exit(EXIT_FAILURE);
