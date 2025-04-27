@@ -89,7 +89,7 @@ public:
     Slang::Result loadProgram(ComPtr<IDevice>& device,
                               const LibraryModules& libraryModules,
                               const std::string& moduleName,
-                              const std::string& entryPointName) {
+                              const std::vector<std::string>& entryPointNames) {
         // load module
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
@@ -100,16 +100,17 @@ public:
         if (!mainModule) return SLANG_FAIL;
 
         // set entry point and create composite program
-        ComPtr<slang::IEntryPoint> computeEntryPoint;
-        SLANG_RETURN_ON_FAIL(mainModule->findEntryPointByName(entryPointName.c_str(),
-                                                              computeEntryPoint.writeRef()));
-
         std::vector<slang::IComponentType *> componentTypes;
         for (auto module: libraryModules.modules) {
             componentTypes.emplace_back(module);
         }
         componentTypes.emplace_back(mainModule);
-        componentTypes.emplace_back(computeEntryPoint);
+        for (const std::string& entryPointName: entryPointNames) {
+            ComPtr<slang::IEntryPoint> computeEntryPoint;
+            SLANG_RETURN_ON_FAIL(mainModule->findEntryPointByName(entryPointName.c_str(),
+                                                                  computeEntryPoint.writeRef()));
+            componentTypes.emplace_back(computeEntryPoint.get());
+        }
 
         ComPtr<slang::IComponentType> composedProgram;
         SlangResult result = slangSession->createCompositeComponentType(componentTypes.data(),
@@ -142,15 +143,20 @@ public:
     void loadProgram(GPUContext& gpuContext,
                      const LibraryModules& libraryModules,
                      const std::string& moduleName,
-                     const std::string& entryPointName) {
+                     const std::vector<std::string>& entryPointNames) {
         Slang::Result loadProgramResult = loadProgram(gpuContext.device, libraryModules,
-                                                      moduleName, entryPointName);
+                                                      moduleName, entryPointNames);
         if (loadProgramResult != SLANG_OK) {
-            std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;
+            for (const std::string& entryPointName: entryPointNames) {
+                std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;
+            }
+
             exit(EXIT_FAILURE);
         }
 
-        std::cout << "loaded " << entryPointName << " compute program" << std::endl;
+        for (const std::string& entryPointName: entryPointNames) {
+            std::cout << "loaded " << entryPointName << " compute program" << std::endl;
+        }
     }
 
     ComPtr<IShaderObject> createShaderObject(GPUContext& gpuContext,

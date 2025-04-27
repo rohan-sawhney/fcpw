@@ -57,7 +57,8 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
 
     // initialize shader
     if (refitShader.reflection == nullptr) {
-        refitShader.loadProgram(gpuContext, libraryModules, shaderModule, "refit");
+        std::vector<std::string> entryPointNames = { "refit" };
+        refitShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
 
     // update GPU buffers
@@ -132,7 +133,8 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
 {
     // initialize shader
     if (rayIntersectionShader.reflection == nullptr) {
-        rayIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, "rayIntersection");
+        std::vector<std::string> entryPointNames = { "rayIntersection" };
+        rayIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
 
     // allocate GPU buffers
@@ -199,7 +201,8 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
 {
     // initialize shader
     if (sphereIntersectionShader.reflection == nullptr) {
-        sphereIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, "sphereIntersection");
+        std::vector<std::string> entryPointNames = { "sphereIntersection" };
+        sphereIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
 
     // allocate GPU buffers
@@ -260,7 +263,8 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
 {
     // initialize shader
     if (closestPointShader.reflection == nullptr) {
-        closestPointShader.loadProgram(gpuContext, libraryModules, shaderModule, "closestPoint");
+        std::vector<std::string> entryPointNames = { "closestPoint" };
+        closestPointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
 
     // allocate GPU buffers
@@ -328,7 +332,8 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
 {
     // initialize shader
     if (closestSilhouettePointShader.reflection == nullptr) {
-        closestSilhouettePointShader.loadProgram(gpuContext, libraryModules, shaderModule, "closestSilhouettePoint");
+        std::vector<std::string> entryPointNames = { "closestSilhouettePoint" };
+        closestSilhouettePointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
 
     // allocate GPU buffers
