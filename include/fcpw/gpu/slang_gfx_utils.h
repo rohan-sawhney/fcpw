@@ -48,11 +48,12 @@ class LibraryModules {
 public:
     std::vector<slang::IModule *> modules;
 
-    Slang::Result loadModule(ComPtr<IDevice>& device, const char* moduleName) {
+    Slang::Result loadModule(ComPtr<IDevice>& device, const std::string& moduleName) {
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
         ComPtr<slang::IBlob> diagnosticsBlob;
-        slang::IModule* module = slangSession->loadModule(moduleName, diagnosticsBlob.writeRef());
+        slang::IModule* module = slangSession->loadModule(moduleName.c_str(),
+                                                          diagnosticsBlob.writeRef());
         diagnoseIfNeeded(diagnosticsBlob);
         if (!module) return SLANG_FAIL;
 
@@ -61,7 +62,7 @@ public:
     }
 
     void loadModule(GPUContext& gpuContext, const std::string& moduleName) {
-        Slang::Result loadModuleResult = loadModule(gpuContext.device, moduleName.c_str());
+        Slang::Result loadModuleResult = loadModule(gpuContext.device, moduleName);
         if (loadModuleResult != SLANG_OK) {
             std::cerr << "failed to load " << moduleName << " module" << std::endl;
             exit(EXIT_FAILURE);
@@ -87,19 +88,21 @@ public:
 
     Slang::Result loadProgram(ComPtr<IDevice>& device,
                               const LibraryModules& libraryModules,
-                              const char* moduleName,
-                              const char* entryPointName) {
+                              const std::string& moduleName,
+                              const std::string& entryPointName) {
         // load module
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
         ComPtr<slang::IBlob> diagnosticsBlob;
-        slang::IModule* mainModule = slangSession->loadModule(moduleName, diagnosticsBlob.writeRef());
+        slang::IModule* mainModule = slangSession->loadModule(moduleName.c_str(),
+                                                              diagnosticsBlob.writeRef());
         diagnoseIfNeeded(diagnosticsBlob);
         if (!mainModule) return SLANG_FAIL;
 
         // set entry point and create composite program
         ComPtr<slang::IEntryPoint> computeEntryPoint;
-        SLANG_RETURN_ON_FAIL(mainModule->findEntryPointByName(entryPointName, computeEntryPoint.writeRef()));
+        SLANG_RETURN_ON_FAIL(mainModule->findEntryPointByName(entryPointName.c_str(),
+                                                              computeEntryPoint.writeRef()));
 
         std::vector<slang::IComponentType *> componentTypes;
         for (auto module: libraryModules.modules) {
@@ -141,7 +144,7 @@ public:
                      const std::string& moduleName,
                      const std::string& entryPointName) {
         Slang::Result loadProgramResult = loadProgram(gpuContext.device, libraryModules,
-                                                      moduleName.c_str(), entryPointName.c_str());
+                                                      moduleName, entryPointName);
         if (loadProgramResult != SLANG_OK) {
             std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;
             exit(EXIT_FAILURE);
@@ -180,13 +183,14 @@ public:
 
     template<typename T>
     Slang::Result allocate(ComPtr<IDevice>& device, bool unorderedAccess,
-                           const T* initialData, size_t elementCount) {
+                           const std::vector<T>& initialData) {
+        size_t elementCount = initialData.size();
         const T *data = nullptr;
         if (elementCount == 0) {
             elementCount = 1; // Slang requires buffers to be non-empty
 
         } else {
-            data = initialData;
+            data = initialData.data();
         }
 
         desc.sizeInBytes = elementCount*sizeof(T);
@@ -213,8 +217,8 @@ public:
     template<typename T>
     void allocate(GPUContext& gpuContext, bool unorderedAccess,
                   const std::vector<T>& initialData) {
-        Slang::Result createBufferResult = allocate<T>(gpuContext.device, unorderedAccess,
-                                                       initialData.data(), initialData.size());
+        Slang::Result createBufferResult = allocate<T>(
+            gpuContext.device, unorderedAccess, initialData);
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create buffer" << std::endl;
             exit(EXIT_FAILURE);
@@ -226,7 +230,8 @@ public:
                        std::vector<T>& result) const {
         ComPtr<ISlangBlob> resultBlob;
         size_t expectedBufferSize = elementCount*sizeof(T);
-        SLANG_RETURN_ON_FAIL(device->readBufferResource(buffer, 0, expectedBufferSize, resultBlob.writeRef()));
+        SLANG_RETURN_ON_FAIL(device->readBufferResource(buffer, 0, expectedBufferSize,
+                                                        resultBlob.writeRef()));
         if (resultBlob->getBufferSize() != expectedBufferSize) {
             std::cerr << "incorrect GPU buffer size on read" << std::endl;
             return SLANG_FAIL;
