@@ -131,16 +131,16 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
                                      std::vector<GPUInteraction>& interactions,
                                      bool checkForOcclusion)
 {
+    // initialize shader
+    if (rayIntersectionShader.reflection == nullptr) {
+        std::vector<std::string> entryPointNames = { "rayIntersection" };
+        rayIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+    }
+
     // allocate GPU entry point data
     GPURunRayIntersectionQuery gpuRunRayIntersectionQuery;
     gpuRunRayIntersectionQuery.allocate(gpuContext, rays);
     gpuRunRayIntersectionQuery.checkForOcclusion = checkForOcclusion ? 1 : 0;
-
-    // initialize shader
-    if (rayIntersectionShader.reflection == nullptr) {
-        std::vector<std::string> entryPointNames = { gpuRunRayIntersectionQuery.getName() };
-        rayIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
-    }
 
     // run ray intersection shader
     int nQueries = (int)rays.size();
@@ -199,15 +199,15 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
                                      const std::vector<float3>& randNums,
                                      std::vector<GPUInteraction>& interactions)
 {
+    // initialize shader
+    if (sphereIntersectionShader.reflection == nullptr) {
+        std::vector<std::string> entryPointNames = { "sphereIntersection" };
+        sphereIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+    }
+
     // allocate GPU entry point data
     GPURunSphereIntersectionQuery gpuRunSphereIntersectionQuery;
     gpuRunSphereIntersectionQuery.allocate(gpuContext, boundingSpheres, randNums);
-
-    // initialize shader
-    if (sphereIntersectionShader.reflection == nullptr) {
-        std::vector<std::string> entryPointNames = { gpuRunSphereIntersectionQuery.getName() };
-        sphereIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
-    }
 
     // run sphere intersection shader
     int nQueries = (int)boundingSpheres.size();
@@ -261,16 +261,16 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
                                              std::vector<GPUInteraction>& interactions,
                                              bool recordNormals)
 {
+    // initialize shader
+    if (closestPointShader.reflection == nullptr) {
+        std::vector<std::string> entryPointNames = { "closestPoint" };
+        closestPointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+    }
+
     // allocate GPU entry point data
     GPURunClosestPointQuery gpuRunClosestPointQuery;
     gpuRunClosestPointQuery.allocate(gpuContext, boundingSpheres);
     gpuRunClosestPointQuery.recordNormals = recordNormals ? 1 : 0;
-
-    // initialize shader
-    if (closestPointShader.reflection == nullptr) {
-        std::vector<std::string> entryPointNames = { gpuRunClosestPointQuery.getName() };
-        closestPointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
-    }
 
     // run closest point shader
     int nQueries = (int)boundingSpheres.size();
@@ -330,17 +330,17 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
                                                        std::vector<GPUInteraction>& interactions,
                                                        float squaredMinRadius, float precision)
 {
+    // initialize shader
+    if (closestSilhouettePointShader.reflection == nullptr) {
+        std::vector<std::string> entryPointNames = { "closestSilhouettePoint" };
+        closestSilhouettePointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+    }
+
     // allocate GPU entry point data
     GPURunClosestSilhouettePointQuery gpuRunClosestSilhouettePointQuery;
     gpuRunClosestSilhouettePointQuery.allocate(gpuContext, boundingSpheres, flipNormalOrientation);
     gpuRunClosestSilhouettePointQuery.squaredMinRadius = squaredMinRadius;
     gpuRunClosestSilhouettePointQuery.precision = precision;
-
-    // initialize shader
-    if (closestSilhouettePointShader.reflection == nullptr) {
-        std::vector<std::string> entryPointNames = { gpuRunClosestSilhouettePointQuery.getName() };
-        closestSilhouettePointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
-    }
 
     // run closest silhouette point shader
     int nQueries = (int)boundingSpheres.size();

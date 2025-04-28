@@ -25,12 +25,12 @@ void runBvhTraversal(GPUContext& gpuContext,
     ShaderCursor bvhCursor(bvhShaderObject);
     gpuBvhBuffers.setResources(bvhCursor, printLogs);
     ShaderCursor rootCursor(rootShaderObject);
-    rootCursor.getPath(gpuBvhBuffers.getName().c_str()).setObject(bvhShaderObject);
+    rootCursor.getPath("gBvh").setObject(bvhShaderObject);
 
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
     int entryPointFieldCount = gpuRunQuery.setResources(entryPointCursor) + 1;
-    if (printLogs) printEntryPointInfo(entryPointCursor, entryPointFieldCount, gpuRunQuery.getName());
+    if (printLogs) printReflectionInfo(entryPointCursor, entryPointFieldCount, "runBvhTraversal");
 
     // perform query
     ComPtr<IQueryPool> queryPool;
@@ -92,7 +92,7 @@ void runBvhUpdate(GPUContext& gpuContext,
     ShaderCursor bvhCursor(bvhShaderObject);
     gpuBvhBuffers.setResources(bvhCursor, printLogs);
     ShaderCursor rootCursor(rootShaderObject);
-    rootCursor.getPath(gpuBvhBuffers.getName().c_str()).setObject(bvhShaderObject);
+    rootCursor.getPath("gBvh").setObject(bvhShaderObject);
 
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
@@ -110,7 +110,7 @@ void runBvhUpdate(GPUContext& gpuContext,
 
     if (printLogs) {
         int entryPointFieldCount = 4;
-        printEntryPointInfo(entryPointCursor, entryPointFieldCount, "runBvhUpdate");
+        printReflectionInfo(entryPointCursor, entryPointFieldCount, "runBvhUpdate");
     }
 
     // execute command buffer

@@ -564,15 +564,11 @@ public:
         cursor["nodes"].setResource(nodes.view);
         cursor["primitives"].setResource(primitives.view);
         cursor["silhouettes"].setResource(silhouettes.view);
-        if (printLogs) printReflectionInfo(cursor, 3, reflectionType, getName());
+        if (printLogs) printReflectionInfo(cursor, 3, reflectionType);
     }
 
     std::string getReflectionType() const {
         return reflectionType;
-    }
-
-    std::string getName() const {
-        return "gBvh";
     }
 
 private:
@@ -802,10 +798,6 @@ public:
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
-
-    std::string getName() const {
-        return "rayIntersection";
-    }
 };
 
 class GPURunSphereIntersectionQuery : public GPUShaderEntryPoint {
@@ -836,10 +828,6 @@ public:
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
-
-    std::string getName() const {
-        return "sphereIntersection";
-    }
 };
 
 class GPURunClosestPointQuery : public GPUShaderEntryPoint {
@@ -867,10 +855,6 @@ public:
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
-    }
-
-    std::string getName() const {
-        return "closestPoint";
     }
 };
 
@@ -905,10 +889,6 @@ public:
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
-    }
-
-    std::string getName() const {
-        return "closestSilhouettePoint";
     }
 };
 
