@@ -8,7 +8,7 @@ template <typename T, typename S>
 void runBvhTraversal(GPUContext& gpuContext,
                      const ComputeShader& shader,
                      const T& gpuBvhBuffers,
-                     const S& gpuQueryBuffers,
+                     const S& gpuRunQuery,
                      int nThreadGroups = 4096,
                      bool printLogs = false)
 {
@@ -29,7 +29,7 @@ void runBvhTraversal(GPUContext& gpuContext,
 
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
-    int entryPointFieldCount = gpuQueryBuffers.setResources(entryPointCursor) + 1;
+    int entryPointFieldCount = gpuRunQuery.setResources(entryPointCursor) + 1;
     if (printLogs) printReflectionInfo(entryPointCursor, entryPointFieldCount, "runBvhTraversal");
 
     // perform query

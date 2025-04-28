@@ -773,7 +773,7 @@ struct GPUInteraction {
     uint32_t index; // index of primitive/silhouette associated with interaction point
 };
 
-class GPUQueryRayIntersectionBuffers : public GPUShaderEntryPoint {
+class GPURunRayIntersectionQuery : public GPUShaderEntryPoint {
 public:
     GPUBuffer rays = {};
     GPUBuffer interactions = {};
@@ -800,7 +800,7 @@ public:
     }
 };
 
-class GPUQuerySphereIntersectionBuffers : public GPUShaderEntryPoint {
+class GPURunSphereIntersectionQuery : public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer randNums = {};
@@ -830,7 +830,7 @@ public:
     }
 };
 
-class GPUQueryClosestPointBuffers : public GPUShaderEntryPoint {
+class GPURunClosestPointQuery : public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer interactions = {};
@@ -858,7 +858,7 @@ public:
     }
 };
 
-class GPUQueryClosestSilhouettePointBuffers : public GPUShaderEntryPoint {
+class GPURunClosestSilhouettePointQuery : public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer flipNormalOrientation = {};
