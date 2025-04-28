@@ -774,17 +774,28 @@ public:
     virtual ~GPUShaderObject() = default;
     virtual void setResources(const ShaderCursor& cursor, bool printLogs) const = 0;
     virtual std::string getReflectionType() const = 0;
+    virtual std::string getName() const = 0;
 };
 
 class GPUShaderEntryPoint {
 public:
     virtual ~GPUShaderEntryPoint() = default;
     virtual int setResources(const ShaderCursor& cursor) const = 0;
+    virtual std::string getName() const = 0;
 };
 
 void printReflectionInfo(const ShaderCursor& cursor, int nFields,
-                         const std::string& reflectionType) {
-    std::cout << "Reflection: " << reflectionType << std::endl;
+                         const std::string& reflection,
+                         const std::string& name) {
+    std::cout << "ShaderObject: " << reflection << " " << name << std::endl;
+    for (int i = 0; i < nFields; i++) {
+        std::cout << "\tfield[" << i << "]: " << cursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
+    }
+}
+
+void printEntryPointInfo(const ShaderCursor& cursor, int nFields,
+                         const std::string& name) {
+    std::cout << "EntryPoint: " << name << std::endl;
     for (int i = 0; i < nFields; i++) {
         std::cout << "\targument[" << i << "]: " << cursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
     }
