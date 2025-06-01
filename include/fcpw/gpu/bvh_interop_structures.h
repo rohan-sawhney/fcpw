@@ -799,7 +799,7 @@ public:
     }
 
     std::string getReflectionType() const {
-        return "runRayIntersectionQuery";
+        return "GPURunRayIntersectionQuery";
     }
 };
 
@@ -832,7 +832,7 @@ public:
     }
 
     std::string getReflectionType() const {
-        return "runSphereIntersectionQuery";
+        return "GPURunSphereIntersectionQuery";
     }
 };
 
@@ -863,7 +863,7 @@ public:
     }
 
     std::string getReflectionType() const {
-        return "runClosestPointQuery";
+        return "GPURunClosestPointQuery";
     }
 };
 
@@ -900,7 +900,7 @@ public:
     }
 
     std::string getReflectionType() const {
-        return "runClosestSilhouettePointQuery";
+        return "GPURunClosestSilhouettePointQuery";
     }
 };
 
