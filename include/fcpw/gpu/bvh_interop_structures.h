@@ -542,7 +542,7 @@ private:
     }
 };
 
-class GPUBvhBuffers : public GPUShaderObject {
+class GPUBvhBuffers: public GPUShaderObject {
 public:
     GPUBuffer nodes = {};
     GPUBuffer primitives = {};
@@ -773,7 +773,7 @@ struct GPUInteraction {
     uint32_t index; // index of primitive/silhouette associated with interaction point
 };
 
-class GPURunRayIntersectionQuery : public GPUShaderEntryPoint {
+class GPURunRayIntersectionQuery: public GPUShaderEntryPoint {
 public:
     GPUBuffer rays = {};
     GPUBuffer interactions = {};
@@ -786,21 +786,24 @@ public:
         interactions.allocate<GPUInteraction>(gpuContext, true, std::vector<GPUInteraction>(nQueries));
     }
 
-    int setResources(const ShaderCursor& cursor) const {
+    void setResources(const ShaderCursor& cursor, bool printLogs) const {
         cursor.getPath("rays").setResource(rays.view);
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         cursor.getPath("nQueries").setData(nQueries);
-
-        return 4;
+        if (printLogs) printReflectionInfo(cursor, 5, getReflectionType());
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
+
+    std::string getReflectionType() const {
+        return "runRayIntersectionQuery";
+    }
 };
 
-class GPURunSphereIntersectionQuery : public GPUShaderEntryPoint {
+class GPURunSphereIntersectionQuery: public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer randNums = {};
@@ -816,21 +819,24 @@ public:
         interactions.allocate<GPUInteraction>(gpuContext, true, std::vector<GPUInteraction>(nQueries));
     }
 
-    int setResources(const ShaderCursor& cursor) const {
+    void setResources(const ShaderCursor& cursor, bool printLogs) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("randNums").setResource(randNums.view);
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("nQueries").setData(nQueries);
-
-        return 4;
+        if (printLogs) printReflectionInfo(cursor, 5, getReflectionType());
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
+
+    std::string getReflectionType() const {
+        return "runSphereIntersectionQuery";
+    }
 };
 
-class GPURunClosestPointQuery : public GPUShaderEntryPoint {
+class GPURunClosestPointQuery: public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer interactions = {};
@@ -844,21 +850,24 @@ public:
         interactions.allocate<GPUInteraction>(gpuContext, true, std::vector<GPUInteraction>(nQueries));
     }
 
-    int setResources(const ShaderCursor& cursor) const {
+    void setResources(const ShaderCursor& cursor, bool printLogs) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("recordNormals").setData(recordNormals);
         cursor.getPath("nQueries").setData(nQueries);
-
-        return 4;
+        if (printLogs) printReflectionInfo(cursor, 5, getReflectionType());
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
+
+    std::string getReflectionType() const {
+        return "runClosestPointQuery";
+    }
 };
 
-class GPURunClosestSilhouettePointQuery : public GPUShaderEntryPoint {
+class GPURunClosestSilhouettePointQuery: public GPUShaderEntryPoint {
 public:
     GPUBuffer boundingSpheres = {};
     GPUBuffer flipNormalOrientation = {};
@@ -876,19 +885,22 @@ public:
         interactions.allocate<GPUInteraction>(gpuContext, true, std::vector<GPUInteraction>(nQueries));
     }
 
-    int setResources(const ShaderCursor& cursor) const {
+    void setResources(const ShaderCursor& cursor, bool printLogs) const {
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("squaredMinRadius").setData(squaredMinRadius);
         cursor.getPath("precision").setData(precision);
         cursor.getPath("nQueries").setData(nQueries);
-
-        return 6;
+        if (printLogs) printReflectionInfo(cursor, 7, getReflectionType());
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
+    }
+
+    std::string getReflectionType() const {
+        return "runClosestSilhouettePointQuery";
     }
 };
 

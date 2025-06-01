@@ -29,8 +29,7 @@ void runBvhTraversal(GPUContext& gpuContext,
 
     // bind entry point arguments
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
-    int entryPointFieldCount = gpuRunQuery.setResources(entryPointCursor) + 1;
-    if (printLogs) printReflectionInfo(entryPointCursor, entryPointFieldCount, "runBvhTraversal");
+    gpuRunQuery.setResources(entryPointCursor, printLogs);
 
     // perform query
     ComPtr<IQueryPool> queryPool;
