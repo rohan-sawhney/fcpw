@@ -791,15 +791,15 @@ public:
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         cursor.getPath("nQueries").setData(nQueries);
-        if (printLogs) printReflectionInfo(cursor, 5, getReflectionType());
+        if (printLogs) printReflectionInfo(cursor, 5, getName());
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
 
-    std::string getReflectionType() const {
-        return "GPURunRayIntersectionQuery";
+    std::string getName() const {
+        return "rayIntersection";
     }
 };
 
@@ -824,15 +824,15 @@ public:
         cursor.getPath("randNums").setResource(randNums.view);
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("nQueries").setData(nQueries);
-        if (printLogs) printReflectionInfo(cursor, 5, getReflectionType());
+        if (printLogs) printReflectionInfo(cursor, 5, getName());
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
 
-    std::string getReflectionType() const {
-        return "GPURunSphereIntersectionQuery";
+    std::string getName() const {
+        return "sphereIntersection";
     }
 };
 
@@ -855,15 +855,15 @@ public:
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("recordNormals").setData(recordNormals);
         cursor.getPath("nQueries").setData(nQueries);
-        if (printLogs) printReflectionInfo(cursor, 5, getReflectionType());
+        if (printLogs) printReflectionInfo(cursor, 5, getName());
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
 
-    std::string getReflectionType() const {
-        return "GPURunClosestPointQuery";
+    std::string getName() const {
+        return "closestPoint";
     }
 };
 
@@ -892,15 +892,15 @@ public:
         cursor.getPath("squaredMinRadius").setData(squaredMinRadius);
         cursor.getPath("precision").setData(precision);
         cursor.getPath("nQueries").setData(nQueries);
-        if (printLogs) printReflectionInfo(cursor, 7, getReflectionType());
+        if (printLogs) printReflectionInfo(cursor, 7, getName());
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
     }
 
-    std::string getReflectionType() const {
-        return "GPURunClosestSilhouettePointQuery";
+    std::string getName() const {
+        return "closestSilhouettePoint";
     }
 };
 

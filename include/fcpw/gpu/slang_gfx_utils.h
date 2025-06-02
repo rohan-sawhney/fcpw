@@ -780,7 +780,7 @@ class GPUShaderEntryPoint {
 public:
     virtual ~GPUShaderEntryPoint() = default;
     virtual void setResources(const ShaderCursor& cursor, bool printLogs) const = 0;
-    virtual std::string getReflectionType() const = 0;
+    virtual std::string getName() const = 0;
 };
 
 void printReflectionInfo(const ShaderCursor& cursor, int nFields,
