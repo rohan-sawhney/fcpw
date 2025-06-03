@@ -9,8 +9,8 @@ void runBvhTraversal(GPUContext& gpuContext,
                      const ComputeShader& shader,
                      const T& gpuBvhBuffers,
                      const S& gpuRunQuery,
-                     int nThreadGroups = 4096,
-                     bool printLogs = false)
+                     uint32_t nThreadGroups=4096,
+                     bool printLogs=false)
 {
     // setup command buffer
     auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
@@ -76,7 +76,7 @@ template <typename T>
 void runBvhUpdate(GPUContext& gpuContext,
                   const ComputeShader& shader,
                   const T& gpuBvhBuffers,
-                  bool printLogs = false)
+                  bool printLogs=false)
 {
     // setup command buffer
     auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
