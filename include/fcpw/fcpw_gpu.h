@@ -78,7 +78,7 @@ public:
 private:
     // members
     GPUContext gpuContext;
-    LibraryModules libraryModules;
+    GPULibraryModules libraryModules;
     GPUBvhBuffers gpuBvhBuffers;
     std::string fcpwModule;
     std::string shaderModule;

@@ -44,7 +44,7 @@ public:
     }
 };
 
-class LibraryModules {
+class GPULibraryModules {
 public:
     std::vector<slang::IModule *> modules;
 
@@ -87,7 +87,7 @@ public:
     ComPtr<IPipelineState> pipelineState;
 
     Slang::Result loadProgram(ComPtr<IDevice>& device,
-                              const LibraryModules& libraryModules,
+                              const GPULibraryModules& libraryModules,
                               const std::string& moduleName,
                               const std::vector<std::string>& entryPointNames) {
         // load module
@@ -141,7 +141,7 @@ public:
     }
 
     void loadProgram(GPUContext& gpuContext,
-                     const LibraryModules& libraryModules,
+                     const GPULibraryModules& libraryModules,
                      const std::string& moduleName,
                      const std::vector<std::string>& entryPointNames) {
         Slang::Result loadProgramResult = loadProgram(gpuContext.device, libraryModules,
