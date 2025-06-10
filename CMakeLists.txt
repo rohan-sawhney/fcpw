@@ -43,11 +43,11 @@ endif()
 
 if(FCPW_ENABLE_GPU_SUPPORT)
     # download slang
-    set(FCPW_SLANG_VERSION "2025.6.2")
+    set(FCPW_SLANG_VERSION "2025.10.3")
     set(FCPW_SLANG_URL_BASE "https://github.com/shader-slang/slang/releases/download/v${FCPW_SLANG_VERSION}")
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        set(FCPW_SLANG_FILENAME "slang-${FCPW_SLANG_VERSION}-linux-x86_64-glibc-2.17.tar.gz")
+        set(FCPW_SLANG_FILENAME "slang-${FCPW_SLANG_VERSION}-linux-x86_64-glibc-2.27.tar.gz")
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
         set(FCPW_SLANG_FILENAME "slang-${FCPW_SLANG_VERSION}-windows-x86_64.zip")
     else()
