@@ -86,6 +86,10 @@ public:
     ComputePipelineStateDesc pipelineDesc = {};
     ComPtr<IPipelineState> pipelineState;
 
+    bool notInitialized() const {
+        return reflection == nullptr;
+    }
+
     Slang::Result loadProgram(ComPtr<IDevice>& device,
                               const GPULibraryModules& libraryModules,
                               const std::string& moduleName,

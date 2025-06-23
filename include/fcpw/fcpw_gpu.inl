@@ -56,7 +56,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
     bool allocateRefitData = gpuBvhBuffers.updateEntryData.size() == 0;
 
     // initialize shader
-    if (refitShader.reflection == nullptr) {
+    if (refitShader.notInitialized()) {
         std::vector<std::string> entryPointNames = { "refit" };
         refitShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
@@ -137,7 +137,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
     gpuRunRayIntersectionQuery.checkForOcclusion = checkForOcclusion ? 1 : 0;
 
     // initialize shader
-    if (rayIntersectionShader.reflection == nullptr) {
+    if (rayIntersectionShader.notInitialized()) {
         std::vector<std::string> entryPointNames = { gpuRunRayIntersectionQuery.getName() };
         rayIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
@@ -204,7 +204,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
     gpuRunSphereIntersectionQuery.allocate(gpuContext, boundingSpheres, randNums);
 
     // initialize shader
-    if (sphereIntersectionShader.reflection == nullptr) {
+    if (sphereIntersectionShader.notInitialized()) {
         std::vector<std::string> entryPointNames = { gpuRunSphereIntersectionQuery.getName() };
         sphereIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
@@ -267,7 +267,7 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
     gpuRunClosestPointQuery.recordNormals = recordNormals ? 1 : 0;
 
     // initialize shader
-    if (closestPointShader.reflection == nullptr) {
+    if (closestPointShader.notInitialized()) {
         std::vector<std::string> entryPointNames = { gpuRunClosestPointQuery.getName() };
         closestPointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
@@ -337,7 +337,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
     gpuRunClosestSilhouettePointQuery.precision = precision;
 
     // initialize shader
-    if (closestSilhouettePointShader.reflection == nullptr) {
+    if (closestSilhouettePointShader.notInitialized()) {
         std::vector<std::string> entryPointNames = { gpuRunClosestSilhouettePointQuery.getName() };
         closestSilhouettePointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
     }
