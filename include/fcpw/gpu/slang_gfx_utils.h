@@ -258,6 +258,12 @@ public:
             exit(EXIT_FAILURE);
         }
     }
+
+    void applyBarrier(IComputeCommandEncoder *encoder) {
+        if (buffer) {
+            encoder->bufferBarrier(buffer.get(), desc.defaultState, desc.defaultState);
+        }
+    }
 };
 
 /// Represents a "pointer" to the storage for a shader parameter of a (dynamically) known type.
