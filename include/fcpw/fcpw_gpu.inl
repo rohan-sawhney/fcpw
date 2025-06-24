@@ -74,8 +74,7 @@ inline uint32_t countThreadGroups(uint32_t workload, uint32_t nThreadsPerGroup, 
 {
     uint32_t nThreadGroups = (workload + nThreadsPerGroup - 1)/nThreadsPerGroup;
     if (printLogs) {
-        std::cout << "Workload: " << workload
-                  << ", nThreadGroups: " << nThreadGroups
+        std::cout << "nThreadGroups: " << nThreadGroups
                   << ", nThreadsPerGroup: " << nThreadsPerGroup
                   << std::endl;
     }
