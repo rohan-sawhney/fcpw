@@ -86,8 +86,8 @@ public:
     ComputePipelineStateDesc pipelineDesc = {};
     ComPtr<IPipelineState> pipelineState;
 
-    bool notInitialized() const {
-        return reflection == nullptr;
+    bool isInitialized() const {
+        return reflection != nullptr;
     }
 
     Slang::Result loadProgram(ComPtr<IDevice>& device,
@@ -263,7 +263,7 @@ public:
         }
     }
 
-    void applyBarrier(IComputeCommandEncoder *encoder) {
+    void applyBarrier(IComputeCommandEncoder *encoder) const {
         if (buffer) {
             encoder->bufferBarrier(buffer.get(), desc.defaultState, desc.defaultState);
         }
