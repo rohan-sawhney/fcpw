@@ -70,11 +70,11 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
     runBvhUpdate<GPUBvhBuffers>(gpuContext, refitShader, gpuBvhBuffers, printLogs);
 }
 
-inline uint32_t countThreadGroups(uint32_t nQueries, uint32_t nThreadsPerGroup, bool printLogs)
+inline uint32_t countThreadGroups(uint32_t workload, uint32_t nThreadsPerGroup, bool printLogs)
 {
-    uint32_t nThreadGroups = (nQueries + nThreadsPerGroup - 1)/nThreadsPerGroup;
+    uint32_t nThreadGroups = (workload + nThreadsPerGroup - 1)/nThreadsPerGroup;
     if (printLogs) {
-        std::cout << "nQueries: " << nQueries
+        std::cout << "Workload: " << workload
                   << ", nThreadGroups: " << nThreadGroups
                   << ", nThreadsPerGroup: " << nThreadsPerGroup
                   << std::endl;
