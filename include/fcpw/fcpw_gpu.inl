@@ -29,10 +29,11 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
 
     // initialize GPU context
     const char* searchPathList[] = { searchPaths[0].c_str() };
+    std::string macroValue = hasSilhouetteGeometry ?
+                             std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_SNCH : FCPW_TRIANGLE_SNCH).c_str() :
+                             std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH);
     macros[0].name = "FCPW_BVH_TYPE";
-    macros[0].value = hasSilhouetteGeometry ?
-                      std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_SNCH : FCPW_TRIANGLE_SNCH).c_str() :
-                      std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH).c_str();
+    macros[0].value = macroValue.c_str();
     gpuContext.initDevice(searchPathList, 1, macros, 1);
 
     // initialize transient resources
