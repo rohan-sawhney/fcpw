@@ -86,7 +86,7 @@ inline bool isSilhouetteEdge(const Vector3& pa, const Vector3& pb,
 {
     float sign = flipNormalOrientation ? 1.0f : -1.0f;
 
-    // edge is a silhouette if it concave and the query point lies on the edge
+    // edge is a silhouette if it is concave and the query point lies on the edge
     if (d <= precision) {
         Vector3 edgeDir = (pb - pa).normalized();
         float signedDihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));

@@ -238,7 +238,7 @@ struct BoundingCone {
                  axis(axis_), halfAngle(halfAngle_), radius(radius_) {}
 
     // check for overlap between this cone and the "view" cone defined by the given
-    // point and bounding box; the two cones overlap when there exist two vectors,
+    // point o and bounding box b; the two cones overlap when there exist two vectors,
     // one in each cone, that are orthogonal to each other.
     // NOTE: Tighter view cone construction is available in Falcor, but doesn't seem to help:
     // https://github.com/NVIDIAGameWorks/Falcor/blob/master/Source/Falcor/Utils/Geometry/GeometryHelpers.slang
@@ -272,7 +272,7 @@ struct BoundingCone {
             return halfAngleSum >= M_PI_2 ? true : inRange(M_PI_2, minAngleRange, maxAngleRange);
         }
 
-        // the view cone origin lies inside this cone's bounding sphere, so check if
+        // the view cone origin lies inside the box's bounding sphere, so check if
         // the plane defined by the view cone axis intersects the box; if it does, then
         // there's overlap since the view cone has a halfAngle greater than 90 degrees
         Vector<DIM> e = b.pMax - c;

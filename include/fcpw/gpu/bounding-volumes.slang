@@ -158,7 +158,7 @@ public struct BoundingCone
                         out float minAngleRange, out float maxAngleRange)
     {
         // initialize angle bounds
-        minAngleRange = 0.0f;
+        minAngleRange = 0.0;
         maxAngleRange = M_PI_2;
 
         // there's overlap if this cone's halfAngle is greater than 90 degrees, or
