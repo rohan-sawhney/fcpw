@@ -87,6 +87,10 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<
         } else {
             const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(primitives[p]);
             hit = geometricPrim->intersect(r, i, checkForOcclusion);
+            if (hit) {
+                i.referenceIndex = p;
+                i.objectIndex = this->pIndex;
+            }
         }
 
         if (hit) {
@@ -96,8 +100,6 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<
 
             didHit = true;
             r.tMax = std::min(r.tMax, i.d);
-            i.referenceIndex = p;
-            i.objectIndex = this->pIndex;
         }
     }
 

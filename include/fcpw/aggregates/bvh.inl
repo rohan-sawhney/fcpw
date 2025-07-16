@@ -677,6 +677,11 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
                 } else {
                     const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
                     hit = geometricPrim->intersect(r, i, checkForOcclusion);
+                    if (hit) {
+                        i.nodeIndex = nodeIndex;
+                        i.referenceIndex = referenceIndex;
+                        i.objectIndex = this->pIndex;
+                    }
                 }
 
                 if (hit) {
@@ -686,9 +691,6 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 
                     didHit = true;
                     r.tMax = std::min(r.tMax, i.d);
-                    i.nodeIndex = nodeIndex;
-                    i.referenceIndex = p;
-                    i.objectIndex = this->pIndex;
                 }
             }
 
