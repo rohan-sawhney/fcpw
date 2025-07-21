@@ -52,6 +52,10 @@ void runBvhTraversal(GPUContext& gpuContext,
     gpuContext.queue->executeCommandBuffer(commandBuffer);
     gpuContext.queue->waitOnHost();
 
+    // synchronize and reset transient heap
+    gpuContext.transientHeap->finish();
+    gpuContext.transientHeap->synchronizeAndReset();
+
     // read query timestamps
     const DeviceInfo& deviceInfo = gpuContext.device->getDeviceInfo();
     double timestampFrequency = (double)deviceInfo.timestampFrequency;
@@ -61,10 +65,6 @@ void runBvhTraversal(GPUContext& gpuContext,
         std::cout << "failed to get query pool result" << std::endl;
         exit(EXIT_FAILURE);
     }
-
-    // synchronize and reset transient heap
-    gpuContext.transientHeap->finish();
-    gpuContext.transientHeap->synchronizeAndReset();
 
     if (printLogs) {
         double timeSpan = (timestampData[1] - timestampData[0])*1000/timestampFrequency;
