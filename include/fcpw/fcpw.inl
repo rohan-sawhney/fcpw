@@ -25,8 +25,30 @@ sceneData(new SceneData<DIM>())
 template<size_t DIM>
 inline void Scene<DIM>::setObjectTypes(const std::vector<std::vector<PrimitiveType>>& objectTypes)
 {
-    std::cerr << "setObjectTypes(): DIM: " << DIM << std::endl;
-    exit(EXIT_FAILURE);
+    // clear old data
+    sceneData->clearAggregateData();
+    sceneData->clearObjectData();
+
+    // initialize soup and object vectors
+    int nObjects = (int)objectTypes.size();
+    int nPointObjects = 0;
+    sceneData->soups.resize(nObjects);
+    sceneData->instanceTransforms.resize(nObjects);
+
+    for (int i = 0; i < nObjects; i++) {
+        if (objectTypes[i].size() != 1) {
+            std::cerr << "Mixed or empty primitive types are not supported!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        if (objectTypes[i][0] == PrimitiveType::Point) {
+            sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::Points,
+                                                                       nPointObjects));
+            nPointObjects++;
+        }
+    }
+
+    sceneData->pointObjects.resize(nPointObjects);
 }
 
 template<>
@@ -38,6 +60,7 @@ inline void Scene<2>::setObjectTypes(const std::vector<std::vector<PrimitiveType
 
     // initialize soup and object vectors
     int nObjects = (int)objectTypes.size();
+    int nPointObjects = 0;
     int nLineSegmentObjects = 0;
     sceneData->soups.resize(nObjects);
     sceneData->instanceTransforms.resize(nObjects);
@@ -52,9 +75,14 @@ inline void Scene<2>::setObjectTypes(const std::vector<std::vector<PrimitiveType
             sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::LineSegments,
                                                                        nLineSegmentObjects));
             nLineSegmentObjects++;
+        } else if (objectTypes[i][0] == PrimitiveType::Point) {
+            sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::Points,
+                                                                       nPointObjects));
+            nPointObjects++;
         }
     }
 
+    sceneData->pointObjects.resize(nPointObjects);
     sceneData->lineSegmentObjects.resize(nLineSegmentObjects);
 }
 
@@ -107,7 +135,7 @@ inline void Scene<DIM>::setObjectPointCount(int nPoints, int objectIndex)
     int nIndices = (int)soup.indices.size();
     soup.indices.resize(nIndices + nPoints);
 
-    // allocate line segments
+    // allocate points
     const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
     for (int i = 0; i < (int)objectsMap.size(); i++) {
         if (objectsMap[i].first == ObjectType::Points) {

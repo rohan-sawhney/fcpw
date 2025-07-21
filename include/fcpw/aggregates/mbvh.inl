@@ -422,7 +422,8 @@ silhouettes(silhouettes_),
 range(enoki::arange<enoki::Array<int, DIM>>())
 {
     primitiveTypeIsAggregate = std::is_base_of<Aggregate<DIM>, PrimitiveType>::value;
-    primitiveTypeSupportsVectorizedQueries = std::is_same<PrimitiveType, LineSegment>::value ||
+    primitiveTypeSupportsVectorizedQueries = std::is_same<PrimitiveType, Point<DIM>>::value ||
+                                             std::is_same<PrimitiveType, LineSegment>::value ||
                                              std::is_same<PrimitiveType, Triangle>::value;
     silhouetteTypeSupportsVectorizedQueries = std::is_same<SilhouetteType, SilhouetteVertex>::value ||
                                               std::is_same<SilhouetteType, SilhouetteEdge>::value;
@@ -1958,7 +1959,7 @@ inline bool findClosestPointPrimitives(QueryStub<WIDTH, 2> queryStub, const Node
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
 inline bool findClosestPointPoint(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
                                   const std::vector<LeafNodeType>& leafNodes,
-                                  int nodeIndex, int aggregateIndex, const enokiVector3& sc,
+                                  int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
                                   float& sr2, Interaction<DIM>& i)
 {
     int leafOffset = -node.child[0] - 1;
@@ -1972,7 +1973,7 @@ inline bool findClosestPointPoint(QueryStub<WIDTH, DIM> queryStub, const NodeTyp
         // perform vectorized closest point query
         VectorP<WIDTH, DIM> pt;
         int leafIndex = leafOffset + l;
-        const Vector3P<WIDTH>& p = leafNodes[leafIndex].positions[0];
+        const VectorP<WIDTH, DIM>& p = leafNodes[leafIndex].positions[0];
         const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
         FloatP<WIDTH> d2 = findClosestPointWidePoint<WIDTH, DIM>(p, sc, pt);
 
@@ -1989,10 +1990,10 @@ inline bool findClosestPointPoint(QueryStub<WIDTH, DIM> queryStub, const NodeTyp
 
         // update interaction
         if (closestIndex != -1) {
+            for (size_t j = 0; j < DIM; ++j)
+                i.p[j] = pt[j][closestIndex];
+            
             i.d = std::sqrt(d2[closestIndex]);
-            i.p[0] = pt[0][closestIndex];
-            i.p[1] = pt[1][closestIndex];
-            i.p[2] = pt[2][closestIndex];
             i.primitiveIndex = primitiveIndex[closestIndex];
             i.nodeIndex = nodeIndex;
             i.referenceIndex = referenceOffset + startReference + closestIndex;
@@ -2101,7 +2102,10 @@ inline bool Mbvh<WIDTH, DIM,
         const NodeType& node(flatTree[nodeIndex]);
 
         if (isLeafNode(node)) {
-            // point is not in primitiveTypeSupportsVectorizedQueries since it only supports CPQ
+            // code smell: dispatch to point here since we have access to PrimitiveType
+            //   and Point<2> & LineSegment and Point<3> and Triangle
+            // The optimal place to dispatch is through templates in findClosestPointPrimitives,
+            //   but it seems by then we can't infer the primitive type there?
             if constexpr (std::is_same<PrimitiveType, Point<DIM>>::value) {
                 // perform vectorized closest point query
                 bool found = findClosestPointPoint(queryStub, node, leafNodes, nodeIndex,
