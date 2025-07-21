@@ -67,6 +67,7 @@ inline void Scene<3>::setObjectTypes(const std::vector<std::vector<PrimitiveType
 
     // initialize soup and object vectors
     int nObjects = (int)objectTypes.size();
+    int nPointObjects = 0;
     int nTriangleObjects = 0;
     sceneData->soups.resize(nObjects);
     sceneData->instanceTransforms.resize(nObjects);
@@ -81,9 +82,14 @@ inline void Scene<3>::setObjectTypes(const std::vector<std::vector<PrimitiveType
             sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::Triangles,
                                                                        nTriangleObjects));
             nTriangleObjects++;
+        } else if (objectTypes[i][0] == PrimitiveType::Point) {
+            sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::Points,
+                                                                       nPointObjects));
+            nPointObjects++;
         }
     }
 
+    sceneData->pointObjects.resize(nPointObjects);
     sceneData->triangleObjects.resize(nTriangleObjects);
 }
 
@@ -91,6 +97,26 @@ template<size_t DIM>
 inline void Scene<DIM>::setObjectVertexCount(int nVertices, int objectIndex)
 {
     sceneData->soups[objectIndex].positions.resize(nVertices);
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectPointCount(int nPoints, int objectIndex)
+{
+    // resize soup indices
+    PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + nPoints);
+
+    // allocate line segments
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::Points) {
+            int pointObjectIndex = objectsMap[i].second;
+            sceneData->pointObjects[pointObjectIndex] =
+                    std::unique_ptr<std::vector<Point<DIM>>>(new std::vector<Point<DIM>>(nPoints));
+            break;
+        }
+    }
 }
 
 template<size_t DIM>
@@ -151,6 +177,21 @@ template<size_t DIM>
 inline void Scene<DIM>::setObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex)
 {
     sceneData->soups[objectIndex].positions[vertexIndex] = position;
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectPoint(const int& index, int pointIndex, int objectIndex)
+{
+    // update soup indices
+    PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
+    soup.indices[pointIndex] = index;
+
+    // update line segment indices
+    int pointObjectIndex = sceneData->soupToObjectsMap[objectIndex][0].second;
+    Point<DIM>& point = (*sceneData->pointObjects[pointObjectIndex])[pointIndex];
+    point.soup = &soup;
+    point.indices[0] = index;
+    point.setIndex(pointIndex);
 }
 
 template<size_t DIM>
@@ -234,6 +275,68 @@ inline void Scene<DIM>::setObjectVertices(const std::vector<Vector<DIM>>& positi
 
     for (int i = 0; i < nVertices; i++) {
         setObjectVertex(positions[i], i, objectIndex);
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectPoints(const Eigen::MatrixXi& indices, int objectIndex)
+{
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::Points) {
+            std::cerr << "Already set points!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // create points
+    int nPoints = (int)indices.rows();
+    int nPointObjects = (int)sceneData->pointObjects.size();
+    sceneData->soupToObjectsMap[objectIndex].emplace_back(std::make_pair(ObjectType::Points,
+                                                                         nPointObjects));
+    sceneData->pointObjects.resize(nPointObjects + 1);
+    sceneData->pointObjects[nPointObjects] =
+        std::unique_ptr<std::vector<Point<DIM>>>(new std::vector<Point<DIM>>(nPoints));
+
+    // resize soup indices
+    PolygonSoup<2>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + nPointObjects);
+
+    // set points
+    for (int i = 0; i < nPoints; i++) {
+        setObjectPoint(indices.row(i), i, objectIndex);
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectPoints(const std::vector<int>& indices, int objectIndex)
+{
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::Points) {
+            std::cerr << "Already set points!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // create points
+    int nPoints = (int)indices.size();
+    int nPointObjects = (int)sceneData->pointObjects.size();
+    sceneData->soupToObjectsMap[objectIndex].emplace_back(std::make_pair(ObjectType::Points,
+                                                                         nPointObjects));
+    sceneData->pointObjects.resize(nPointObjects + 1);
+    sceneData->pointObjects[nPointObjects] =
+        std::unique_ptr<std::vector<Point<DIM>>>(new std::vector<Point<DIM>>(nPoints));
+
+    // resize soup indices
+    PolygonSoup<2>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + nPoints);
+
+    // set points
+    for (int i = 0; i < nPoints; i++) {
+        setObjectPoint(indices[i], i, objectIndex);
     }
 }
 
@@ -867,20 +970,20 @@ inline std::unique_ptr<Aggregate<DIM>> makeAggregate(const AggregateType& aggreg
 }
 
 template<size_t DIM>
-inline void buildGeometricAggregates(const AggregateType& aggregateType, bool vectorize, bool printStats,
-                                     const std::function<bool(float, int)>& ignoreSilhouette,
-                                     std::unique_ptr<SceneData<DIM>>& sceneData,
-                                     std::vector<std::unique_ptr<Aggregate<DIM>>>& objectAggregates)
+inline void buildLineSegmentsAggregates(const AggregateType& aggregateType, bool vectorize, bool printStats,
+                                        const std::function<bool(float, int)>& ignoreSilhouette,
+                                        std::unique_ptr<SceneData<DIM>>& sceneData,
+                                        std::vector<std::unique_ptr<Aggregate<DIM>>>& objectAggregates)
 {
-    std::cerr << "buildGeometricAggregates(): DIM: " << DIM << std::endl;
+    std::cerr << "buildLineSegmentsAggregates(): DIM: " << DIM << std::endl;
     exit(EXIT_FAILURE);
 }
 
 template<>
-inline void buildGeometricAggregates<2>(const AggregateType& aggregateType, bool vectorize, bool printStats,
-                                        const std::function<bool(float, int)>& ignoreSilhouette,
-                                        std::unique_ptr<SceneData<2>>& sceneData,
-                                        std::vector<std::unique_ptr<Aggregate<2>>>& objectAggregates)
+inline void buildLineSegmentsAggregates<2>(const AggregateType& aggregateType, bool vectorize, bool printStats,
+                                           const std::function<bool(float, int)>& ignoreSilhouette,
+                                           std::unique_ptr<SceneData<2>>& sceneData,
+                                           std::vector<std::unique_ptr<Aggregate<2>>>& objectAggregates)
 {
     // allocate space for line segment object ptrs
     int nObjects = (int)sceneData->soups.size();
@@ -948,8 +1051,18 @@ inline void buildGeometricAggregates<2>(const AggregateType& aggregateType, bool
     }
 }
 
+template<size_t DIM>
+inline void buildTrianglesAggregates(const AggregateType& aggregateType, bool vectorize, bool printStats,
+                                     const std::function<bool(float, int)>& ignoreSilhouette,
+                                     std::unique_ptr<SceneData<DIM>>& sceneData,
+                                     std::vector<std::unique_ptr<Aggregate<DIM>>>& objectAggregates)
+{
+    std::cerr << "buildTrianglesAggregates(): DIM: " << DIM << std::endl;
+    exit(EXIT_FAILURE);
+}
+
 template<>
-inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool vectorize, bool printStats,
+inline void buildTrianglesAggregates<3>(const AggregateType& aggregateType, bool vectorize, bool printStats,
                                         const std::function<bool(float, int)>& ignoreSilhouette,
                                         std::unique_ptr<SceneData<3>>& sceneData,
                                         std::vector<std::unique_ptr<Aggregate<3>>>& objectAggregates)
@@ -1017,6 +1130,90 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
         }
 
         objectAggregates[i]->setIndex(nAggregates++);
+    }
+}
+
+template<size_t DIM>
+inline void buildPointsAggregates(const AggregateType& aggregateType, bool vectorize, bool printStats,
+                                  const std::function<bool(float, int)>& ignoreSilhouette,
+                                  std::unique_ptr<SceneData<DIM>>& sceneData,
+                                  std::vector<std::unique_ptr<Aggregate<DIM>>>& objectAggregates)
+{
+    // allocate space for point object ptrs
+    int nObjects = (int)sceneData->soups.size();
+    int nPointObjectPtrs = 0;
+
+    for (int i = 0; i < nObjects; i++) {
+        const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
+        if (objectsMap[0].first == ObjectType::Points) nPointObjectPtrs++;
+    }
+
+    objectAggregates.resize(nObjects);
+    sceneData->pointObjectPtrs.resize(nPointObjectPtrs);
+
+    // populate the object ptrs and make their aggregates
+    int nAggregates = 0;
+    nPointObjectPtrs = 0;
+
+    for (int i = 0; i < nObjects; i++) {
+        const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
+
+        if (objectsMap[0].first == ObjectType::Points) {
+            // soup contains points, set point object ptrs
+            int pointObjectIndex = objectsMap[0].second;
+            std::vector<Point<DIM>>& pointObject = *sceneData->pointObjects[pointObjectIndex];
+            std::vector<Point<DIM> *>& pointObjectPtr = sceneData->pointObjectPtrs[nPointObjectPtrs];
+
+            for (int j = 0; j < (int)pointObject.size(); j++) {
+                pointObjectPtr.emplace_back(&pointObject[j]);
+            }
+
+            using SortPointPositionsFunc = std::function<void(const std::vector<BvhNode<DIM>>&,
+                                                              std::vector<Point<DIM> *>&,
+                                                              std::vector<SilhouettePrimitive<DIM> *>&)>;
+            SortPointPositionsFunc sortPointPositions = std::bind(&sortSoupPositions<DIM, BvhNode<DIM>, Point<DIM>, SilhouettePrimitive<DIM>>,
+                                                                  std::placeholders::_1, std::placeholders::_2,
+                                                                  std::placeholders::_3, std::ref(sceneData->soups[i]));
+            objectAggregates[i] = makeAggregate<DIM, BvhNode<DIM>, Point<DIM>, SilhouettePrimitive<DIM>, MbvhNode<DIM>>(
+                aggregateType, pointObjectPtr, sceneData->silhouetteObjectPtrStub, vectorize, printStats, sortPointPositions);
+
+            nPointObjectPtrs++;
+        }
+
+        objectAggregates[i]->setIndex(nAggregates++);
+    }
+}
+
+template<size_t DIM>
+inline void buildGeometricAggregates(const AggregateType& aggregateType, bool vectorize, bool printStats,
+                                     const std::function<bool(float, int)>& ignoreSilhouette,
+                                     std::unique_ptr<SceneData<DIM>>& sceneData,
+                                     std::vector<std::unique_ptr<Aggregate<DIM>>>& objectAggregates)
+{
+    switch ((sceneData->soupToObjectsMap[0])[0].first) {
+        case ObjectType::Triangles:
+        {
+            buildTrianglesAggregates(aggregateType, vectorize, printStats,
+                ignoreSilhouette, sceneData, objectAggregates);
+            break;
+        }
+        case ObjectType::LineSegments:
+        {
+            buildLineSegmentsAggregates(aggregateType, vectorize, printStats,
+                ignoreSilhouette, sceneData, objectAggregates);
+            break;
+        }
+        case ObjectType::Points:
+        {
+            buildPointsAggregates(aggregateType, vectorize, printStats,
+                ignoreSilhouette, sceneData, objectAggregates);
+            break;
+        }
+        default:
+        {
+            std::cerr << "buildGeometricAggregates(): DIM: " << DIM << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
 }
 

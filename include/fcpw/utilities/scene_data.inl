@@ -11,20 +11,22 @@ ignoreSilhouette({})
 template<size_t DIM>
 inline void SceneData<DIM>::clearObjectData()
 {
-    soups.clear();
+    /*soups.clear();
     soupToObjectsMap.clear();
+    pointObjects.clear();
     lineSegmentObjects.clear();
     triangleObjects.clear();
     silhouetteVertexObjects.clear();
     silhouetteEdgeObjects.clear();
     instanceTransforms.clear();
     csgTree.clear();
-    ignoreSilhouette = {};
+    ignoreSilhouette = {};*/
 }
 
 template<size_t DIM>
 inline void SceneData<DIM>::clearAggregateData()
 {
+    /*pointObjectPtrs.clear();
     lineSegmentObjectPtrs.clear();
     triangleObjectPtrs.clear();
     silhouetteVertexObjectPtrs.clear();
@@ -32,7 +34,7 @@ inline void SceneData<DIM>::clearAggregateData()
     silhouetteObjectPtrStub.clear();
     aggregateInstancePtrs.clear();
     aggregateInstances.clear();
-    aggregate = nullptr;
+    aggregate = nullptr;*/
 }
 
 } // namespace fcpw
