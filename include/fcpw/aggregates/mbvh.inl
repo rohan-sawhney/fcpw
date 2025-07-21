@@ -422,8 +422,7 @@ silhouettes(silhouettes_),
 range(enoki::arange<enoki::Array<int, DIM>>())
 {
     primitiveTypeIsAggregate = std::is_base_of<Aggregate<DIM>, PrimitiveType>::value;
-    primitiveTypeSupportsVectorizedQueries = std::is_same<PrimitiveType, Point<DIM>>::value ||
-                                             std::is_same<PrimitiveType, LineSegment>::value ||
+    primitiveTypeSupportsVectorizedQueries = std::is_same<PrimitiveType, LineSegment>::value ||
                                              std::is_same<PrimitiveType, Triangle>::value;
     silhouetteTypeSupportsVectorizedQueries = std::is_same<SilhouetteType, SilhouetteVertex>::value ||
                                               std::is_same<SilhouetteType, SilhouetteEdge>::value;
@@ -2102,6 +2101,7 @@ inline bool Mbvh<WIDTH, DIM,
         const NodeType& node(flatTree[nodeIndex]);
 
         if (isLeafNode(node)) {
+            // point is not in primitiveTypeSupportsVectorizedQueries since it only supports CPQ
             if constexpr (std::is_same<PrimitiveType, Point<DIM>>::value) {
                 // perform vectorized closest point query
                 bool found = findClosestPointPoint(queryStub, node, leafNodes, nodeIndex,
