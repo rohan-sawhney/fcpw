@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.15...3.27)
 project(fcpw)
 
+find_package( Eigen3 REQUIRED )
+
 option(FCPW_USE_ENOKI "Build enoki" ON)
 option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
 option(FCPW_ENABLE_GPU_SUPPORT "Enable GPU support" OFF)
@@ -36,9 +38,9 @@ endif()
 get_directory_property(hasParent PARENT_DIRECTORY)
 
 if(hasParent)
-    set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror PARENT_SCOPE)
+	set(FCPW_EIGEN_INCLUDES ${EIGEN3_INCLUDE_DIRS} PARENT_SCOPE)
 else()
-    set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror)
+	set(FCPW_EIGEN_INCLUDES ${EIGEN3_INCLUDE_DIRS})
 endif()
 
 if(FCPW_ENABLE_GPU_SUPPORT)
