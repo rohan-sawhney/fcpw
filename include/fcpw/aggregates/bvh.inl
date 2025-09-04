@@ -424,6 +424,69 @@ inline void Bvh<3, SnchNode<3>, Triangle, SilhouetteEdge>::assignGeometricDataTo
                                                      0, (int)flatTree.size());
 }
 
+template<>
+inline void Bvh<3, SnchNode<3>, Quad, SilhouetteEdge>::assignGeometricDataToNodes(const std::function<bool(float, int)>& ignoreSilhouette)
+{
+    // collect silhouette references
+    Vector3 zero = Vector3::Zero();
+    std::vector<Vector3> silhouetteRefNormals, silhouetteRefFaceNormals;
+
+    for (int i = 0; i < (int)flatTree.size(); i++) {
+        SnchNode<3>& node(flatTree[i]);
+        std::unordered_map<int, bool> seenEdge;
+        int start = (int)silhouetteRefs.size();
+
+        for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
+            int referenceIndex = node.referenceOffset + j;
+            Quad *quad = primitives[referenceIndex];
+
+            for (int k = 0; k < 4; k++) {
+                int eIndex = quad->soup->eIndices[4*quad->getIndex() + k];
+                SilhouetteEdge *silhouetteEdge = silhouettes[eIndex];
+
+                if (seenEdge.find(eIndex) == seenEdge.end()) {
+                    seenEdge[eIndex] = true;
+                    Vector3 n = zero;
+                    Vector3 n0 = zero;
+                    Vector3 n1 = zero;
+                    bool hasTwoAdjacentFaces = silhouetteEdge->hasFace(0) && silhouetteEdge->hasFace(1);
+                    bool ignore = false;
+
+                    if (hasTwoAdjacentFaces) {
+                        n = silhouetteEdge->normal();
+                        n0 = silhouetteEdge->normal(0, true);
+                        n1 = silhouetteEdge->normal(1, true);
+
+                        if (ignoreSilhouette) {
+                            const Vector3& pa = silhouetteEdge->soup->positions[silhouetteEdge->indices[1]];
+                            const Vector3& pb = silhouetteEdge->soup->positions[silhouetteEdge->indices[2]];
+                            Vector3 edgeDir = (pb - pa).normalized();
+                            float dihedralAngle = std::atan2(edgeDir.dot(n0.cross(n1)), n0.dot(n1));
+                            ignore = ignoreSilhouette(dihedralAngle, quad->getIndex());
+                        }
+                    }
+
+                    if (!ignore) {
+                        silhouetteRefs.emplace_back(silhouetteEdge);
+                        silhouetteRefNormals.emplace_back(n);
+                        silhouetteRefFaceNormals.emplace_back(n0);
+                        silhouetteRefFaceNormals.emplace_back(n1);
+                    }
+                }
+            }
+        }
+
+        int end = (int)silhouetteRefs.size();
+        node.silhouetteReferenceOffset = start;
+        node.nSilhouetteReferences = end - start;
+    }
+
+    // compute bounding cones recursively
+    computeBoundingConesRecursive<3, SilhouetteEdge>(silhouetteRefs, silhouetteRefNormals,
+                                                     silhouetteRefFaceNormals, flatTree,
+                                                     0, (int)flatTree.size());
+}
+
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::Bvh(const CostHeuristic& costHeuristic_,
                                                               std::vector<PrimitiveType *>& primitives_,
