@@ -53,7 +53,8 @@ public:
     std::vector<slang::IModule *> modules;
 
     // load a module with the given name
-    Slang::Result loadModule(ComPtr<IDevice>& device, const std::string& moduleName) {
+    Slang::Result loadModule(ComPtr<IDevice>& device,
+                             const std::string& moduleName) {
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
         ComPtr<slang::IBlob> diagnosticsBlob;
@@ -67,8 +68,9 @@ public:
     }
 
     // load a module with the given name
-    void loadModule(GPUContext& gpuContext, const std::string& moduleName) {
-        Slang::Result loadModuleResult = loadModule(gpuContext.device, moduleName);
+    void loadModule(GPUContext& context,
+                    const std::string& moduleName) {
+        Slang::Result loadModuleResult = loadModule(context.device, moduleName);
         if (loadModuleResult != SLANG_OK) {
             std::cerr << "failed to load " << moduleName << " module" << std::endl;
             exit(EXIT_FAILURE);
@@ -155,11 +157,11 @@ public:
     }
 
     // load a compute program with the given module and entry point names
-    void loadProgram(GPUContext& gpuContext,
+    void loadProgram(GPUContext& context,
                      const GPULibraryModules& libraryModules,
                      const std::string& moduleName,
                      const std::vector<std::string>& entryPointNames) {
-        Slang::Result loadProgramResult = loadProgram(gpuContext.device, libraryModules,
+        Slang::Result loadProgramResult = loadProgram(context.device, libraryModules,
                                                       moduleName, entryPointNames);
         if (loadProgramResult != SLANG_OK) {
             for (const std::string& entryPointName: entryPointNames) {
@@ -175,10 +177,10 @@ public:
     }
 
     // create a shader object for the given reflection type name
-    ComPtr<IShaderObject> createShaderObject(GPUContext& gpuContext,
+    ComPtr<IShaderObject> createShaderObject(GPUContext& context,
                                              const std::string& reflectionType) const {
         ComPtr<IShaderObject> shaderObject;
-        Slang::Result createShaderObjectResult = gpuContext.device->createShaderObject(
+        Slang::Result createShaderObjectResult = context.device->createShaderObject(
             reflection->findTypeByName(reflectionType.c_str()),
             ShaderObjectContainerType::None, shaderObject.writeRef());
         if (createShaderObjectResult != SLANG_OK) {
@@ -240,9 +242,9 @@ public:
 
     // allocate a buffer with the given data
     template<typename T>
-    void allocate(GPUContext& gpuContext, bool unorderedAccess,
+    void allocate(GPUContext& context, bool unorderedAccess,
                   const std::vector<T>& initialData) {
-        Slang::Result createBufferResult = allocate<T>(gpuContext.device, unorderedAccess,
+        Slang::Result createBufferResult = allocate<T>(context.device, unorderedAccess,
                                                        initialData.data(), initialData.size());
         if (createBufferResult != SLANG_OK) {
             std::cout << "failed to create buffer" << std::endl;
@@ -272,9 +274,9 @@ public:
 
     // read the buffer data into a vector
     template<typename T>
-    void read(GPUContext& gpuContext, size_t elementCount,
+    void read(GPUContext& context, size_t elementCount,
               std::vector<T>& result) const {
-        Slang::Result readBufferResult = read<T>(gpuContext.device, elementCount, result);
+        Slang::Result readBufferResult = read<T>(context.device, elementCount, result);
         if (readBufferResult != SLANG_OK) {
             std::cout << "failed to read buffer from GPU" << std::endl;
             exit(EXIT_FAILURE);

@@ -34,17 +34,17 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
                              std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH);
     macros[0].name = "FCPW_BVH_TYPE";
     macros[0].value = macroValue.c_str();
-    gpuContext.initDevice(searchPathList, 1, macros, 1);
+    context.initDevice(searchPathList, 1, macros, 1);
 
     // initialize transient resources
-    gpuContext.initTransientResources();
+    context.initTransientResources();
 
     // load library module
-    libraryModules.loadModule(gpuContext, fcpwModule);
+    libraryModules.loadModule(context, fcpwModule);
 
     // allocate GPU buffers
-    gpuBvhBuffers.template allocate<DIM>(gpuContext, sceneData, true,
-                                         hasSilhouetteGeometry, true, false);
+    bvhBuffers.template allocate<DIM>(context, sceneData, true,
+                                      hasSilhouetteGeometry, true, false);
 }
 
 template<size_t DIM>
@@ -54,21 +54,21 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
     bool hasSilhouetteGeometry = sceneData->silhouetteVertexObjects.size() > 0 ||
                                  sceneData->silhouetteEdgeObjects.size() > 0;
     bool allocateSilhouetteGeometry = hasSilhouetteGeometry && updateGeometry;
-    bool allocateRefitData = gpuBvhBuffers.updateEntryData.size() == 0;
+    bool allocateRefitData = bvhBuffers.updateEntryData.size() == 0;
 
     // initialize shader
     if (!refitShader.isInitialized()) {
         std::vector<std::string> entryPointNames = { "refit" };
-        refitShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+        refitShader.loadProgram(context, libraryModules, shaderModule, entryPointNames);
     }
 
     // update GPU buffers
-    gpuBvhBuffers.template allocate<DIM>(gpuContext, sceneData, updateGeometry,
-                                         allocateSilhouetteGeometry, false,
-                                         allocateRefitData);
+    bvhBuffers.template allocate<DIM>(context, sceneData, updateGeometry,
+                                      allocateSilhouetteGeometry, false,
+                                      allocateRefitData);
 
     // run refit shader
-    runBvhUpdate<GPUBvhBuffers>(gpuContext, refitShader, gpuBvhBuffers, printLogs);
+    runBvhUpdate<GPUBvhBuffers>(context, refitShader, bvhBuffers, printLogs);
 }
 
 inline uint32_t countThreadGroups(uint32_t workload, uint32_t nThreadsPerGroup, bool printLogs)
@@ -132,25 +132,25 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
                                      bool checkForOcclusion)
 {
     // allocate GPU entry point data
-    GPURunRayIntersectionQuery gpuRunRayIntersectionQuery;
-    gpuRunRayIntersectionQuery.allocate(gpuContext, rays);
-    gpuRunRayIntersectionQuery.checkForOcclusion = checkForOcclusion ? 1 : 0;
+    GPURunRayIntersectionQuery runRayIntersectionQuery;
+    runRayIntersectionQuery.allocate(context, rays);
+    runRayIntersectionQuery.checkForOcclusion = checkForOcclusion ? 1 : 0;
 
     // initialize shader
     if (!rayIntersectionShader.isInitialized()) {
-        std::vector<std::string> entryPointNames = { gpuRunRayIntersectionQuery.getName() };
-        rayIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+        std::vector<std::string> entryPointNames = { runRayIntersectionQuery.getName() };
+        rayIntersectionShader.loadProgram(context, libraryModules, shaderModule, entryPointNames);
     }
 
     // run ray intersection shader
     uint32_t nQueries = (uint32_t)rays.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runBvhTraversal<GPUBvhBuffers, GPURunRayIntersectionQuery>(gpuContext, rayIntersectionShader,
-                                                               gpuBvhBuffers, gpuRunRayIntersectionQuery,
+    runBvhTraversal<GPUBvhBuffers, GPURunRayIntersectionQuery>(context, rayIntersectionShader,
+                                                               bvhBuffers, runRayIntersectionQuery,
                                                                nThreadGroups, printLogs);
 
     // read results from GPU
-    gpuRunRayIntersectionQuery.read(gpuContext, interactions);
+    runRayIntersectionQuery.read(context, interactions);
 }
 
 template<size_t DIM>
@@ -200,24 +200,24 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
                                      std::vector<GPUInteraction>& interactions)
 {
     // allocate GPU entry point data
-    GPURunSphereIntersectionQuery gpuRunSphereIntersectionQuery;
-    gpuRunSphereIntersectionQuery.allocate(gpuContext, boundingSpheres, randNums);
+    GPURunSphereIntersectionQuery runSphereIntersectionQuery;
+    runSphereIntersectionQuery.allocate(context, boundingSpheres, randNums);
 
     // initialize shader
     if (!sphereIntersectionShader.isInitialized()) {
-        std::vector<std::string> entryPointNames = { gpuRunSphereIntersectionQuery.getName() };
-        sphereIntersectionShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+        std::vector<std::string> entryPointNames = { runSphereIntersectionQuery.getName() };
+        sphereIntersectionShader.loadProgram(context, libraryModules, shaderModule, entryPointNames);
     }
 
     // run sphere intersection shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runBvhTraversal<GPUBvhBuffers, GPURunSphereIntersectionQuery>(gpuContext, sphereIntersectionShader,
-                                                                  gpuBvhBuffers, gpuRunSphereIntersectionQuery,
+    runBvhTraversal<GPUBvhBuffers, GPURunSphereIntersectionQuery>(context, sphereIntersectionShader,
+                                                                  bvhBuffers, runSphereIntersectionQuery,
                                                                   nThreadGroups, printLogs);
 
     // read results from GPU
-    gpuRunSphereIntersectionQuery.read(gpuContext, interactions);
+    runSphereIntersectionQuery.read(context, interactions);
 }
 
 template<size_t DIM>
@@ -262,25 +262,25 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
                                              bool recordNormals)
 {
     // allocate GPU entry point data
-    GPURunClosestPointQuery gpuRunClosestPointQuery;
-    gpuRunClosestPointQuery.allocate(gpuContext, boundingSpheres);
-    gpuRunClosestPointQuery.recordNormals = recordNormals ? 1 : 0;
+    GPURunClosestPointQuery runClosestPointQuery;
+    runClosestPointQuery.allocate(context, boundingSpheres);
+    runClosestPointQuery.recordNormals = recordNormals ? 1 : 0;
 
     // initialize shader
     if (!closestPointShader.isInitialized()) {
-        std::vector<std::string> entryPointNames = { gpuRunClosestPointQuery.getName() };
-        closestPointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+        std::vector<std::string> entryPointNames = { runClosestPointQuery.getName() };
+        closestPointShader.loadProgram(context, libraryModules, shaderModule, entryPointNames);
     }
 
     // run closest point shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runBvhTraversal<GPUBvhBuffers, GPURunClosestPointQuery>(gpuContext, closestPointShader,
-                                                            gpuBvhBuffers, gpuRunClosestPointQuery,
+    runBvhTraversal<GPUBvhBuffers, GPURunClosestPointQuery>(context, closestPointShader,
+                                                            bvhBuffers, runClosestPointQuery,
                                                             nThreadGroups, printLogs);
 
     // read results from GPU
-    gpuRunClosestPointQuery.read(gpuContext, interactions);
+    runClosestPointQuery.read(context, interactions);
 }
 
 template<size_t DIM>
@@ -331,26 +331,26 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
                                                        float squaredMinRadius, float precision)
 {
     // allocate GPU entry point data
-    GPURunClosestSilhouettePointQuery gpuRunClosestSilhouettePointQuery;
-    gpuRunClosestSilhouettePointQuery.allocate(gpuContext, boundingSpheres, flipNormalOrientation);
-    gpuRunClosestSilhouettePointQuery.squaredMinRadius = squaredMinRadius;
-    gpuRunClosestSilhouettePointQuery.precision = precision;
+    GPURunClosestSilhouettePointQuery runClosestSilhouettePointQuery;
+    runClosestSilhouettePointQuery.allocate(context, boundingSpheres, flipNormalOrientation);
+    runClosestSilhouettePointQuery.squaredMinRadius = squaredMinRadius;
+    runClosestSilhouettePointQuery.precision = precision;
 
     // initialize shader
     if (!closestSilhouettePointShader.isInitialized()) {
-        std::vector<std::string> entryPointNames = { gpuRunClosestSilhouettePointQuery.getName() };
-        closestSilhouettePointShader.loadProgram(gpuContext, libraryModules, shaderModule, entryPointNames);
+        std::vector<std::string> entryPointNames = { runClosestSilhouettePointQuery.getName() };
+        closestSilhouettePointShader.loadProgram(context, libraryModules, shaderModule, entryPointNames);
     }
 
     // run closest silhouette point shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runBvhTraversal<GPUBvhBuffers, GPURunClosestSilhouettePointQuery>(gpuContext, closestSilhouettePointShader,
-                                                                          gpuBvhBuffers, gpuRunClosestSilhouettePointQuery,
-                                                                          nThreadGroups, printLogs);
+    runBvhTraversal<GPUBvhBuffers, GPURunClosestSilhouettePointQuery>(context, closestSilhouettePointShader,
+                                                                      bvhBuffers, runClosestSilhouettePointQuery,
+                                                                      nThreadGroups, printLogs);
 
     // read results from GPU
-    gpuRunClosestSilhouettePointQuery.read(gpuContext, interactions);
+    runClosestSilhouettePointQuery.read(context, interactions);
 }
 
 } // namespace fcpw
