@@ -8,6 +8,7 @@ using namespace gfx;
 
 class GPUContext {
 public:
+    // members
     IDevice::Desc deviceDesc = {};
     ComPtr<IDevice> device;
     ITransientResourceHeap::Desc transientHeapDesc = {};
@@ -15,6 +16,7 @@ public:
     ICommandQueue::Desc queueDesc = { ICommandQueue::QueueType::Graphics };
     ComPtr<ICommandQueue> queue;
 
+    // initialize device with the given search paths and macros
     void initDevice(const char* searchPaths[], int nSearchPaths,
                     slang::PreprocessorMacroDesc macros[], int nMacros) {
         deviceDesc.slang.searchPaths = searchPaths;
@@ -31,6 +33,7 @@ public:
         std::cout << "device: " << device->getDeviceInfo().apiName << std::endl;
     }
 
+    // initialize transient resources
     void initTransientResources() {
         transientHeapDesc.constantBufferSize = 4096;
         SlangResult createTransientHeapResult = device->createTransientResourceHeap(
@@ -46,8 +49,10 @@ public:
 
 class GPULibraryModules {
 public:
+    // member
     std::vector<slang::IModule *> modules;
 
+    // load a module with the given name
     Slang::Result loadModule(ComPtr<IDevice>& device, const std::string& moduleName) {
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
@@ -61,6 +66,7 @@ public:
         return SLANG_OK;
     }
 
+    // load a module with the given name
     void loadModule(GPUContext& gpuContext, const std::string& moduleName) {
         Slang::Result loadModuleResult = loadModule(gpuContext.device, moduleName);
         if (loadModuleResult != SLANG_OK) {
@@ -72,6 +78,7 @@ public:
     }
 
 private:
+    // diagnose issues if any
     void diagnoseIfNeeded(slang::IBlob* diagnosticsBlob) {
         if (diagnosticsBlob != nullptr) {
             std::cerr << (const char*)diagnosticsBlob->getBufferPointer() << std::endl;
@@ -81,15 +88,18 @@ private:
 
 class ComputeShader {
 public:
+    // members
     ComPtr<IShaderProgram> program;
     slang::ProgramLayout* reflection = nullptr;
     ComputePipelineStateDesc pipelineDesc = {};
     ComPtr<IPipelineState> pipelineState;
 
+    // checks if the shader is initialized
     bool isInitialized() const {
         return reflection != nullptr;
     }
 
+    // load a compute program with the given module and entry point names
     Slang::Result loadProgram(ComPtr<IDevice>& device,
                               const GPULibraryModules& libraryModules,
                               const std::string& moduleName,
@@ -144,6 +154,7 @@ public:
         return SLANG_OK;
     }
 
+    // load a compute program with the given module and entry point names
     void loadProgram(GPUContext& gpuContext,
                      const GPULibraryModules& libraryModules,
                      const std::string& moduleName,
@@ -163,6 +174,7 @@ public:
         }
     }
 
+    // create a shader object for the given reflection type name
     ComPtr<IShaderObject> createShaderObject(GPUContext& gpuContext,
                                              const std::string& reflectionType) const {
         ComPtr<IShaderObject> shaderObject;
@@ -178,6 +190,7 @@ public:
     }
 
 private:
+    // diagnose issues if any
     void diagnoseIfNeeded(slang::IBlob* diagnosticsBlob) {
         if (diagnosticsBlob != nullptr) {
             std::cerr << (const char*)diagnosticsBlob->getBufferPointer() << std::endl;
@@ -187,10 +200,12 @@ private:
 
 class GPUBuffer {
 public:
+    // members
     IBufferResource::Desc desc;
     ComPtr<IBufferResource> buffer;
     ComPtr<IResourceView> view;
 
+    // allocate a buffer with the given data and element count
     template<typename T>
     Slang::Result allocate(ComPtr<IDevice>& device, bool unorderedAccess,
                            const T* initialData, size_t elementCount) {
@@ -223,6 +238,7 @@ public:
         return SLANG_OK;
     }
 
+    // allocate a buffer with the given data
     template<typename T>
     void allocate(GPUContext& gpuContext, bool unorderedAccess,
                   const std::vector<T>& initialData) {
@@ -234,6 +250,7 @@ public:
         }
     }
 
+    // read the buffer data into a vector
     template<typename T>
     Slang::Result read(ComPtr<IDevice>& device, size_t elementCount,
                        std::vector<T>& result) const {
@@ -253,6 +270,7 @@ public:
         return SLANG_OK;
     }
 
+    // read the buffer data into a vector
     template<typename T>
     void read(GPUContext& gpuContext, size_t elementCount,
               std::vector<T>& result) const {
@@ -263,9 +281,205 @@ public:
         }
     }
 
+    // apply barrier
     void applyBarrier(IComputeCommandEncoder *encoder) const {
         if (buffer) {
             encoder->bufferBarrier(buffer.get(), desc.defaultState, desc.defaultState);
+        }
+    }
+};
+
+template <size_t DIM>
+class GPUTexture {
+public:
+    // members
+    ITextureResource::Desc desc;
+    ComPtr<ITextureResource> texture;
+    ComPtr<IResourceView> view;
+
+    // allocate a texture with the given dimensions and data
+    template <typename T, size_t CHANNELS>
+    Slang::Result allocate(ComPtr<IDevice>& device, bool unorderedAccess,
+                           size_t width, size_t height, size_t depth,
+                           const T* initialData, size_t elementCount) {
+        desc.type = getTextureType();
+        desc.size.width = width;
+        desc.size.height = height;
+        desc.size.depth = DIM == 3 ? depth : 1;
+        desc.arraySize = 1;
+        desc.numMipLevels = 1;
+        desc.defaultState = unorderedAccess ? ResourceState::UnorderedAccess :
+                                              ResourceState::ShaderResource;
+        desc.memoryType = MemoryType::DeviceLocal;
+        desc.allowedStates = ResourceStateSet(ResourceState::ShaderResource,
+                                              ResourceState::CopyDestination,
+                                              ResourceState::CopySource);
+        if (unorderedAccess) desc.allowedStates.add(ResourceState::UnorderedAccess);
+        Format format = getTextureFormat<T, CHANNELS>();
+        desc.format = format;
+
+        size_t texelSize = getTexelSize(format);
+        ITextureResource::SubresourceData subresourceData = {};
+        subresourceData.data = elementCount == 0 ? nullptr : initialData;
+        subresourceData.strideY = width*texelSize;
+        subresourceData.strideZ = height*width*texelSize;
+        SLANG_RETURN_ON_FAIL(device->createTextureResource(desc, &subresourceData, texture.writeRef()));
+
+        IResourceView::Desc viewDesc = {};
+        viewDesc.type = unorderedAccess ? IResourceView::Type::UnorderedAccess :
+                                          IResourceView::Type::ShaderResource;
+        viewDesc.format = format;
+        SLANG_RETURN_ON_FAIL(device->createTextureView(texture, viewDesc, view.writeRef()));
+
+        return SLANG_OK;
+    }
+
+    // allocate a texture with the given dimensions and data
+    template <typename T, size_t CHANNELS>
+    void allocate(GPUContext& context, bool unorderedAccess,
+                  size_t width, size_t height, size_t depth,
+                  const std::vector<T>& initialData) {
+        Slang::Result createTextureResult = allocate<T>(
+            context.device, unorderedAccess, width, height, depth,
+            initialData.data(), initialData.size());
+        if (createTextureResult != SLANG_OK) {
+            std::cout << "failed to create texture" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // read the texture data into a vector
+    template <typename T, size_t CHANNELS>
+    Slang::Result read(ComPtr<IDevice>& device,
+                       size_t width, size_t height, size_t depth,
+                       size_t& rowPitch, size_t& pixelSize,
+                       std::vector<T>& result) const {
+        ComPtr<ISlangBlob> resultBlob;
+        Format format = getTextureFormat<T, CHANNELS>();
+        size_t elementCount = width*height*depth;
+        size_t expectedBufferSize = elementCount*getTexelSize(format);
+        SLANG_RETURN_ON_FAIL(device->readTextureResource(texture, ResourceState::CopySource,
+                                                         resultBlob.writeRef(), &rowPitch, &pixelSize));
+        if (resultBlob->getBufferSize() != expectedBufferSize) {
+            std::cerr << "incorrect GPU texture size on read" << std::endl;
+            return SLANG_FAIL;
+        }
+
+        result.clear();
+        auto resultPtr = (T *)resultBlob->getBufferPointer();
+        result.assign(resultPtr, resultPtr + elementCount);
+
+        return SLANG_OK;
+    }
+
+    // read the texture data into a vector
+    template <typename T, size_t CHANNELS>
+    void read(GPUContext& context,
+              size_t width, size_t height, size_t depth,
+              size_t& rowPitch, size_t& pixelSize,
+              std::vector<T>& result) const {
+        Slang::Result readTextureResult = read<T>(context.device, width, height, depth,
+                                                  rowPitch, pixelSize, result);
+        if (readTextureResult != SLANG_OK) {
+            std::cout << "failed to read texture from GPU" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // apply barrier
+    void applyBarrier(IComputeCommandEncoder *encoder) const {
+        if (texture) {
+            encoder->textureBarrier(texture.get(), desc.defaultState, desc.defaultState);
+        }
+    }
+
+private:
+    // helper functions to get texture type
+    IResource::Type getTextureType() const {
+        if (DIM == 2) {
+            return IResource::Type::Texture2D;
+
+        } else if (DIM == 3) {
+            return IResource::Type::Texture3D;
+        }
+
+        std::cerr << "Error: Unsupported texture dimension " << DIM << std::endl;
+        exit(EXIT_FAILURE);
+
+        return IResource::Type::Unknown;
+    }
+
+    // helper functions to get texture format
+    template <typename T, size_t CHANNELS>
+    Format getTextureFormat() const {
+        if (std::is_same<T, float>::value) {
+            if (CHANNELS == 1) {
+                return Format::R32_FLOAT;
+
+            } else if (CHANNELS == 4) {
+                return Format::R32G32B32A32_FLOAT;
+            }
+
+        } else if (std::is_same<T, int>::value) {
+            if (CHANNELS == 1) {
+                return Format::R32_SINT;
+
+            } else if (CHANNELS == 4) {
+                return Format::R32G32B32A32_SINT;
+            }
+
+        } else if (std::is_same<T, uint32_t>::value) {
+            if (CHANNELS == 1) {
+                return Format::R32_UINT;
+
+            } else if (CHANNELS == 4) {
+                return Format::R32G32B32A32_UINT;
+            }
+        }
+
+        std::cerr << "Error: Unsupported texture format for type T with "
+                  << CHANNELS << " channel(s)" << std::endl;
+        exit(EXIT_FAILURE);
+
+        return Format::Unknown;
+    }
+
+    // helper functions to get texture size
+    size_t getTexelSize(Format format) const {
+        FormatInfo info;
+        SLANG_RETURN_ON_FAIL(gfxGetFormatInfo(format, &info));
+        return info.blockSizeInBytes/info.pixelsPerBlock;
+    }
+};
+
+class GPUSampler {
+public:
+    // members
+    ISamplerState::Desc desc;
+    ComPtr<ISamplerState> sampler;
+
+    // allocate a sampler with the given filtering and addressing modes
+    Slang::Result allocate(ComPtr<IDevice>& device,
+                           TextureFilteringMode filter,
+                           TextureAddressingMode address) {
+        desc.minFilter = filter;
+        desc.magFilter = filter;
+        desc.addressU = address;
+        desc.addressV = address;
+        desc.addressW = address;
+        SLANG_RETURN_ON_FAIL(device->createSamplerState(desc, sampler.writeRef()));
+
+        return SLANG_OK;
+    }
+
+    // allocate a sampler with the given filtering and addressing modes
+    void allocate(GPUContext& context,
+                  TextureFilteringMode filter,
+                  TextureAddressingMode address) {
+        Slang::Result createSamplerResult = allocate(context.device, filter, address);
+        if (createSamplerResult != SLANG_OK) {
+            std::cout << "failed to create sampler" << std::endl;
+            exit(EXIT_FAILURE);
         }
     }
 };
@@ -798,6 +1012,73 @@ void printReflectionInfo(const ShaderCursor& cursor, int nFields,
     std::cout << "Reflection: " << reflectionType << std::endl;
     for (int i = 0; i < nFields; i++) {
         std::cout << "\targument[" << i << "]: " << cursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
+    }
+}
+
+template <typename GPUEntryPoint>
+void runShader(GPUContext& context,
+               const ComputeShader& shader,
+               const GPUEntryPoint& entryPoint,
+               std::function<void(const ComputeShader&, const ShaderCursor&)> bindShaderResources,
+               std::function<void(IComputeCommandEncoder *)> applyBarrier,
+               uint32_t nThreadGroups,
+               uint32_t nDispatchCalls,
+               bool printLogs)
+{
+    // setup command buffer and encoder
+    auto commandBuffer = context.transientHeap->createCommandBuffer();
+    IComputeCommandEncoder *encoder = commandBuffer->encodeComputeCommands();
+
+    // bind shader resources
+    auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
+    ShaderCursor rootCursor(rootShaderObject);
+    if (bindShaderResources) bindShaderResources(shader, rootCursor);
+
+    // bind entry point arguments
+    ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
+    entryPoint.setResources(entryPointCursor, printLogs);
+
+    // dispatch compute shader
+    ComPtr<IQueryPool> queryPool;
+    IQueryPool::Desc queryDesc = {};
+    queryDesc.type = QueryType::Timestamp;
+    queryDesc.count = 2;
+    Slang::Result createQueryPoolResult = context.device->createQueryPool(queryDesc, queryPool.writeRef());
+    if (createQueryPoolResult != SLANG_OK) {
+        std::cout << "failed to create query pool" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    encoder->writeTimestamp(queryPool, 0);
+    for (uint32_t i = 0; i < nDispatchCalls; i++) {
+        encoder->dispatchCompute(nThreadGroups, 1, 1);
+        if (applyBarrier) applyBarrier(encoder);
+    }
+    encoder->writeTimestamp(queryPool, 1);
+
+    // execute command buffer
+    encoder->endEncoding();
+    commandBuffer->close();
+    context.queue->executeCommandBuffer(commandBuffer);
+    context.queue->waitOnHost();
+
+    // synchronize and reset transient heap
+    context.transientHeap->finish();
+    context.transientHeap->synchronizeAndReset();
+
+    // read timestamps
+    const DeviceInfo& deviceInfo = context.device->getDeviceInfo();
+    double timestampFrequency = (double)deviceInfo.timestampFrequency;
+    uint64_t timestampData[2] = { 0, 0 };
+    Slang::Result getQueryPoolResult = queryPool->getResult(0, 2, timestampData);
+    if (getQueryPoolResult != SLANG_OK) {
+        std::cout << "failed to get query pool result" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    if (printLogs) {
+        double timeSpan = (timestampData[1] - timestampData[0])*1000/timestampFrequency;
+        std::cout << "Compute shader took " << timeSpan << " ms" << std::endl;
     }
 }
 
