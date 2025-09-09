@@ -89,6 +89,7 @@ private:
     ComputeShader sphereIntersectionShader;
     ComputeShader closestPointShader;
     ComputeShader closestSilhouettePointShader;
+    std::function<void(const ComputeShader&, const ShaderCursor&)> bindBvhResources;
     uint32_t nThreadsPerGroup;
     bool printLogs;
 };
