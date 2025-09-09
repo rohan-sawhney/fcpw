@@ -1,7 +1,7 @@
 #pragma once
 
 #include <fcpw/fcpw.h>
-#include <fcpw/gpu/bvh_commands.h>
+#include <fcpw/gpu/bvh_interop_structures.h>
 
 namespace fcpw {
 
