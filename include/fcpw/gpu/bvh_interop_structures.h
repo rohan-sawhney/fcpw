@@ -5,7 +5,7 @@
 #include <fcpw/geometry/triangles.h>
 #include <fcpw/geometry/silhouette_vertices.h>
 #include <fcpw/geometry/silhouette_edges.h>
-#include <fcpw/gpu/slang_gfx_utils.h>
+#include <fcpw/gpu/slang_rhi_utils.h>
 
 #define FCPW_GPU_UINT_MAX 4294967295
 

@@ -1,6 +1,8 @@
 #pragma once
 
 #include "slang-gfx.h"
+#include <slang-rhi.h>
+#include <slang-rhi/shader-cursor.h>
 
 namespace fcpw {
 
