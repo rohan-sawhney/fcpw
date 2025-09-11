@@ -314,15 +314,6 @@ public:
             exit(EXIT_FAILURE);
         }
     }
-
-    /*
-    // apply barrier
-    void applyBarrier(IComputeCommandEncoder *encoder) const {
-        if (buffer) {
-            encoder->bufferBarrier(buffer.get(), desc.defaultState, desc.defaultState);
-        }
-    }
-    */
 };
 
 template <size_t DIM>
@@ -422,15 +413,6 @@ public:
             exit(EXIT_FAILURE);
         }
     }
-
-    /*
-    // apply barrier
-    void applyBarrier(IComputeCommandEncoder *encoder) const {
-        if (texture) {
-            encoder->textureBarrier(texture.get(), desc.defaultState, desc.defaultState);
-        }
-    }
-    */
 
 private:
     // helper functions to get texture type
