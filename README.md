@@ -125,7 +125,7 @@ gpu_scene.find_closest_points(query_points, squared_max_radii, interactions)
 
 Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.cpp) and [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.py) for complete demos. GPU support is available on Linux and Windows ([Slang](https://shader-slang.com/slang/user-guide/) currently only has unofficial support for macOS).
 
-For those developing directly on the GPU, the acceleration structure can also be accessed through [bvh.slang](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/gpu/bvh.slang). Slang offers CUDA, HLSL, Vulkan, OpenGL and Metal (experimental) as compilation targets. Refer to its [user guide](https://shader-slang.com/slang/user-guide/get-started.html) for further details on compiling to these targets.
+For those developing directly on the GPU, the acceleration structure can also be accessed through [bvh.slang](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/gpu/bvh.slang). Slang offers CUDA, HLSL, Vulkan and Metal (experimental) as compilation targets. Refer to its [user guide](https://shader-slang.com/slang/user-guide/get-started.html) for further details on compiling to these targets.
 
 # C++ Installation
 
@@ -173,10 +173,8 @@ If your prefer to directly include *FCPW* header files without CMake, then you'l
 Finally, GPU support can be enabled with the command `FCPW_ENABLE_GPU_SUPPORT=ON`. Additionally include the following lines in your CMakeLists.txt file:
 
 ```
-target_link_libraries(YOUR_TARGET ${FCPW_SLANG_LIBRARY})
-target_link_libraries(YOUR_TARGET ${FCPW_SLANG_GLSLANG_LIBRARY})
-target_link_libraries(YOUR_TARGET ${FCPW_GFX_LIBRARY})
-target_include_directories(YOUR_TARGET PRIVATE ${FCPW_SLANG_INCLUDES})
+target_link_libraries(YOUR_TARGET ${FCPW_SLANG_RHI_LIBRARY})
+target_include_directories(YOUR_TARGET PRIVATE ${FCPW_SLANG_RHI_INCLUDES})
 ```
 
 On Windows, you may need to download necessary DLL files from the official DirectX Shader Compiler repository on GitHub [here](https://github.com/microsoft/DirectXShaderCompiler/releases). Copy `dxil.dll` and `dxcompiler.dll` to `C:\Windows\System32\` for 64-bit systems or to `C:\Windows\SysWOW64\` for 32-bit systems. This makes the DLLs available to all applications system-wide.
