@@ -936,9 +936,9 @@ void runBvhUpdate(GPUContext& gpuContext,
         entryPointCursor.getPath("nodeCount").setData(nodeCount);
 
         computePassEncoder->dispatchCompute(nodeCount, 1, 1);
-        commandEncoder->globalBarrier(); // TODO: is this the right way to apply a barrier?
+        commandEncoder->globalBarrier(); // QUESTION: is this the right way to apply a barrier?
     }
-    computePassEncoder->end(); // TODO: is this the right place to end the pass?
+    computePassEncoder->end(); // QUESTION: is this the right place to end the pass?
 
     if (printLogs) {
         int entryPointFieldCount = 4;

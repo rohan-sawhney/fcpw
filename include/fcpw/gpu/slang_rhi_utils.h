@@ -558,10 +558,10 @@ void runShader(GPUContext& context,
     computePassEncoder->writeTimestamp(queryPool, 0);
     for (uint32_t i = 0; i < nDispatchCalls; i++) {
         computePassEncoder->dispatchCompute(nThreadGroups, 1, 1);
-        if (useBarrierBetweenDispatches) commandEncoder->globalBarrier(); // TODO: is this the right way to apply a barrier?
+        if (useBarrierBetweenDispatches) commandEncoder->globalBarrier(); // QUESTION: is this the right way to apply a barrier?
     }
     computePassEncoder->writeTimestamp(queryPool, 1);
-    computePassEncoder->end(); // TODO: is this the right place to end the pass?
+    computePassEncoder->end(); // QUESTION: is this the right place to end the pass?
 
     context.queue->submit(commandEncoder->finish());
     context.queue->waitOnHost();
