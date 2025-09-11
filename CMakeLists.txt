@@ -43,6 +43,7 @@ endif()
 
 if(FCPW_ENABLE_GPU_SUPPORT)
     set(SLANG_RHI_INSTALL             OFF CACHE BOOL " " FORCE)
+    set(SLANG_RHI_ENABLE_WGPU         OFF CACHE BOOL "Disable WebGPU" FORCE)
     set(SLANG_RHI_FETCH_SLANG_VERSION "2025.16.1" CACHE STRING "Slang version to fetch")
     add_subdirectory(deps/slang-rhi)
 
