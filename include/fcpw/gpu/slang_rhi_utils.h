@@ -539,17 +539,17 @@ void printReflectionInfo(const ShaderCursor& cursor, int nFields,
     }
 }
 
-/*
 template <typename GPUEntryPoint>
 void runShader(GPUContext& context,
                const ComputeShader& shader,
                const GPUEntryPoint& entryPoint,
                std::function<void(const ComputeShader&, const ShaderCursor&)> bindShaderResources,
-               std::function<void(IComputeCommandEncoder *)> applyBarrier,
+               std::function<void(ICommandEncoder *)> applyBarrier,
                uint32_t nThreadGroups,
                uint32_t nDispatchCalls,
                bool printLogs)
 {
+    /*
     // setup command buffer and encoder
     auto commandBuffer = context.transientHeap->createCommandBuffer();
     IComputeCommandEncoder *encoder = commandBuffer->encodeComputeCommands();
@@ -605,7 +605,7 @@ void runShader(GPUContext& context,
         double timeSpan = (timestampData[1] - timestampData[0])*1000/timestampFrequency;
         std::cout << "Compute shader took " << timeSpan << " ms" << std::endl;
     }
+    */
 }
-*/
 
 } // namespace fcpw
