@@ -4,3 +4,6 @@
 [submodule "deps/enoki"]
 	path = deps/enoki
 	url = https://github.com/mitsuba-renderer/enoki.git
+[submodule "deps/slang-rhi"]
+	path = deps/slang-rhi
+	url = https://github.com/shader-slang/slang-rhi.git

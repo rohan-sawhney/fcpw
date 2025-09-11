@@ -36,9 +36,6 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     macros[0].value = macroValue.c_str();
     context.initDevice(searchPathList, 1, macros, 1);
 
-    // initialize transient resources
-    context.initTransientResources();
-
     // load library module
     libraryModules.loadModule(context, fcpwModule);
 
@@ -78,7 +75,9 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
                                       allocateRefitData);
 
     // run refit shader
+    /*
     runBvhUpdate<GPUBvhBuffers>(context, refitShader, bvhBuffers, printLogs);
+    */
 }
 
 inline uint32_t countThreadGroups(uint32_t workload, uint32_t nThreadsPerGroup, bool printLogs)
@@ -155,9 +154,11 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
     // run ray intersection shader
     uint32_t nQueries = (uint32_t)rays.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
+    /*
     runShader<GPURunRayIntersectionQuery>(context, rayIntersectionShader,
                                           runRayIntersectionQuery, bindBvhResources,
                                           {}, nThreadGroups, 1, printLogs);
+    */
 
     // read results from GPU
     runRayIntersectionQuery.read(context, interactions);
@@ -222,9 +223,11 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
     // run sphere intersection shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
+    /*
     runShader<GPURunSphereIntersectionQuery>(context, sphereIntersectionShader,
                                              runSphereIntersectionQuery, bindBvhResources,
                                              {}, nThreadGroups, 1, printLogs);
+    */
 
     // read results from GPU
     runSphereIntersectionQuery.read(context, interactions);
@@ -285,9 +288,11 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
     // run closest point shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
+    /*
     runShader<GPURunClosestPointQuery>(context, closestPointShader,
                                        runClosestPointQuery, bindBvhResources,
                                        {}, nThreadGroups, 1, printLogs);
+    */
 
     // read results from GPU
     runClosestPointQuery.read(context, interactions);
@@ -355,9 +360,11 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
     // run closest silhouette point shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
+    /*
     runShader<GPURunClosestSilhouettePointQuery>(context, closestSilhouettePointShader,
                                                  runClosestSilhouettePointQuery, bindBvhResources,
                                                  {}, nThreadGroups, 1, printLogs);
+    */
 
     // read results from GPU
     runClosestSilhouettePointQuery.read(context, interactions);

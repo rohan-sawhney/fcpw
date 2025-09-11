@@ -42,73 +42,17 @@ else()
 endif()
 
 if(FCPW_ENABLE_GPU_SUPPORT)
-    # download slang
-    set(FCPW_SLANG_VERSION "2025.16.1")
-    set(FCPW_SLANG_URL_BASE "https://github.com/shader-slang/slang/releases/download/v${FCPW_SLANG_VERSION}")
+    set(SLANG_RHI_INSTALL             OFF CACHE BOOL " " FORCE)
+    set(SLANG_RHI_FETCH_SLANG_VERSION "2025.16.1" CACHE STRING "Slang version to fetch")
+    add_subdirectory(deps/slang-rhi)
 
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        set(FCPW_SLANG_FILENAME "slang-${FCPW_SLANG_VERSION}-linux-x86_64-glibc-2.27.tar.gz")
-    elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        set(FCPW_SLANG_FILENAME "slang-${FCPW_SLANG_VERSION}-windows-x86_64.zip")
-    else()
-        # unfortunately macOS is not currently officially supported by gfx
-        message(FATAL_ERROR "Unsupported operating system: ${CMAKE_SYSTEM_NAME}")
-    endif()
-
-    set(FCPW_SLANG_URL "${FCPW_SLANG_URL_BASE}/${FCPW_SLANG_FILENAME}")
-    set(FCPW_SLANG_DOWNLOAD_PATH "${CMAKE_CURRENT_SOURCE_DIR}/${FCPW_SLANG_FILENAME}")
-    set(FCPW_SLANG_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/deps/slang")
-
-    if(NOT EXISTS ${FCPW_SLANG_OUTPUT_DIR})
-        file(DOWNLOAD ${FCPW_SLANG_URL} ${FCPW_SLANG_DOWNLOAD_PATH})
-        file(MAKE_DIRECTORY ${FCPW_SLANG_OUTPUT_DIR})
-
-        if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-            execute_process(COMMAND tar -xzf ${FCPW_SLANG_DOWNLOAD_PATH} -C ${FCPW_SLANG_OUTPUT_DIR}
-                            WORKING_DIRECTORY ${FCPW_SLANG_OUTPUT_DIR})
-        elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-            find_program(UNZIP_EXECUTABLE unzip)
-            if(UNZIP_EXECUTABLE)
-                execute_process(COMMAND ${UNZIP_EXECUTABLE} -o ${FCPW_SLANG_DOWNLOAD_PATH} -d ${FCPW_SLANG_OUTPUT_DIR}
-                                WORKING_DIRECTORY ${FCPW_SLANG_OUTPUT_DIR})
-            else()
-                message(FATAL_ERROR "Unzip utility not found!")
-            endif()
-        endif()
-    else()
-        message(STATUS "Slang already downloaded and extracted at ${FCPW_SLANG_OUTPUT_DIR}. Skipping download.")
-    endif()
-
-    file(REMOVE ${FCPW_SLANG_DOWNLOAD_PATH})
-
-    # set the include directory
     if(hasParent)
-        set(FCPW_SLANG_INCLUDES ${FCPW_SLANG_OUTPUT_DIR}/include PARENT_SCOPE)
+        set(FCPW_SLANG_RHI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/slang-rhi/include PARENT_SCOPE)
+        set(FCPW_SLANG_RHI_LIBRARY slang-rhi PARENT_SCOPE)
     else()
-        set(FCPW_SLANG_INCLUDES ${FCPW_SLANG_OUTPUT_DIR}/include)
+        set(FCPW_SLANG_RHI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/slang-rhi/include)
+        set(FCPW_SLANG_RHI_LIBRARY slang-rhi)
     endif()
-
-    # find the .lib/.so files
-    set(SLANG_LIBRARY_PATH ${FCPW_SLANG_OUTPUT_DIR}/lib)
-    find_library(FCPW_SLANG_LIBRARY NAMES slang PATHS ${SLANG_LIBRARY_PATH})
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-        find_library(FCPW_SLANG_GLSLANG_LIBRARY NAMES slang-glslang PATHS ${SLANG_LIBRARY_PATH})
-    else()
-        set(FCPW_SLANG_GLSLANG_LIBRARY "")
-    endif()
-    find_library(FCPW_GFX_LIBRARY NAMES gfx PATHS ${SLANG_LIBRARY_PATH})
-
-    # find the corresponding .dll files
-    if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-        set(SLANG_BINARY_PATH ${FCPW_SLANG_OUTPUT_DIR}/bin)
-        find_file(FCPW_SLANG_BINARY NAMES slang.dll PATHS ${SLANG_BINARY_PATH})
-        find_file(FCPW_SLANG_GLSLANG_BINARY NAMES slang-glslang.dll PATHS ${SLANG_BINARY_PATH})
-        find_file(FCPW_GFX_BINARY NAMES gfx.dll PATHS ${SLANG_BINARY_PATH})
-    endif()
-
-    message(STATUS "SLANG LIBRARY: " ${FCPW_SLANG_LIBRARY})
-    message(STATUS "SLANG GLSLANG LIBRARY: " ${FCPW_SLANG_GLSLANG_LIBRARY})
-    message(STATUS "GFX LIBRARY: " ${FCPW_GFX_LIBRARY})
 endif()
 
 if(FCPW_USE_ENOKI)

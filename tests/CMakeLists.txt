@@ -47,10 +47,6 @@ if(FCPW_ENABLE_GPU_SUPPORT)
 
     target_include_directories(gpu_tests PRIVATE ${FCPW_TESTS_TBB_INCLUDES})
     target_include_directories(gpu_tests PRIVATE ${FCPW_ARGS_INCLUDES})
-    target_include_directories(gpu_tests PRIVATE ${FCPW_SLANG_INCLUDES})
-
-    target_link_libraries(gpu_tests polyscope TBB::tbb)
-    target_link_libraries(gpu_tests ${FCPW_SLANG_LIBRARY})
-    target_link_libraries(gpu_tests ${FCPW_SLANG_GLSLANG_LIBRARY})
-    target_link_libraries(gpu_tests ${FCPW_GFX_LIBRARY})
+    target_include_directories(gpu_tests PRIVATE ${FCPW_SLANG_RHI_INCLUDES})
+    target_link_libraries(gpu_tests polyscope TBB::tbb ${FCPW_SLANG_RHI_LIBRARY})
 endif()

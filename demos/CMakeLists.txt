@@ -15,9 +15,6 @@ target_link_libraries(demo polyscope)
 
 if(FCPW_ENABLE_GPU_SUPPORT)
     target_compile_definitions(demo PRIVATE -DFCPW_USE_GPU)
-    target_include_directories(demo PRIVATE ${FCPW_SLANG_INCLUDES})
-
-    target_link_libraries(demo ${FCPW_SLANG_LIBRARY})
-    target_link_libraries(demo ${FCPW_SLANG_GLSLANG_LIBRARY})
-    target_link_libraries(demo ${FCPW_GFX_LIBRARY})
+    target_include_directories(demo PRIVATE ${FCPW_SLANG_RHI_INCLUDES})
+    target_link_libraries(demo ${FCPW_SLANG_RHI_LIBRARY})
 endif()

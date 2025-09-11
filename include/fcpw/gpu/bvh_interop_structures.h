@@ -561,10 +561,12 @@ public:
     }
 
     void setResources(const ShaderCursor& cursor, bool printLogs) const {
+        /*
         cursor["nodes"].setResource(nodes.view);
         cursor["primitives"].setResource(primitives.view);
         cursor["silhouettes"].setResource(silhouettes.view);
         if (printLogs) printReflectionInfo(cursor, 3, reflectionType);
+        */
     }
 
     std::string getReflectionType() const {
@@ -787,11 +789,13 @@ public:
     }
 
     void setResources(const ShaderCursor& cursor, bool printLogs) const {
+        /*
         cursor.getPath("rays").setResource(rays.view);
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         cursor.getPath("nQueries").setData(nQueries);
         if (printLogs) printReflectionInfo(cursor, 5, getName());
+        */
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
@@ -820,11 +824,13 @@ public:
     }
 
     void setResources(const ShaderCursor& cursor, bool printLogs) const {
+        /*
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("randNums").setResource(randNums.view);
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("nQueries").setData(nQueries);
         if (printLogs) printReflectionInfo(cursor, 5, getName());
+        */
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
@@ -851,11 +857,13 @@ public:
     }
 
     void setResources(const ShaderCursor& cursor, bool printLogs) const {
+        /*
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("interactions").setResource(interactions.view);
         cursor.getPath("recordNormals").setData(recordNormals);
         cursor.getPath("nQueries").setData(nQueries);
         if (printLogs) printReflectionInfo(cursor, 5, getName());
+        */
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
@@ -886,6 +894,7 @@ public:
     }
 
     void setResources(const ShaderCursor& cursor, bool printLogs) const {
+        /*
         cursor.getPath("boundingSpheres").setResource(boundingSpheres.view);
         cursor.getPath("flipNormalOrientation").setResource(flipNormalOrientation.view);
         cursor.getPath("interactions").setResource(interactions.view);
@@ -893,6 +902,7 @@ public:
         cursor.getPath("precision").setData(precision);
         cursor.getPath("nQueries").setData(nQueries);
         if (printLogs) printReflectionInfo(cursor, 7, getName());
+        */
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
@@ -903,7 +913,7 @@ public:
         return "closestSilhouettePoint";
     }
 };
-
+/*
 template <typename T>
 void runBvhUpdate(GPUContext& gpuContext,
                   const ComputeShader& shader,
@@ -954,5 +964,5 @@ void runBvhUpdate(GPUContext& gpuContext,
     gpuContext.transientHeap->finish();
     gpuContext.transientHeap->synchronizeAndReset();
 }
-
+*/
 } // namespace fcpw
