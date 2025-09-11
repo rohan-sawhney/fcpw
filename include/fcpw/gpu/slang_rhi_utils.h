@@ -17,8 +17,8 @@ public:
     // initialize device with the given search paths and macros
     void initDevice(const char* searchPaths[], int nSearchPaths,
                     slang::PreprocessorMacroDesc macros[], int nMacros,
-                    DeviceType deviceType = DeviceType::Default,
-                    bool enableDebugLayer = false) {
+                    DeviceType deviceType=DeviceType::Default,
+                    bool enableDebugLayer=false) {
         deviceDesc.slang.searchPaths = searchPaths;
         deviceDesc.slang.searchPathCount = nSearchPaths;
         deviceDesc.slang.preprocessorMacros = macros;
