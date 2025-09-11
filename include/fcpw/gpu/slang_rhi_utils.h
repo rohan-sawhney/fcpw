@@ -279,7 +279,7 @@ public:
         Slang::Result createBufferResult = allocate<T>(context.device, unorderedAccess,
                                                        initialData.data(), initialData.size());
         if (createBufferResult != SLANG_OK) {
-            std::cout << "failed to create buffer" << std::endl;
+            std::cerr << "failed to create buffer" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -310,7 +310,7 @@ public:
               std::vector<T>& result) const {
         Slang::Result readBufferResult = read<T>(context.device, elementCount, result);
         if (readBufferResult != SLANG_OK) {
-            std::cout << "failed to read buffer from GPU" << std::endl;
+            std::cerr << "failed to read buffer from GPU" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -375,7 +375,7 @@ public:
             context.device, unorderedAccess, width, height, depth,
             initialData.data(), initialData.size());
         if (createTextureResult != SLANG_OK) {
-            std::cout << "failed to create texture" << std::endl;
+            std::cerr << "failed to create texture" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -409,7 +409,7 @@ public:
               std::vector<T>& result) const {
         Slang::Result readTextureResult = read<T>(context.device, result);
         if (readTextureResult != SLANG_OK) {
-            std::cout << "failed to read texture from GPU" << std::endl;
+            std::cerr << "failed to read texture from GPU" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -493,7 +493,7 @@ public:
                   TextureAddressingMode address) {
         Slang::Result createSamplerResult = allocate(context.device, filter, address);
         if (createSamplerResult != SLANG_OK) {
-            std::cout << "failed to create sampler" << std::endl;
+            std::cerr << "failed to create sampler" << std::endl;
             exit(EXIT_FAILURE);
         }
     }
@@ -551,7 +551,7 @@ void runShader(GPUContext& context,
     queryDesc.count = 2;
     Slang::Result createQueryPoolResult = context.device->createQueryPool(queryDesc, queryPool.writeRef());
     if (createQueryPoolResult != SLANG_OK) {
-        std::cout << "failed to create query pool" << std::endl;
+        std::cerr << "failed to create query pool" << std::endl;
         exit(EXIT_FAILURE);
     }
 
@@ -572,7 +572,7 @@ void runShader(GPUContext& context,
     uint64_t timestampData[2] = { 0, 0 };
     Slang::Result getQueryPoolResult = queryPool->getResult(0, 2, timestampData);
     if (getQueryPoolResult != SLANG_OK) {
-        std::cout << "failed to get query pool result" << std::endl;
+        std::cerr << "failed to get query pool result" << std::endl;
         exit(EXIT_FAILURE);
     }
 
