@@ -528,7 +528,6 @@ void runShader(GPUContext& context,
                std::function<void(const ComputeShader&, const ShaderCursor&)> bindShaderResources,
                uint32_t nThreadGroups,
                uint32_t nDispatchCalls,
-               bool useBarrierBetweenDispatches,
                bool printLogs=false)
 {
     // setup command encoder
@@ -558,10 +557,9 @@ void runShader(GPUContext& context,
     computePassEncoder->writeTimestamp(queryPool, 0);
     for (uint32_t i = 0; i < nDispatchCalls; i++) {
         computePassEncoder->dispatchCompute(nThreadGroups, 1, 1);
-        if (useBarrierBetweenDispatches) commandEncoder->globalBarrier(); // QUESTION: is this the right way to apply a barrier?
     }
     computePassEncoder->writeTimestamp(queryPool, 1);
-    computePassEncoder->end(); // QUESTION: is this the right place to end the pass?
+    computePassEncoder->end();
 
     context.queue->submit(commandEncoder->finish());
     context.queue->waitOnHost();
