@@ -544,10 +544,10 @@ void runShader(GPUContext& context,
                const ComputeShader& shader,
                const GPUEntryPoint& entryPoint,
                std::function<void(const ComputeShader&, const ShaderCursor&)> bindShaderResources,
-               std::function<void(ICommandEncoder *)> applyBarrier,
                uint32_t nThreadGroups,
                uint32_t nDispatchCalls,
-               bool printLogs)
+               bool useBarrierBetweenDispatches,
+               bool printLogs=false)
 {
     /*
     // setup command buffer and encoder
@@ -577,7 +577,7 @@ void runShader(GPUContext& context,
     encoder->writeTimestamp(queryPool, 0);
     for (uint32_t i = 0; i < nDispatchCalls; i++) {
         encoder->dispatchCompute(nThreadGroups, 1, 1);
-        if (applyBarrier) applyBarrier(encoder);
+        if (useBarrierBetweenDispatches) encoder->globalBarrier();
     }
     encoder->writeTimestamp(queryPool, 1);
 

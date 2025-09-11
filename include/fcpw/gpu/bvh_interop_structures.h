@@ -937,7 +937,7 @@ void runBvhUpdate(GPUContext& gpuContext,
         entryPointCursor.getPath("nodeCount").setData(nodeCount);
 
         encoder->dispatchCompute(nodeCount, 1, 1);
-        gpuBvhBuffers.nodes.applyBarrier(encoder);
+        encoder->globalBarrier();
     }
 
     if (printLogs) {
