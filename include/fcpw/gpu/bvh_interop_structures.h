@@ -910,13 +910,12 @@ void runBvhUpdate(GPUContext& gpuContext,
                   const T& gpuBvhBuffers,
                   bool printLogs=false)
 {
-    /*
-    // setup command buffer
-    auto commandBuffer = gpuContext.transientHeap->createCommandBuffer();
-    auto encoder = commandBuffer->encodeComputeCommands();
+    // setup command encoder
+    auto commandEncoder = gpuContext.queue->createCommandEncoder();
+    auto computePassEncoder = commandEncoder->beginComputePass();
 
     // create bvh shader object
-    auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
+    auto rootShaderObject = computePassEncoder->bindPipeline(shader.pipeline);
     ComPtr<IShaderObject> bvhShaderObject = shader.createShaderObject(
         gpuContext, gpuBvhBuffers.getReflectionType());
 
@@ -936,25 +935,18 @@ void runBvhUpdate(GPUContext& gpuContext,
         entryPointCursor.getPath("firstNodeOffset").setData(firstNodeOffset);
         entryPointCursor.getPath("nodeCount").setData(nodeCount);
 
-        encoder->dispatchCompute(nodeCount, 1, 1);
-        encoder->globalBarrier();
+        computePassEncoder->dispatchCompute(nodeCount, 1, 1);
+        commandEncoder->globalBarrier(); // TODO: is this the right way to apply a barrier?
     }
+    computePassEncoder->end(); // TODO: is this the right place to end the pass?
 
     if (printLogs) {
         int entryPointFieldCount = 4;
         printReflectionInfo(entryPointCursor, entryPointFieldCount, "runBvhUpdate");
     }
 
-    // execute command buffer
-    encoder->endEncoding();
-    commandBuffer->close();
-    gpuContext.queue->executeCommandBuffer(commandBuffer);
+    gpuContext.queue->submit(commandEncoder->finish());
     gpuContext.queue->waitOnHost();
-
-    // synchronize and reset transient heap
-    gpuContext.transientHeap->finish();
-    gpuContext.transientHeap->synchronizeAndReset();
-    */
 }
 
 } // namespace fcpw

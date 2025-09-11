@@ -127,7 +127,7 @@ public:
     ComPtr<IShaderProgram> program;
     slang::ProgramLayout* reflection = nullptr;
     ComputePipelineDesc pipelineDesc = {};
-    ComPtr<IComputePipeline> pipelineState;
+    ComPtr<IComputePipeline> pipeline;
 
     // checks if the shader is initialized
     bool isInitialized() const {
@@ -183,7 +183,7 @@ public:
         programDesc.slangGlobalScope = composedProgram.get();
         program = device->createShaderProgram(programDesc);
         pipelineDesc.program = program.get();
-        SLANG_RETURN_ON_FAIL(device->createComputePipeline(pipelineDesc, pipelineState.writeRef()));
+        SLANG_RETURN_ON_FAIL(device->createComputePipeline(pipelineDesc, pipeline.writeRef()));
 
         return SLANG_OK;
     }
@@ -531,13 +531,12 @@ void runShader(GPUContext& context,
                bool useBarrierBetweenDispatches,
                bool printLogs=false)
 {
-    /*
-    // setup command buffer and encoder
-    auto commandBuffer = context.transientHeap->createCommandBuffer();
-    IComputeCommandEncoder *encoder = commandBuffer->encodeComputeCommands();
+    // setup command encoder
+    auto commandEncoder = context.queue->createCommandEncoder();
+    auto computePassEncoder = commandEncoder->beginComputePass();
 
     // bind shader resources
-    auto rootShaderObject = encoder->bindPipeline(shader.pipelineState);
+    auto rootShaderObject = computePassEncoder->bindPipeline(shader.pipeline);
     ShaderCursor rootCursor(rootShaderObject);
     if (bindShaderResources) bindShaderResources(shader, rootCursor);
 
@@ -547,7 +546,7 @@ void runShader(GPUContext& context,
 
     // dispatch compute shader
     ComPtr<IQueryPool> queryPool;
-    IQueryPool::Desc queryDesc = {};
+    QueryPoolDesc queryDesc = {};
     queryDesc.type = QueryType::Timestamp;
     queryDesc.count = 2;
     Slang::Result createQueryPoolResult = context.device->createQueryPool(queryDesc, queryPool.writeRef());
@@ -556,25 +555,19 @@ void runShader(GPUContext& context,
         exit(EXIT_FAILURE);
     }
 
-    encoder->writeTimestamp(queryPool, 0);
+    computePassEncoder->writeTimestamp(queryPool, 0);
     for (uint32_t i = 0; i < nDispatchCalls; i++) {
-        encoder->dispatchCompute(nThreadGroups, 1, 1);
-        if (useBarrierBetweenDispatches) encoder->globalBarrier();
+        computePassEncoder->dispatchCompute(nThreadGroups, 1, 1);
+        if (useBarrierBetweenDispatches) commandEncoder->globalBarrier(); // TODO: is this the right way to apply a barrier?
     }
-    encoder->writeTimestamp(queryPool, 1);
+    computePassEncoder->writeTimestamp(queryPool, 1);
+    computePassEncoder->end(); // TODO: is this the right place to end the pass?
 
-    // execute command buffer
-    encoder->endEncoding();
-    commandBuffer->close();
-    context.queue->executeCommandBuffer(commandBuffer);
+    context.queue->submit(commandEncoder->finish());
     context.queue->waitOnHost();
 
-    // synchronize and reset transient heap
-    context.transientHeap->finish();
-    context.transientHeap->synchronizeAndReset();
-
     // read timestamps
-    const DeviceInfo& deviceInfo = context.device->getDeviceInfo();
+    const DeviceInfo& deviceInfo = context.device->getInfo();
     double timestampFrequency = (double)deviceInfo.timestampFrequency;
     uint64_t timestampData[2] = { 0, 0 };
     Slang::Result getQueryPoolResult = queryPool->getResult(0, 2, timestampData);
@@ -587,7 +580,6 @@ void runShader(GPUContext& context,
         double timeSpan = (timestampData[1] - timestampData[0])*1000/timestampFrequency;
         std::cout << "Compute shader took " << timeSpan << " ms" << std::endl;
     }
-    */
 }
 
 } // namespace fcpw
