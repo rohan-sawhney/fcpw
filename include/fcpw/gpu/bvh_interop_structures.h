@@ -929,6 +929,7 @@ void runBvhUpdate(GPUContext& gpuContext,
     ShaderCursor entryPointCursor(rootShaderObject->getEntryPoint(0));
     entryPointCursor.getPath("nodeIndices").setBinding(gpuBvhBuffers.nodeIndices.buffer);
 
+    // dispatch compute shader for each depth level
     for (int depth = gpuBvhBuffers.maxUpdateDepth; depth >= 0; --depth) {
         uint32_t firstNodeOffset = gpuBvhBuffers.updateEntryData[depth].first;
         uint32_t nodeCount = gpuBvhBuffers.updateEntryData[depth].second;
