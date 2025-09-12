@@ -46,7 +46,7 @@ if(FCPW_ENABLE_GPU_SUPPORT)
     set(SLANG_RHI_INSTALL             OFF CACHE BOOL " " FORCE)
     set(SLANG_RHI_ENABLE_WGPU         OFF CACHE BOOL "Disable WebGPU" FORCE)
     set(SLANG_RHI_FETCH_SLANG_VERSION "2025.16.1" CACHE STRING "Slang version to fetch")
-    add_subdirectory(deps/slang-rhi)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/slang-rhi)
 
     if(hasParent)
         set(FCPW_SLANG_RHI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/slang-rhi/include PARENT_SCOPE)
@@ -59,7 +59,7 @@ if(FCPW_ENABLE_GPU_SUPPORT)
 endif()
 
 if(FCPW_USE_ENOKI)
-    add_subdirectory(deps/enoki)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki)
     if(hasParent)
         set(FCPW_ENOKI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki/include PARENT_SCOPE)
     else()
@@ -113,7 +113,7 @@ endif()
 ################################################################################
 # build Python bindings
 if(FCPW_BUILD_BINDINGS)
-    add_subdirectory(deps/nanobind)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/nanobind)
     add_subdirectory(python)
 endif()
 
@@ -121,7 +121,7 @@ endif()
 # build demo and tests
 if(FCPW_BUILD_DEMO OR FCPW_BUILD_TESTS)
     set(FCPW_ARGS_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/polyscope/deps/args)
-    add_subdirectory(deps/polyscope)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/polyscope)
 endif()
 
 if(FCPW_BUILD_DEMO)
