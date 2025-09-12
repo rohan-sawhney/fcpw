@@ -13,7 +13,7 @@ elseif(APPLE)
     set_target_properties(py PROPERTIES BUILD_RPATH "@loader_path" INSTALL_RPATH "@loader_path")
 endif()
 
-install(TARGETS py 
+install(TARGETS py
     LIBRARY DESTINATION fcpw
     RUNTIME DESTINATION fcpw
 )
