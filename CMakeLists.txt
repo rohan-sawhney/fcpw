@@ -40,6 +40,7 @@ if(hasParent)
 else()
     set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror)
 endif()
+list(APPEND FCPW_DEPS_INCLUDES ${FCPW_EIGEN_INCLUDES})
 
 if(FCPW_ENABLE_GPU_SUPPORT)
     set(SLANG_RHI_INSTALL             OFF CACHE BOOL " " FORCE)
@@ -54,6 +55,7 @@ if(FCPW_ENABLE_GPU_SUPPORT)
         set(FCPW_SLANG_RHI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/slang-rhi/include)
         set(FCPW_SLANG_RHI_LIBRARY slang-rhi)
     endif()
+    list(APPEND FCPW_DEPS_INCLUDES ${FCPW_SLANG_RHI_INCLUDES})
 endif()
 
 if(FCPW_USE_ENOKI)
@@ -63,6 +65,7 @@ if(FCPW_USE_ENOKI)
     else()
         set(FCPW_ENOKI_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/enoki/include)
     endif()
+    list(APPEND FCPW_DEPS_INCLUDES ${FCPW_ENOKI_INCLUDES})
 
     # Update the compilation flags
     enoki_set_compile_flags()
@@ -72,7 +75,10 @@ endif()
 ################################################################################
 # build library
 add_library(${PROJECT_NAME} INTERFACE)
-target_include_directories(${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>)
+target_include_directories(${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include> ${FCPW_DEPS_INCLUDES})
+if(FCPW_ENABLE_GPU_SUPPORT)
+    target_link_libraries(${PROJECT_NAME} INTERFACE ${FCPW_SLANG_RHI_LIBRARY})
+endif()
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
 
 if(FCPW_USE_ENOKI)
@@ -98,6 +104,10 @@ if(FCPW_USE_ENOKI)
     if(FCPW_USE_EIGHT_WIDE_BRANCHING)
         target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_EIGHT_WIDE_BRANCHING)
     endif()
+endif()
+
+if(FCPW_ENABLE_GPU_SUPPORT)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_GPU)
 endif()
 
 ################################################################################
