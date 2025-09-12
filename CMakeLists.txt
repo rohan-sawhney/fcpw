@@ -75,10 +75,9 @@ endif()
 ################################################################################
 # build library
 add_library(${PROJECT_NAME} INTERFACE)
-target_include_directories(${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include> ${FCPW_DEPS_INCLUDES})
-if(FCPW_ENABLE_GPU_SUPPORT)
-    target_link_libraries(${PROJECT_NAME} INTERFACE ${FCPW_SLANG_RHI_LIBRARY})
-endif()
+target_include_directories(${PROJECT_NAME} INTERFACE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    ${FCPW_DEPS_INCLUDES})
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
 
 if(FCPW_USE_ENOKI)
@@ -108,6 +107,7 @@ endif()
 
 if(FCPW_ENABLE_GPU_SUPPORT)
     target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_GPU)
+    target_link_libraries(${PROJECT_NAME} INTERFACE ${FCPW_SLANG_RHI_LIBRARY})
 endif()
 
 ################################################################################
