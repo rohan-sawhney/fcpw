@@ -158,6 +158,8 @@ To include *FCPW* in your project without GPU support, add the following lines t
 ```
 add_subdirectory(fcpw)
 target_link_libraries(YOUR_TARGET fcpw)
+target_include_directories(YOUR_TARGET PRIVATE ${FCPW_EIGEN_INCLUDES})
+target_include_directories(YOUR_TARGET PRIVATE ${FCPW_ENOKI_INCLUDES})
 ```
 
 If your prefer to directly include *FCPW* header files without CMake, then you'll have to define a few extra variables before including the library:
@@ -168,7 +170,12 @@ If your prefer to directly include *FCPW* header files without CMake, then you'l
 #include <fcpw/fcpw.h>
 ```
 
-Finally, GPU support can be enabled with the command `FCPW_ENABLE_GPU_SUPPORT=ON`.
+Finally, GPU support can be enabled with the command `FCPW_ENABLE_GPU_SUPPORT=ON`. Additionally include the following lines in your CMakeLists.txt file:
+
+```
+target_link_libraries(YOUR_TARGET ${FCPW_SLANG_RHI_LIBRARY})
+target_include_directories(YOUR_TARGET PRIVATE ${FCPW_SLANG_RHI_INCLUDES})
+```
 
 On Windows, you may need to download necessary DLL files from the official DirectX Shader Compiler repository on GitHub [here](https://github.com/microsoft/DirectXShaderCompiler/releases). Copy `dxil.dll` and `dxcompiler.dll` to `C:\Windows\System32\` for 64-bit systems or to `C:\Windows\SysWOW64\` for 32-bit systems. This makes the DLLs available to all applications system-wide.
 
