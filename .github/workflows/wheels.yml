@@ -13,7 +13,6 @@ env:
   CIBW_ARCHS_WINDOWS: auto64
   CIBW_ARCHS_LINUX: auto64
   CIBW_BEFORE_ALL_LINUX: yum install -y zip wayland-devel libxkbcommon-devel libXcursor-devel libXi-devel libXinerama-devel libXrandr-devel
-  CIBW_ENVIRONMENT_LINUX: "LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/project/deps/slang/lib"
   CIBW_CONFIG_SETTINGS_LINUX: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
   CIBW_CONFIG_SETTINGS_WINDOWS: cmake.define.FCPW_ENABLE_GPU_SUPPORT=ON
   MACOSX_DEPLOYMENT_TARGET: "10.15"
@@ -59,7 +58,6 @@ jobs:
     - name: Build wheels
       env:
         CIBW_BUILD: ${{ matrix.python }}-*
-        LD_LIBRARY_PATH: /project/deps/slang/lib:$LD_LIBRARY_PATH
       run: |
         python -m cibuildwheel --output-dir wheelhouse
 
