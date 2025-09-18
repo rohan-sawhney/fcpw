@@ -137,13 +137,13 @@ public:
     // load a compute program with the given module and entry point names
     Slang::Result loadProgram(ComPtr<IDevice>& device,
                               const GPULibraryModules& libraryModules,
-                              const std::string& moduleName,
+                              const std::string& mainModuleName,
                               const std::vector<std::string>& entryPointNames) {
         // load module
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
         ComPtr<slang::IBlob> diagnosticsBlob;
-        slang::IModule* mainModule = slangSession->loadModule(moduleName.c_str(),
+        slang::IModule* mainModule = slangSession->loadModule(mainModuleName.c_str(),
                                                               diagnosticsBlob.writeRef());
         diagnoseIfNeeded(diagnosticsBlob);
         if (!mainModule) return SLANG_FAIL;
@@ -191,10 +191,10 @@ public:
     // load a compute program with the given module and entry point names
     void loadProgram(GPUContext& context,
                      const GPULibraryModules& libraryModules,
-                     const std::string& moduleName,
+                     const std::string& mainModuleName,
                      const std::vector<std::string>& entryPointNames) {
         Slang::Result loadProgramResult = loadProgram(context.device, libraryModules,
-                                                      moduleName, entryPointNames);
+                                                      mainModuleName, entryPointNames);
         if (loadProgramResult != SLANG_OK) {
             for (const std::string& entryPointName: entryPointNames) {
                 std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;

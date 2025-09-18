@@ -81,7 +81,7 @@ private:
     GPULibraryModules libraryModules;
     GPUBvhBuffers bvhBuffers;
     std::string fcpwModule;
-    std::string shaderModule;
+    std::string mainModule;
     std::string searchPaths[1];
     slang::PreprocessorMacroDesc macros[1];
     ComputeShader refitShader;
