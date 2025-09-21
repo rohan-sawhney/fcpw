@@ -77,11 +77,10 @@ public:
 
 private:
     // members
+    std::string fcpwGpuDirectoryPath;
     GPUContext context;
     GPUModule mainModule;
     std::vector<GPUModule> libraryModules;
-    std::string searchPaths[1];
-    slang::PreprocessorMacroDesc macros[1];
     GPUBvhBuffers bvhBuffers;
     ComputeShader refitShader;
     ComputeShader rayIntersectionShader;

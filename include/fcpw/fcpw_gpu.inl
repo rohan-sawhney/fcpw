@@ -12,9 +12,7 @@ inline GPUScene<DIM>::GPUScene(const std::string& fcpwDirectoryPath_, bool print
 nThreadsPerGroup(256),
 printLogs(printLogs_)
 {
-    std::filesystem::path fcpwDirectoryPath(fcpwDirectoryPath_);
-    std::filesystem::path fcpwGpuDirectoryPath = fcpwDirectoryPath / "include" / "fcpw" / "gpu";
-    searchPaths[0] = fcpwGpuDirectoryPath.string();
+    fcpwGpuDirectoryPath = fcpwDirectoryPath_ + "/include/fcpw/gpu";
 }
 
 template<size_t DIM>
@@ -26,18 +24,19 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
                                  sceneData->silhouetteEdgeObjects.size() > 0;
 
     // initialize GPU context
-    const char* searchPathList[] = { searchPaths[0].c_str() };
+    const char* searchPathList[] = { fcpwGpuDirectoryPath.c_str() };
     std::string macroValue = hasSilhouetteGeometry ?
                              std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_SNCH : FCPW_TRIANGLE_SNCH) :
                              std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH);
+    slang::PreprocessorMacroDesc macros[1];
     macros[0].name = "FCPW_BVH_TYPE";
     macros[0].value = macroValue.c_str();
     context.initDevice(searchPathList, 1, macros, 1);
 
     // load modules
     libraryModules.resize(1);
-    libraryModules[0].load(context, searchPaths[0] + "/fcpw.slang");
-    mainModule.load(context, searchPaths[0] + "/bvh.cs.slang");
+    libraryModules[0].load(context, fcpwGpuDirectoryPath + "/fcpw.slang");
+    mainModule.load(context, fcpwGpuDirectoryPath + "/bvh.cs.slang");
 
     // allocate GPU buffers
     bvhBuffers.template allocate<DIM>(context, sceneData, true,
