@@ -78,12 +78,11 @@ public:
 private:
     // members
     GPUContext context;
-    GPULibraryModules libraryModules;
-    GPUBvhBuffers bvhBuffers;
-    std::string fcpwModule;
-    std::string mainModule;
+    GPUModule mainModule;
+    std::vector<GPUModule> libraryModules;
     std::string searchPaths[1];
     slang::PreprocessorMacroDesc macros[1];
+    GPUBvhBuffers bvhBuffers;
     ComputeShader refitShader;
     ComputeShader rayIntersectionShader;
     ComputeShader sphereIntersectionShader;

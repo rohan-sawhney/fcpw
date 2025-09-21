@@ -80,36 +80,32 @@ private:
     DebugCallback debugCallback;
 };
 
-class GPULibraryModules {
+class GPUModule {
 public:
     // member
-    std::vector<slang::IModule *> modules;
+    slang::IModule *module;
 
     // load a module with the given name
-    Slang::Result loadModule(ComPtr<IDevice>& device,
-                             const std::string& moduleName) {
+    Slang::Result load(ComPtr<IDevice>& device, const std::string& name) {
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
         ComPtr<slang::IBlob> diagnosticsBlob;
-        slang::IModule* module = slangSession->loadModule(moduleName.c_str(),
-                                                          diagnosticsBlob.writeRef());
+        module = slangSession->loadModule(name.c_str(), diagnosticsBlob.writeRef());
         diagnoseIfNeeded(diagnosticsBlob);
         if (!module) return SLANG_FAIL;
 
-        modules.emplace_back(module);
         return SLANG_OK;
     }
 
     // load a module with the given name
-    void loadModule(GPUContext& context,
-                    const std::string& moduleName) {
-        Slang::Result loadModuleResult = loadModule(context.device, moduleName);
-        if (loadModuleResult != SLANG_OK) {
-            std::cerr << "failed to load " << moduleName << " module" << std::endl;
+    void load(GPUContext& context, const std::string& name) {
+        Slang::Result loadResult = load(context.device, name);
+        if (loadResult != SLANG_OK) {
+            std::cerr << "failed to load " << name << " module" << std::endl;
             exit(EXIT_FAILURE);
         }
 
-        std::cout << "loaded " << moduleName << " module" << std::endl;
+        std::cout << "loaded " << name << " module" << std::endl;
     }
 
 private:
@@ -136,32 +132,26 @@ public:
 
     // load a compute program with the given module and entry point names
     Slang::Result loadProgram(ComPtr<IDevice>& device,
-                              const GPULibraryModules& libraryModules,
-                              const std::string& mainModuleName,
+                              const GPUModule& mainModule,
+                              const std::vector<GPUModule>& libraryModules,
                               const std::vector<std::string>& entryPointNames) {
-        // load module
+        // create composite program
+        std::vector<slang::IComponentType *> componentTypes;
+        for (size_t i = 0; i < libraryModules.size(); i++) {
+            componentTypes.emplace_back(libraryModules[i].module);
+        }
+        componentTypes.emplace_back(mainModule.module);
+        for (size_t i = 0; i < entryPointNames.size(); i++) {
+            ComPtr<slang::IEntryPoint> entryPoint;
+            SLANG_RETURN_ON_FAIL(mainModule.module->findEntryPointByName(entryPointNames[i].c_str(),
+                                                                         entryPoint.writeRef()));
+            componentTypes.emplace_back(entryPoint.get());
+        }
+
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
-        ComPtr<slang::IBlob> diagnosticsBlob;
-        slang::IModule* mainModule = slangSession->loadModule(mainModuleName.c_str(),
-                                                              diagnosticsBlob.writeRef());
-        diagnoseIfNeeded(diagnosticsBlob);
-        if (!mainModule) return SLANG_FAIL;
-
-        // set entry point and create composite program
-        std::vector<slang::IComponentType *> componentTypes;
-        for (auto module: libraryModules.modules) {
-            componentTypes.emplace_back(module);
-        }
-        componentTypes.emplace_back(mainModule);
-        for (const std::string& entryPointName: entryPointNames) {
-            ComPtr<slang::IEntryPoint> computeEntryPoint;
-            SLANG_RETURN_ON_FAIL(mainModule->findEntryPointByName(entryPointName.c_str(),
-                                                                  computeEntryPoint.writeRef()));
-            componentTypes.emplace_back(computeEntryPoint.get());
-        }
-
         ComPtr<slang::IComponentType> composedProgram;
+        ComPtr<slang::IBlob> diagnosticsBlob;
         SlangResult result = slangSession->createCompositeComponentType(componentTypes.data(),
                                                                         componentTypes.size(),
                                                                         composedProgram.writeRef(),
@@ -190,21 +180,21 @@ public:
 
     // load a compute program with the given module and entry point names
     void loadProgram(GPUContext& context,
-                     const GPULibraryModules& libraryModules,
-                     const std::string& mainModuleName,
+                     const GPUModule& mainModule,
+                     const std::vector<GPUModule>& libraryModules,
                      const std::vector<std::string>& entryPointNames) {
-        Slang::Result loadProgramResult = loadProgram(context.device, libraryModules,
-                                                      mainModuleName, entryPointNames);
+        Slang::Result loadProgramResult = loadProgram(context.device, mainModule,
+                                                      libraryModules, entryPointNames);
         if (loadProgramResult != SLANG_OK) {
-            for (const std::string& entryPointName: entryPointNames) {
-                std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;
+            for (size_t i = 0; i < entryPointNames.size(); i++) {
+                std::cerr << "failed to load " << entryPointNames[i] << " compute program" << std::endl;
             }
 
             exit(EXIT_FAILURE);
         }
 
-        for (const std::string& entryPointName: entryPointNames) {
-            std::cout << "loaded " << entryPointName << " compute program" << std::endl;
+        for (size_t i = 0; i < entryPointNames.size(); i++) {
+            std::cout << "loaded " << entryPointNames[i] << " compute program" << std::endl;
         }
     }
 

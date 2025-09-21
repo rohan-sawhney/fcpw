@@ -13,10 +13,8 @@ nThreadsPerGroup(256),
 printLogs(printLogs_)
 {
     std::filesystem::path fcpwDirectoryPath(fcpwDirectoryPath_);
-    std::filesystem::path shaderDirectoryPath = fcpwDirectoryPath / "include" / "fcpw" / "gpu";
-    fcpwModule = (shaderDirectoryPath / "fcpw.slang").string();
-    searchPaths[0] = shaderDirectoryPath.string();
-    mainModule = (shaderDirectoryPath / "bvh.cs.slang").string();
+    std::filesystem::path fcpwGpuDirectoryPath = fcpwDirectoryPath / "include" / "fcpw" / "gpu";
+    searchPaths[0] = fcpwGpuDirectoryPath.string();
 }
 
 template<size_t DIM>
@@ -36,12 +34,15 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     macros[0].value = macroValue.c_str();
     context.initDevice(searchPathList, 1, macros, 1);
 
-    // load library module
-    libraryModules.loadModule(context, fcpwModule);
+    // load modules
+    libraryModules.resize(1);
+    libraryModules[0].load(context, searchPaths[0] + "/fcpw.slang");
+    mainModule.load(context, searchPaths[0] + "/bvh.cs.slang");
 
     // allocate GPU buffers
     bvhBuffers.template allocate<DIM>(context, sceneData, true,
-                                      hasSilhouetteGeometry, true, false);
+                                      hasSilhouetteGeometry,
+                                      true, false);
 
     // bind bvh resources
     bindBvhResources = [this](const ComputeShader& shader,
@@ -66,7 +67,7 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
     // initialize shader
     if (!refitShader.isInitialized()) {
         std::vector<std::string> entryPoints = { "refit" };
-        refitShader.loadProgram(context, libraryModules, mainModule, entryPoints);
+        refitShader.loadProgram(context, mainModule, libraryModules, entryPoints);
     }
 
     // update GPU buffers
@@ -146,7 +147,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
     // initialize shader
     if (!rayIntersectionShader.isInitialized()) {
         std::vector<std::string> entryPoints = { runRayIntersectionQuery.getName() };
-        rayIntersectionShader.loadProgram(context, libraryModules, mainModule, entryPoints);
+        rayIntersectionShader.loadProgram(context, mainModule, libraryModules, entryPoints);
     }
 
     // run ray intersection shader
@@ -213,7 +214,7 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
     // initialize shader
     if (!sphereIntersectionShader.isInitialized()) {
         std::vector<std::string> entryPoints = { runSphereIntersectionQuery.getName() };
-        sphereIntersectionShader.loadProgram(context, libraryModules, mainModule, entryPoints);
+        sphereIntersectionShader.loadProgram(context, mainModule, libraryModules, entryPoints);
     }
 
     // run sphere intersection shader
@@ -276,7 +277,7 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
     // initialize shader
     if (!closestPointShader.isInitialized()) {
         std::vector<std::string> entryPoints = { runClosestPointQuery.getName() };
-        closestPointShader.loadProgram(context, libraryModules, mainModule, entryPoints);
+        closestPointShader.loadProgram(context, mainModule, libraryModules, entryPoints);
     }
 
     // run closest point shader
@@ -346,7 +347,7 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
     // initialize shader
     if (!closestSilhouettePointShader.isInitialized()) {
         std::vector<std::string> entryPoints = { runClosestSilhouettePointQuery.getName() };
-        closestSilhouettePointShader.loadProgram(context, libraryModules, mainModule, entryPoints);
+        closestSilhouettePointShader.loadProgram(context, mainModule, libraryModules, entryPoints);
     }
 
     // run closest silhouette point shader
