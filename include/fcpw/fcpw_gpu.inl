@@ -41,11 +41,11 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     mainModule.load(context, fcpwGpuDirectoryPath + "/bvh.cs.slang");
 
     // initialize shaders
-    refitShader.loadProgram(context, mainModule, libraryModules, { "refit" });
-    rayIntersectionShader.loadProgram(context, mainModule, libraryModules, { "rayIntersection" });
-    sphereIntersectionShader.loadProgram(context, mainModule, libraryModules, { "sphereIntersection" });
-    closestPointShader.loadProgram(context, mainModule, libraryModules, { "closestPoint" });
-    closestSilhouettePointShader.loadProgram(context, mainModule, libraryModules, { "closestSilhouettePoint" });
+    refitShader.loadProgram(context, mainModule, libraryModules, "refit");
+    rayIntersectionShader.loadProgram(context, mainModule, libraryModules, "rayIntersection");
+    sphereIntersectionShader.loadProgram(context, mainModule, libraryModules, "sphereIntersection");
+    closestPointShader.loadProgram(context, mainModule, libraryModules, "closestPoint");
+    closestSilhouettePointShader.loadProgram(context, mainModule, libraryModules, "closestSilhouettePoint");
 
     // allocate GPU buffers
     bvhBuffers.template allocate<DIM>(context, sceneData, true,

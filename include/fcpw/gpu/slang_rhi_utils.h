@@ -134,19 +134,17 @@ public:
     Slang::Result loadProgram(ComPtr<IDevice>& device,
                               const GPUModule& mainModule,
                               const std::vector<GPUModule>& libraryModules,
-                              const std::vector<std::string>& entryPointNames) {
+                              const std::string& entryPointName) {
         // create composite program
         std::vector<slang::IComponentType *> componentTypes;
         for (size_t i = 0; i < libraryModules.size(); i++) {
             componentTypes.emplace_back(libraryModules[i].module);
         }
         componentTypes.emplace_back(mainModule.module);
-        for (size_t i = 0; i < entryPointNames.size(); i++) {
-            ComPtr<slang::IEntryPoint> entryPoint;
-            SLANG_RETURN_ON_FAIL(mainModule.module->findEntryPointByName(entryPointNames[i].c_str(),
-                                                                         entryPoint.writeRef()));
-            componentTypes.emplace_back(entryPoint.get());
-        }
+        ComPtr<slang::IEntryPoint> entryPoint;
+        SLANG_RETURN_ON_FAIL(mainModule.module->findEntryPointByName(entryPointName.c_str(),
+                                                                     entryPoint.writeRef()));
+        componentTypes.emplace_back(entryPoint.get());
 
         ComPtr<slang::ISession> slangSession;
         SLANG_RETURN_ON_FAIL(device->getSlangSession(slangSession.writeRef()));
@@ -182,20 +180,15 @@ public:
     void loadProgram(GPUContext& context,
                      const GPUModule& mainModule,
                      const std::vector<GPUModule>& libraryModules,
-                     const std::vector<std::string>& entryPointNames) {
+                     const std::string& entryPointName) {
         Slang::Result loadProgramResult = loadProgram(context.device, mainModule,
-                                                      libraryModules, entryPointNames);
+                                                      libraryModules, entryPointName);
         if (loadProgramResult != SLANG_OK) {
-            for (size_t i = 0; i < entryPointNames.size(); i++) {
-                std::cerr << "failed to load " << entryPointNames[i] << " compute program" << std::endl;
-            }
-
+            std::cerr << "failed to load " << entryPointName << " compute program" << std::endl;
             exit(EXIT_FAILURE);
         }
 
-        for (size_t i = 0; i < entryPointNames.size(); i++) {
-            std::cout << "loaded " << entryPointNames[i] << " compute program" << std::endl;
-        }
+        std::cout << "loaded " << entryPointName << " compute program" << std::endl;
     }
 
     // create a shader object for the given reflection type name
