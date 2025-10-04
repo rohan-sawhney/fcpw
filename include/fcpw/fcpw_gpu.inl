@@ -34,9 +34,18 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     context.initDevice(searchPathList, 1, macros, 1);
 
     // load modules
+    std::vector<GPUModule> libraryModules;
     libraryModules.resize(1);
     libraryModules[0].load(context, fcpwGpuDirectoryPath + "/fcpw.slang");
+    GPUModule mainModule;
     mainModule.load(context, fcpwGpuDirectoryPath + "/bvh.cs.slang");
+
+    // initialize shaders
+    refitShader.loadProgram(context, mainModule, libraryModules, { "refit" });
+    rayIntersectionShader.loadProgram(context, mainModule, libraryModules, { "rayIntersection" });
+    sphereIntersectionShader.loadProgram(context, mainModule, libraryModules, { "sphereIntersection" });
+    closestPointShader.loadProgram(context, mainModule, libraryModules, { "closestPoint" });
+    closestSilhouettePointShader.loadProgram(context, mainModule, libraryModules, { "closestSilhouettePoint" });
 
     // allocate GPU buffers
     bvhBuffers.template allocate<DIM>(context, sceneData, true,
@@ -62,12 +71,6 @@ inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
                                  sceneData->silhouetteEdgeObjects.size() > 0;
     bool allocateSilhouetteGeometry = hasSilhouetteGeometry && updateGeometry;
     bool allocateRefitData = bvhBuffers.updateEntryData.size() == 0;
-
-    // initialize shader
-    if (!refitShader.isInitialized()) {
-        std::vector<std::string> entryPoints = { "refit" };
-        refitShader.loadProgram(context, mainModule, libraryModules, entryPoints);
-    }
 
     // update GPU buffers
     bvhBuffers.template allocate<DIM>(context, sceneData, updateGeometry,
@@ -143,12 +146,6 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
     runRayIntersectionQuery.allocate(context, rays);
     runRayIntersectionQuery.checkForOcclusion = checkForOcclusion ? 1 : 0;
 
-    // initialize shader
-    if (!rayIntersectionShader.isInitialized()) {
-        std::vector<std::string> entryPoints = { runRayIntersectionQuery.getName() };
-        rayIntersectionShader.loadProgram(context, mainModule, libraryModules, entryPoints);
-    }
-
     // run ray intersection shader
     uint32_t nQueries = (uint32_t)rays.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
@@ -210,12 +207,6 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
     GPURunSphereIntersectionQuery runSphereIntersectionQuery;
     runSphereIntersectionQuery.allocate(context, boundingSpheres, randNums);
 
-    // initialize shader
-    if (!sphereIntersectionShader.isInitialized()) {
-        std::vector<std::string> entryPoints = { runSphereIntersectionQuery.getName() };
-        sphereIntersectionShader.loadProgram(context, mainModule, libraryModules, entryPoints);
-    }
-
     // run sphere intersection shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
@@ -272,12 +263,6 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
     GPURunClosestPointQuery runClosestPointQuery;
     runClosestPointQuery.allocate(context, boundingSpheres);
     runClosestPointQuery.recordNormals = recordNormals ? 1 : 0;
-
-    // initialize shader
-    if (!closestPointShader.isInitialized()) {
-        std::vector<std::string> entryPoints = { runClosestPointQuery.getName() };
-        closestPointShader.loadProgram(context, mainModule, libraryModules, entryPoints);
-    }
 
     // run closest point shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();
@@ -342,12 +327,6 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoun
     runClosestSilhouettePointQuery.allocate(context, boundingSpheres, flipNormalOrientation);
     runClosestSilhouettePointQuery.squaredMinRadius = squaredMinRadius;
     runClosestSilhouettePointQuery.precision = precision;
-
-    // initialize shader
-    if (!closestSilhouettePointShader.isInitialized()) {
-        std::vector<std::string> entryPoints = { runClosestSilhouettePointQuery.getName() };
-        closestSilhouettePointShader.loadProgram(context, mainModule, libraryModules, entryPoints);
-    }
 
     // run closest silhouette point shader
     uint32_t nQueries = (uint32_t)boundingSpheres.size();

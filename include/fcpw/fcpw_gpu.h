@@ -79,8 +79,6 @@ private:
     // members
     std::string fcpwGpuDirectoryPath;
     GPUContext context;
-    GPUModule mainModule;
-    std::vector<GPUModule> libraryModules;
     GPUBvhBuffers bvhBuffers;
     ComputeShader refitShader;
     ComputeShader rayIntersectionShader;

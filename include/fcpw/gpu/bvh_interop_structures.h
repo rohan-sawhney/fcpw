@@ -791,15 +791,11 @@ public:
         cursor.getPath("interactions").setBinding(interactions.buffer);
         cursor.getPath("checkForOcclusion").setData(checkForOcclusion);
         cursor.getPath("nQueries").setData(nQueries);
-        if (printLogs) printReflectionInfo(cursor, 5, getName());
+        if (printLogs) printReflectionInfo(cursor, 5, "rayIntersection");
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
-    }
-
-    std::string getName() const {
-        return "rayIntersection";
     }
 };
 
@@ -824,15 +820,11 @@ public:
         cursor.getPath("randNums").setBinding(randNums.buffer);
         cursor.getPath("interactions").setBinding(interactions.buffer);
         cursor.getPath("nQueries").setData(nQueries);
-        if (printLogs) printReflectionInfo(cursor, 5, getName());
+        if (printLogs) printReflectionInfo(cursor, 5, "sphereIntersection");
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
-    }
-
-    std::string getName() const {
-        return "sphereIntersection";
     }
 };
 
@@ -855,15 +847,11 @@ public:
         cursor.getPath("interactions").setBinding(interactions.buffer);
         cursor.getPath("recordNormals").setData(recordNormals);
         cursor.getPath("nQueries").setData(nQueries);
-        if (printLogs) printReflectionInfo(cursor, 5, getName());
+        if (printLogs) printReflectionInfo(cursor, 5, "closestPoint");
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
-    }
-
-    std::string getName() const {
-        return "closestPoint";
     }
 };
 
@@ -892,15 +880,11 @@ public:
         cursor.getPath("squaredMinRadius").setData(squaredMinRadius);
         cursor.getPath("precision").setData(precision);
         cursor.getPath("nQueries").setData(nQueries);
-        if (printLogs) printReflectionInfo(cursor, 7, getName());
+        if (printLogs) printReflectionInfo(cursor, 7, "closestSilhouettePoint");
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
         interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
-    }
-
-    std::string getName() const {
-        return "closestSilhouettePoint";
     }
 };
 
