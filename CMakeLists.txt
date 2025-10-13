@@ -45,7 +45,7 @@ list(APPEND FCPW_DEPS_INCLUDES ${FCPW_EIGEN_INCLUDES})
 if(FCPW_ENABLE_GPU_SUPPORT)
     set(SLANG_RHI_INSTALL             OFF CACHE BOOL " " FORCE)
     set(SLANG_RHI_ENABLE_WGPU         OFF CACHE BOOL "Disable WebGPU" FORCE)
-    set(SLANG_RHI_FETCH_SLANG_VERSION "2025.17.2" CACHE STRING "Slang version to fetch")
+    set(SLANG_RHI_FETCH_SLANG_VERSION "2025.18.2" CACHE STRING "Slang version to fetch")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/slang-rhi)
 
     if(hasParent)
