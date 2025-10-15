@@ -13,16 +13,30 @@ public:
     DeviceDesc deviceDesc = {};
     ComPtr<IDevice> device;
     ComPtr<ICommandQueue> queue;
+    std::vector<std::string> searchPaths;
+    std::vector<std::pair<std::string, std::string>> macros;
 
     // initialize device with the given search paths and macros
-    void initDevice(const char* searchPaths[], int nSearchPaths,
-                    slang::PreprocessorMacroDesc macros[], int nMacros,
-                    DeviceType deviceType=DeviceType::Default,
+    void initDevice(DeviceType deviceType=DeviceType::Default,
                     bool enableDebugLayer=false) {
-        deviceDesc.slang.searchPaths = searchPaths;
-        deviceDesc.slang.searchPathCount = nSearchPaths;
-        deviceDesc.slang.preprocessorMacros = macros;
-        deviceDesc.slang.preprocessorMacroCount = nMacros;
+        // convert search paths and macros to C strings
+        cStrSearchPaths.clear();
+        cStrSearchPaths.resize(searchPaths.size());
+        for (size_t i = 0; i < searchPaths.size(); i++) {
+            cStrSearchPaths[i] = searchPaths[i].c_str();
+        }
+        macrosDesc.clear();
+        macrosDesc.resize(macros.size());
+        for (size_t i = 0; i < macros.size(); i++) {
+            macrosDesc[i].name = macros[i].first.c_str();
+            macrosDesc[i].value = macros[i].second.c_str();
+        }
+
+        // create device and queue
+        deviceDesc.slang.searchPaths = cStrSearchPaths.data();
+        deviceDesc.slang.searchPathCount = cStrSearchPaths.size();
+        deviceDesc.slang.preprocessorMacros = macrosDesc.data();
+        deviceDesc.slang.preprocessorMacroCount = macrosDesc.size();
         deviceDesc.slang.optimizationLevel = SlangOptimizationLevel::SLANG_OPTIMIZATION_LEVEL_HIGH;
         deviceDesc.deviceType = deviceType;
         if (enableDebugLayer) {
@@ -78,6 +92,10 @@ private:
         }
     };
     DebugCallback debugCallback;
+
+    // members
+    std::vector<const char*> cStrSearchPaths;
+    std::vector<slang::PreprocessorMacroDesc> macrosDesc;
 };
 
 class GPUModule {

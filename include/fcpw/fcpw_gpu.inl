@@ -24,14 +24,12 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
                                  sceneData->silhouetteEdgeObjects.size() > 0;
 
     // initialize GPU context
-    const char* searchPathList[] = { fcpwGpuDirectoryPath.c_str() };
     std::string macroValue = hasSilhouetteGeometry ?
                              std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_SNCH : FCPW_TRIANGLE_SNCH) :
                              std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH);
-    slang::PreprocessorMacroDesc macros[1];
-    macros[0].name = "FCPW_BVH_TYPE";
-    macros[0].value = macroValue.c_str();
-    context.initDevice(searchPathList, 1, macros, 1);
+    context.searchPaths = { fcpwGpuDirectoryPath };
+    context.macros = {{ "FCPW_BVH_TYPE", macroValue }};
+    context.initDevice();
 
     // load modules
     std::vector<GPUModule> libraryModules;
