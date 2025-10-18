@@ -511,6 +511,7 @@ class GPUShaderEntryPoint {
 public:
     virtual ~GPUShaderEntryPoint() = default;
     virtual void setResources(const ShaderCursor& cursor, bool printLogs) const = 0;
+    virtual void setDispatchResources(const ShaderCursor& cursor, uint32_t dispatchIndex) const { /* do nothing */ }
 };
 
 void printReflectionInfo(const ShaderCursor& cursor, int nFields,
@@ -556,6 +557,7 @@ void runShader(GPUContext& context,
 
     computePassEncoder->writeTimestamp(queryPool, 0);
     for (uint32_t i = 0; i < nDispatchCalls; i++) {
+        entryPoint.setDispatchResources(entryPointCursor, i);
         computePassEncoder->dispatchCompute(nThreadGroups, 1, 1);
     }
     computePassEncoder->writeTimestamp(queryPool, 1);
