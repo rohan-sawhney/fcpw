@@ -390,7 +390,7 @@ public:
         SLANG_RETURN_ON_FAIL(device->readTexture(texture, 0, 0, resultBlob.writeRef(), &layout));
 
         Format format = getTextureFormat<T, CHANNELS>();
-        size_t elementCount = layout.size.width*layout.size.height* layout.size.depth;
+        size_t elementCount = layout.size.width*layout.size.height*layout.size.depth;
         size_t expectedBufferSize = elementCount*getTexelSize(format);
         if (resultBlob->getBufferSize() != expectedBufferSize) {
             std::cerr << "incorrect GPU texture size on read" << std::endl;
