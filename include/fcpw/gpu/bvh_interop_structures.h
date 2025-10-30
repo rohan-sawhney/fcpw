@@ -795,7 +795,7 @@ public:
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
+        interactions.read<GPUInteraction>(gpuContext, interactionsData);
     }
 };
 
@@ -824,7 +824,7 @@ public:
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
+        interactions.read<GPUInteraction>(gpuContext, interactionsData);
     }
 };
 
@@ -851,7 +851,7 @@ public:
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
+        interactions.read<GPUInteraction>(gpuContext, interactionsData);
     }
 };
 
@@ -884,7 +884,7 @@ public:
     }
 
     void read(GPUContext& gpuContext, std::vector<GPUInteraction>& interactionsData) const {
-        interactions.read<GPUInteraction>(gpuContext, nQueries, interactionsData);
+        interactions.read<GPUInteraction>(gpuContext, interactionsData);
     }
 };
 

@@ -287,29 +287,29 @@ public:
 
     // read the buffer data into a vector
     template<typename T>
-    Slang::Result read(ComPtr<IDevice>& device, size_t elementCount,
-                       std::vector<T>& result) const {
-        ComPtr<ISlangBlob> resultBlob;
-        size_t expectedBufferSize = elementCount*sizeof(T);
-        SLANG_RETURN_ON_FAIL(device->readBuffer(buffer, 0, expectedBufferSize,
-                                                resultBlob.writeRef()));
-        if (resultBlob->getBufferSize() != expectedBufferSize) {
-            std::cerr << "incorrect GPU buffer size on read" << std::endl;
-            return SLANG_FAIL;
-        }
-
+    Slang::Result read(ComPtr<IDevice>& device, std::vector<T>& result) const {
         result.clear();
-        auto resultPtr = (T *)resultBlob->getBufferPointer();
-        result.assign(resultPtr, resultPtr + elementCount);
+        size_t elementCount = desc.size/sizeof(T);
+        if (elementCount > 0) {
+            ComPtr<ISlangBlob> resultBlob;
+            SLANG_RETURN_ON_FAIL(device->readBuffer(buffer, 0, desc.size,
+                                                    resultBlob.writeRef()));
+            if (resultBlob->getBufferSize() != desc.size) {
+                std::cerr << "incorrect GPU buffer size on read" << std::endl;
+                return SLANG_FAIL;
+            }
+
+            auto resultPtr = (T *)resultBlob->getBufferPointer();
+            result.assign(resultPtr, resultPtr + elementCount);
+        }
 
         return SLANG_OK;
     }
 
     // read the buffer data into a vector
     template<typename T>
-    void read(GPUContext& context, size_t elementCount,
-              std::vector<T>& result) const {
-        Slang::Result readBufferResult = read<T>(context.device, elementCount, result);
+    void read(GPUContext& context, std::vector<T>& result) const {
+        Slang::Result readBufferResult = read<T>(context.device, result);
         if (readBufferResult != SLANG_OK) {
             std::cerr << "failed to read buffer from GPU" << std::endl;
             exit(EXIT_FAILURE);
@@ -385,21 +385,23 @@ public:
     template <typename T, size_t CHANNELS>
     Slang::Result read(ComPtr<IDevice>& device,
                        std::vector<T>& result) const {
-        ComPtr<ISlangBlob> resultBlob;
-        SubresourceLayout layout;
-        SLANG_RETURN_ON_FAIL(device->readTexture(texture, 0, 0, resultBlob.writeRef(), &layout));
-
-        Format format = getTextureFormat<T, CHANNELS>();
-        size_t elementCount = layout.size.width*layout.size.height*layout.size.depth;
-        size_t expectedBufferSize = elementCount*getTexelSize(format);
-        if (resultBlob->getBufferSize() != expectedBufferSize) {
-            std::cerr << "incorrect GPU texture size on read" << std::endl;
-            return SLANG_FAIL;
-        }
-
         result.clear();
-        auto resultPtr = (T *)resultBlob->getBufferPointer();
-        result.assign(resultPtr, resultPtr + elementCount);
+        size_t elementCount = desc.size.width*desc.size.height*desc.size.depth;
+        if (elementCount > 0) {
+            ComPtr<ISlangBlob> resultBlob;
+            SubresourceLayout layout;
+            SLANG_RETURN_ON_FAIL(device->readTexture(texture, 0, 0, resultBlob.writeRef(), &layout));
+
+            Format format = getTextureFormat<T, CHANNELS>();
+            size_t expectedBufferSize = elementCount*getTexelSize(format);
+            if (resultBlob->getBufferSize() != expectedBufferSize) {
+                std::cerr << "incorrect GPU texture size on read" << std::endl;
+                return SLANG_FAIL;
+            }
+
+            auto resultPtr = (T *)resultBlob->getBufferPointer();
+            result.assign(resultPtr, resultPtr + elementCount);
+        }
 
         return SLANG_OK;
     }
