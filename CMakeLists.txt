@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.1.0)
 project(fcpw)
 
-find_package( Eigen3 REQUIRED )
+find_package(Eigen3 REQUIRED NO_MODULE)
 
 option(FCPW_USE_ENOKI "Build enoki" ON)
 option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
@@ -23,12 +23,6 @@ endif()
 ################################################################################
 # add dependencies
 get_directory_property(hasParent PARENT_DIRECTORY)
-
-if(hasParent)
-	set(FCPW_EIGEN_INCLUDES ${EIGEN3_INCLUDE_DIRS} PARENT_SCOPE)
-else()
-	set(FCPW_EIGEN_INCLUDES ${EIGEN3_INCLUDE_DIRS})
-endif()
 
 if(FCPW_BUILD_TESTS)
     set(TBB_BUILD_SHARED          ON  CACHE BOOL " " FORCE)
@@ -61,6 +55,7 @@ endif()
 ################################################################################
 # build library
 add_library(${PROJECT_NAME} INTERFACE)
+target_link_libraries(${PROJECT_NAME} INTERFACE Eigen3::Eigen)
 target_include_directories(${PROJECT_NAME} INTERFACE $<BUILD_INTERFACE:${${PROJECT_NAME}_SOURCE_DIR}/include>)
 target_compile_features(${PROJECT_NAME} INTERFACE cxx_std_17)
 
