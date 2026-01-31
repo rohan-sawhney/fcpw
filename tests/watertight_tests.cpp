@@ -19,6 +19,7 @@ using namespace fcpw;
 // Configuration
 static int nQueries = 10000;
 static std::string objFilename;
+static bool verbose = false;
 
 // Helper to load OBJ file directly (without using global files vector)
 void loadObj(const std::string& objFilePath,
@@ -139,14 +140,16 @@ struct TestStatistics {
 // Run comparison test for a given set of rays
 TestStatistics runComparison(Scene<3>& scene, 
                              const Vector3& origin, 
-                             const std::vector<Vector3>& targets)
+                             const std::vector<Vector3>& targets,
+                             bool verbose = false)
 {
     TestStatistics stats;
     stats.totalRays = static_cast<int>(targets.size());
     
     const float distanceThreshold = 1e-5f; // Tolerance for comparing distances
     
-    for (const auto& target : targets) {
+    for (size_t idx = 0; idx < targets.size(); idx++) {
+        const auto& target = targets[idx];
         Vector3 direction = (target - origin).normalized();
         
         // Test default intersection
@@ -173,8 +176,76 @@ TestStatistics runComparison(Scene<3>& scene,
             }
         } else if (!hitDefault && !hitWatertight) {
             stats.bothMiss++;
+            if (verbose) {
+                std::cout << "  BOTH MISS ray " << idx << ": origin=(" 
+                          << origin[0] << "," << origin[1] << "," << origin[2]
+                          << ") dir=(" << direction[0] << "," << direction[1] << "," << direction[2] 
+                          << ") target=(" << target[0] << "," << target[1] << "," << target[2] << ")" << std::endl;
+            }
         } else if (hitDefault && !hitWatertight) {
             stats.onlyDefaultHit++;
+            if (verbose) {
+                std::cout << "  ONLY DEFAULT HIT ray " << idx << ": origin=(" 
+                          << std::setprecision(6)
+                          << origin[0] << "," << origin[1] << "," << origin[2]
+                          << ") dir=(" << direction[0] << "," << direction[1] << "," << direction[2] 
+                          << ") default_d=" << interactionDefault.d 
+                          << " prim=" << interactionDefault.primitiveIndex << std::endl;
+                
+                // Direct triangle test to debug the issue
+                auto* sceneData = scene.getSceneData();
+                if (sceneData && sceneData->triangleObjects.size() > 0 && 
+                    sceneData->triangleObjects[0] != nullptr) {
+                    const auto& triangles = *sceneData->triangleObjects[0];
+                    int primIdx = interactionDefault.primitiveIndex;
+                    if (primIdx >= 0 && primIdx < (int)triangles.size()) {
+                        const Triangle& tri = triangles[primIdx];
+                        const auto* soup = tri.soup;
+                        const Vector3& pa = soup->positions[tri.indices[0]];
+                        const Vector3& pb = soup->positions[tri.indices[1]];
+                        const Vector3& pc = soup->positions[tri.indices[2]];
+                        std::cout << "    Triangle " << primIdx << ": "
+                                  << "A=(" << pa[0] << "," << pa[1] << "," << pa[2] << ") "
+                                  << "B=(" << pb[0] << "," << pb[1] << "," << pb[2] << ") "
+                                  << "C=(" << pc[0] << "," << pc[1] << "," << pc[2] << ")" << std::endl;
+                        
+                        // Get watertight ray data
+                        const auto& wd = rayWatertight.getWatertightData();
+                        std::cout << "    WatertightData: kz=" << wd.kz 
+                                  << " kx=" << wd.kx << " ky=" << wd.ky
+                                  << " Sx=" << wd.Sx << " Sy=" << wd.Sy << " Sz=" << wd.Sz << std::endl;
+                        
+                        // Manually compute the transformed vertices and edge tests
+                        Vector3 A = pa - origin;
+                        Vector3 B = pb - origin;
+                        Vector3 C = pc - origin;
+                        float Ax = std::fma(-wd.Sx, A[wd.kz], A[wd.kx]);
+                        float Ay = std::fma(-wd.Sy, A[wd.kz], A[wd.ky]);
+                        float Bx = std::fma(-wd.Sx, B[wd.kz], B[wd.kx]);
+                        float By = std::fma(-wd.Sy, B[wd.kz], B[wd.ky]);
+                        float Cx = std::fma(-wd.Sx, C[wd.kz], C[wd.kx]);
+                        float Cy = std::fma(-wd.Sy, C[wd.kz], C[wd.ky]);
+                        
+                        float U = Cx*By - Cy*Bx;
+                        float V = Ax*Cy - Ay*Cx;
+                        float W = Bx*Ay - By*Ax;
+                        std::cout << "    Edge tests: U=" << U << " V=" << V << " W=" << W << std::endl;
+                        
+                        bool edgeFail = (U < 0.0f || V < 0.0f || W < 0.0f) &&
+                                       (U > 0.0f || V > 0.0f || W > 0.0f);
+                        float det = U + V + W;
+                        std::cout << "    edgeFail=" << edgeFail << " det=" << det << std::endl;
+                        
+                        // Test directly on the triangle to confirm it's the triangle test
+                        Ray<3> testRay(origin, direction);
+                        Interaction<3> testInt;
+                        bool directHit = tri.intersectWatertight(testRay, testInt, false);
+                        std::cout << "    Direct watertight test: hit=" << directHit;
+                        if (directHit) std::cout << " d=" << testInt.d;
+                        std::cout << std::endl;
+                    }
+                }
+            }
         } else {
             stats.onlyWatertightHit++;
         }
@@ -184,7 +255,7 @@ TestStatistics runComparison(Scene<3>& scene,
 }
 
 // Part I: Test with random directions from centroid
-TestStatistics testRandomDirections(Scene<3>& scene, const Vector3& centroid, int n)
+TestStatistics testRandomDirections(Scene<3>& scene, const Vector3& centroid, int n, bool verbose = false)
 {
     std::vector<Vector3> targets;
     targets.reserve(n);
@@ -195,7 +266,7 @@ TestStatistics testRandomDirections(Scene<3>& scene, const Vector3& centroid, in
         targets.push_back(centroid + dir * 1000.0f); // Far away target
     }
     
-    return runComparison(scene, centroid, targets);
+    return runComparison(scene, centroid, targets, verbose);
 }
 
 // Part II: Test with rays toward edge midpoints
@@ -203,7 +274,8 @@ TestStatistics testEdgeTargets(Scene<3>& scene,
                                const std::vector<Vector<3>>& positions,
                                const std::vector<Vector3i>& indices,
                                const Vector3& centroid, 
-                               int n)
+                               int n,
+                               bool verbose = false)
 {
     std::vector<Vector3> targets;
     targets.reserve(n);
@@ -231,7 +303,7 @@ TestStatistics testEdgeTargets(Scene<3>& scene,
         targets.push_back(edgePoint);
     }
     
-    return runComparison(scene, centroid, targets);
+    return runComparison(scene, centroid, targets, verbose);
 }
 
 void run()
@@ -261,12 +333,13 @@ void run()
     
     // Part I: Random directions
     std::cout << "Running Part I: Random directions from centroid..." << std::endl;
-    TestStatistics statsRandom = testRandomDirections(scene, centroid, nQueries);
+    TestStatistics statsRandom = testRandomDirections(scene, centroid, nQueries, verbose);
     statsRandom.print("Part I: Typical Behavior (Random Directions)");
     
     // Part II: Edge targets
     std::cout << "\nRunning Part II: Rays toward edge points..." << std::endl;
-    TestStatistics statsEdge = testEdgeTargets(scene, positions, indices, centroid, nQueries);
+    if (verbose) std::cout << "\nFailure details:" << std::endl;
+    TestStatistics statsEdge = testEdgeTargets(scene, positions, indices, centroid, nQueries, verbose);
     statsEdge.print("Part II: Edge Behavior (Rays Toward Edge Points)");
     
     // Overall summary
@@ -293,6 +366,7 @@ int main(int argc, const char *argv[])
     args::Group group(parser, "", args::Group::Validators::DontCare);
     args::ValueFlag<int> nQueriesFlag(parser, "integer", "number of queries per test", {"nQueries"});
     args::ValueFlag<std::string> triangleFilename(parser, "string", "triangle mesh OBJ file", {"tFile"});
+    args::Flag verboseFlag(group, "bool", "print details about failures", {"verbose"});
 
     // Parse args
     try {
@@ -316,6 +390,9 @@ int main(int argc, const char *argv[])
     objFilename = args::get(triangleFilename);
     if (nQueriesFlag) {
         nQueries = args::get(nQueriesFlag);
+    }
+    if (verboseFlag) {
+        verbose = true;
     }
 
     run();

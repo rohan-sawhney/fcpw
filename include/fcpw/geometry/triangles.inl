@@ -283,32 +283,28 @@ inline bool Triangle::intersectWatertight(const Ray<3>& r, Interaction<3>& i, bo
     const Vector3 C = pc - r.o;
 
     // Perform shear and scale of vertices
-    const float Ax = A[kx] - Sx*A[kz];
-    const float Ay = A[ky] - Sy*A[kz];
-    const float Bx = B[kx] - Sx*B[kz];
-    const float By = B[ky] - Sy*B[kz];
-    const float Cx = C[kx] - Sx*C[kz];
-    const float Cy = C[ky] - Sy*C[kz];
+    // Use fused multiply-add for better precision (matches paper's fmaf usage)
+    // Note: paper uses Sx = -d[kx]/d[kz], so fmaf(Sx, A[kz], A[kx]) = A[kx] + Sx*A[kz]
+    // We use Sx = d[kx]/d[kz], so we need A[kx] - Sx*A[kz] = fma(-Sx, A[kz], A[kx])
+    const float Ax = std::fma(-Sx, A[kz], A[kx]);
+    const float Ay = std::fma(-Sy, A[kz], A[ky]);
+    const float Bx = std::fma(-Sx, B[kz], B[kx]);
+    const float By = std::fma(-Sy, B[kz], B[ky]);
+    const float Cx = std::fma(-Sx, C[kz], C[kx]);
+    const float Cy = std::fma(-Sy, C[kz], C[ky]);
 
-    // Calculate scaled barycentric coordinates
-    float U = Cx*By - Cy*Bx;
-    float V = Ax*Cy - Ay*Cx;
-    float W = Bx*Ay - By*Ax;
-
-    // Fallback to double precision if float edge tests fail
-    if (U == 0.0f || V == 0.0f || W == 0.0f) {
-        double CxBy = (double)Cx * (double)By;
-        double CyBx = (double)Cy * (double)Bx;
-        U = (float)(CxBy - CyBx);
-
-        double AxCy = (double)Ax * (double)Cy;
-        double AyCx = (double)Ay * (double)Cx;
-        V = (float)(AxCy - AyCx);
-
-        double BxAy = (double)Bx * (double)Ay;
-        double ByAx = (double)By * (double)Ax;
-        W = (float)(BxAy - ByAx);
-    }
+    // Calculate scaled barycentric coordinates using double precision
+    // The paper suggests using float with a fallback to double when U/V/W == 0,
+    // but this misses cases where floating-point errors produce tiny non-zero
+    // values with incorrect signs. Using double precision unconditionally is
+    // more robust and only marginally more expensive.
+    double Ud = (double)Cx * (double)By - (double)Cy * (double)Bx;
+    double Vd = (double)Ax * (double)Cy - (double)Ay * (double)Cx;
+    double Wd = (double)Bx * (double)Ay - (double)By * (double)Ax;
+    
+    float U = (float)Ud;
+    float V = (float)Vd;
+    float W = (float)Wd;
 
     // Perform edge tests (no backface culling)
     if ((U < 0.0f || V < 0.0f || W < 0.0f) &&
@@ -327,10 +323,24 @@ inline bool Triangle::intersectWatertight(const Ray<3>& r, Interaction<3>& i, bo
     const float T = U*Az + V*Bz + W*Cz;
 
     // Perform depth test (no backface culling version)
-    // Use xor to check sign without branching
-    int detSign = (det < 0.0f) ? -1 : 0;
-    float detAbs = std::fabs(det);
-    float Txor = (detSign < 0) ? -T : T;
+    // Implement the paper's exact xorf approach using bitwise operations
+    // sign_mask returns 0 if x >= 0, 0x80000000 if x < 0
+    // xorf flips the sign bit of a float
+    auto sign_mask = [](float x) -> uint32_t {
+        union { float f; uint32_t u; } v;
+        v.f = x;
+        return v.u & 0x80000000u;
+    };
+    auto xorf = [](float x, uint32_t mask) -> float {
+        union { float f; uint32_t u; } v;
+        v.f = x;
+        v.u ^= mask;
+        return v.f;
+    };
+
+    uint32_t detSignMask = sign_mask(det);
+    float Txor = xorf(T, detSignMask);       // T with sign flipped if det < 0
+    float detAbs = xorf(det, detSignMask);   // |det|
 
     if (Txor < 0.0f || Txor > r.tMax * detAbs) {
         return false;

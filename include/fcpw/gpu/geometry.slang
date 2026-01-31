@@ -307,26 +307,18 @@ public bool intersectTriangleWatertight(float3 pa, float3 pb, float3 pc,
     float Cx = C[kx] - Sx * C[kz];
     float Cy = C[ky] - Sy * C[kz];
 
-    // Calculate scaled barycentric coordinates
-    float U = Cx * By - Cy * Bx;
-    float V = Ax * Cy - Ay * Cx;
-    float W = Bx * Ay - By * Ax;
+    // Calculate scaled barycentric coordinates using double precision
+    // The paper suggests using float with a fallback to double when U/V/W == 0,
+    // but this misses cases where floating-point errors produce tiny non-zero
+    // values with incorrect signs. Using double precision unconditionally is
+    // more robust and only marginally more expensive.
+    double Ud = double(Cx) * double(By) - double(Cy) * double(Bx);
+    double Vd = double(Ax) * double(Cy) - double(Ay) * double(Cx);
+    double Wd = double(Bx) * double(Ay) - double(By) * double(Ax);
 
-    // Fallback to double precision if float edge tests fail
-    if (U == 0.0 || V == 0.0 || W == 0.0)
-    {
-        double CxBy = double(Cx) * double(By);
-        double CyBx = double(Cy) * double(Bx);
-        U = float(CxBy - CyBx);
-
-        double AxCy = double(Ax) * double(Cy);
-        double AyCx = double(Ay) * double(Cx);
-        V = float(AxCy - AyCx);
-
-        double BxAy = double(Bx) * double(Ay);
-        double ByAx = double(By) * double(Ax);
-        W = float(BxAy - ByAx);
-    }
+    float U = float(Ud);
+    float V = float(Vd);
+    float W = float(Wd);
 
     // Perform edge tests (no backface culling)
     if ((U < 0.0 || V < 0.0 || W < 0.0) &&

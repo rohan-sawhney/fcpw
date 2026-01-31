@@ -44,3 +44,7 @@ deps/polyscope
 deps/slang
 deps/nanobind
 tests/deps/tbb
+
+# macOS directory files
+.DS_Store
+
