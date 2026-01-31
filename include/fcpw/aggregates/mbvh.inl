@@ -1005,11 +1005,10 @@ inline bool Mbvh<WIDTH, DIM,
                     if (primitiveTypeIsAggregate) {
                         const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
                         hit = aggregate->intersectFromNode(r, i, nodeStartIndex, aggregateIndex,
-                                                           nodesVisited, checkForOcclusion);
+                                                           nodesVisited, checkForOcclusion, watertight);
 
                     } else {
-                        const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
-                        hit = geometricPrim->intersect(r, i, checkForOcclusion);
+                        hit = intersectPrimitive<DIM, PrimitiveType>(prim, r, i, checkForOcclusion, watertight);
                         if (hit) {
                             i.nodeIndex = nodeIndex;
                             i.referenceIndex = p;
@@ -1245,11 +1244,10 @@ inline int Mbvh<WIDTH, DIM,
                     if (primitiveTypeIsAggregate) {
                         const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
                         hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-                                                           nodesVisited, checkForOcclusion, recordAllHits);
+                                                           nodesVisited, checkForOcclusion, recordAllHits, watertight);
 
                     } else {
-                        const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
-                        hit = geometricPrim->intersect(r, cs, checkForOcclusion, recordAllHits);
+                        hit = intersectPrimitiveVector<DIM, PrimitiveType>(prim, r, cs, checkForOcclusion, recordAllHits, watertight);
                         for (int i = 0; i < (int)cs.size(); i++) {
                             cs[i].nodeIndex = nodeIndex;
                             cs[i].referenceIndex = referenceIndex;
