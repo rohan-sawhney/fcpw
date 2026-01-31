@@ -7,3 +7,6 @@
 [submodule "deps/slang-rhi"]
 	path = deps/slang-rhi
 	url = https://github.com/shader-slang/slang-rhi.git
+[submodule "deps/polyscope"]
+	path = deps/polyscope
+	url = https://github.com/nmwsharp/polyscope
