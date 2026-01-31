@@ -29,6 +29,8 @@
 
 ### GPU (Slang) Implementation
 
+**Note:** We were unable to run this test locally due to lack of GPU hardware.  Probably a good idea for the maintainer(s) to either run the test, or reject the GPU-related changes.
+
 8. **`include/fcpw/gpu/ray.slang`**
    - Added `WatertightRayData` struct with constructor to compute watertight data from a ray
 
@@ -93,7 +95,7 @@ On test meshes `armadillo.obj`, `bunny.obj`, `convex.obj`, and `kitten.obj`, sho
 
 ## Implementation Note: Double-Precision Edge Tests
 
-### What the Paper Suggests
+### Original Algorithm
 
 The original paper ("Watertight Ray/Triangle Intersection" by Woop, Benthin, and Wald) computes the edge function values U, V, W using single-precision floating-point arithmetic, with a fallback to double precision when any of these values is **exactly zero**:
 

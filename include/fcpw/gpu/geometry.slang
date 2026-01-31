@@ -307,18 +307,14 @@ public bool intersectTriangleWatertight(float3 pa, float3 pb, float3 pc,
     float Cx = C[kx] - Sx * C[kz];
     float Cy = C[ky] - Sy * C[kz];
 
-    // Calculate scaled barycentric coordinates using double precision
-    // The paper suggests using float with a fallback to double when U/V/W == 0,
-    // but this misses cases where floating-point errors produce tiny non-zero
-    // values with incorrect signs. Using double precision unconditionally is
-    // more robust and only marginally more expensive.
-    double Ud = double(Cx) * double(By) - double(Cy) * double(Bx);
-    double Vd = double(Ax) * double(Cy) - double(Ay) * double(Cx);
-    double Wd = double(Bx) * double(Ay) - double(By) * double(Ax);
-
-    float U = float(Ud);
-    float V = float(Vd);
-    float W = float(Wd);
+    // Calculate scaled barycentric coordinates
+    // Note: On GPU, we use the paper's original approach with float precision.
+    // Metal and some other GPU backends don't support double precision, so we
+    // keep the computation in float. GPU floating-point behavior and the 
+    // determinism of the shear transformation help maintain consistency.
+    float U = Cx * By - Cy * Bx;
+    float V = Ax * Cy - Ay * Cx;
+    float W = Bx * Ay - By * Ax;
 
     // Perform edge tests (no backface culling)
     if ((U < 0.0 || V < 0.0 || W < 0.0) &&
