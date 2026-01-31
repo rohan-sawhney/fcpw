@@ -185,66 +185,9 @@ TestStatistics runComparison(Scene<3>& scene,
         } else if (hitDefault && !hitWatertight) {
             stats.onlyDefaultHit++;
             if (verbose) {
-                std::cout << "  ONLY DEFAULT HIT ray " << idx << ": origin=(" 
-                          << std::setprecision(6)
-                          << origin[0] << "," << origin[1] << "," << origin[2]
-                          << ") dir=(" << direction[0] << "," << direction[1] << "," << direction[2] 
-                          << ") default_d=" << interactionDefault.d 
+                std::cout << "  ONLY DEFAULT HIT ray " << idx 
+                          << ": d=" << interactionDefault.d 
                           << " prim=" << interactionDefault.primitiveIndex << std::endl;
-                
-                // Direct triangle test to debug the issue
-                auto* sceneData = scene.getSceneData();
-                if (sceneData && sceneData->triangleObjects.size() > 0 && 
-                    sceneData->triangleObjects[0] != nullptr) {
-                    const auto& triangles = *sceneData->triangleObjects[0];
-                    int primIdx = interactionDefault.primitiveIndex;
-                    if (primIdx >= 0 && primIdx < (int)triangles.size()) {
-                        const Triangle& tri = triangles[primIdx];
-                        const auto* soup = tri.soup;
-                        const Vector3& pa = soup->positions[tri.indices[0]];
-                        const Vector3& pb = soup->positions[tri.indices[1]];
-                        const Vector3& pc = soup->positions[tri.indices[2]];
-                        std::cout << "    Triangle " << primIdx << ": "
-                                  << "A=(" << pa[0] << "," << pa[1] << "," << pa[2] << ") "
-                                  << "B=(" << pb[0] << "," << pb[1] << "," << pb[2] << ") "
-                                  << "C=(" << pc[0] << "," << pc[1] << "," << pc[2] << ")" << std::endl;
-                        
-                        // Get watertight ray data
-                        const auto& wd = rayWatertight.getWatertightData();
-                        std::cout << "    WatertightData: kz=" << wd.kz 
-                                  << " kx=" << wd.kx << " ky=" << wd.ky
-                                  << " Sx=" << wd.Sx << " Sy=" << wd.Sy << " Sz=" << wd.Sz << std::endl;
-                        
-                        // Manually compute the transformed vertices and edge tests
-                        Vector3 A = pa - origin;
-                        Vector3 B = pb - origin;
-                        Vector3 C = pc - origin;
-                        float Ax = std::fma(-wd.Sx, A[wd.kz], A[wd.kx]);
-                        float Ay = std::fma(-wd.Sy, A[wd.kz], A[wd.ky]);
-                        float Bx = std::fma(-wd.Sx, B[wd.kz], B[wd.kx]);
-                        float By = std::fma(-wd.Sy, B[wd.kz], B[wd.ky]);
-                        float Cx = std::fma(-wd.Sx, C[wd.kz], C[wd.kx]);
-                        float Cy = std::fma(-wd.Sy, C[wd.kz], C[wd.ky]);
-                        
-                        float U = Cx*By - Cy*Bx;
-                        float V = Ax*Cy - Ay*Cx;
-                        float W = Bx*Ay - By*Ax;
-                        std::cout << "    Edge tests: U=" << U << " V=" << V << " W=" << W << std::endl;
-                        
-                        bool edgeFail = (U < 0.0f || V < 0.0f || W < 0.0f) &&
-                                       (U > 0.0f || V > 0.0f || W > 0.0f);
-                        float det = U + V + W;
-                        std::cout << "    edgeFail=" << edgeFail << " det=" << det << std::endl;
-                        
-                        // Test directly on the triangle to confirm it's the triangle test
-                        Ray<3> testRay(origin, direction);
-                        Interaction<3> testInt;
-                        bool directHit = tri.intersectWatertight(testRay, testInt, false);
-                        std::cout << "    Direct watertight test: hit=" << directHit;
-                        if (directHit) std::cout << " d=" << testInt.d;
-                        std::cout << std::endl;
-                    }
-                }
             }
         } else {
             stats.onlyWatertightHit++;
