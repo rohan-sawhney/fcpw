@@ -86,6 +86,89 @@ public struct BoundingBox
         tMax = tFarMin;
         return true;
     }
+
+    // Conservative ray-box intersection for watertight ray tracing
+    // Based on: Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013
+    public bool intersectConservative(Ray r, WatertightRayData wd, out float tMin, out float tMax)
+    {
+        // Conservative rounding constants
+        const float p = 1.0 + 1.1920929e-7;  // 1 + 2^-23
+        const float m = 1.0 - 1.1920929e-7;  // 1 - 2^-23
+        const float eps = 5.0 * 5.9604645e-8;  // 5 * 2^-24
+
+        // Get box bounds as array for indexed access
+        float boxBounds[6];
+        boxBounds[0] = pMin.x; boxBounds[1] = pMin.y; boxBounds[2] = pMin.z;
+        boxBounds[3] = pMax.x; boxBounds[4] = pMax.y; boxBounds[5] = pMax.z;
+
+        // Helper lambdas for conservative rounding
+        // up(a) = a > 0 ? a*p : a*m
+        // dn(a) = a > 0 ? a*m : a*p
+        // Up(a) = a*p
+        // Dn(a) = a*m
+
+        // Calculate corrected origin for near- and far-plane distance calculations
+        float lower_kx = (abs(r.o[wd.kx] - pMin[wd.kx])) * m;
+        if (lower_kx < 0.0) lower_kx *= p / m;  // Dn adjustment
+        float lower_ky = (abs(r.o[wd.ky] - pMin[wd.ky])) * m;
+        if (lower_ky < 0.0) lower_ky *= p / m;
+        float lower_kz = (abs(r.o[wd.kz] - pMin[wd.kz])) * m;
+        if (lower_kz < 0.0) lower_kz *= p / m;
+        float upper_kx = (abs(r.o[wd.kx] - pMax[wd.kx])) * p;
+        if (upper_kx < 0.0) upper_kx *= m / p;  // Up adjustment
+        float upper_ky = (abs(r.o[wd.ky] - pMax[wd.ky])) * p;
+        if (upper_ky < 0.0) upper_ky *= m / p;
+        float upper_kz = (abs(r.o[wd.kz] - pMax[wd.kz])) * p;
+        if (upper_kz < 0.0) upper_kz *= m / p;
+
+        float max_z = max(lower_kz, upper_kz);
+
+        float err_near_x = (lower_kx + max_z) * p;
+        float err_near_y = (lower_ky + max_z) * p;
+        float eps_err_near_x = eps * err_near_x * p;
+        float eps_err_near_y = eps * err_near_y * p;
+        float org_near_x = r.o[wd.kx] + eps_err_near_x;
+        org_near_x = org_near_x > 0.0 ? org_near_x * p : org_near_x * m;  // up
+        float org_near_y = r.o[wd.ky] + eps_err_near_y;
+        org_near_y = org_near_y > 0.0 ? org_near_y * p : org_near_y * m;
+        float org_near_z = r.o[wd.kz];
+
+        float err_far_x = (upper_kx + max_z) * p;
+        float err_far_y = (upper_ky + max_z) * p;
+        float eps_err_far_x = eps * err_far_x * p;
+        float eps_err_far_y = eps * err_far_y * p;
+        float org_far_x = r.o[wd.kx] - eps_err_far_x;
+        org_far_x = org_far_x > 0.0 ? org_far_x * m : org_far_x * p;  // dn
+        float org_far_y = r.o[wd.ky] - eps_err_far_y;
+        org_far_y = org_far_y > 0.0 ? org_far_y * m : org_far_y * p;
+        float org_far_z = r.o[wd.kz];
+
+        // Swap near/far origins based on direction signs
+        if (r.d[wd.kx] < 0.0) { float tmp = org_near_x; org_near_x = org_far_x; org_far_x = tmp; }
+        if (r.d[wd.ky] < 0.0) { float tmp = org_near_y; org_near_y = org_far_y; org_far_y = tmp; }
+
+        // Calculate near/far t values
+        float tNearX = (boxBounds[wd.nearX] - org_near_x) * wd.rdirNear.x;
+        float tNearY = (boxBounds[wd.nearY] - org_near_y) * wd.rdirNear.y;
+        float tNearZ = (boxBounds[wd.nearZ] - org_near_z) * wd.rdirNear.z;
+        float tFarX = (boxBounds[wd.farX] - org_far_x) * wd.rdirFar.x;
+        float tFarY = (boxBounds[wd.farY] - org_far_y) * wd.rdirFar.y;
+        float tFarZ = (boxBounds[wd.farZ] - org_far_z) * wd.rdirFar.z;
+
+        float tNearMax = max(max(tNearX, tNearY), max(tNearZ, 0.0));
+        float tFarMin = min(min(tFarX, tFarY), min(tFarZ, r.tMax));
+
+        if (tNearMax > tFarMin)
+        {
+            tMin = FLT_MAX;
+            tMax = FLT_MAX;
+            return false;
+        }
+
+        tMin = tNearMax;
+        tMax = tFarMin;
+        return true;
+    }
 };
 
 public BoundingBox mergeBoundingBoxes(BoundingBox boxA, BoundingBox boxB)

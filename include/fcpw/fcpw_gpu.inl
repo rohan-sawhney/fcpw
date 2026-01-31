@@ -41,6 +41,7 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     // initialize shaders
     refitShader.loadProgram(context, mainModule, libraryModules, "refit");
     rayIntersectionShader.loadProgram(context, mainModule, libraryModules, "rayIntersection");
+    rayIntersectionWatertightShader.loadProgram(context, mainModule, libraryModules, "rayIntersectionWatertight");
     sphereIntersectionShader.loadProgram(context, mainModule, libraryModules, "sphereIntersection");
     closestPointShader.loadProgram(context, mainModule, libraryModules, "closestPoint");
     closestSilhouettePointShader.loadProgram(context, mainModule, libraryModules, "closestSilhouettePoint");
@@ -96,7 +97,7 @@ inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
                                      const Eigen::MatrixXf& rayDirections,
                                      const Eigen::VectorXf& rayDistanceBounds,
                                      std::vector<GPUInteraction>& interactions,
-                                     bool checkForOcclusion)
+                                     bool checkForOcclusion, bool watertight)
 {
     int nQueries = (int)rayOrigins.rows();
     std::vector<GPURay> rays(nQueries);
@@ -131,23 +132,24 @@ inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
         t.join();
     }
 
-    intersect(rays, interactions, checkForOcclusion);
+    intersect(rays, interactions, checkForOcclusion, watertight);
 }
 
 template<size_t DIM>
 inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
                                      std::vector<GPUInteraction>& interactions,
-                                     bool checkForOcclusion)
+                                     bool checkForOcclusion, bool watertight)
 {
     // allocate GPU entry point data
     GPURunRayIntersectionQuery runRayIntersectionQuery;
     runRayIntersectionQuery.allocate(context, rays);
     runRayIntersectionQuery.checkForOcclusion = checkForOcclusion ? 1 : 0;
 
-    // run ray intersection shader
+    // run ray intersection shader (use watertight version if requested and 3D)
     uint32_t nQueries = (uint32_t)rays.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
-    runShader<GPURunRayIntersectionQuery>(context, rayIntersectionShader,
+    const ComputeShader& shader = (watertight && DIM == 3) ? rayIntersectionWatertightShader : rayIntersectionShader;
+    runShader<GPURunRayIntersectionQuery>(context, shader,
                                           runRayIntersectionQuery, bindBvhResources,
                                           nThreadGroups, 1, printLogs);
 

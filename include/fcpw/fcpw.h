@@ -109,15 +109,20 @@ public:
     // API to perform ray intersection and distance queries to the scene, among others
 
     // intersects the scene with the given ray and returns whether there is a hit;
-    // if checkForOcclusion is enabled, the interaction is not populated
-    bool intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false) const;
+    // if checkForOcclusion is enabled, the interaction is not populated;
+    // if watertight is enabled (3D only), uses watertight ray-triangle intersection
+    // (Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013)
+    bool intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false,
+                   bool watertight=false) const;
 
     // intersects the scene with the given ray and returns the number of hits;
     // by default, returns the closest interaction if it exists;
     // if checkForOcclusion is enabled, the interactions vector is not populated;
-    // if recordAllHits is enabled, sorts interactions by distance to the ray origin
+    // if recordAllHits is enabled, sorts interactions by distance to the ray origin;
+    // if watertight is enabled (3D only), uses watertight ray-triangle intersection
     int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-                  bool checkForOcclusion=false, bool recordAllHits=false) const;
+                  bool checkForOcclusion=false, bool recordAllHits=false,
+                  bool watertight=false) const;
 
     // intersects the scene with the given sphere and returns the number of primitives
     // inside the sphere; interactions contain the primitive indices; if recordOneHit
@@ -164,15 +169,16 @@ public:
     // NOTE: the functions below use std::thread internally to parallelize queries, however
     // using Intel TBB can give up to a 2x speedup if applied directly to the query API above
 
-    // intersects the scene with the given rays, returning the closest interaction if it exists.
+    // intersects the scene with the given rays, returning the closest interaction if it exists;
+    // if watertight is enabled (3D only), uses watertight ray-triangle intersection
     void intersect(const Eigen::MatrixXf& rayOrigins,
                    const Eigen::MatrixXf& rayDirections,
                    const Eigen::VectorXf& rayDistanceBounds,
                    std::vector<Interaction<DIM>>& interactions,
-                   bool checkForOcclusion=false) const;
+                   bool checkForOcclusion=false, bool watertight=false) const;
     void intersect(std::vector<Ray<DIM>>& rays,
                    std::vector<Interaction<DIM>>& interactions,
-                   bool checkForOcclusion=false) const;
+                   bool checkForOcclusion=false, bool watertight=false) const;
 
     // intersects the scene with the given spheres, randomly selecting one geometric primitive
     // contained inside each sphere and sampling a random point on that primitive (written to 

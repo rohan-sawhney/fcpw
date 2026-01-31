@@ -21,6 +21,10 @@ public interface IPrimitive
     // intersects primitive with ray
     bool intersect(Ray r, bool checkForOcclusion, inout Interaction i);
 
+    // intersects primitive with ray using watertight algorithm (for triangles)
+    // Default implementation falls back to regular intersect
+    bool intersectWatertight(Ray r, bool checkForOcclusion, inout Interaction i);
+
     // intersects primitive with sphere
     bool intersect(BoundingSphere s, inout Interaction i);
 
@@ -150,6 +154,13 @@ public struct LineSegment : IPrimitive
         return false;
     }
 
+    // intersects primitive with ray using watertight algorithm
+    // For line segments, falls back to regular intersect (watertight is only for triangles)
+    public bool intersectWatertight(Ray r, bool checkForOcclusion, inout Interaction i)
+    {
+        return intersect(r, checkForOcclusion, i);
+    }
+
     // intersects primitive with sphere
     public bool intersect(BoundingSphere s, inout Interaction i)
     {
@@ -246,6 +257,127 @@ public bool intersectTriangle(float3 pa, float3 pb, float3 pc,
     }
 
     return false;
+}
+
+// Watertight Ray/Triangle Intersection
+// Based on: Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013
+// http://jcgt.org/published/0002/01/05/
+public bool intersectTriangleWatertight(float3 pa, float3 pb, float3 pc,
+                                        float3 ro, float3 rd, float rtMax, bool checkForOcclusion,
+                                        inout float3 p, inout float3 n, inout float2 uv, inout float d)
+{
+    // Calculate dimension where the ray direction is maximal
+    float3 absD = abs(rd);
+    int kz;
+    if (absD.x > absD.y)
+    {
+        kz = (absD.x > absD.z) ? 0 : 2;
+    }
+    else
+    {
+        kz = (absD.y > absD.z) ? 1 : 2;
+    }
+
+    int kx = (kz + 1) % 3;
+    int ky = (kx + 1) % 3;
+
+    // Swap kx and ky to preserve winding direction of triangles
+    if (rd[kz] < 0.0)
+    {
+        int tmp = kx;
+        kx = ky;
+        ky = tmp;
+    }
+
+    // Calculate shear constants
+    float Sx = rd[kx] / rd[kz];
+    float Sy = rd[ky] / rd[kz];
+    float Sz = 1.0 / rd[kz];
+
+    // Calculate vertices relative to ray origin
+    float3 A = pa - ro;
+    float3 B = pb - ro;
+    float3 C = pc - ro;
+
+    // Perform shear and scale of vertices
+    float Ax = A[kx] - Sx * A[kz];
+    float Ay = A[ky] - Sy * A[kz];
+    float Bx = B[kx] - Sx * B[kz];
+    float By = B[ky] - Sy * B[kz];
+    float Cx = C[kx] - Sx * C[kz];
+    float Cy = C[ky] - Sy * C[kz];
+
+    // Calculate scaled barycentric coordinates
+    float U = Cx * By - Cy * Bx;
+    float V = Ax * Cy - Ay * Cx;
+    float W = Bx * Ay - By * Ax;
+
+    // Fallback to double precision if float edge tests fail
+    if (U == 0.0 || V == 0.0 || W == 0.0)
+    {
+        double CxBy = double(Cx) * double(By);
+        double CyBx = double(Cy) * double(Bx);
+        U = float(CxBy - CyBx);
+
+        double AxCy = double(Ax) * double(Cy);
+        double AyCx = double(Ay) * double(Cx);
+        V = float(AxCy - AyCx);
+
+        double BxAy = double(Bx) * double(Ay);
+        double ByAx = double(By) * double(Ax);
+        W = float(BxAy - ByAx);
+    }
+
+    // Perform edge tests (no backface culling)
+    if ((U < 0.0 || V < 0.0 || W < 0.0) &&
+        (U > 0.0 || V > 0.0 || W > 0.0))
+    {
+        return false;
+    }
+
+    // Calculate determinant
+    float det = U + V + W;
+    if (det == 0.0)
+    {
+        return false;
+    }
+
+    // Calculate scaled z-coordinates of vertices and use them to calculate the hit distance
+    float Az = Sz * A[kz];
+    float Bz = Sz * B[kz];
+    float Cz = Sz * C[kz];
+    float T = U * Az + V * Bz + W * Cz;
+
+    // Perform depth test (no backface culling version)
+    float detAbs = abs(det);
+    float Txor = (det < 0.0) ? -T : T;
+
+    if (Txor < 0.0 || Txor > rtMax * detAbs)
+    {
+        return false;
+    }
+
+    if (checkForOcclusion)
+    {
+        return true;
+    }
+
+    // Normalize U, V, W, and T
+    float rcpDet = 1.0 / det;
+    float u = U * rcpDet;
+    float v = V * rcpDet;
+    float w = W * rcpDet;
+    float t = T * rcpDet;
+
+    // Fill in output
+    p = pa * u + pb * v + pc * w;
+    float3 v1 = pb - pa;
+    float3 v2 = pc - pa;
+    n = normalize(cross(v1, v2));
+    uv = float2(u, v);
+    d = t;
+
+    return true;
 }
 
 public float findClosestPointTriangle(float3 pa, float3 pb, float3 pc, float3 x, out float3 p, out float2 t)
@@ -369,6 +501,19 @@ public struct Triangle : IPrimitive
     public bool intersect(Ray r, bool checkForOcclusion, inout Interaction i)
     {
         bool didIntersect = intersectTriangle(pa, pb, pc, r.o, r.d, r.tMax, checkForOcclusion, i.p, i.n, i.uv, i.d);
+        if (didIntersect)
+        {
+            i.index = index;
+            return true;
+        }
+
+        return false;
+    }
+
+    // intersects primitive with ray using watertight algorithm
+    public bool intersectWatertight(Ray r, bool checkForOcclusion, inout Interaction i)
+    {
+        bool didIntersect = intersectTriangleWatertight(pa, pb, pc, r.o, r.d, r.tMax, checkForOcclusion, i.p, i.n, i.uv, i.d);
         if (didIntersect)
         {
             i.index = index;

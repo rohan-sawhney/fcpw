@@ -29,15 +29,17 @@ public:
     /////////////////////////////////////////////////////////////////////////////////////////////
     // API for GPU queries; NOTE: GPU queries are not thread-safe!
 
-    // intersects the scene with the given rays, returning the closest interaction if it exists.
+    // intersects the scene with the given rays, returning the closest interaction if it exists;
+    // if watertight is enabled (3D only), uses watertight ray-triangle intersection
+    // (Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013)
     void intersect(const Eigen::MatrixXf& rayOrigins,
                    const Eigen::MatrixXf& rayDirections,
                    const Eigen::VectorXf& rayDistanceBounds,
                    std::vector<GPUInteraction>& interactions,
-                   bool checkForOcclusion=false);
+                   bool checkForOcclusion=false, bool watertight=false);
     void intersect(const std::vector<GPURay>& rays,
                    std::vector<GPUInteraction>& interactions,
-                   bool checkForOcclusion=false);
+                   bool checkForOcclusion=false, bool watertight=false);
 
     // intersects the scene with the given spheres, randomly selecting one geometric primitive
     // contained inside each sphere and sampling a random point on that primitive (written to 
@@ -82,6 +84,7 @@ private:
     GPUBvhBuffers bvhBuffers;
     ComputeShader refitShader;
     ComputeShader rayIntersectionShader;
+    ComputeShader rayIntersectionWatertightShader;
     ComputeShader sphereIntersectionShader;
     ComputeShader closestPointShader;
     ComputeShader closestSilhouettePointShader;

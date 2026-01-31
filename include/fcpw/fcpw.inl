@@ -1158,16 +1158,18 @@ inline void Scene<DIM>::refit(bool printStats)
 }
 
 template<size_t DIM>
-inline bool Scene<DIM>::intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion) const
+inline bool Scene<DIM>::intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion,
+                                  bool watertight) const
 {
-    return sceneData->aggregate->intersect(r, i, checkForOcclusion);
+    return sceneData->aggregate->intersect(r, i, checkForOcclusion, watertight);
 }
 
 template<size_t DIM>
 inline int Scene<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-                                 bool checkForOcclusion, bool recordAllHits) const
+                                 bool checkForOcclusion, bool recordAllHits,
+                                 bool watertight) const
 {
-    return sceneData->aggregate->intersect(r, is, checkForOcclusion, recordAllHits);
+    return sceneData->aggregate->intersect(r, is, checkForOcclusion, recordAllHits, watertight);
 }
 
 template<size_t DIM>
@@ -1220,7 +1222,7 @@ inline void Scene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
                                   const Eigen::MatrixXf& rayDirections,
                                   const Eigen::VectorXf& rayDistanceBounds,
                                   std::vector<Interaction<DIM>>& interactions,
-                                  bool checkForOcclusion) const
+                                  bool checkForOcclusion, bool watertight) const
 {
     int nQueries = (int)rayOrigins.rows();
     interactions.clear();
@@ -1229,7 +1231,7 @@ inline void Scene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
     auto callback = [&](int start, int end) {
         for (int i = start; i < end; i++) {
             Ray<DIM> ray(rayOrigins.row(i), rayDirections.row(i), rayDistanceBounds(i));
-            sceneData->aggregate->intersect(ray, interactions[i], checkForOcclusion);
+            sceneData->aggregate->intersect(ray, interactions[i], checkForOcclusion, watertight);
         }
     };
 
@@ -1251,7 +1253,7 @@ inline void Scene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
 template<size_t DIM>
 inline void Scene<DIM>::intersect(std::vector<Ray<DIM>>& rays,
                                   std::vector<Interaction<DIM>>& interactions,
-                                  bool checkForOcclusion) const
+                                  bool checkForOcclusion, bool watertight) const
 {
     int nQueries = (int)rays.size();
     interactions.clear();
@@ -1259,7 +1261,7 @@ inline void Scene<DIM>::intersect(std::vector<Ray<DIM>>& rays,
 
     auto callback = [&](int start, int end) {
         for (int i = start; i < end; i++) {
-            sceneData->aggregate->intersect(rays[i], interactions[i], checkForOcclusion);
+            sceneData->aggregate->intersect(rays[i], interactions[i], checkForOcclusion, watertight);
         }
     };
 

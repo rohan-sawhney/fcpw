@@ -116,17 +116,20 @@ public:
     }
 
     // intersects with ray
-    bool intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false) const {
+    bool intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false,
+                   bool watertight=false) const {
         int nodesVisited = 0;
-        return this->intersectFromNode(r, i, 0, this->pIndex, nodesVisited, checkForOcclusion);
+        return this->intersectFromNode(r, i, 0, this->pIndex, nodesVisited,
+                                       checkForOcclusion, watertight);
     }
 
     // intersects with ray
     int intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-                  bool checkForOcclusion=false, bool recordAllHits=false) const {
+                  bool checkForOcclusion=false, bool recordAllHits=false,
+                  bool watertight=false) const {
         int nodesVisited = 0;
         return this->intersectFromNode(r, is, 0, this->pIndex, nodesVisited,
-                                       checkForOcclusion, recordAllHits);
+                                       checkForOcclusion, recordAllHits, watertight);
     }
 
     // intersects with sphere
@@ -228,13 +231,14 @@ public:
     // NOTE: interaction is invalid when checkForOcclusion is enabled
     virtual bool intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i,
                                    int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                   bool checkForOcclusion=false) const = 0;
+                                   bool checkForOcclusion=false, bool watertight=false) const = 0;
 
     // intersects with ray, starting the traversal at the specified node in an aggregate
     // NOTE: interactions are invalid when checkForOcclusion is enabled
     virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                  bool checkForOcclusion=false, bool recordAllHits=false) const = 0;
+                                  bool checkForOcclusion=false, bool recordAllHits=false,
+                                  bool watertight=false) const = 0;
 
     // intersects with sphere, starting the traversal at the specified node in an aggregate
     // NOTE: interactions contain primitive index
@@ -311,13 +315,13 @@ public:
     // intersects with ray, starting the traversal at the specified node in an aggregate
     bool intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i,
                            int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                           bool checkForOcclusion=false) const {
+                           bool checkForOcclusion=false, bool watertight=false) const {
         // apply inverse transform to ray
         Ray<DIM> rInv = r.transform(tInv);
 
         // intersect
         bool hit = aggregate->intersectFromNode(rInv, i, nodeStartIndex, aggregateIndex,
-                                                nodesVisited, checkForOcclusion);
+                                                nodesVisited, checkForOcclusion, watertight);
 
         // apply transform to ray and interactions
         r.tMax = rInv.transform(t).tMax;
@@ -330,13 +334,14 @@ public:
     // intersects with ray, starting the traversal at the specified node in an aggregate
     int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                           int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                          bool checkForOcclusion=false, bool recordAllHits=false) const {
+                          bool checkForOcclusion=false, bool recordAllHits=false,
+                          bool watertight=false) const {
         // apply inverse transform to ray
         Ray<DIM> rInv = r.transform(tInv);
 
         // intersect
         int hits = aggregate->intersectFromNode(rInv, is, nodeStartIndex, aggregateIndex,
-                                                nodesVisited, checkForOcclusion, recordAllHits);
+                                                nodesVisited, checkForOcclusion, recordAllHits, watertight);
 
         // apply transform to ray and interactions
         r.tMax = rInv.transform(t).tMax;

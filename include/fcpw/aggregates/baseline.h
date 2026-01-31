@@ -32,13 +32,14 @@ public:
     // NOTE: interaction is invalid when checkForOcclusion is enabled
     bool intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
                            int aggregateIndex, int& nodesVisited,
-                           bool checkForOcclusion=false) const;
+                           bool checkForOcclusion=false, bool watertight=false) const;
 
     // intersects with ray, starting the traversal at the specified node in an aggregate
     // NOTE: interactions are invalid when checkForOcclusion is enabled
     int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                           int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                          bool checkForOcclusion=false, bool recordAllHits=false) const;
+                          bool checkForOcclusion=false, bool recordAllHits=false,
+                          bool watertight=false) const;
 
     // intersects with sphere, starting the traversal at the specified node in an aggregate
     // NOTE: interactions contain primitive index

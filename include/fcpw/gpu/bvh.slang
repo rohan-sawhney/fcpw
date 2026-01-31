@@ -253,6 +253,123 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
         return didIntersect;
     }
 
+    // intersects aggregate geometry with ray using watertight algorithm
+    // Based on: Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013
+    public bool intersectWatertight(inout Ray r, bool checkForOcclusion, inout Interaction i)
+    {
+        TraversalStack traversalStack[FCPW_BVH_MAX_DEPTH];
+        float4 distToChildNodes = float4(0.0, 0.0, 0.0, 0.0);
+        BoundingBox rootBox = nodes[0].getBoundingBox();
+        bool didIntersect = false;
+
+        // Precompute watertight ray data
+        WatertightRayData wd = WatertightRayData(r);
+
+        if (rootBox.intersectConservative(r, wd, distToChildNodes[0], distToChildNodes[1]))
+        {
+            traversalStack[0].node = 0;
+            traversalStack[0].distance = distToChildNodes[0];
+            int stackPtr = 0;
+
+            while (stackPtr >= 0)
+            {
+                // pop off the next node to work on
+                uint currentNodeIndex = traversalStack[stackPtr].node;
+                float currentDist = traversalStack[stackPtr].distance;
+                stackPtr--;
+
+                // if this node is further than the closest found intersection, continue
+                if (currentDist > r.tMax)
+                {
+                    continue;
+                }
+
+                N node = nodes[currentNodeIndex];
+                if (node.isLeaf())
+                {
+                    // intersect primitives in leaf node using watertight algorithm
+                    uint nPrimitives = node.getNumPrimitives();
+                    for (uint p = 0; p < nPrimitives; p++)
+                    {
+                        Interaction c;
+                        uint primitiveIndex = node.getPrimitiveOffset() + p;
+                        bool didIntersectPrimitive = primitives[primitiveIndex].intersectWatertight(r, checkForOcclusion, c);
+
+                        if (didIntersectPrimitive)
+                        {
+                            if (checkForOcclusion)
+                            {
+                                i.index = c.index;
+                                return true;
+                            }
+
+                            didIntersect = true;
+                            r.tMax = min(r.tMax, c.d);
+                            i = c;
+                        }
+                    }
+                }
+                else
+                {
+                    // intersect child nodes using conservative box test
+                    uint leftNodeIndex = currentNodeIndex + 1;
+                    BoundingBox leftBox = nodes[leftNodeIndex].getBoundingBox();
+                    bool didIntersectLeft = leftBox.intersectConservative(r, wd, distToChildNodes[0], distToChildNodes[1]);
+
+                    uint rightNodeIndex = currentNodeIndex + node.getRightChildOffset();
+                    BoundingBox rightBox = nodes[rightNodeIndex].getBoundingBox();
+                    bool didIntersectRight = rightBox.intersectConservative(r, wd, distToChildNodes[2], distToChildNodes[3]);
+
+                    // which nodes did we intersect?
+                    if (didIntersectLeft && didIntersectRight)
+                    {
+                        // assume that the left child is closer
+                        uint closer = leftNodeIndex;
+                        uint other = rightNodeIndex;
+
+                        // ... if the right child was actually closer, swap the relavent values
+                        if (distToChildNodes[2] < distToChildNodes[0])
+                        {
+                            float tmpDist = distToChildNodes[0];
+                            distToChildNodes[0] = distToChildNodes[2];
+                            distToChildNodes[2] = tmpDist;
+
+                            uint tmpNodeIndex = closer;
+                            closer = other;
+                            other = tmpNodeIndex;
+                        }
+
+                        // it's possible that the nearest primitive is still in the other node,
+                        // but we'll check the farther-away node later.
+
+                        // push the further node first, then the closer node
+                        stackPtr++;
+                        traversalStack[stackPtr].node = other;
+                        traversalStack[stackPtr].distance = distToChildNodes[2];
+
+                        stackPtr++;
+                        traversalStack[stackPtr].node = closer;
+                        traversalStack[stackPtr].distance = distToChildNodes[0];
+                    }
+                    else if (didIntersectLeft)
+                    {
+                        stackPtr++;
+                        traversalStack[stackPtr].node = leftNodeIndex;
+                        traversalStack[stackPtr].distance = distToChildNodes[0];
+                    }
+                    else if (didIntersectRight)
+                    {
+                        stackPtr++;
+                        traversalStack[stackPtr].node = rightNodeIndex;
+                        traversalStack[stackPtr].distance = distToChildNodes[2];
+                    }
+                }
+            }
+        }
+
+        return didIntersect;
+    }
+
     // intersects aggregate geometry with sphere
     public bool intersect<T : IBranchTraversalWeight>(BoundingSphere s, float3 randNums,
                                                       T branchTraversalWeight,

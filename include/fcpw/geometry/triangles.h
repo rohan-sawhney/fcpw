@@ -46,9 +46,17 @@ public:
     // intersects with ray
     bool intersect(const Ray<3>& r, Interaction<3>& i, bool checkForOcclusion=false) const;
 
+    // intersects with ray using watertight algorithm
+    // Based on: Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013
+    bool intersectWatertight(const Ray<3>& r, Interaction<3>& i, bool checkForOcclusion=false) const;
+
     // intersects with ray
     int intersect(const Ray<3>& r, std::vector<Interaction<3>>& is,
                   bool checkForOcclusion=false, bool recordAllHits=false) const;
+
+    // intersects with ray using watertight algorithm
+    int intersectWatertight(const Ray<3>& r, std::vector<Interaction<3>>& is,
+                            bool checkForOcclusion=false, bool recordAllHits=false) const;
 
     // intersects with sphere
     bool intersect(const BoundingSphere<3>& s, Interaction<3>& i,

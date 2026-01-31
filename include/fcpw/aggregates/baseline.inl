@@ -71,7 +71,7 @@ inline float Baseline<DIM, PrimitiveType, SilhouetteType>::signedVolume() const
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
 inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
                                                                             int aggregateIndex, int& nodesVisited,
-                                                                            bool checkForOcclusion) const
+                                                                            bool checkForOcclusion, bool watertight) const
 {
     // find closest hit
     bool didHit = false;
@@ -82,11 +82,10 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<
         if (primitiveTypeIsAggregate) {
             const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
             hit = aggregate->intersectFromNode(r, i, nodeStartIndex, aggregateIndex,
-                                               nodesVisited, checkForOcclusion);
+                                               nodesVisited, checkForOcclusion, watertight);
 
         } else {
-            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(primitives[p]);
-            hit = geometricPrim->intersect(r, i, checkForOcclusion);
+            hit = intersectPrimitive<DIM, PrimitiveType>(primitives[p], r, i, checkForOcclusion, watertight);
             if (hit) {
                 i.referenceIndex = p;
                 i.objectIndex = this->pIndex;
@@ -109,7 +108,8 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
 inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                            int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                                           bool checkForOcclusion, bool recordAllHits) const
+                                                                           bool checkForOcclusion, bool recordAllHits,
+                                                                           bool watertight) const
 {
     int hits = 0;
     if (!recordAllHits) is.resize(1);
@@ -123,11 +123,10 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<D
         if (primitiveTypeIsAggregate) {
             const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
             hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-                                               nodesVisited, checkForOcclusion, recordAllHits);
+                                               nodesVisited, checkForOcclusion, recordAllHits, watertight);
 
         } else {
-            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(primitives[p]);
-            hit = geometricPrim->intersect(r, cs, checkForOcclusion, recordAllHits);
+            hit = intersectPrimitiveVector<DIM, PrimitiveType>(primitives[p], r, cs, checkForOcclusion, recordAllHits, watertight);
             for (int i = 0; i < (int)cs.size(); i++) {
                 cs[i].referenceIndex = p;
                 cs[i].objectIndex = this->pIndex;

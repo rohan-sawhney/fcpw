@@ -113,6 +113,12 @@ struct BoundingBox {
         return true;
     }
 
+    // checks for ray intersection (generic fallback for non-3D)
+    bool intersectConservative(const Ray<DIM>& r, float& tMin, float& tMax) const {
+        // Fall back to regular intersection for non-3D
+        return intersect(r, tMin, tMax);
+    }
+
     // checks whether bounding box is valid
     bool isValid() const {
         return (pMax.array() >= pMin.array()).all();
@@ -183,6 +189,87 @@ struct BoundingBox {
     // members
     Vector<DIM> pMin, pMax;
 };
+
+// Conservative ray-box intersection for watertight ray tracing
+// Based on: Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013
+// This ensures no triangles are missed during BVH traversal when using watertight triangle intersection
+inline bool intersectBoxConservative(const BoundingBox<3>& box, const Ray<3>& r, float& tMin, float& tMax)
+{
+    const WatertightRayData& wd = r.getWatertightData();
+    const int kx = wd.kx;
+    const int ky = wd.ky;
+    const int kz = wd.kz;
+
+    // Conservative rounding constants
+    constexpr float p = 1.0f + 1.1920929e-7f;  // 1 + 2^-23
+    constexpr float m = 1.0f - 1.1920929e-7f;  // 1 - 2^-23
+
+    // Helper functions for conservative rounding
+    auto up = [](float a) { return a > 0.0f ? a * p : a * m; };
+    auto dn = [](float a) { return a > 0.0f ? a * m : a * p; };
+    auto Up = [](float a) { return a * p; };
+    auto Dn = [](float a) { return a * m; };
+
+    // Get box bounds as array for indexed access
+    // box stored as [pMin.x, pMin.y, pMin.z, pMax.x, pMax.y, pMax.z]
+    float boxBounds[6] = {
+        box.pMin[0], box.pMin[1], box.pMin[2],
+        box.pMax[0], box.pMax[1], box.pMax[2]
+    };
+
+    // Calculate corrected origin for near- and far-plane distance calculations
+    constexpr float eps = 5.0f * 5.9604645e-8f;  // 5 * 2^-24
+
+    float lower_kx = Dn(std::fabs(r.o[kx] - box.pMin[kx]));
+    float lower_ky = Dn(std::fabs(r.o[ky] - box.pMin[ky]));
+    float lower_kz = Dn(std::fabs(r.o[kz] - box.pMin[kz]));
+    float upper_kx = Up(std::fabs(r.o[kx] - box.pMax[kx]));
+    float upper_ky = Up(std::fabs(r.o[ky] - box.pMax[ky]));
+    float upper_kz = Up(std::fabs(r.o[kz] - box.pMax[kz]));
+
+    float max_z = std::max(lower_kz, upper_kz);
+
+    float err_near_x = Up(lower_kx + max_z);
+    float err_near_y = Up(lower_ky + max_z);
+    float org_near_x = up(r.o[kx] + Up(eps * err_near_x));
+    float org_near_y = up(r.o[ky] + Up(eps * err_near_y));
+    float org_near_z = r.o[kz];
+
+    float err_far_x = Up(upper_kx + max_z);
+    float err_far_y = Up(upper_ky + max_z);
+    float org_far_x = dn(r.o[kx] - Up(eps * err_far_x));
+    float org_far_y = dn(r.o[ky] - Up(eps * err_far_y));
+    float org_far_z = r.o[kz];
+
+    // Swap near/far origins based on direction signs
+    if (r.d[kx] < 0.0f) std::swap(org_near_x, org_far_x);
+    if (r.d[ky] < 0.0f) std::swap(org_near_y, org_far_y);
+
+    // Get conservative reciprocal directions
+    float rdir_near_x = wd.rdirNear[0];
+    float rdir_near_y = wd.rdirNear[1];
+    float rdir_near_z = wd.rdirNear[2];
+    float rdir_far_x = wd.rdirFar[0];
+    float rdir_far_y = wd.rdirFar[1];
+    float rdir_far_z = wd.rdirFar[2];
+
+    // Calculate near/far t values
+    float tNearX = (boxBounds[wd.nearX] - org_near_x) * rdir_near_x;
+    float tNearY = (boxBounds[wd.nearY] - org_near_y) * rdir_near_y;
+    float tNearZ = (boxBounds[wd.nearZ] - org_near_z) * rdir_near_z;
+    float tFarX = (boxBounds[wd.farX] - org_far_x) * rdir_far_x;
+    float tFarY = (boxBounds[wd.farY] - org_far_y) * rdir_far_y;
+    float tFarZ = (boxBounds[wd.farZ] - org_far_z) * rdir_far_z;
+
+    float tNearMax = std::max(std::max(tNearX, tNearY), std::max(tNearZ, 0.0f));
+    float tFarMin = std::min(std::min(tFarX, tFarY), std::min(tFarZ, r.tMax));
+
+    if (tNearMax > tFarMin) return false;
+
+    tMin = tNearMax;
+    tMax = tFarMin;
+    return true;
+}
 
 inline void computeOrthonormalBasis(const Vector3& n, Vector3& b1, Vector3& b2)
 {

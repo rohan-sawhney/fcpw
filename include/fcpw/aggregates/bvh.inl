@@ -646,7 +646,7 @@ inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::signedVolume() c
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
-                                                                                             int aggregateIndex, bool checkForOcclusion,
+                                                                                             int aggregateIndex, bool checkForOcclusion, bool watertight,
                                                                                              TraversalStack *subtree, float *boxHits,
                                                                                              bool& didHit, int& nodesVisited) const
 {
@@ -672,11 +672,10 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
                 if (primitiveTypeIsAggregate) {
                     const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
                     hit = aggregate->intersectFromNode(r, i, nodeStartIndex, aggregateIndex,
-                                                       nodesVisited, checkForOcclusion);
+                                                       nodesVisited, checkForOcclusion, watertight);
 
                 } else {
-                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
-                    hit = geometricPrim->intersect(r, i, checkForOcclusion);
+                    hit = intersectPrimitive<DIM, PrimitiveType>(prim, r, i, checkForOcclusion, watertight);
                     if (hit) {
                         i.nodeIndex = nodeIndex;
                         i.referenceIndex = referenceIndex;
@@ -695,8 +694,8 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
             }
 
         } else { // not a leaf
-            bool hit0 = flatTree[nodeIndex + 1].box.intersect(r, boxHits[0], boxHits[1]);
-            bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.intersect(r, boxHits[2], boxHits[3]);
+            bool hit0 = intersectBox<DIM>(flatTree[nodeIndex + 1].box, r, boxHits[0], boxHits[1], watertight);
+            bool hit1 = intersectBox<DIM>(flatTree[nodeIndex + node.secondChildOffset].box, r, boxHits[2], boxHits[3], watertight);
 
             // did we hit both nodes?
             if (hit0 && hit1) {
@@ -744,17 +743,17 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
                                                                                  int aggregateIndex, int& nodesVisited,
-                                                                                 bool checkForOcclusion) const
+                                                                                 bool checkForOcclusion, bool watertight) const
 {
     bool didHit = false;
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
     float boxHits[4];
 
     int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
-    if (flatTree[rootIndex].box.intersect(r, boxHits[0], boxHits[1])) {
+    if (intersectBox<DIM>(flatTree[rootIndex].box, r, boxHits[0], boxHits[1], watertight)) {
         subtree[0].node = rootIndex;
         subtree[0].distance = boxHits[0];
-        bool occluded = processSubtreeForIntersection(r, i, nodeStartIndex, aggregateIndex, checkForOcclusion,
+        bool occluded = processSubtreeForIntersection(r, i, nodeStartIndex, aggregateIndex, checkForOcclusion, watertight,
                                                       subtree, boxHits, didHit, nodesVisited);
         if (occluded) return true;
     }
@@ -765,7 +764,7 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                                              int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
-                                                                                             bool recordAllHits, TraversalStack *subtree,
+                                                                                             bool recordAllHits, bool watertight, TraversalStack *subtree,
                                                                                              float *boxHits, int& hits, int& nodesVisited) const
 {
     int stackPtr = 0;
@@ -791,11 +790,10 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
                 if (primitiveTypeIsAggregate) {
                     const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
                     hit = aggregate->intersectFromNode(r, cs, nodeStartIndex, aggregateIndex,
-                                                       nodesVisited, checkForOcclusion, recordAllHits);
+                                                       nodesVisited, checkForOcclusion, recordAllHits, watertight);
 
                 } else {
-                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
-                    hit = geometricPrim->intersect(r, cs, checkForOcclusion, recordAllHits);
+                    hit = intersectPrimitiveVector<DIM, PrimitiveType>(prim, r, cs, checkForOcclusion, recordAllHits, watertight);
                     for (int i = 0; i < (int)cs.size(); i++) {
                         cs[i].nodeIndex = nodeIndex;
                         cs[i].referenceIndex = referenceIndex;
@@ -821,8 +819,8 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
             }
 
         } else { // not a leaf
-            bool hit0 = flatTree[nodeIndex + 1].box.intersect(r, boxHits[0], boxHits[1]);
-            bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.intersect(r, boxHits[2], boxHits[3]);
+            bool hit0 = intersectBox<DIM>(flatTree[nodeIndex + 1].box, r, boxHits[0], boxHits[1], watertight);
+            bool hit1 = intersectBox<DIM>(flatTree[nodeIndex + node.secondChildOffset].box, r, boxHits[2], boxHits[3], watertight);
 
             // did we hit both nodes?
             if (hit0 && hit1) {
@@ -870,7 +868,8 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                                 int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                                                bool checkForOcclusion, bool recordAllHits) const
+                                                                                bool checkForOcclusion, bool recordAllHits,
+                                                                                bool watertight) const
 {
     int hits = 0;
     if (!recordAllHits) is.resize(1);
@@ -878,11 +877,11 @@ inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(
     float boxHits[4];
 
     int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
-    if (flatTree[rootIndex].box.intersect(r, boxHits[0], boxHits[1])) {
+    if (intersectBox<DIM>(flatTree[rootIndex].box, r, boxHits[0], boxHits[1], watertight)) {
         subtree[0].node = rootIndex;
         subtree[0].distance = boxHits[0];
         bool occluded = processSubtreeForIntersection(r, is, nodeStartIndex, aggregateIndex, checkForOcclusion,
-                                                      recordAllHits, subtree, boxHits, hits, nodesVisited);
+                                                      recordAllHits, watertight, subtree, boxHits, hits, nodesVisited);
         if (occluded) return 1;
     }
 

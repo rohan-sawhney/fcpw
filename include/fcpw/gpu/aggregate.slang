@@ -27,6 +27,9 @@ public interface IAggregate
     // intersects aggregate geometry with ray
     bool intersect(inout Ray r, bool checkForOcclusion, inout Interaction i);
 
+    // intersects aggregate geometry with ray using watertight algorithm
+    bool intersectWatertight(inout Ray r, bool checkForOcclusion, inout Interaction i);
+
     // intersects aggregate geometry with sphere
     bool intersect<T : IBranchTraversalWeight>(BoundingSphere s, float3 randNums,
                                                T branchTraversalWeight,
@@ -64,6 +67,26 @@ public struct TransformedAggregate<A : IAggregate> : IAggregate
 
         // intersect
         bool didIntersect = aggregate.intersect(rInv, checkForOcclusion, i);
+
+        // apply transform to ray and interaction
+        r.tMax = transformRay(t, rInv).tMax;
+        if (didIntersect)
+        {
+            transformInteraction(t, tInv, r.o, true, i);
+            return true;
+        }
+
+        return false;
+    }
+
+    // intersects aggregate geometry with ray using watertight algorithm
+    public bool intersectWatertight(inout Ray r, bool checkForOcclusion, inout Interaction i)
+    {
+        // apply inverse transform to ray
+        Ray rInv = transformRay(tInv, r);
+
+        // intersect using watertight algorithm
+        bool didIntersect = aggregate.intersectWatertight(rInv, checkForOcclusion, i);
 
         // apply transform to ray and interaction
         r.tMax = transformRay(t, rInv).tMax;

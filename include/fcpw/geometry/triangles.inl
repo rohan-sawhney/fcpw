@@ -259,12 +259,128 @@ inline bool Triangle::intersect(const Ray<3>& r, Interaction<3>& i, bool checkFo
     return false;
 }
 
+// Watertight Ray/Triangle Intersection
+// Based on: Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013
+// http://jcgt.org/published/0002/01/05/
+inline bool Triangle::intersectWatertight(const Ray<3>& r, Interaction<3>& i, bool checkForOcclusion) const
+{
+    const Vector3& pa = soup->positions[indices[0]];
+    const Vector3& pb = soup->positions[indices[1]];
+    const Vector3& pc = soup->positions[indices[2]];
+
+    // Get precomputed watertight ray data
+    const WatertightRayData& wd = r.getWatertightData();
+    const int kx = wd.kx;
+    const int ky = wd.ky;
+    const int kz = wd.kz;
+    const float Sx = wd.Sx;
+    const float Sy = wd.Sy;
+    const float Sz = wd.Sz;
+
+    // Calculate vertices relative to ray origin
+    const Vector3 A = pa - r.o;
+    const Vector3 B = pb - r.o;
+    const Vector3 C = pc - r.o;
+
+    // Perform shear and scale of vertices
+    const float Ax = A[kx] - Sx*A[kz];
+    const float Ay = A[ky] - Sy*A[kz];
+    const float Bx = B[kx] - Sx*B[kz];
+    const float By = B[ky] - Sy*B[kz];
+    const float Cx = C[kx] - Sx*C[kz];
+    const float Cy = C[ky] - Sy*C[kz];
+
+    // Calculate scaled barycentric coordinates
+    float U = Cx*By - Cy*Bx;
+    float V = Ax*Cy - Ay*Cx;
+    float W = Bx*Ay - By*Ax;
+
+    // Fallback to double precision if float edge tests fail
+    if (U == 0.0f || V == 0.0f || W == 0.0f) {
+        double CxBy = (double)Cx * (double)By;
+        double CyBx = (double)Cy * (double)Bx;
+        U = (float)(CxBy - CyBx);
+
+        double AxCy = (double)Ax * (double)Cy;
+        double AyCx = (double)Ay * (double)Cx;
+        V = (float)(AxCy - AyCx);
+
+        double BxAy = (double)Bx * (double)Ay;
+        double ByAx = (double)By * (double)Ax;
+        W = (float)(BxAy - ByAx);
+    }
+
+    // Perform edge tests (no backface culling)
+    if ((U < 0.0f || V < 0.0f || W < 0.0f) &&
+        (U > 0.0f || V > 0.0f || W > 0.0f)) {
+        return false;
+    }
+
+    // Calculate determinant
+    float det = U + V + W;
+    if (det == 0.0f) return false;
+
+    // Calculate scaled z-coordinates of vertices and use them to calculate the hit distance
+    const float Az = Sz * A[kz];
+    const float Bz = Sz * B[kz];
+    const float Cz = Sz * C[kz];
+    const float T = U*Az + V*Bz + W*Cz;
+
+    // Perform depth test (no backface culling version)
+    // Use xor to check sign without branching
+    int detSign = (det < 0.0f) ? -1 : 0;
+    float detAbs = std::fabs(det);
+    float Txor = (detSign < 0) ? -T : T;
+
+    if (Txor < 0.0f || Txor > r.tMax * detAbs) {
+        return false;
+    }
+
+    if (checkForOcclusion) return true;
+
+    // Normalize U, V, W, and T
+    const float rcpDet = 1.0f / det;
+    float u = U * rcpDet;
+    float v = V * rcpDet;
+    float w = W * rcpDet;
+    float t = T * rcpDet;
+
+    // Fill in interaction
+    i.d = t;
+    i.p = pa*u + pb*v + pc*w;
+    Vector3 v1 = pb - pa;
+    Vector3 v2 = pc - pa;
+    i.n = v1.cross(v2).normalized();
+    i.uv[0] = u;  // barycentric coord for pa
+    i.uv[1] = v;  // barycentric coord for pb
+    i.primitiveIndex = pIndex;
+
+    return true;
+}
+
 inline int Triangle::intersect(const Ray<3>& r, std::vector<Interaction<3>>& is,
                                bool checkForOcclusion, bool recordAllHits) const
 {
     is.clear();
     Interaction<3> i;
     bool hit = intersect(r, i, checkForOcclusion);
+
+    if (hit) {
+        if (checkForOcclusion) return 1;
+
+        is.emplace_back(i);
+        return 1;
+    }
+
+    return 0;
+}
+
+inline int Triangle::intersectWatertight(const Ray<3>& r, std::vector<Interaction<3>>& is,
+                                         bool checkForOcclusion, bool recordAllHits) const
+{
+    is.clear();
+    Interaction<3> i;
+    bool hit = intersectWatertight(r, i, checkForOcclusion);
 
     if (hit) {
         if (checkForOcclusion) return 1;
@@ -389,6 +505,66 @@ inline bool Triangle::findClosestPoint(const BoundingSphere<3>& s, Interaction<3
     }
 
     return false;
+}
+
+// Helper function to perform ray-primitive intersection with optional watertight support
+// (Default implementation for non-Triangle primitives)
+template<size_t DIM, typename PrimitiveType>
+inline bool intersectPrimitive(const PrimitiveType *prim, const Ray<DIM>& r,
+                               Interaction<DIM>& i, bool checkForOcclusion, bool watertight)
+{
+    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+    return geometricPrim->intersect(r, i, checkForOcclusion);
+}
+
+// Specialization for 3D Triangle with watertight support
+template<>
+inline bool intersectPrimitive<3, Triangle>(const Triangle *prim, const Ray<3>& r,
+                                            Interaction<3>& i, bool checkForOcclusion, bool watertight)
+{
+    if (watertight) {
+        return prim->intersectWatertight(r, i, checkForOcclusion);
+    }
+    return prim->intersect(r, i, checkForOcclusion);
+}
+
+// Helper function to perform vector ray-primitive intersection with optional watertight support
+template<size_t DIM, typename PrimitiveType>
+inline int intersectPrimitiveVector(const PrimitiveType *prim, const Ray<DIM>& r,
+                                    std::vector<Interaction<DIM>>& cs, bool checkForOcclusion,
+                                    bool recordAllHits, bool watertight)
+{
+    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+    return geometricPrim->intersect(r, cs, checkForOcclusion, recordAllHits);
+}
+
+// Specialization for 3D Triangle with watertight support
+template<>
+inline int intersectPrimitiveVector<3, Triangle>(const Triangle *prim, const Ray<3>& r,
+                                                 std::vector<Interaction<3>>& cs, bool checkForOcclusion,
+                                                 bool recordAllHits, bool watertight)
+{
+    if (watertight) {
+        return prim->intersectWatertight(r, cs, checkForOcclusion, recordAllHits);
+    }
+    return prim->intersect(r, cs, checkForOcclusion, recordAllHits);
+}
+
+// Helper function for ray-box intersection with optional conservative (watertight) support
+template<size_t DIM>
+inline bool intersectBox(const BoundingBox<DIM>& box, const Ray<DIM>& r, float& tMin, float& tMax, bool watertight)
+{
+    return box.intersect(r, tMin, tMax);
+}
+
+// Specialization for 3D with conservative box intersection
+template<>
+inline bool intersectBox<3>(const BoundingBox<3>& box, const Ray<3>& r, float& tMin, float& tMax, bool watertight)
+{
+    if (watertight) {
+        return intersectBoxConservative(box, r, tMin, tMax);
+    }
+    return box.intersect(r, tMin, tMax);
 }
 
 } // namespace fcpw

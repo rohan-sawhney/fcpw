@@ -98,13 +98,14 @@ public:
     // NOTE: interaction is invalid when checkForOcclusion is enabled
     bool intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
                            int aggregateIndex, int& nodesVisited,
-                           bool checkForOcclusion=false) const;
+                           bool checkForOcclusion=false, bool watertight=false) const;
 
     // intersects with ray, starting the traversal at the specified node in an aggregate
     // NOTE: interactions are invalid when checkForOcclusion is enabled
     int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                           int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                          bool checkForOcclusion=false, bool recordAllHits=false) const;
+                          bool checkForOcclusion=false, bool recordAllHits=false,
+                          bool watertight=false) const;
 
     // intersects with sphere, starting the traversal at the specified node in an aggregate
     // NOTE: interactions contain primitive index
@@ -166,14 +167,14 @@ protected:
 
     // processes subtree for intersection
     bool processSubtreeForIntersection(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
-                                       int aggregateIndex, bool checkForOcclusion,
+                                       int aggregateIndex, bool checkForOcclusion, bool watertight,
                                        TraversalStack *subtree, float *boxHits,
                                        bool& didHit, int& nodesVisited) const;
 
     // processes subtree for intersection
     bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                        int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
-                                       bool recordAllHits, TraversalStack *subtree,
+                                       bool recordAllHits, bool watertight, TraversalStack *subtree,
                                        float *boxHits, int& hits, int& nodesVisited) const;
 
     // processes subtree for intersection

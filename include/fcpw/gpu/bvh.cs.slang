@@ -56,6 +56,31 @@ void rayIntersection(uint3 threadId: SV_DispatchThreadID,
     }
 }
 
+// Watertight ray intersection shader
+// Based on: Woop, Benthin, Wald. "Watertight Ray/Triangle Intersection" JCGT 2013
+[shader("compute")]
+[numthreads(256, 1, 1)]
+void rayIntersectionWatertight(uint3 threadId: SV_DispatchThreadID,
+                               uniform StructuredBuffer<Ray> rays,
+                               uniform RWStructuredBuffer<Interaction> interactions,
+                               uniform uint checkForOcclusion,
+                               uniform uint nQueries)
+{
+    uint index = threadId.x;
+    if (index >= nQueries)
+    {
+        return;
+    }
+
+    Ray r = rays[index];
+    Interaction i;
+    bool didIntersect = gBvh.intersectWatertight(r, checkForOcclusion != 0, i);
+    if (didIntersect)
+    {
+        interactions[index] = i;
+    }
+}
+
 [shader("compute")]
 [numthreads(256, 1, 1)]
 void sphereIntersection(uint3 threadId: SV_DispatchThreadID,
