@@ -952,7 +952,7 @@ inline bool Mbvh<WIDTH, DIM,
                  LeafNodeType,
                  SilhouetteLeafNodeType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
                                                             int aggregateIndex, int& nodesVisited,
-                                                            bool checkForOcclusion) const
+                                                            bool checkForOcclusion, bool watertight) const
 {
     bool didHit = false;
     TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
@@ -1184,7 +1184,8 @@ inline int Mbvh<WIDTH, DIM,
                 LeafNodeType,
                 SilhouetteLeafNodeType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                            int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                           bool checkForOcclusion, bool recordAllHits) const
+                                                           bool checkForOcclusion, bool recordAllHits,
+                                                           bool watertight) const
 {
     int hits = 0;
     if (!recordAllHits) is.resize(1);

@@ -136,7 +136,7 @@ inline void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeInteract
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
                                                                                    int aggregateIndex, int& nodesVisited,
-                                                                                   bool checkForOcclusion) const
+                                                                                   bool checkForOcclusion, bool watertight) const
 {
     std::cerr << "CsgNode::intersectFromNode(const Ray<DIM>&) not implemented" << std::endl;
     exit(EXIT_FAILURE);
@@ -147,7 +147,8 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNo
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                                   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                                                  bool checkForOcclusion, bool recordAllHits) const
+                                                                                  bool checkForOcclusion, bool recordAllHits,
+                                                                                  bool watertight) const
 {
     // TODO: optimize for checkForOcclusion == true
     int hits = 0;
