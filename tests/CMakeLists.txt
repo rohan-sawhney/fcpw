@@ -10,16 +10,6 @@ add_executable(watertight_tests watertight_tests.cpp)
 target_link_libraries(watertight_tests fcpw)
 target_include_directories(watertight_tests PRIVATE ${FCPW_TESTS_INCLUDES})
 
-# GPU watertight tests - needs GPU support but not TBB or polyscope
-# NOTE: GPU compute shaders currently do not work on Metal (macOS).
-# To enable this test on platforms with working GPU support (Vulkan/CUDA),
-# set FCPW_BUILD_GPU_TESTS=ON in addition to FCPW_ENABLE_GPU_SUPPORT=ON.
-if(FCPW_ENABLE_GPU_SUPPORT AND FCPW_BUILD_GPU_TESTS)
-    add_executable(gpu_watertight_tests gpu_watertight_tests.cpp)
-    target_link_libraries(gpu_watertight_tests fcpw)
-    target_include_directories(gpu_watertight_tests PRIVATE ${FCPW_TESTS_INCLUDES})
-endif()
-
 # Other tests require TBB - only build if submodule is available
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/deps/tbb/CMakeLists.txt)
     set(TBB_TEST          OFF CACHE BOOL " " FORCE)

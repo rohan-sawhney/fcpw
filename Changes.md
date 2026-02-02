@@ -1,3 +1,18 @@
+## Overview
+
+This PR implements **watertight ray-triangle intersection** for the fcpw library, based on the algorithm described in:
+
+> Sven Woop, Carsten Benthin, and Ingo Wald. "Watertight Ray/Triangle Intersection." *Journal of Computer Graphics Techniques (JCGT)*, Vol. 2, No. 1, 2013.
+
+The watertight algorithm guarantees that rays passing through triangle edges or vertices will always report a hit on exactly one of the adjacent triangles, eliminating the "cracks" that can occur with standard intersection tests due to floating-point precision issues.
+
+The implementation is:
+- **Opt-in**: Enabled via an optional `watertight` parameter (default `false`)
+- **Backward compatible**: Existing code continues to work unchanged
+- **CPU only**: A GPU implementation was not included in this PR
+
+---
+
 ## Summary of Changes
 
 ### C++ Implementation
@@ -27,52 +42,27 @@
 7. **`include/fcpw/aggregates/baseline.h` / `baseline.inl`**
    - Updated `intersectFromNode()` methods with watertight parameter
 
-### GPU (Slang) Implementation
+8. **`include/fcpw/aggregates/mbvh.h` / `mbvh.inl`**
+   - Updated `intersectFromNode()` methods to propagate watertight flag to primitive intersections
 
-**Note:** We were unable to run this test locally due to lack of GPU hardware.  Probably a good idea for the maintainer(s) to either run the test, or reject the GPU-related changes.
+9. **`include/fcpw/aggregates/csg_node.h` / `csg_node.inl`**
+   - Updated `intersectFromNode()` methods with watertight parameter
 
-8. **`include/fcpw/gpu/ray.slang`**
-   - Added `WatertightRayData` struct with constructor to compute watertight data from a ray
-
-9. **`include/fcpw/gpu/bounding-volumes.slang`**
-   - Added `intersectConservative()` method to `BoundingBox` struct
-
-10. **`include/fcpw/gpu/geometry.slang`**
-    - Added `intersectTriangleWatertight()` function implementing the watertight algorithm
-    - Added `intersectWatertight()` method to `IPrimitive` interface
-    - Added `intersectWatertight()` to `Triangle` and `LineSegment` structs
-
-11. **`include/fcpw/gpu/aggregate.slang`**
-    - Added `intersectWatertight()` to `IAggregate` interface and `TransformedAggregate`
-
-12. **`include/fcpw/gpu/bvh.slang`**
-    - Added `intersectWatertight()` method using conservative box and watertight triangle intersection
-
-13. **`include/fcpw/gpu/bvh.cs.slang`**
-    - Added `rayIntersectionWatertight` compute shader entry point
-
-14. **`include/fcpw/fcpw_gpu.h` / `fcpw_gpu.inl`**
-    - Added `watertight` parameter to `GPUScene::intersect()` methods
-    - Added `rayIntersectionWatertightShader` member
-    - Dispatch to watertight shader when flag is set (3D only)
+---
 
 ## Usage
 
 The watertight mode is opt-in and backward compatible:
 
 ```cpp
-// C++ CPU
 Scene<3> scene;
 // ... setup scene ...
 Interaction<3> i;
 Ray<3> r(origin, direction);
 scene.intersect(r, i, false, true);  // last param enables watertight
-
-// C++ GPU
-GPUScene<3> gpuScene("PATH_TO_FCPW");
-// ... setup ...
-gpuScene.intersect(rays, interactions, false, true);  // last param enables watertight
 ```
+
+---
 
 ## Validation / Testing
 
@@ -92,6 +82,8 @@ The tests work as follows:
 - Expected: The watertight method should catch significantly more intersections because shooting rays at exact edge points triggers the edge cases that the watertight algorithm handles
 
 On test meshes `armadillo.obj`, `bunny.obj`, `convex.obj`, and `kitten.obj`, shooting N=100000 rays, the watertight method agrees with the standard method 100% of the time for ordinary intersections (Part I), and improves the hit rate from around 89% to 100% on edge intersections (Part II).
+
+---
 
 ## Implementation Note: Double-Precision Edge Tests
 
@@ -143,4 +135,3 @@ float W = (float)Wd;
 ```
 
 Double precision provides approximately 15-16 significant decimal digits (versus ~7 for single precision). This dramatically reduces the likelihood of sign errors in near-edge cases. The performance impact is minimal on modern hardware, and the robustness improvement is significant—in testing, this change completely eliminated false-negative intersections on a test where every ray from the interior is shot directly toward a point on an edge.
-
