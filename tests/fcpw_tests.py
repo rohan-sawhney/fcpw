@@ -1,11 +1,22 @@
 import numpy as np
-import polyscope as ps
-import warp as wp
 import fcpw
 import time
 import argparse
 from pathlib import Path
 from typing import Callable, Optional
+
+# Optional imports - not needed for basic tests
+try:
+    import polyscope as ps
+    HAS_POLYSCOPE = True
+except ImportError:
+    HAS_POLYSCOPE = False
+
+try:
+    import warp as wp
+    HAS_WARP = True
+except ImportError:
+    HAS_WARP = False
 
 class BoundingBox:
     def __init__(self, p_min, p_max):
@@ -300,43 +311,45 @@ def run_cpu_closest_silhouette_point_queries(scene, query_points, squared_max_ra
 
         return interactions
 
-@wp.kernel
-def run_warp_ray_intersection_queries(mesh: wp.uint64,
-                                      query_origins: wp.array(dtype=wp.vec3),
-                                      query_directions: wp.array(dtype=wp.vec3),
-                                      query_t_max: wp.array(dtype=float),
-                                      query_faces: wp.array(dtype=int),
-                                      query_hit_points: wp.array(dtype=wp.vec3),
-                                      query_dist: wp.array(dtype=float)):
-    tid = wp.tid()
-    o = query_origins[tid]
-    d = query_directions[tid]
-    t_max = query_t_max[tid]
-    query = wp.mesh_query_ray(mesh, o, d, t_max)
+# Warp kernels - only defined if warp is available
+if HAS_WARP:
+    @wp.kernel
+    def run_warp_ray_intersection_queries(mesh: wp.uint64,
+                                          query_origins: wp.array(dtype=wp.vec3),
+                                          query_directions: wp.array(dtype=wp.vec3),
+                                          query_t_max: wp.array(dtype=float),
+                                          query_faces: wp.array(dtype=int),
+                                          query_hit_points: wp.array(dtype=wp.vec3),
+                                          query_dist: wp.array(dtype=float)):
+        tid = wp.tid()
+        o = query_origins[tid]
+        d = query_directions[tid]
+        t_max = query_t_max[tid]
+        query = wp.mesh_query_ray(mesh, o, d, t_max)
 
-    if query.result:
-        hp = wp.mesh_eval_position(mesh, query.face, query.u, query.v)
-        query_faces[tid] = query.face
-        query_hit_points[tid] = hp
-        query_dist[tid] = query.t
+        if query.result:
+            hp = wp.mesh_eval_position(mesh, query.face, query.u, query.v)
+            query_faces[tid] = query.face
+            query_hit_points[tid] = hp
+            query_dist[tid] = query.t
 
-@wp.kernel
-def run_warp_closest_point_queries(mesh: wp.uint64,
-                                   query_points: wp.array(dtype=wp.vec3),
-                                   query_d_max: wp.array(dtype=float),
-                                   query_faces: wp.array(dtype=int),
-                                   query_closest_points: wp.array(dtype=wp.vec3),
-                                   query_dist: wp.array(dtype=float)):
-    tid = wp.tid()
-    p = query_points[tid]
-    d_max = query_d_max[tid]
-    query = wp.mesh_query_point_no_sign(mesh, p, d_max)
+    @wp.kernel
+    def run_warp_closest_point_queries(mesh: wp.uint64,
+                                       query_points: wp.array(dtype=wp.vec3),
+                                       query_d_max: wp.array(dtype=float),
+                                       query_faces: wp.array(dtype=int),
+                                       query_closest_points: wp.array(dtype=wp.vec3),
+                                       query_dist: wp.array(dtype=float)):
+        tid = wp.tid()
+        p = query_points[tid]
+        d_max = query_d_max[tid]
+        query = wp.mesh_query_point_no_sign(mesh, p, d_max)
 
-    if query.result:
-        cp = wp.mesh_eval_position(mesh, query.face, query.u, query.v)
-        query_faces[tid] = query.face
-        query_closest_points[tid] = cp
-        query_dist[tid] = wp.length(cp - p)
+        if query.result:
+            cp = wp.mesh_eval_position(mesh, query.face, query.u, query.v)
+            query_faces[tid] = query.face
+            query_closest_points[tid] = cp
+            query_dist[tid] = wp.length(cp - p)
 
 def compare_cpu_interactions(cpu_interactions_baseline, cpu_interactions, dim):
     n_queries = len(cpu_interactions)
@@ -480,6 +493,10 @@ def test_watertight_intersection(positions, indices, scene, n_queries):
 
 def visualize_polyscope_scene(positions, indices, query_points, random_directions,
                               random_squared_radii, interior_points, dim):
+    if not HAS_POLYSCOPE:
+        print("Polyscope not available - skipping visualization")
+        return
+        
     ps.init()
     ps.register_point_cloud("query points", query_points)
     if len(interior_points) > 0:
@@ -569,58 +586,61 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
                                                      gpu_cspq_interactions)
 
     if compare_with_warp and run_gpu_queries and dim == 3:
-        wp.init()
-        device_points = wp.array(data=query_points, dtype=wp.vec3, device="cuda:0")
-        device_directions = wp.array(data=random_directions, dtype=wp.vec3, device="cuda:0")
-        device_parametric_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cuda:0")
-        wp_mesh = wp.Mesh(points=wp.array(data=positions, dtype=wp.vec3, device="cuda:0"),
-                          indices=wp.array(data=indices.flatten(), dtype=int, device="cuda:0"),
-                          velocities=None, bvh_constructor="sah")
+        if not HAS_WARP:
+            print("Warp not available - skipping warp comparison")
+        else:
+            wp.init()
+            device_points = wp.array(data=query_points, dtype=wp.vec3, device="cuda:0")
+            device_directions = wp.array(data=random_directions, dtype=wp.vec3, device="cuda:0")
+            device_parametric_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cuda:0")
+            wp_mesh = wp.Mesh(points=wp.array(data=positions, dtype=wp.vec3, device="cuda:0"),
+                              indices=wp.array(data=indices.flatten(), dtype=int, device="cuda:0"),
+                              velocities=None, bvh_constructor="sah")
 
-        host_intersection_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cpu")
-        host_intersection_hit_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cpu")
-        host_intersection_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cpu")
-        device_intersection_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cuda:0")
-        device_intersection_hit_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cuda:0")
-        device_intersection_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cuda:0")
-        with wp.ScopedTimer("Warp ray intersection queries", cuda_filter=wp.TIMING_KERNEL):
-            wp.launch(kernel=run_warp_ray_intersection_queries, dim=n_queries,
-                    inputs=[wp_mesh.id, device_points, device_directions, device_parametric_dist,
-                            device_intersection_faces, device_intersection_hit_points,
-                            device_intersection_dist], device="cuda:0")
+            host_intersection_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cpu")
+            host_intersection_hit_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cpu")
+            host_intersection_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cpu")
+            device_intersection_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cuda:0")
+            device_intersection_hit_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cuda:0")
+            device_intersection_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cuda:0")
+            with wp.ScopedTimer("Warp ray intersection queries", cuda_filter=wp.TIMING_KERNEL):
+                wp.launch(kernel=run_warp_ray_intersection_queries, dim=n_queries,
+                        inputs=[wp_mesh.id, device_points, device_directions, device_parametric_dist,
+                                device_intersection_faces, device_intersection_hit_points,
+                                device_intersection_dist], device="cuda:0")
 
-        wp.copy(host_intersection_faces, device_intersection_faces)
-        wp.copy(host_intersection_hit_points, device_intersection_hit_points)
-        wp.copy(host_intersection_dist, device_intersection_dist)
-        wp.synchronize()
+            wp.copy(host_intersection_faces, device_intersection_faces)
+            wp.copy(host_intersection_hit_points, device_intersection_hit_points)
+            wp.copy(host_intersection_dist, device_intersection_dist)
+            wp.synchronize()
 
-        host_closest_point_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cpu")
-        host_closest_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cpu")
-        host_closest_point_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cpu")
-        device_closest_point_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cuda:0")
-        device_closest_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cuda:0")
-        device_closest_point_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cuda:0")
-        with wp.ScopedTimer("Warp closest point queries", cuda_filter=wp.TIMING_KERNEL):
-            wp.launch(kernel=run_warp_closest_point_queries, dim=n_queries,
-                    inputs=[wp_mesh.id, device_points, device_parametric_dist,
-                            device_closest_point_faces, device_closest_points,
-                            device_closest_point_dist], device="cuda:0")
+            host_closest_point_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cpu")
+            host_closest_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cpu")
+            host_closest_point_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cpu")
+            device_closest_point_faces = wp.full(shape=n_queries, value=-1, dtype=int, device="cuda:0")
+            device_closest_points = wp.zeros(shape=n_queries, dtype=wp.vec3, device="cuda:0")
+            device_closest_point_dist = wp.full(shape=n_queries, value=np.inf, dtype=float, device="cuda:0")
+            with wp.ScopedTimer("Warp closest point queries", cuda_filter=wp.TIMING_KERNEL):
+                wp.launch(kernel=run_warp_closest_point_queries, dim=n_queries,
+                        inputs=[wp_mesh.id, device_points, device_parametric_dist,
+                                device_closest_point_faces, device_closest_points,
+                                device_closest_point_dist], device="cuda:0")
 
-        wp.copy(host_closest_point_faces, device_closest_point_faces)
-        wp.copy(host_closest_points, device_closest_points)
-        wp.copy(host_closest_point_dist, device_closest_point_dist)
-        wp.synchronize()
+            wp.copy(host_closest_point_faces, device_closest_point_faces)
+            wp.copy(host_closest_points, device_closest_points)
+            wp.copy(host_closest_point_dist, device_closest_point_dist)
+            wp.synchronize()
 
-        print("\nComparing GPU & Warp ray intersection query results...")
-        compare_warp_and_gpu_interactions(host_intersection_faces.numpy(),
-                                          host_intersection_hit_points.numpy(),
-                                          host_intersection_dist.numpy(),
-                                          gpu_ray_interactions)
-        print("\nComparing GPU & Warp closest point query results...")
-        compare_warp_and_gpu_interactions(host_closest_point_faces.numpy(),
-                                          host_closest_points.numpy(),
-                                          host_closest_point_dist.numpy(),
-                                          gpu_cpq_interactions)
+            print("\nComparing GPU & Warp ray intersection query results...")
+            compare_warp_and_gpu_interactions(host_intersection_faces.numpy(),
+                                              host_intersection_hit_points.numpy(),
+                                              host_intersection_dist.numpy(),
+                                              gpu_ray_interactions)
+            print("\nComparing GPU & Warp closest point query results...")
+            compare_warp_and_gpu_interactions(host_closest_point_faces.numpy(),
+                                              host_closest_points.numpy(),
+                                              host_closest_point_dist.numpy(),
+                                              gpu_cpq_interactions)
 
     print("\nRunning BVH CPU Queries")
     cpu_sphere_interactions = run_cpu_sphere_intersection_queries(
