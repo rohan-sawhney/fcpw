@@ -190,14 +190,14 @@ NB_MODULE(py, m) {
         .def("refit", &fcpw::Scene<2>::refit,
             "Refits the scene aggregate hierarchy after updating the geometry, via calls to update_object_vertex.\nNOTE: refitting of instanced aggregates is currently quite inefficient, since the shared aggregate is refit for each instance.",
             "print_stats"_a=false)
-        .def("intersect", nb::overload_cast<fcpw::Ray<2>&, fcpw::Interaction<2>&, bool>(
+        .def("intersect", nb::overload_cast<fcpw::Ray<2>&, fcpw::Interaction<2>&, bool, bool>(
             &fcpw::Scene<2>::intersect, nb::const_),
-            "Intersects the scene with the given ray and returns whether there is a hit.\nIf check_for_occlusion is enabled, the interaction is not populated.",
-            "r"_a, "i"_a, "check_for_occlusion"_a=false)
-        .def("intersect", nb::overload_cast<fcpw::Ray<2>&, Interaction2DList&, bool, bool>(
+            "Intersects the scene with the given ray and returns whether there is a hit.\nIf check_for_occlusion is enabled, the interaction is not populated.\nIf watertight is enabled (3D only), uses watertight ray-triangle intersection.",
+            "r"_a, "i"_a, "check_for_occlusion"_a=false, "watertight"_a=false)
+        .def("intersect", nb::overload_cast<fcpw::Ray<2>&, Interaction2DList&, bool, bool, bool>(
             &fcpw::Scene<2>::intersect, nb::const_),
-            "Intersects the scene with the given ray and returns the number of hits.\nBy default, returns the closest interaction if it exists.\nIf check_for_occlusion is enabled, the interactions vector is not populated.\nIf record_all_hits is enabled, sorts interactions by distance to the ray origin.",
-            "r"_a, "is"_a, "check_for_occlusion"_a=false, "record_all_hits"_a=false)
+            "Intersects the scene with the given ray and returns the number of hits.\nBy default, returns the closest interaction if it exists.\nIf check_for_occlusion is enabled, the interactions vector is not populated.\nIf record_all_hits is enabled, sorts interactions by distance to the ray origin.\nIf watertight is enabled (3D only), uses watertight ray-triangle intersection.",
+            "r"_a, "is"_a, "check_for_occlusion"_a=false, "record_all_hits"_a=false, "watertight"_a=false)
         .def("intersect", nb::overload_cast<const fcpw::BoundingSphere<2>&, Interaction2DList&, bool>(
             &fcpw::Scene<2>::intersect, nb::const_),
             "Intersects the scene with the given sphere and returns the number of primitives inside the sphere: interactions contain the primitive indices.\nIf record_one_hit is set to true, randomly selects one geometric primitive inside the sphere (one for each aggregate in the hierarchy)\nand writes the selection pdf value to interaction_2D.d along with the primitive index.",
@@ -221,14 +221,14 @@ NB_MODULE(py, m) {
             "Finds the closest point on the visibility silhouette in the scene to a query point.\nOptionally specify a minimum radius to stop the closest silhouette search, a conservative maximum radius guess\naround the query point inside which the search is performed, as well as a precision parameter to help classify\nsilhouettes when the query point lies on the scene geometry.",
             "x"_a, "i"_a, "flip_normal_orientation"_a=false, "squared_min_radius"_a=0.0f,
             "squared_max_radius"_a=fcpw::maxFloat, "precision"_a=1e-3f, "record_normal"_a=false)
-        .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction2DList&, bool>(
+        .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction2DList&, bool, bool>(
             &fcpw::Scene<2>::intersect, nb::const_),
-            "Intersects the scene with the given rays, returning the closest interaction if it exists.",
-            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a, "check_for_occlusion"_a=false)
-        .def("intersect", nb::overload_cast<Ray2DList&, Interaction2DList&, bool>(
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.\nIf watertight is enabled (3D only), uses watertight ray-triangle intersection.",
+            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a, "check_for_occlusion"_a=false, "watertight"_a=false)
+        .def("intersect", nb::overload_cast<Ray2DList&, Interaction2DList&, bool, bool>(
             &fcpw::Scene<2>::intersect, nb::const_),
-            "Intersects the scene with the given rays, returning the closest interaction if it exists.",
-            "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.\nIf watertight is enabled (3D only), uses watertight ray-triangle intersection.",
+            "rays"_a, "interactions"_a, "check_for_occlusion"_a=false, "watertight"_a=false)
         .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction2DList&, const Eigen::MatrixXf&, const std::function<float(float)>&>(
             &fcpw::Scene<2>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_2D.p) using the random numbers randNums[2].\nThe selection pdf value is written to interaction_2D.d along with the primitive index.",
@@ -322,14 +322,14 @@ NB_MODULE(py, m) {
         .def("refit", &fcpw::Scene<3>::refit,
             "Refits the scene aggregate hierarchy after updating the geometry, via calls to update_object_vertex.\nNOTE: refitting of instanced aggregates is currently quite inefficient, since the shared aggregate is refit for each instance.",
             "print_stats"_a=false)
-        .def("intersect", nb::overload_cast<fcpw::Ray<3>&, fcpw::Interaction<3>&, bool>(
+        .def("intersect", nb::overload_cast<fcpw::Ray<3>&, fcpw::Interaction<3>&, bool, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
-            "Intersects the scene with the given ray and returns whether there is a hit.\nIf check_for_occlusion is enabled, the interaction is not populated.",
-            "r"_a, "i"_a, "check_for_occlusion"_a=false)
-        .def("intersect", nb::overload_cast<fcpw::Ray<3>&, Interaction3DList&, bool, bool>(
+            "Intersects the scene with the given ray and returns whether there is a hit.\nIf check_for_occlusion is enabled, the interaction is not populated.\nIf watertight is enabled, uses watertight ray-triangle intersection.",
+            "r"_a, "i"_a, "check_for_occlusion"_a=false, "watertight"_a=false)
+        .def("intersect", nb::overload_cast<fcpw::Ray<3>&, Interaction3DList&, bool, bool, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
-            "Intersects the scene with the given ray and returns the number of hits.\nBy default, returns the closest interaction if it exists.\nIf check_for_occlusion is enabled, the interactions vector is not populated.\nIf record_all_hits is enabled, sorts interactions by distance to the ray origin.",
-            "r"_a, "is"_a, "check_for_occlusion"_a=false, "record_all_hits"_a=false)
+            "Intersects the scene with the given ray and returns the number of hits.\nBy default, returns the closest interaction if it exists.\nIf check_for_occlusion is enabled, the interactions vector is not populated.\nIf record_all_hits is enabled, sorts interactions by distance to the ray origin.\nIf watertight is enabled, uses watertight ray-triangle intersection.",
+            "r"_a, "is"_a, "check_for_occlusion"_a=false, "record_all_hits"_a=false, "watertight"_a=false)
         .def("intersect", nb::overload_cast<const fcpw::BoundingSphere<3>&, Interaction3DList&, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given sphere and returns the number of primitives inside the sphere: interactions contain the primitive indices.\nIf record_one_hit is set to true, randomly selects one geometric primitive inside the sphere (one for each aggregate in the hierarchy)\nand writes the selection pdf value to interaction_3D.d along with the primitive index.",
@@ -353,14 +353,14 @@ NB_MODULE(py, m) {
             "Finds the closest point on the visibility silhouette in the scene to a query point.\nOptionally specify a minimum radius to stop the closest silhouette search, a conservative maximum radius guess\naround the query point inside which the search is performed, as well as a precision parameter to help classify\nsilhouettes when the query point lies on the scene geometry.",
             "x"_a, "i"_a, "flip_normal_orientation"_a=false, "squared_min_radius"_a=0.0f,
             "squared_max_radius"_a=fcpw::maxFloat, "precision"_a=1e-3f, "record_normal"_a=false)
-        .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&, bool>(
+        .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&, bool, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
-            "Intersects the scene with the given rays, returning the closest interaction if it exists.",
-            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a, "check_for_occlusion"_a=false)
-        .def("intersect", nb::overload_cast<Ray3DList&, Interaction3DList&, bool>(
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.\nIf watertight is enabled, uses watertight ray-triangle intersection.",
+            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a, "check_for_occlusion"_a=false, "watertight"_a=false)
+        .def("intersect", nb::overload_cast<Ray3DList&, Interaction3DList&, bool, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
-            "Intersects the scene with the given rays, returning the closest interaction if it exists.",
-            "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.\nIf watertight is enabled, uses watertight ray-triangle intersection.",
+            "rays"_a, "interactions"_a, "check_for_occlusion"_a=false, "watertight"_a=false)
         .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&, const Eigen::MatrixXf&, const std::function<float(float)>&>(
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_3D.p) using the random numbers randNums[3].\nThe selection pdf value is written to interaction_3D.d along with the primitive index.",

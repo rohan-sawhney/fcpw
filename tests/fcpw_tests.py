@@ -34,6 +34,33 @@ def generate_scattered_points_and_rays(n_queries, bounding_box, dim):
 
     return scattered_points, random_directions, random_squared_radii
 
+def generate_edge_rays(n_queries, positions, indices, centroid):
+    """Generate rays from centroid toward random edge points on the mesh (3D only)."""
+    n_triangles = len(indices)
+    edge_points = []
+    
+    for _ in range(n_queries):
+        # Pick a random triangle
+        tri_idx = np.random.randint(0, n_triangles)
+        tri = indices[tri_idx]
+        
+        # Pick a random edge (0, 1, or 2)
+        edge_idx = np.random.randint(0, 3)
+        v0_idx = tri[edge_idx]
+        v1_idx = tri[(edge_idx + 1) % 3]
+        
+        # Pick a random point on the edge
+        t = np.random.rand()
+        edge_point = (1 - t) * positions[v0_idx] + t * positions[v1_idx]
+        edge_points.append(edge_point)
+    
+    edge_points = np.array(edge_points, dtype=np.float32)
+    ray_origins = np.tile(centroid.astype(np.float32), (n_queries, 1))
+    ray_directions = edge_points - ray_origins
+    ray_directions /= np.linalg.norm(ray_directions, axis=1)[:, None]
+    
+    return ray_origins, ray_directions
+
 def tag_interior_points(scene, query_points):
     n_queries = len(query_points)
     is_interior = fcpw.uint32_list()
@@ -116,7 +143,7 @@ def init_gpu_data(n_queries, dim):
     return scene
 
 def run_cpu_ray_intersection_queries(scene, ray_origins, ray_directions, ray_distance_bounds,
-                                     dim, run_bundled_queries = True):
+                                     dim, run_bundled_queries = True, watertight = False):
     n_queries = len(ray_origins)
     if run_bundled_queries:
         interactions = None
@@ -127,9 +154,10 @@ def run_cpu_ray_intersection_queries(scene, ray_origins, ray_directions, ray_dis
             interactions = fcpw.interaction_3D_list()
 
         start_time = time.perf_counter()
-        scene.intersect(ray_origins, ray_directions, ray_distance_bounds, interactions, False)
+        scene.intersect(ray_origins, ray_directions, ray_distance_bounds, interactions, False, watertight)
         end_time = time.perf_counter()
-        print(f"{n_queries} ray intersection queries took {end_time - start_time} seconds")
+        mode_str = " (watertight)" if watertight else ""
+        print(f"{n_queries} ray intersection queries{mode_str} took {end_time - start_time} seconds")
 
         return interactions
 
@@ -141,16 +169,17 @@ def run_cpu_ray_intersection_queries(scene, ray_origins, ray_directions, ray_dis
             for q in range(n_queries):
                 ray = fcpw.ray_2D(ray_origins[q], ray_directions[q], ray_distance_bounds[q])
                 interactions[q] = fcpw.interaction_2D()
-                hit = scene.intersect(ray, interactions[q], False)
+                hit = scene.intersect(ray, interactions[q], False, watertight)
 
         elif dim == 3:
             for q in range(n_queries):
                 ray = fcpw.ray_3D(ray_origins[q], ray_directions[q], ray_distance_bounds[q])
                 interactions[q] = fcpw.interaction_3D()
-                hit = scene.intersect(ray, interactions[q], False)
+                hit = scene.intersect(ray, interactions[q], False, watertight)
 
         end_time = time.perf_counter()
-        print(f"{n_queries} ray intersection queries took {end_time - start_time} seconds")
+        mode_str = " (watertight)" if watertight else ""
+        print(f"{n_queries} ray intersection queries{mode_str} took {end_time - start_time} seconds")
 
         return interactions
 
@@ -403,6 +432,52 @@ def compare_warp_and_gpu_interactions(warp_faces, warp_points, warp_dist, gpu_in
             print(f"\td: {gpu_interaction.d}")
             print(f"\tindex: {gpu_interaction.index}")
 
+def test_watertight_intersection(positions, indices, scene, n_queries):
+    """Test watertight ray-triangle intersection (3D only).
+    
+    This test verifies that the watertight intersection binding works properly
+    by shooting rays from the mesh centroid toward random edge points.
+    The watertight method should achieve better hit rates than the default method.
+    """
+    print("\n=== Testing Watertight Ray Intersection ===")
+    
+    # Compute centroid
+    centroid = np.mean(positions, axis=0)
+    print(f"Mesh centroid: {centroid}")
+    
+    # Generate rays toward edge points
+    ray_origins, ray_directions = generate_edge_rays(n_queries, positions, indices, centroid)
+    ray_bounds = np.inf * np.ones(n_queries, dtype=np.float32)
+    
+    # Run default intersection
+    default_interactions = fcpw.interaction_3D_list()
+    scene.intersect(ray_origins, ray_directions, ray_bounds, default_interactions, False, False)
+    
+    # Run watertight intersection
+    watertight_interactions = fcpw.interaction_3D_list()
+    scene.intersect(ray_origins, ray_directions, ray_bounds, watertight_interactions, False, True)
+    
+    # Count hits
+    default_hits = sum(1 for i in default_interactions if i.primitive_index != -1)
+    watertight_hits = sum(1 for i in watertight_interactions if i.primitive_index != -1)
+    
+    print(f"Default method hits:    {default_hits}/{n_queries} ({100*default_hits/n_queries:.1f}%)")
+    print(f"Watertight method hits: {watertight_hits}/{n_queries} ({100*watertight_hits/n_queries:.1f}%)")
+    
+    # Also test single-ray API
+    ray = fcpw.ray_3D(ray_origins[0], ray_directions[0], ray_bounds[0])
+    interaction = fcpw.interaction_3D()
+    hit_default = scene.intersect(ray, interaction, False, False)
+    
+    ray = fcpw.ray_3D(ray_origins[0], ray_directions[0], ray_bounds[0])
+    interaction_wt = fcpw.interaction_3D()
+    hit_watertight = scene.intersect(ray, interaction_wt, False, True)
+    
+    print(f"Single-ray API test: default={hit_default}, watertight={hit_watertight}")
+    print("=== Watertight test complete ===\n")
+    
+    return watertight_hits >= default_hits
+
 def visualize_polyscope_scene(positions, indices, query_points, random_directions,
                               random_squared_radii, interior_points, dim):
     ps.init()
@@ -423,13 +498,18 @@ def visualize_polyscope_scene(positions, indices, query_points, random_direction
     ps.show()
 
 def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
-        run_gpu_queries, compare_with_warp, refit_gpu_scene, visualize_scene, dim):
+        run_gpu_queries, compare_with_warp, refit_gpu_scene, visualize_scene, dim,
+        test_watertight=False):
     print("Loading OBJ")
     positions, indices = load_obj(file_path, dim)
 
     print("\nBuilding BVH on CPU")
     scene = load_fcpw_scene(positions, indices, fcpw.aggregate_type.bvh_overlap_surface_area,
                             compute_silhouettes, False, dim, True)
+
+    # Run watertight test if requested (3D only)
+    if test_watertight and dim == 3:
+        test_watertight_intersection(positions, indices, scene, n_queries)
 
     print("\nGenerating query data")
     bounding_box = compute_bounding_box(positions)
@@ -591,10 +671,12 @@ def main():
     parser.add_argument("--compare_with_warp", action="store_true", help="compare with warp")
     parser.add_argument("--refit_gpu_scene", action="store_true", help="refit GPU scene")
     parser.add_argument("--visualize_scene", action="store_true", help="visualize scene")
+    parser.add_argument("--test_watertight", action="store_true", help="test watertight ray intersection (3D only)")
     args = parser.parse_args()
 
     run(args.file_path, args.n_queries, args.compute_silhouettes, args.compare_with_cpu_baseline,
-        args.run_gpu_queries, args.compare_with_warp, args.refit_gpu_scene, args.visualize_scene, args.dim)
+        args.run_gpu_queries, args.compare_with_warp, args.refit_gpu_scene, args.visualize_scene, args.dim,
+        args.test_watertight)
 
 if __name__ == "__main__":
     main()
