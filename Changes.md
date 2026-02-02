@@ -48,11 +48,26 @@ The implementation is:
 9. **`include/fcpw/aggregates/csg_node.h` / `csg_node.inl`**
    - Updated `intersectFromNode()` methods with watertight parameter
 
+### Python Bindings
+
+10. **`python/fcpw_py.cpp`**
+    - Added `watertight` parameter (default `false`) to ray intersection methods for `scene_3D` (also present in `scene_2D` for API consistency, but has no effect there)
+    - Affects single-ray intersection, multi-hit intersection, and bundled ray intersection APIs
+
+### Python Tests
+
+11. **`tests/fcpw_tests.py`**
+    - Added `--test_watertight` command-line option to run watertight intersection tests
+    - Added `test_watertight_intersection()` function that generates rays toward edge points and compares default vs watertight hit rates
+    - Made `warp` and `polyscope` imports optional, allowing tests to run on macOS without NVIDIA GPU
+
 ---
 
 ## Usage
 
-The watertight mode is opt-in and backward compatible:
+The watertight mode is opt-in and backward compatible.
+
+### C++
 
 ```cpp
 Scene<3> scene;
@@ -60,6 +75,30 @@ Scene<3> scene;
 Interaction<3> i;
 Ray<3> r(origin, direction);
 scene.intersect(r, i, false, true);  // last param enables watertight
+```
+
+### Python
+
+```python
+import fcpw
+
+scene = fcpw.scene_3D()
+# ... setup scene ...
+
+# Single ray
+ray = fcpw.ray_3D(origin, direction)
+interaction = fcpw.interaction_3D()
+hit = scene.intersect(ray, interaction, False, True)  # last param enables watertight
+
+# Bundled rays
+interactions = fcpw.interaction_3D_list()
+scene.intersect(ray_origins, ray_directions, ray_bounds, interactions, False, True)
+```
+
+To run the Python watertight test:
+```bash
+cd tests
+python fcpw_tests.py --file_path input/bunny.obj --dim 3 --n_queries 1000 --test_watertight
 ```
 
 ---
