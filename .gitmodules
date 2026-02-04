@@ -1,9 +1,6 @@
-[submodule "deps/eigen-git-mirror"]
-	path = deps/eigen-git-mirror
-	url = https://github.com/eigenteam/eigen-git-mirror.git
 [submodule "deps/slang-rhi"]
 	path = deps/slang-rhi
 	url = https://github.com/shader-slang/slang-rhi.git
-[submodule "deps/enoki"]
-	path = deps/enoki
-	url = https://github.com/mitsuba-renderer/enoki.git
+[submodule "deps/eigen"]
+	path = deps/eigen
+	url = https://gitlab.com/libeigen/eigen.git

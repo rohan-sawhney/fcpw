@@ -151,7 +151,7 @@ The C++ demo can be run from the `build` directory with the command:
 ./demos/demo [--useGpu]
 ```
 
-For CPU vectorization, Enoki is included by default as a submodule. It can be disabled with the command `-DFCPW_USE_ENOKI=OFF`, in which case *FCPW* falls back to [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page) for non-vectorized CPU queries.
+For CPU vectorization, Enoki is included by default. It can be disabled with the command `-DFCPW_USE_ENOKI=OFF`, in which case *FCPW* falls back to [Eigen](http://eigen.tuxfamily.org/index.php?title=Main_Page) for non-vectorized CPU queries.
 
 To include *FCPW* in your project without GPU support, add the following lines to your CMakeLists.txt file:
 

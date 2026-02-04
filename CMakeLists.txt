@@ -36,9 +36,9 @@ endif()
 get_directory_property(hasParent PARENT_DIRECTORY)
 
 if(hasParent)
-    set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror PARENT_SCOPE)
+    set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen PARENT_SCOPE)
 else()
-    set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen-git-mirror)
+    set(FCPW_EIGEN_INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/deps/eigen)
 endif()
 list(APPEND FCPW_DEPS_INCLUDES ${FCPW_EIGEN_INCLUDES})
 
