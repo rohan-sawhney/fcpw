@@ -292,6 +292,9 @@ BVH construction logic is in `include/fcpw/aggregates/bvh.inl`:
 **Dependencies:**
 - Eigen is always required (in `deps/eigen-git-mirror/`)
 - Enoki is optional but recommended (enables SIMD)
+  - Note: Enoki's `CMakeLists.txt` has been patched to require CMake 3.5+ (was 2.8.12)
+  - This is necessary for compatibility with modern CMake versions (3.27+)
+  - Enoki is archived and no longer maintained, so this is a permanent fix
 - Polyscope required for demos and tests
 - nanobind required for Python bindings
 - Slang-RHI required for GPU support
