@@ -33,7 +33,6 @@ jobs:
         include:
           - { os: windows, runs-on: windows-latest }
           - { os: linux, runs-on: ubuntu-latest }
-          - { os: macos, runs-on: macos-13, platform: x86_64 }
           - { os: macos, runs-on: macos-14, platform: arm64 }
 
     steps:
