@@ -38,6 +38,7 @@
 build/
 build_debug/
 .vscode/
+.venv/
 
 # External deps
 deps/polyscope

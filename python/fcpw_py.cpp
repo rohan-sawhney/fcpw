@@ -11,7 +11,7 @@
 namespace nb = nanobind;
 using namespace nb::literals;
 
-NB_MODULE(py, m) {
+NB_MODULE(_fcpw, m) {
     m.doc() = "FCPW Python bindings";
 
     nb::enum_<fcpw::PrimitiveType>(m, "primitive_type")
