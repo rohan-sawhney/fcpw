@@ -290,14 +290,14 @@ BVH construction logic is in `include/fcpw/aggregates/bvh.inl`:
 - Cannot transfer vectorized (MBVH) to GPU
 
 **Dependencies:**
-- Eigen is always required (in `deps/eigen-git-mirror/`)
-- Enoki is optional but recommended (enables SIMD)
-  - Note: Enoki's `CMakeLists.txt` has been patched to require CMake 3.5+ (was 2.8.12)
-  - This is necessary for compatibility with modern CMake versions (3.27+)
-  - Enoki is archived and no longer maintained, so this is a permanent fix
-- Polyscope required for demos and tests
-- nanobind required for Python bindings
-- Slang-RHI required for GPU support
+- Eigen is always required (submodule in `deps/eigen/`)
+- Enoki is optional but recommended (vendored in `deps/enoki/`)
+  - **Vendored, not a submodule**: Enoki is archived and no longer maintained
+  - CMakeLists.txt patched to require CMake 3.5+ (was 2.8.12) for modern CMake compatibility
+  - Enables CPU SIMD vectorization when FCPW_USE_ENOKI=ON
+- Polyscope required for demos and tests (submodule)
+- nanobind required for Python bindings (submodule)
+- Slang-RHI required for GPU support (submodule)
 
 **Template Instantiation:**
 - Most code is in `.inl` files paired with `.h` headers
