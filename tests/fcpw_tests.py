@@ -385,23 +385,141 @@ def compare_cpu_gpu_interactions(cpu_interactions, gpu_interactions, dim):
                 print(f"\td: {gpu_interaction.d}")
                 print(f"\tindex: {gpu_interaction.index}")
 
+def compare_cpu_interactions(cpu_interactions_baseline, cpu_interactions, dim):
+    n_queries = len(cpu_interactions)
+
+    # use bulk extraction for fast comparison (3-10x faster than Python loops)
+    baseline_indices = cpu_interactions_baseline.get_primitive_indices()
+    indices = cpu_interactions.get_primitive_indices()
+
+    # find mismatches: one has valid index (-1 = invalid) and other doesn't
+    different_mask = ((baseline_indices == -1) & (indices != -1)) | \
+                     ((baseline_indices != -1) & (indices == -1))
+
+    if np.any(different_mask):
+        # extract all data at once for mismatched entries
+        baseline_positions = cpu_interactions_baseline.get_positions()
+        baseline_normals = cpu_interactions_baseline.get_normals()
+        baseline_uvs = cpu_interactions_baseline.get_uvs()
+        baseline_distances = cpu_interactions_baseline.get_distances()
+
+        positions = cpu_interactions.get_positions()
+        normals = cpu_interactions.get_normals()
+        uvs = cpu_interactions.get_uvs()
+        distances = cpu_interactions.get_distances()
+
+        # print mismatches
+        mismatch_indices = np.where(different_mask)[0]
+        for i in mismatch_indices:
+            print(f"#{i}/{n_queries}")
+            if dim == 2:
+                print("CPU Interaction Baseline")
+                print(f"\tp: {baseline_positions[i, 0]} {baseline_positions[i, 1]}")
+                print(f"\tn: {baseline_normals[i, 0]} {baseline_normals[i, 1]}")
+                print(f"\tuv: {baseline_uvs[i, 0]}")
+                print(f"\td: {baseline_distances[i]}")
+                print(f"\tindex: {baseline_indices[i]}")
+                print("CPU Interaction")
+                print(f"\tp: {positions[i, 0]} {positions[i, 1]}")
+                print(f"\tn: {normals[i, 0]} {normals[i, 1]}")
+                print(f"\tuv: {uvs[i, 0]}")
+                print(f"\td: {distances[i]}")
+                print(f"\tindex: {indices[i]}")
+
+            elif dim == 3:
+                print("CPU Interaction Baseline")
+                print(f"\tp: {baseline_positions[i, 0]} {baseline_positions[i, 1]} {baseline_positions[i, 2]}")
+                print(f"\tn: {baseline_normals[i, 0]} {baseline_normals[i, 1]} {baseline_normals[i, 2]}")
+                print(f"\tuv: {baseline_uvs[i, 0]} {baseline_uvs[i, 1]}")
+                print(f"\td: {baseline_distances[i]}")
+                print(f"\tindex: {baseline_indices[i]}")
+                print("CPU Interaction")
+                print(f"\tp: {positions[i, 0]} {positions[i, 1]} {positions[i, 2]}")
+                print(f"\tn: {normals[i, 0]} {normals[i, 1]} {normals[i, 2]}")
+                print(f"\tuv: {uvs[i, 0]} {uvs[i, 1]}")
+                print(f"\td: {distances[i]}")
+                print(f"\tindex: {indices[i]}")
+
+def compare_cpu_gpu_interactions(cpu_interactions, gpu_interactions, dim):
+    n_queries = len(cpu_interactions)
+
+    # use bulk extraction for fast comparison (3-10x faster than Python loops)
+    cpu_indices = cpu_interactions.get_primitive_indices()
+    gpu_indices = gpu_interactions.get_indices()
+
+    # find mismatches: GPU uses 4294967295 as invalid, CPU uses -1
+    different_mask = ((cpu_indices == -1) & (gpu_indices != 4294967295)) | \
+                     ((cpu_indices != -1) & (gpu_indices == 4294967295))
+
+    if np.any(different_mask):
+        # extract all data at once for mismatched entries
+        cpu_positions = cpu_interactions.get_positions()
+        cpu_normals = cpu_interactions.get_normals()
+        cpu_uvs = cpu_interactions.get_uvs()
+        cpu_distances = cpu_interactions.get_distances()
+
+        gpu_positions = gpu_interactions.get_positions()
+        gpu_normals = gpu_interactions.get_normals()
+        gpu_uvs = gpu_interactions.get_uvs()
+        gpu_distances = gpu_interactions.get_distances()
+
+        # print mismatches
+        mismatch_indices = np.where(different_mask)[0]
+        for i in mismatch_indices:
+            print(f"#{i}/{n_queries}")
+            if dim == 2:
+                print("CPU Interaction")
+                print(f"\tp: {cpu_positions[i, 0]} {cpu_positions[i, 1]}")
+                print(f"\tn: {cpu_normals[i, 0]} {cpu_normals[i, 1]}")
+                print(f"\tuv: {cpu_uvs[i, 0]}")
+                print(f"\td: {cpu_distances[i]}")
+                print(f"\tindex: {cpu_indices[i]}")
+                print("GPU Interaction")
+                print(f"\tp: {gpu_positions[i, 0]} {gpu_positions[i, 1]}")
+                print(f"\tn: {gpu_normals[i, 0]} {gpu_normals[i, 1]}")
+                print(f"\tuv: {gpu_uvs[i, 0]}")
+                print(f"\td: {gpu_distances[i]}")
+                print(f"\tindex: {gpu_indices[i]}")
+
+            elif dim == 3:
+                print("CPU Interaction")
+                print(f"\tp: {cpu_positions[i, 0]} {cpu_positions[i, 1]} {cpu_positions[i, 2]}")
+                print(f"\tn: {cpu_normals[i, 0]} {cpu_normals[i, 1]} {cpu_normals[i, 2]}")
+                print(f"\tuv: {cpu_uvs[i, 0]} {cpu_uvs[i, 1]}")
+                print(f"\td: {cpu_distances[i]}")
+                print(f"\tindex: {cpu_indices[i]}")
+                print("GPU Interaction")
+                print(f"\tp: {gpu_positions[i, 0]} {gpu_positions[i, 1]} {gpu_positions[i, 2]}")
+                print(f"\tn: {gpu_normals[i, 0]} {gpu_normals[i, 1]} {gpu_normals[i, 2]}")
+                print(f"\tuv: {gpu_uvs[i, 0]} {gpu_uvs[i, 1]}")
+                print(f"\td: {gpu_distances[i]}")
+                print(f"\tindex: {gpu_indices[i]}")
+
 def compare_warp_and_gpu_interactions(warp_faces, warp_points, warp_dist, gpu_interactions):
     n_queries = len(gpu_interactions)
-    for i in range(n_queries):
-        gpu_interaction = gpu_interactions[i]
-        different_indices = (warp_faces[i] == -1 and gpu_interaction.index != 4294967295) or \
-                            (warp_faces[i] != -1 and gpu_interaction.index == 4294967295)
 
-        if different_indices:
+    # Use bulk extraction for GPU interactions (3-10x faster than Python loops)
+    gpu_indices = gpu_interactions.get_indices()
+    gpu_positions = gpu_interactions.get_positions()
+    gpu_distances = gpu_interactions.get_distances()
+
+    # Find mismatches: Warp uses -1 as invalid, GPU uses 4294967295
+    different_mask = ((warp_faces == -1) & (gpu_indices != 4294967295)) | \
+                     ((warp_faces != -1) & (gpu_indices == 4294967295))
+
+    if np.any(different_mask):
+        # Print mismatches
+        mismatch_indices = np.where(different_mask)[0]
+        for i in mismatch_indices:
             print(f"#{i}/{n_queries}")
             print("Warp Interaction")
             print(f"\tp: {warp_points[i][0]} {warp_points[i][1]} {warp_points[i][2]}")
             print(f"\td: {warp_dist[i]}")
             print(f"\tindex: {warp_faces[i]}")
             print("GPU Interaction")
-            print(f"\tp: {gpu_interaction.p.x} {gpu_interaction.p.y} {gpu_interaction.p.z}")
-            print(f"\td: {gpu_interaction.d}")
-            print(f"\tindex: {gpu_interaction.index}")
+            print(f"\tp: {gpu_positions[i, 0]} {gpu_positions[i, 1]} {gpu_positions[i, 2]}")
+            print(f"\td: {gpu_distances[i]}")
+            print(f"\tindex: {gpu_indices[i]}")
 
 def visualize_polyscope_scene(positions, indices, query_points, random_directions,
                               random_squared_radii, interior_points, dim):
