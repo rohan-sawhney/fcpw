@@ -116,6 +116,42 @@ python -m pip install polyscope
 python demo.py [--use_gpu]
 ```
 
+## Python API Performance
+
+### Efficient Interaction Data Extraction
+
+When working with large numbers of intersection or closest point queries, extracting data from `interaction_list` objects can become a bottleneck if done with Python loops. FCPW provides **bulk extraction methods** that are 3-10x faster than manual iteration.
+
+**❌ Slow - Python Loop (Avoid This):**
+```python
+# Extracting data element-by-element is slow
+distances = np.empty(len(interactions))
+normals = np.empty((3, len(interactions)))
+for i, interaction in enumerate(interactions):
+    distances[i] = interaction.d
+    normals[:, i] = [interaction.n[0], interaction.n[1], interaction.n[2]]
+```
+
+**✅ Fast - Bulk Extraction (Use This):**
+```python
+# Extract all data at once in C++ (3-10x faster!)
+distances = interactions.get_distances()          # shape: (n,)
+positions = interactions.get_positions()          # shape: (n, 3) or (n, 2)
+normals = interactions.get_normals()              # shape: (n, 3) or (n, 2)
+uvs = interactions.get_uvs()                      # shape: (n, 2) or (n, 1)
+indices = interactions.get_primitive_indices()    # shape: (n,)
+```
+
+**Available Methods:**
+- `interaction_2D_list`: Returns arrays with shape (n, 2) for positions/normals, (n, 1) for uvs
+- `interaction_3D_list`: Returns arrays with shape (n, 3) for positions/normals, (n, 2) for uvs
+- `gpu_interaction_list`: Returns arrays with shape (n, 3) for positions/normals, (n, 2) for uvs
+- All types: `get_distances()` → (n,), `get_primitive_indices()` or `get_indices()` → (n,)
+
+**Performance:** These methods perform the extraction loop in C++ and return NumPy arrays directly, avoiding Python interpreter overhead. Typical speedups are 3-10x for large result sets (10k+ interactions).
+
+**Reference:** See [GitHub Issue #21](https://github.com/rohan-sawhney/fcpw/issues/21) for detailed performance comparison.
+
 ### Compiling Slang Shaders (for GPU development)
 ```bash
 # Compile Slang module

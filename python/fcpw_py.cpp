@@ -117,10 +117,84 @@ NB_MODULE(_fcpw, m) {
     nb::bind_vector<Int3DList>(m, "int_3D_list");
 
     using Interaction2DList = std::vector<fcpw::Interaction<2>>;
-    nb::bind_vector<Interaction2DList>(m, "interaction_2D_list");
+    auto interaction_2d_list = nb::bind_vector<Interaction2DList>(m, "interaction_2D_list");
+
+    // Add bulk extraction methods for 2D interactions
+    interaction_2d_list.def("get_distances", [](const Interaction2DList& interactions) {
+        Eigen::VectorXf distances(interactions.size());
+        for (size_t i = 0; i < interactions.size(); i++) {
+            distances[i] = interactions[i].d;
+        }
+        return distances;
+    }, "Extract all distances as a NumPy array");
+    interaction_2d_list.def("get_positions", [](const Interaction2DList& interactions) {
+        Eigen::MatrixXf positions(interactions.size(), 2);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            positions.row(i) = interactions[i].p;
+        }
+        return positions;
+    }, "Extract all positions as a NumPy array of shape (n, 2)");
+    interaction_2d_list.def("get_normals", [](const Interaction2DList& interactions) {
+        Eigen::MatrixXf normals(interactions.size(), 2);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            normals.row(i) = interactions[i].n;
+        }
+        return normals;
+    }, "Extract all normals as a NumPy array of shape (n, 2)");
+    interaction_2d_list.def("get_uvs", [](const Interaction2DList& interactions) {
+        Eigen::MatrixXf uvs(interactions.size(), 1);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            uvs.row(i) = interactions[i].uv;
+        }
+        return uvs;
+    }, "Extract all UV coordinates as a NumPy array of shape (n, 1)");
+    interaction_2d_list.def("get_primitive_indices", [](const Interaction2DList& interactions) {
+        Eigen::VectorXi indices(interactions.size());
+        for (size_t i = 0; i < interactions.size(); i++) {
+            indices[i] = interactions[i].primitiveIndex;
+        }
+        return indices;
+    }, "Extract all primitive indices as a NumPy array");
 
     using Interaction3DList = std::vector<fcpw::Interaction<3>>;
-    nb::bind_vector<Interaction3DList>(m, "interaction_3D_list");
+    auto interaction_3d_list = nb::bind_vector<Interaction3DList>(m, "interaction_3D_list");
+
+    // Add bulk extraction methods for 3D interactions
+    interaction_3d_list.def("get_distances", [](const Interaction3DList& interactions) {
+        Eigen::VectorXf distances(interactions.size());
+        for (size_t i = 0; i < interactions.size(); i++) {
+            distances[i] = interactions[i].d;
+        }
+        return distances;
+    }, "Extract all distances as a NumPy array");
+    interaction_3d_list.def("get_positions", [](const Interaction3DList& interactions) {
+        Eigen::MatrixXf positions(interactions.size(), 3);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            positions.row(i) = interactions[i].p;
+        }
+        return positions;
+    }, "Extract all positions as a NumPy array of shape (n, 3)");
+    interaction_3d_list.def("get_normals", [](const Interaction3DList& interactions) {
+        Eigen::MatrixXf normals(interactions.size(), 3);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            normals.row(i) = interactions[i].n;
+        }
+        return normals;
+    }, "Extract all normals as a NumPy array of shape (n, 3)");
+    interaction_3d_list.def("get_uvs", [](const Interaction3DList& interactions) {
+        Eigen::MatrixXf uvs(interactions.size(), 2);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            uvs.row(i) = interactions[i].uv;
+        }
+        return uvs;
+    }, "Extract all UV coordinates as a NumPy array of shape (n, 2)");
+    interaction_3d_list.def("get_primitive_indices", [](const Interaction3DList& interactions) {
+        Eigen::VectorXi indices(interactions.size());
+        for (size_t i = 0; i < interactions.size(); i++) {
+            indices[i] = interactions[i].primitiveIndex;
+        }
+        return indices;
+    }, "Extract all primitive indices as a NumPy array");
 
     using Transform2DList = std::vector<Eigen::Matrix3f>;
     nb::bind_vector<Transform2DList>(m, "transform_2D_list");
@@ -454,7 +528,49 @@ NB_MODULE(_fcpw, m) {
     nb::bind_vector<GPUBoundingSphereList>(m, "gpu_bounding_sphere_list");
 
     using GPUInteractionList = std::vector<fcpw::GPUInteraction>;
-    nb::bind_vector<GPUInteractionList>(m, "gpu_interaction_list");
+    auto gpu_interaction_list = nb::bind_vector<GPUInteractionList>(m, "gpu_interaction_list");
+
+    // Add bulk extraction methods for GPU interactions
+    gpu_interaction_list.def("get_distances", [](const GPUInteractionList& interactions) {
+        Eigen::VectorXf distances(interactions.size());
+        for (size_t i = 0; i < interactions.size(); i++) {
+            distances[i] = interactions[i].d;
+        }
+        return distances;
+    }, "Extract all distances as a NumPy array");
+    gpu_interaction_list.def("get_positions", [](const GPUInteractionList& interactions) {
+        Eigen::MatrixXf positions(interactions.size(), 3);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            positions(i, 0) = interactions[i].p.x;
+            positions(i, 1) = interactions[i].p.y;
+            positions(i, 2) = interactions[i].p.z;
+        }
+        return positions;
+    }, "Extract all positions as a NumPy array of shape (n, 3)");
+    gpu_interaction_list.def("get_normals", [](const GPUInteractionList& interactions) {
+        Eigen::MatrixXf normals(interactions.size(), 3);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            normals(i, 0) = interactions[i].n.x;
+            normals(i, 1) = interactions[i].n.y;
+            normals(i, 2) = interactions[i].n.z;
+        }
+        return normals;
+    }, "Extract all normals as a NumPy array of shape (n, 3)");
+    gpu_interaction_list.def("get_uvs", [](const GPUInteractionList& interactions) {
+        Eigen::MatrixXf uvs(interactions.size(), 2);
+        for (size_t i = 0; i < interactions.size(); i++) {
+            uvs(i, 0) = interactions[i].uv.x;
+            uvs(i, 1) = interactions[i].uv.y;
+        }
+        return uvs;
+    }, "Extract all UV coordinates as a NumPy array of shape (n, 2)");
+    gpu_interaction_list.def("get_indices", [](const GPUInteractionList& interactions) {
+        Eigen::Matrix<uint32_t, Eigen::Dynamic, 1> indices(interactions.size());
+        for (size_t i = 0; i < interactions.size(); i++) {
+            indices[i] = interactions[i].index;
+        }
+        return indices;
+    }, "Extract all primitive indices as a NumPy array");
 
     nb::class_<fcpw::GPUScene<2>>(m, "gpu_scene_2D")
         .def(nb::init<const std::string&, bool>(),
