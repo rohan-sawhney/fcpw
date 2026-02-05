@@ -47,7 +47,7 @@ void generateScatteredPointsAndRays(std::vector<Vector<DIM>>& scatteredPoints,
                                     std::vector<float>& randomSquaredRadii,
                                     const BoundingBox<DIM>& boundingBox)
 {
-    // parition the scene bounding box into boxes
+    // partition the scene bounding box into boxes
     std::vector<BoundingBox<DIM>> boxes;
     splitBoxRecursive<DIM>(boundingBox, boxes, 6);
 

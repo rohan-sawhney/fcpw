@@ -1,9 +1,9 @@
-# Import the core C++ extension module
-# The module is built by nanobind and contains all FCPW functionality
+# import the core C++ extension module;
+# the module is built by nanobind and contains all FCPW functionality
 try:
     from ._fcpw import *
 
-    # Build __all__ from the imported module
+    # build __all__ from the imported module
     import sys
     _module = sys.modules.get('fcpw._fcpw')
     if _module:
@@ -12,7 +12,7 @@ try:
         __all__ = []
 
 except ImportError as e:
-    # Provide helpful error message if the extension module fails to load
+    # provide helpful error message if the extension module fails to load
     import warnings
     warnings.warn(
         f"Failed to import FCPW extension module: {e}\n"

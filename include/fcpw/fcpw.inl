@@ -114,7 +114,7 @@ inline void Scene<2>::setObjectLineSegmentCount(int nLineSegments, int objectInd
         if (objectsMap[i].first == ObjectType::LineSegments) {
             int lineSegmentObjectIndex = objectsMap[i].second;
             sceneData->lineSegmentObjects[lineSegmentObjectIndex] =
-                    std::unique_ptr<std::vector<LineSegment>>(new std::vector<LineSegment>(nLineSegments));
+                std::unique_ptr<std::vector<LineSegment>>(new std::vector<LineSegment>(nLineSegments));
             break;
         }
     }
@@ -141,7 +141,7 @@ inline void Scene<3>::setObjectTriangleCount(int nTriangles, int objectIndex)
         if (objectsMap[i].first == ObjectType::Triangles) {
             int triangleObjectIndex = objectsMap[i].second;
             sceneData->triangleObjects[triangleObjectIndex] =
-                    std::unique_ptr<std::vector<Triangle>>(new std::vector<Triangle>(nTriangles));
+                std::unique_ptr<std::vector<Triangle>>(new std::vector<Triangle>(nTriangles));
             break;
         }
     }

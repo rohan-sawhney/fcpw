@@ -18,12 +18,12 @@ install(TARGETS _fcpw
     RUNTIME DESTINATION fcpw
 )
 
-# Install GPU support libraries if enabled
+# install GPU support libraries if enabled
 if(FCPW_ENABLE_GPU_SUPPORT)
-    # Slang libraries are fetched via FetchContent and located in _deps/slang-src/lib
-    # We need to install all required Slang shared libraries to the fcpw package
+    # Slang libraries are fetched via FetchContent and located in _deps/slang-src/lib;
+    # we need to install all required Slang shared libraries to the fcpw package
 
-    # Try to find the Slang library directory
+    # try to find the Slang library directory
     set(SLANG_LIB_SEARCH_PATHS
         "${CMAKE_BINARY_DIR}/_deps/slang-src/lib"
         "${CMAKE_CURRENT_BINARY_DIR}/_deps/slang-src/lib"
@@ -39,7 +39,7 @@ if(FCPW_ENABLE_GPU_SUPPORT)
     endforeach()
 
     if(SLANG_LIB_DIR)
-        # Install all Slang shared libraries using install(CODE) to handle glob at install time
+        # install all Slang shared libraries using install(CODE) to handle glob at install time
         install(CODE "
             file(GLOB SLANG_LIBS \"${SLANG_LIB_DIR}/libslang*.so*\" \"${SLANG_LIB_DIR}/libgfx*.so*\")
             foreach(LIB_FILE \${SLANG_LIBS})

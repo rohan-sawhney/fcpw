@@ -367,7 +367,7 @@ def compare_cpu_interactions(cpu_interactions_baseline, cpu_interactions, dim):
 def compare_cpu_gpu_interactions(cpu_interactions, gpu_interactions, dim):
     n_queries = len(cpu_interactions)
 
-    # use bulk extraction for fast comparison (3-10x faster than Python loops)
+    # use bulk extraction for fast comparison
     cpu_indices = cpu_interactions.get_primitive_indices()
     gpu_indices = gpu_interactions.get_indices()
 
@@ -422,17 +422,17 @@ def compare_cpu_gpu_interactions(cpu_interactions, gpu_interactions, dim):
 def compare_warp_and_gpu_interactions(warp_faces, warp_points, warp_dist, gpu_interactions):
     n_queries = len(gpu_interactions)
 
-    # Use bulk extraction for GPU interactions (3-10x faster than Python loops)
+    # use bulk extraction for GPU interactions (3-10x faster than Python loops)
     gpu_indices = gpu_interactions.get_indices()
     gpu_positions = gpu_interactions.get_positions()
     gpu_distances = gpu_interactions.get_distances()
 
-    # Find mismatches: Warp uses -1 as invalid, GPU uses 4294967295
+    # find mismatches: Warp uses -1 as invalid, GPU uses 4294967295
     different_mask = ((warp_faces == -1) & (gpu_indices != 4294967295)) | \
                      ((warp_faces != -1) & (gpu_indices == 4294967295))
 
     if np.any(different_mask):
-        # Print mismatches
+        # print mismatches
         mismatch_indices = np.where(different_mask)[0]
         for i in mismatch_indices:
             print(f"#{i}/{n_queries}")
