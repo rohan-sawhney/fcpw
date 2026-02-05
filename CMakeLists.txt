@@ -67,7 +67,7 @@ if(FCPW_USE_ENOKI)
     endif()
     list(APPEND FCPW_DEPS_INCLUDES ${FCPW_ENOKI_INCLUDES})
 
-    # Update the compilation flags
+    # update the compilation flags
     enoki_set_compile_flags()
     enoki_set_native_flags()
 endif()
