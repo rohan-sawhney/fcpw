@@ -64,7 +64,7 @@ interactions = fcpw.interaction_3D_list()
 scene.find_closest_points(query_points, squared_max_radii, interactions)
 
 # extract closest points
-closest_points = [i.p for i in interactions]
+closest_points = interactions.get_positions()
 ```
 
 Refer to [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.py) for a complete demo. The full API can be viewed in the Python console using `help(fcpw)`.
