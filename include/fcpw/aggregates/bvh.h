@@ -175,6 +175,11 @@ protected:
                                        TraversalStack *subtree, float *boxHits,
                                        bool& didHit, int& nodesVisited) const;
 
+    // processes subtree for robust intersection
+    bool processSubtreeForRobustIntersection(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                             int aggregateIndex, TraversalStack *subtree,
+                                             float *boxHits, bool& didHit, int& nodesVisited) const;
+
     // processes subtree for intersection
     bool processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                        int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,

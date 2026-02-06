@@ -763,12 +763,116 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
+inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForRobustIntersection(Ray<DIM>& r, Interaction<DIM>& i,
+                                                                                                   int nodeStartIndex, int aggregateIndex,
+                                                                                                   TraversalStack *subtree, float *boxHits,
+                                                                                                   bool& didHit, int& nodesVisited) const
+{
+    int stackPtr = 0;
+    while (stackPtr >= 0) {
+        // pop off the next node to work on
+        int nodeIndex = subtree[stackPtr].node;
+        float currentDist = subtree[stackPtr].distance;
+        stackPtr--;
+
+        // if this node is further than the closest found intersection, continue
+        if (currentDist > r.tMax) continue;
+        const NodeType& node(flatTree[nodeIndex]);
+
+        // is leaf -> intersect
+        if (node.nReferences > 0) {
+            for (int p = 0; p < node.nReferences; p++) {
+                int referenceIndex = node.referenceOffset + p;
+                const PrimitiveType *prim = primitives[referenceIndex];
+                nodesVisited++;
+
+                bool hit = false;
+                if (primitiveTypeIsAggregate) {
+                    const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+                    hit = aggregate->intersectRobustFromNode(r, i, nodeStartIndex, aggregateIndex, nodesVisited);
+
+                } else {
+                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                    hit = geometricPrim->intersectRobust(r, i);
+                    if (hit) {
+                        i.nodeIndex = nodeIndex;
+                        i.referenceIndex = referenceIndex;
+                        i.objectIndex = this->pIndex;
+                    }
+                }
+
+                if (hit) {
+                    didHit = true;
+                    r.tMax = std::min(r.tMax, i.d);
+                }
+            }
+
+        } else { // not a leaf
+            bool hit0 = flatTree[nodeIndex + 1].box.intersectRobust(r, boxHits[0], boxHits[1]);
+            bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.intersectRobust(r, boxHits[2], boxHits[3]);
+
+            // did we hit both nodes?
+            if (hit0 && hit1) {
+                // we assume that the left child is a closer hit...
+                int closer = nodeIndex + 1;
+                int other = nodeIndex + node.secondChildOffset;
+
+                // ... if the right child was actually closer, swap the relavent values
+                if (boxHits[2] < boxHits[0]) {
+                    std::swap(boxHits[0], boxHits[2]);
+                    std::swap(boxHits[1], boxHits[3]);
+                    std::swap(closer, other);
+                }
+
+                // it's possible that the nearest object is still in the other side, but we'll
+                // check the farther-away node later...
+
+                // push the farther first, then the closer
+                stackPtr++;
+                subtree[stackPtr].node = other;
+                subtree[stackPtr].distance = boxHits[2];
+
+                stackPtr++;
+                subtree[stackPtr].node = closer;
+                subtree[stackPtr].distance = boxHits[0];
+
+            } else if (hit0) {
+                stackPtr++;
+                subtree[stackPtr].node = nodeIndex + 1;
+                subtree[stackPtr].distance = boxHits[0];
+
+            } else if (hit1) {
+                stackPtr++;
+                subtree[stackPtr].node = nodeIndex + node.secondChildOffset;
+                subtree[stackPtr].distance = boxHits[2];
+            }
+
+            nodesVisited++;
+        }
+    }
+
+    return false;
+}
+
+template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
                                                                                        int nodeStartIndex, int aggregateIndex,
                                                                                        int& nodesVisited) const
 {
-    // TODO: implement
-    return false;
+    bool didHit = false;
+    TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
+    float boxHits[4];
+
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
+    if (flatTree[rootIndex].box.intersectRobust(r, boxHits[0], boxHits[1])) {
+        subtree[0].node = rootIndex;
+        subtree[0].distance = boxHits[0];
+        bool occluded = processSubtreeForRobustIntersection(r, i, nodeStartIndex, aggregateIndex,
+                                                            subtree, boxHits, didHit, nodesVisited);
+        if (occluded) return true;
+    }
+
+    return didHit;
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>

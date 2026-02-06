@@ -111,8 +111,32 @@ bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<D
                                                                            int nodeStartIndex, int aggregateIndex,
                                                                            int& nodesVisited) const
 {
-    // TODO: implement
-    return false;
+    // find closest hit
+    bool didHit = false;
+    for (int p = 0; p < (int)primitives.size(); p++) {
+        nodesVisited++;
+
+        bool hit = false;
+        if (primitiveTypeIsAggregate) {
+            const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
+            hit = aggregate->intersectRobustFromNode(r, i, nodeStartIndex, aggregateIndex, nodesVisited);
+
+        } else {
+            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(primitives[p]);
+            hit = geometricPrim->intersectRobust(r, i);
+            if (hit) {
+                i.referenceIndex = p;
+                i.objectIndex = this->pIndex;
+            }
+        }
+
+        if (hit) {
+            didHit = true;
+            r.tMax = std::min(r.tMax, i.d);
+        }
+    }
+
+    return didHit;
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>

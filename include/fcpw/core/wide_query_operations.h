@@ -22,6 +22,16 @@ inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const Vect
     return tMin <= tMax;
 }
 
+// performs wide version of robust ray box intersection test
+template<size_t WIDTH, size_t DIM>
+inline MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+                                           const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD, float rtMax,
+                                           FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
+{
+    // TODO: implement
+    return false;
+}
+
 // performs wide version of ray line segment intersection test
 template<size_t WIDTH>
 inline MaskP<WIDTH> intersectWideLineSegment(const Vector2P<WIDTH>& pa, const Vector2P<WIDTH>& pb,
