@@ -91,6 +91,8 @@ public struct BoundingBox
     public bool intersectRobust(Ray r, out float tMin, out float tMax)
     {
         // TODO: implement
+        tMin = FLT_MAX;
+        tMax = FLT_MAX;
         return false;
     }
 };
