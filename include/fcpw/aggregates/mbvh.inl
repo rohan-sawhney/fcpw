@@ -1075,8 +1075,58 @@ inline bool intersectRayPrimitivesRobust(QueryStub<WIDTH, 3> queryStub, const No
                                          int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
                                          float& rtMax, Interaction<3>& i)
 {
-    // TODO: implement
-    return false;
+    int leafOffset = -node.child[0] - 1;
+    int nLeafs = node.child[1];
+    int referenceOffset = node.child[2];
+    int nReferences = node.child[3];
+    int startReference = 0;
+    bool didHit = false;
+
+    for (int l = 0; l < nLeafs; l++) {
+        // perform vectorized intersection query
+        FloatP<WIDTH> d;
+        Vector3P<WIDTH> pt, n;
+        Vector2P<WIDTH> t;
+        int leafIndex = leafOffset + l;
+        const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
+        const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
+        const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
+        const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
+        MaskP<WIDTH> mask = intersectWideTriangleRobust<WIDTH>(pa, pb, pc, ro, rd, rtMax, d, pt, n, t);
+
+        // determine closest index
+        int closestIndex = -1;
+        int W = std::min((int)WIDTH, nReferences - startReference);
+
+        for (int w = 0; w < W; w++) {
+            if (mask[w] && d[w] <= rtMax) {
+                closestIndex = w;
+                rtMax = d[w];
+            }
+        }
+
+        // update interaction
+        if (closestIndex != -1) {
+            didHit = true;
+            i.d = d[closestIndex];
+            i.p[0] = pt[0][closestIndex];
+            i.p[1] = pt[1][closestIndex];
+            i.p[2] = pt[2][closestIndex];
+            i.n[0] = n[0][closestIndex];
+            i.n[1] = n[1][closestIndex];
+            i.n[2] = n[2][closestIndex];
+            i.uv[0] = t[0][closestIndex];
+            i.uv[1] = t[1][closestIndex];
+            i.primitiveIndex = primitiveIndex[closestIndex];
+            i.nodeIndex = nodeIndex;
+            i.referenceIndex = referenceOffset + startReference + closestIndex;
+            i.objectIndex = aggregateIndex;
+        }
+
+        startReference += WIDTH;
+    }
+
+    return didHit;
 }
 
 template<size_t WIDTH, size_t DIM,
