@@ -40,7 +40,7 @@ public:
                    bool checkForOcclusion=false);
 
     // intersects the scene with the given rays, returning the closest interaction if it exists;
-    // this method uses a more accurate intersection test for 3D triangle meshes
+    // this method uses a more accurate but slower intersection test for 3D triangle meshes
     // than the one above; for 2D line segment meshes, the two methods are equivalent
     void intersectRobust(const Eigen::MatrixXf& rayOrigins,
                          const Eigen::MatrixXf& rayDirections,

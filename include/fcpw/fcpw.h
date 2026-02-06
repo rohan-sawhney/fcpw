@@ -113,7 +113,7 @@ public:
     bool intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false) const;
 
     // intersects the scene with the given ray and returns whether there is a hit;
-    // this method uses a more accurate intersection test for 3D triangle meshes
+    // this method uses a more accurate but slower intersection test for 3D triangle meshes
     // than the one above; for 2D line segment meshes, the two methods are equivalent
     bool intersectRobust(Ray<DIM>& r, Interaction<DIM>& i) const;
 
@@ -180,7 +180,7 @@ public:
                    bool checkForOcclusion=false) const;
 
     // intersects the scene with the given rays, returning the closest interaction if it exists;
-    // this method uses a more accurate intersection test for 3D triangle meshes
+    // this method uses a more accurate but slower intersection test for 3D triangle meshes
     // than the one above; for 2D line segment meshes, the two methods are equivalent
     void intersectRobust(const Eigen::MatrixXf& rayOrigins,
                          const Eigen::MatrixXf& rayDirections,
