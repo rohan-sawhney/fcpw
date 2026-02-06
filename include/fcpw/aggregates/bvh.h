@@ -101,6 +101,11 @@ public:
                            bool checkForOcclusion=false) const;
 
     // intersects with ray, starting the traversal at the specified node in an aggregate
+    bool intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                 int nodeStartIndex, int aggregateIndex,
+                                 int& nodesVisited) const;
+
+    // intersects with ray, starting the traversal at the specified node in an aggregate
     // NOTE: interactions are invalid when checkForOcclusion is enabled
     int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                           int nodeStartIndex, int aggregateIndex, int& nodesVisited,

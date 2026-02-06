@@ -174,6 +174,11 @@ inline bool LineSegment::intersect(const Ray<2>& r, Interaction<2>& i, bool chec
     return false;
 }
 
+inline bool LineSegment::intersectRobust(const Ray<2>& r, Interaction<2>& i) const
+{
+    return intersect(r, i, false);
+}
+
 inline int LineSegment::intersect(const Ray<2>& r, std::vector<Interaction<2>>& is,
                                   bool checkForOcclusion, bool recordAllHits) const
 {

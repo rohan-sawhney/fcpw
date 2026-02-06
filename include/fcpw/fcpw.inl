@@ -1164,6 +1164,12 @@ inline bool Scene<DIM>::intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkFo
 }
 
 template<size_t DIM>
+inline bool Scene<DIM>::intersectRobust(Ray<DIM>& r, Interaction<DIM>& i) const
+{
+    return sceneData->aggregate->intersectRobust(r, i);
+}
+
+template<size_t DIM>
 inline int Scene<DIM>::intersect(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                  bool checkForOcclusion, bool recordAllHits) const
 {
@@ -1260,6 +1266,67 @@ inline void Scene<DIM>::intersect(std::vector<Ray<DIM>>& rays,
     auto callback = [&](int start, int end) {
         for (int i = start; i < end; i++) {
             sceneData->aggregate->intersect(rays[i], interactions[i], checkForOcclusion);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::intersectRobust(const Eigen::MatrixXf& rayOrigins,
+                                        const Eigen::MatrixXf& rayDirections,
+                                        const Eigen::VectorXf& rayDistanceBounds,
+                                        std::vector<Interaction<DIM>>& interactions) const
+{
+    int nQueries = (int)rayOrigins.rows();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            Ray<DIM> ray(rayOrigins.row(i), rayDirections.row(i), rayDistanceBounds(i));
+            sceneData->aggregate->intersectRobust(ray, interactions[i]);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::intersectRobust(std::vector<Ray<DIM>>& rays,
+                                        std::vector<Interaction<DIM>>& interactions) const
+{
+    int nQueries = (int)rays.size();
+    interactions.clear();
+    interactions.resize(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            sceneData->aggregate->intersectRobust(rays[i], interactions[i]);
         }
     };
 

@@ -90,6 +90,16 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
     return active;
 }
 
+// performs wide version of robust ray triangle intersection test
+template<size_t WIDTH>
+inline MaskP<WIDTH> intersectWideTriangleRobust(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+                                                const enokiVector3& ro, const enokiVector3& rd, float rtMax, FloatP<WIDTH>& d,
+                                                Vector3P<WIDTH>& pt, Vector3P<WIDTH>& n, Vector2P<WIDTH>& t)
+{
+    // TODO: implement
+    return false;
+}
+
 // performs wide version of sphere box overlap test
 template<size_t WIDTH, size_t DIM>
 inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,

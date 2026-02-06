@@ -86,6 +86,13 @@ public struct BoundingBox
         tMax = tFarMin;
         return true;
     }
+
+    // intersects box with ray
+    public bool intersectRobust(Ray r, out float tMin, out float tMax)
+    {
+        // TODO: implement
+        return false;
+    }
 };
 
 public BoundingBox mergeBoundingBoxes(BoundingBox boxA, BoundingBox boxB)

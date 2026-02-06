@@ -259,6 +259,12 @@ inline bool Triangle::intersect(const Ray<3>& r, Interaction<3>& i, bool checkFo
     return false;
 }
 
+inline bool Triangle::intersectRobust(const Ray<3>& r, Interaction<3>& i) const
+{
+    // TODO: implement
+    return false;
+}
+
 inline int Triangle::intersect(const Ray<3>& r, std::vector<Interaction<3>>& is,
                                bool checkForOcclusion, bool recordAllHits) const
 {

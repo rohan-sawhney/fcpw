@@ -41,6 +41,7 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
     // initialize shaders
     refitShader.loadProgram(context, mainModule, libraryModules, "refit");
     rayIntersectionShader.loadProgram(context, mainModule, libraryModules, "rayIntersection");
+    robustRayIntersectionShader.loadProgram(context, mainModule, libraryModules, "robustRayIntersection");
     sphereIntersectionShader.loadProgram(context, mainModule, libraryModules, "sphereIntersection");
     closestPointShader.loadProgram(context, mainModule, libraryModules, "closestPoint");
     closestSilhouettePointShader.loadProgram(context, mainModule, libraryModules, "closestSilhouettePoint");
@@ -148,6 +149,68 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
     uint32_t nQueries = (uint32_t)rays.size();
     uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
     runShader<GPURunRayIntersectionQuery>(context, rayIntersectionShader,
+                                          runRayIntersectionQuery, bindBvhResources,
+                                          nThreadGroups, 1, printLogs);
+
+    // read results from GPU
+    runRayIntersectionQuery.read(context, interactions);
+}
+
+template<size_t DIM>
+inline void GPUScene<DIM>::intersectRobust(const Eigen::MatrixXf& rayOrigins,
+                                           const Eigen::MatrixXf& rayDirections,
+                                           const Eigen::VectorXf& rayDistanceBounds,
+                                           std::vector<GPUInteraction>& interactions)
+{
+    int nQueries = (int)rayOrigins.rows();
+    std::vector<GPURay> rays(nQueries);
+
+    auto callback = [&](int start, int end) {
+        for (int i = start; i < end; i++) {
+            GPURay& ray = rays[i];
+            ray.o = float3{rayOrigins(i, 0),
+                           rayOrigins(i, 1),
+                           DIM == 2 ? 0.0f : rayOrigins(i, 2)};
+            ray.d = float3{rayDirections(i, 0),
+                           rayDirections(i, 1),
+                           DIM == 2 ? 0.0f : rayDirections(i, 2)};
+            ray.dInv = float3{1.0f / ray.d.x,
+                              1.0f / ray.d.y,
+                              1.0f / ray.d.z};
+            ray.tMax = rayDistanceBounds(i);
+        }
+    };
+
+    int nThreads = std::thread::hardware_concurrency();
+    int nQueriesPerThread = nQueries/nThreads;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < nThreads; i++) {
+        int start = i*nQueriesPerThread;
+        int end = (i == nThreads - 1) ? nQueries : (i + 1)*nQueriesPerThread;
+        threads.emplace_back(callback, start, end);
+    }
+
+    for (auto& t: threads) {
+        t.join();
+    }
+
+    intersectRobust(rays, interactions);
+}
+
+template<size_t DIM>
+inline void GPUScene<DIM>::intersectRobust(const std::vector<GPURay>& rays,
+                                           std::vector<GPUInteraction>& interactions)
+{
+    // allocate GPU entry point data
+    GPURunRayIntersectionQuery runRayIntersectionQuery;
+    runRayIntersectionQuery.allocate(context, rays);
+    runRayIntersectionQuery.checkForOcclusion = 0;
+
+    // run robust ray intersection shader
+    uint32_t nQueries = (uint32_t)rays.size();
+    uint32_t nThreadGroups = countThreadGroups(nQueries, nThreadsPerGroup, printLogs);
+    runShader<GPURunRayIntersectionQuery>(context, robustRayIntersectionShader,
                                           runRayIntersectionQuery, bindBvhResources,
                                           nThreadGroups, 1, printLogs);
 

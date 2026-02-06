@@ -1047,6 +1047,25 @@ inline bool Mbvh<WIDTH, DIM,
     return didHit;
 }
 
+template<size_t WIDTH, size_t DIM,
+         typename PrimitiveType,
+         typename SilhouetteType,
+         typename NodeType,
+         typename LeafNodeType,
+         typename SilhouetteLeafNodeType>
+inline bool Mbvh<WIDTH, DIM,
+                 PrimitiveType,
+                 SilhouetteType,
+                 NodeType,
+                 LeafNodeType,
+                 SilhouetteLeafNodeType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                                                  int nodeStartIndex, int aggregateIndex,
+                                                                  int& nodesVisited) const
+{
+    // TODO: implement
+    return false;
+}
+
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
 inline int intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
                                   const std::vector<LeafNodeType>& leafNodes, int nodeIndex,

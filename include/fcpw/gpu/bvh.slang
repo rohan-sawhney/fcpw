@@ -253,6 +253,13 @@ public struct Bvh<N : IBvhNode, P : IPrimitive, S : ISilhouette> : IAggregate
         return didIntersect;
     }
 
+    // intersects aggregate geometry with ray
+    public bool intersectRobust(inout Ray r, inout Interaction i)
+    {
+        // TODO: implement
+        return false;
+    }
+
     // intersects aggregate geometry with sphere
     public bool intersect<T : IBranchTraversalWeight>(BoundingSphere s, float3 randNums,
                                                       T branchTraversalWeight,

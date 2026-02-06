@@ -763,6 +763,15 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
+inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                                                                       int nodeStartIndex, int aggregateIndex,
+                                                                                       int& nodesVisited) const
+{
+    // TODO: implement
+    return false;
+}
+
+template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                                              int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
                                                                                              bool recordAllHits, TraversalStack *subtree,

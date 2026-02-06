@@ -107,6 +107,15 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                                                           int nodeStartIndex, int aggregateIndex,
+                                                                           int& nodesVisited) const
+{
+    // TODO: implement
+    return false;
+}
+
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
 inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                            int nodeStartIndex, int aggregateIndex, int& nodesVisited,
                                                                            bool checkForOcclusion, bool recordAllHits) const
