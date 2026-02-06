@@ -156,6 +156,7 @@ public struct LineSegment : IPrimitive
     // intersects primitive with ray
     public bool intersectRobust(Ray r, inout Interaction i)
     {
+        // fallback to regular intersection
         return intersect(r, false, i);
     }
 

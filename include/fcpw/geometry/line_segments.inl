@@ -176,6 +176,7 @@ inline bool LineSegment::intersect(const Ray<2>& r, Interaction<2>& i, bool chec
 
 inline bool LineSegment::intersectRobust(const Ray<2>& r, Interaction<2>& i) const
 {
+    // fallback to regular intersection
     return intersect(r, i, false);
 }
 
