@@ -133,6 +133,7 @@ struct BoundingBox {
             return true;
 
         } else {
+            // fallback to regular intersection
             return intersect(r, tMin, tMax);
         }
     }

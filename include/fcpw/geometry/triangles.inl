@@ -259,6 +259,22 @@ inline bool Triangle::intersect(const Ray<3>& r, Interaction<3>& i, bool checkFo
     return false;
 }
 
+inline uint32_t signMask(float x)
+{
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(u));
+    return u & 0x80000000u;
+}
+
+inline float xorf(float x, uint32_t mask)
+{
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(u));
+    u ^= mask;
+    std::memcpy(&x, &u, sizeof(u));
+    return x;
+};
+
 inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionData<3>& rid, Interaction<3>& i) const
 {
     // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
@@ -284,7 +300,7 @@ inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionD
     float w = bx*ay - by*ax;
 
     // fallback to test against edges using double precision
-    if (u == 0.0f && v == 0.0f && w == 0.0f) {
+    if (u == 0.0f || v == 0.0f || w == 0.0f) {
         double cxby = (double)cx*(double)by;
         double cybx = (double)cy*(double)bx;
         u = (float)(cxby - cybx);
@@ -313,18 +329,6 @@ inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionD
     float cz = rid.Sz*c[rid.kz];
     float t = u*az + v*bz + w*cz;
 
-    auto signMask = [](float x) -> uint32_t {
-        uint32_t u;
-        std::memcpy(&u, &x, sizeof(u));
-        return u & 0x80000000u;
-    };
-    auto xorf = [](float x, uint32_t mask) -> float {
-        uint32_t u;
-        std::memcpy(&u, &x, sizeof(u));
-        u ^= mask;
-        std::memcpy(&x, &u, sizeof(u));
-        return x;
-    };
     uint32_t detSignMask = signMask(det);
     float tp = xorf(t, detSignMask);
     float detp = xorf(det, detSignMask);
