@@ -18,7 +18,6 @@ inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const Vect
 
     tMin = enoki::max(0.0f, enoki::hmax(tNear));
     tMax = enoki::min(rtMax, enoki::hmin(tFar));
-
     return tMin <= tMax;
 }
 
@@ -32,31 +31,26 @@ inline MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, cons
                                            FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
     if constexpr (DIM == 3) {
-        // TODO: implement
-        return false;
-        /*
         // robust ray box intersection;
         // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
-        float boxBounds[6] = { pMin[0], pMin[1], pMin[2],
-                               pMax[0], pMax[1], pMax[2] };
-        Vector3 pMinPerm{boxBounds[rid.nearX],
-                         boxBounds[rid.nearY],
-                         boxBounds[rid.nearZ]};
-        Vector3 pMaxPerm{boxBounds[rid.farX],
-                         boxBounds[rid.farY],
-                         boxBounds[rid.farZ]};
-        Vector3 tNear = (pMinPerm - rid.oNear).cwiseProduct(rid.invDNear);
-        Vector3 tFar = (pMaxPerm - rid.oFar).cwiseProduct(rid.invDFar);
-        float tNearMax = std::max(0.0f, tNear.maxCoeff());
-        float tFarMin = std::min(r.tMax, tFar.minCoeff());
-        if (tNearMax > tFarMin) return false;
+        FloatP<WIDTH> boxBounds[6] = { bMin[0], bMin[1], bMin[2],
+                                       bMax[0], bMax[1], bMax[2] };
+        VectorP<WIDTH, 3> bMinPerm, bMaxPerm;
+        bMinPerm[0] = boxBounds[rid.nearX];
+        bMinPerm[1] = boxBounds[rid.nearY];
+        bMinPerm[2] = boxBounds[rid.nearZ];
+        bMaxPerm[0] = boxBounds[rid.farX];
+        bMaxPerm[1] = boxBounds[rid.farY];
+        bMaxPerm[2] = boxBounds[rid.farZ];
+        VectorP<WIDTH, 3> tNear = (bMinPerm - roNear)*rinvDNear;
+        VectorP<WIDTH, 3> tFar = (bMaxPerm - roFar)*rinvDFar;
 
-        tMin = tNearMax;
-        tMax = tFarMin;
-        return true;
-        */
+        tMin = enoki::max(0.0f, enoki::hmax(tNear));
+        tMax = enoki::min(rtMax, enoki::hmin(tFar));
+        return tMin <= tMax;
 
     } else {
+        // fallback to regular intersection
         return intersectWideBox(bMin, bMax, ro, rinvD, rtMax, tMin, tMax);
     }
 }
