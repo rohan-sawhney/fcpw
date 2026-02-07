@@ -284,6 +284,7 @@ FCPW is primarily header-only with template implementations in `.inl` files pair
 1. Create new primitive class in `include/fcpw/geometry/` inheriting from `GeometricPrimitive<DIM>`
 2. Implement required methods:
    - `intersect(ray, interaction)` - Ray intersection
+   - `intersectRobust(ray, interaction)` - Robust ray intersection
    - `findClosestPoint(point, interaction)` - Closest point query
    - `computeBoundingBox()` - AABB computation
    - `getCentroid()` - Centroid for BVH partitioning
