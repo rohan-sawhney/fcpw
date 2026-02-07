@@ -1047,88 +1047,6 @@ inline bool Mbvh<WIDTH, DIM,
     return didHit;
 }
 
-template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
-inline bool intersectRayPrimitivesRobust(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
-                                         const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                         int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
-                                         const RobustIntersectionData<DIM>& rid, float& rtMax, Interaction<DIM>& i)
-{
-    std::cerr << "intersectRayPrimitivesRobust(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
-    exit(EXIT_FAILURE);
-
-    return false;
-}
-
-template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline bool intersectRayPrimitivesRobust(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
-                                         const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                         int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
-                                         const RobustIntersectionData<2>& rid, float& rtMax, Interaction<2>& i)
-{
-    // fallback to regular intersection
-    return intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, aggregateIndex, ro, rd, rtMax, i, false);
-}
-
-template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline bool intersectRayPrimitivesRobust(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
-                                         const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                         int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-                                         const RobustIntersectionData<3>& rid, float& rtMax, Interaction<3>& i)
-{
-    int leafOffset = -node.child[0] - 1;
-    int nLeafs = node.child[1];
-    int referenceOffset = node.child[2];
-    int nReferences = node.child[3];
-    int startReference = 0;
-    bool didHit = false;
-
-    for (int l = 0; l < nLeafs; l++) {
-        // perform vectorized intersection query
-        FloatP<WIDTH> d;
-        Vector3P<WIDTH> pt, n;
-        Vector2P<WIDTH> t;
-        int leafIndex = leafOffset + l;
-        const Vector3P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
-        const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
-        const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
-        const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-        MaskP<WIDTH> mask = intersectWideTriangleRobust<WIDTH>(pa, pb, pc, ro, rd, rtMax, rid, d, pt, n, t);
-
-        // determine closest index
-        int closestIndex = -1;
-        int W = std::min((int)WIDTH, nReferences - startReference);
-
-        for (int w = 0; w < W; w++) {
-            if (mask[w] && d[w] <= rtMax) {
-                closestIndex = w;
-                rtMax = d[w];
-            }
-        }
-
-        // update interaction
-        if (closestIndex != -1) {
-            didHit = true;
-            i.d = d[closestIndex];
-            i.p[0] = pt[0][closestIndex];
-            i.p[1] = pt[1][closestIndex];
-            i.p[2] = pt[2][closestIndex];
-            i.n[0] = n[0][closestIndex];
-            i.n[1] = n[1][closestIndex];
-            i.n[2] = n[2][closestIndex];
-            i.uv[0] = t[0][closestIndex];
-            i.uv[1] = t[1][closestIndex];
-            i.primitiveIndex = primitiveIndex[closestIndex];
-            i.nodeIndex = nodeIndex;
-            i.referenceIndex = referenceOffset + startReference + closestIndex;
-            i.objectIndex = aggregateIndex;
-        }
-
-        startReference += WIDTH;
-    }
-
-    return didHit;
-}
-
 template<size_t WIDTH, size_t DIM,
          typename PrimitiveType,
          typename SilhouetteType,
@@ -1178,46 +1096,35 @@ inline bool Mbvh<WIDTH, DIM,
         const NodeType& node(flatTree[nodeIndex]);
 
         if (isLeafNode(node)) {
-            if (primitiveTypeSupportsVectorizedQueries) {
-                // perform vectorized intersection query
-                bool hit = intersectRayPrimitivesRobust(queryStub, node, leafNodes, nodeIndex,
-                                                        this->pIndex, ro, rd, rid, r.tMax, i);
+            // For simplicity, we only support non-vectorized intersection queries for now
+            // primitive type does not support vectorized intersection query,
+            // perform query to each primitive one by one
+            int referenceOffset = node.child[2];
+            int nReferences = node.child[3];
 
+            for (int p = 0; p < nReferences; p++) {
+                int referenceIndex = referenceOffset + p;
+                const PrimitiveType *prim = primitives[referenceIndex];
                 nodesVisited++;
-                if (hit) {
-                    didHit = true;
+
+                bool hit = false;
+                if (primitiveTypeIsAggregate) {
+                    const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+                    hit = aggregate->intersectRobustFromNode(r, i, nodeStartIndex, aggregateIndex, nodesVisited);
+
+                } else {
+                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                    hit = geometricPrim->intersectRobust(r, rid, i);
+                    if (hit) {
+                        i.nodeIndex = nodeIndex;
+                        i.referenceIndex = p;
+                        i.objectIndex = this->pIndex;
+                    }
                 }
 
-            } else {
-                // primitive type does not support vectorized intersection query,
-                // perform query to each primitive one by one
-                int referenceOffset = node.child[2];
-                int nReferences = node.child[3];
-
-                for (int p = 0; p < nReferences; p++) {
-                    int referenceIndex = referenceOffset + p;
-                    const PrimitiveType *prim = primitives[referenceIndex];
-                    nodesVisited++;
-
-                    bool hit = false;
-                    if (primitiveTypeIsAggregate) {
-                        const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
-                        hit = aggregate->intersectRobustFromNode(r, i, nodeStartIndex, aggregateIndex, nodesVisited);
-
-                    } else {
-                        const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
-                        hit = geometricPrim->intersectRobust(r, rid, i);
-                        if (hit) {
-                            i.nodeIndex = nodeIndex;
-                            i.referenceIndex = p;
-                            i.objectIndex = this->pIndex;
-                        }
-                    }
-
-                    if (hit) {
-                        didHit = true;
-                        r.tMax = std::min(r.tMax, i.d);
-                    }
+                if (hit) {
+                    didHit = true;
+                    r.tMax = std::min(r.tMax, i.d);
                 }
             }
 
