@@ -287,12 +287,15 @@ inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionD
     Vector3 c = pc - r.o;
 
     // perform shear and scale of vertex coordinates
-    float ax = a[rid.kx] - rid.Sx*a[rid.kz];
-    float ay = a[rid.ky] - rid.Sy*a[rid.kz];
-    float bx = b[rid.kx] - rid.Sx*b[rid.kz];
-    float by = b[rid.ky] - rid.Sy*b[rid.kz];
-    float cx = c[rid.kx] - rid.Sx*c[rid.kz];
-    float cy = c[rid.ky] - rid.Sy*c[rid.kz];
+    float Sx = rid.S[0];
+    float Sy = rid.S[1];
+    float Sz = rid.S[2];
+    float ax = a[rid.kx] - Sx*a[rid.kz];
+    float ay = a[rid.ky] - Sy*a[rid.kz];
+    float bx = b[rid.kx] - Sx*b[rid.kz];
+    float by = b[rid.ky] - Sy*b[rid.kz];
+    float cx = c[rid.kx] - Sx*c[rid.kz];
+    float cy = c[rid.ky] - Sy*c[rid.kz];
 
     // calculate scaled barycentric coordinates
     float u = cx*by - cy*bx;
@@ -324,9 +327,9 @@ inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionD
 
     // calculate scaled z-coordinates of vertices and
     // use them to calculate the hit distance
-    float az = rid.Sz*a[rid.kz];
-    float bz = rid.Sz*b[rid.kz];
-    float cz = rid.Sz*c[rid.kz];
+    float az = Sz*a[rid.kz];
+    float bz = Sz*b[rid.kz];
+    float cz = Sz*c[rid.kz];
     float t = u*az + v*bz + w*cz;
 
     uint32_t detSignMask = signMask(det);

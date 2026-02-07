@@ -56,20 +56,20 @@ struct RobustIntersectionData<3> {
         if (r.d[kz] < 0.0f) std::swap(kx, ky);
 
         // calculate shear constants
-        Sx = r.d[kx]/r.d[kz];
-        Sy = r.d[ky]/r.d[kz];
-        Sz = 1.0f/r.d[kz];
+        S[0] = r.d[kx]/r.d[kz];
+        S[1] = r.d[ky]/r.d[kz];
+        S[2] = 1.0f/r.d[kz];
 
         // setup near and far plane indices for a box stored as
         // {pMin.x, pMin.y, pMin.z, pMax.x, pMax.y, pMax.z}
         Vector3i nearId{0, 1, 2};
         Vector3i farId{3, 4, 5};
-        nearX = nearId[kx], farX = farId[kx];
-        nearY = nearId[ky], farY = farId[ky];
-        nearZ = nearId[kz], farZ = farId[kz];
-        if (r.d[kx] < 0.0f) std::swap(nearX, farX);
-        if (r.d[ky] < 0.0f) std::swap(nearY, farY);
-        if (r.d[kz] < 0.0f) std::swap(nearZ, farZ);
+        near[0] = nearId[kx], far[0] = farId[kx];
+        near[1] = nearId[ky], far[1] = farId[ky];
+        near[2] = nearId[kz], far[2] = farId[kz];
+        if (r.d[kx] < 0.0f) std::swap(near[0], far[0]);
+        if (r.d[ky] < 0.0f) std::swap(near[1], far[1]);
+        if (r.d[kz] < 0.0f) std::swap(near[2], far[2]);
 
         // constants and helper lambdas for conservative rounding
         const float oneUlp = 1.1920929e-07f; // 2^(-23)
@@ -113,9 +113,9 @@ struct RobustIntersectionData<3> {
 
     // members
     int kx, ky, kz; // axis permutation indices (kz is the dominant axis)
-    float Sx, Sy, Sz; // shear constants for ray-triangle intersection
-    int nearX, nearY, nearZ; // near axis indices for box intersection
-    int farX, farY, farZ; // far axis indices for box intersection
+    Vector3 S; // shear constants for ray-triangle intersection
+    Vector3i near; // near axis indices for box intersection
+    Vector3i far; // far axis indices for box intersection
     Vector3 oNear, oFar; // corrected ray origins for near/far plane calculations
     Vector3 invDNear, invDFar; // conservative inverse ray directions for near/far plane calculations
 };

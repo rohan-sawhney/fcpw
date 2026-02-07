@@ -28,8 +28,13 @@ inline MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, cons
                                            const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD, float rtMax,
                                            FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
-    // TODO: implement
-    return false;
+    if constexpr (DIM == 3) {
+        // TODO: implement
+        return false;
+
+    } else {
+        return intersectWideBox(bMin, bMax, ro, rinvD, rtMax, tMin, tMax);
+    }
 }
 
 // performs wide version of ray line segment intersection test
