@@ -121,12 +121,12 @@ struct BoundingBox {
             // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
             float boxBounds[6] = { pMin[0], pMin[1], pMin[2],
                                    pMax[0], pMax[1], pMax[2] };
-            Vector3 pMinPerm{boxBounds[rid.near[0]],
-                             boxBounds[rid.near[1]],
-                             boxBounds[rid.near[2]]};
-            Vector3 pMaxPerm{boxBounds[rid.far[0]],
-                             boxBounds[rid.far[1]],
-                             boxBounds[rid.far[2]]};
+            Vector3 pMinPerm{boxBounds[rid.nearX],
+                             boxBounds[rid.nearY],
+                             boxBounds[rid.nearZ]};
+            Vector3 pMaxPerm{boxBounds[rid.farX],
+                             boxBounds[rid.farY],
+                             boxBounds[rid.farZ]};
             Vector3 tNear = (pMinPerm - rid.oNear).cwiseProduct(rid.invDNear);
             Vector3 tFar = (pMaxPerm - rid.oFar).cwiseProduct(rid.invDFar);
             float tNearMax = std::max(0.0f, tNear.maxCoeff());
