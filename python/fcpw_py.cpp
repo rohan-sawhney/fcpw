@@ -645,14 +645,6 @@ NB_MODULE(_fcpw, m) {
             &fcpw::GPUScene<3>::intersect),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
-        .def("intersect_robust", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, const Eigen::VectorXf&, GPUInteractionList&>(
-            &fcpw::GPUScene<3>::intersectRobust),
-            "Intersects the scene with the given rays, returning the closest interaction if it exists.\nThis method uses a more accurate but slower intersection test for 3D triangle meshes.",
-            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a)
-        .def("intersect_robust", nb::overload_cast<const GPURayList&, GPUInteractionList&>(
-            &fcpw::GPUScene<3>::intersectRobust),
-            "Intersects the scene with the given rays, returning the closest interaction if it exists.\nThis method uses a more accurate but slower intersection test for 3D triangle meshes.",
-            "rays"_a, "interactions"_a)
         .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, const Eigen::MatrixXf&, GPUInteractionList&>(
             &fcpw::GPUScene<3>::intersect),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction.p) using the random numbers rand_nums[3].\nThe selection pdf value is written to interaction.d along with the primitive index.",
