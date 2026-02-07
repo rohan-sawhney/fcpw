@@ -39,16 +39,6 @@ public:
                    std::vector<GPUInteraction>& interactions,
                    bool checkForOcclusion=false);
 
-    // intersects the scene with the given rays, returning the closest interaction if it exists;
-    // this method uses a more accurate but slower intersection test for 3D triangle meshes
-    // than the one above; for 2D line segment meshes, the two methods are equivalent
-    void intersectRobust(const Eigen::MatrixXf& rayOrigins,
-                         const Eigen::MatrixXf& rayDirections,
-                         const Eigen::VectorXf& rayDistanceBounds,
-                         std::vector<GPUInteraction>& interactions);
-    void intersectRobust(const std::vector<GPURay>& rays,
-                         std::vector<GPUInteraction>& interactions);
-
     // intersects the scene with the given spheres, randomly selecting one geometric primitive
     // contained inside each sphere and sampling a random point on that primitive (written to 
     // GPUInteraction.p) using the random numbers randNums[3] (float3.z is ignored for DIM = 2);
@@ -92,7 +82,6 @@ private:
     GPUBvhBuffers bvhBuffers;
     ComputeShader refitShader;
     ComputeShader rayIntersectionShader;
-    ComputeShader robustRayIntersectionShader;
     ComputeShader sphereIntersectionShader;
     ComputeShader closestPointShader;
     ComputeShader closestSilhouettePointShader;

@@ -21,9 +21,6 @@ public interface IPrimitive
     // intersects primitive with ray
     bool intersect(Ray r, bool checkForOcclusion, inout Interaction i);
 
-    // intersects primitive with ray
-    bool intersectRobust(Ray r, inout Interaction i);
-
     // intersects primitive with sphere
     bool intersect(BoundingSphere s, inout Interaction i);
 
@@ -151,13 +148,6 @@ public struct LineSegment : IPrimitive
         }
 
         return false;
-    }
-
-    // intersects primitive with ray
-    public bool intersectRobust(Ray r, inout Interaction i)
-    {
-        // fallback to regular intersection
-        return intersect(r, false, i);
     }
 
     // intersects primitive with sphere
@@ -386,19 +376,6 @@ public struct Triangle : IPrimitive
     public bool intersect(Ray r, bool checkForOcclusion, inout Interaction i)
     {
         bool didIntersect = intersectTriangle(pa, pb, pc, r.o, r.d, r.tMax, checkForOcclusion, i.p, i.n, i.uv, i.d);
-        if (didIntersect)
-        {
-            i.index = index;
-            return true;
-        }
-
-        return false;
-    }
-
-    // intersects primitive with ray
-    public bool intersectRobust(Ray r, inout Interaction i)
-    {
-        bool didIntersect = intersectTriangleRobust(pa, pb, pc, r.o, r.d, r.tMax, i.p, i.n, i.uv, i.d);
         if (didIntersect)
         {
             i.index = index;

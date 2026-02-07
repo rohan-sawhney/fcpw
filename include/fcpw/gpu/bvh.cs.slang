@@ -58,28 +58,6 @@ void rayIntersection(uint3 threadId: SV_DispatchThreadID,
 
 [shader("compute")]
 [numthreads(256, 1, 1)]
-void robustRayIntersection(uint3 threadId: SV_DispatchThreadID,
-                           uniform StructuredBuffer<Ray> rays,
-                           uniform RWStructuredBuffer<Interaction> interactions,
-                           uniform uint nQueries)
-{
-    uint index = threadId.x;
-    if (index >= nQueries)
-    {
-        return;
-    }
-
-    Ray r = rays[index];
-    Interaction i;
-    bool didIntersect = gBvh.intersectRobust(r, i);
-    if (didIntersect)
-    {
-        interactions[index] = i;
-    }
-}
-
-[shader("compute")]
-[numthreads(256, 1, 1)]
 void sphereIntersection(uint3 threadId: SV_DispatchThreadID,
                         uniform StructuredBuffer<BoundingSphere> boundingSpheres,
                         uniform StructuredBuffer<float3> randNums,
