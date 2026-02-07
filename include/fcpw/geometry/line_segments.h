@@ -40,7 +40,7 @@ public:
     bool intersect(const Ray<2>& r, Interaction<2>& i, bool checkForOcclusion=false) const;
 
     // intersects with ray
-    bool intersectRobust(const Ray<2>& r, Interaction<2>& i) const;
+    bool intersectRobust(const Ray<2>& r, const RobustIntersectionData<2>& rid, Interaction<2>& i) const;
 
     // intersects with ray
     int intersect(const Ray<2>& r, std::vector<Interaction<2>>& is,

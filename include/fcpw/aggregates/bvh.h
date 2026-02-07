@@ -176,7 +176,8 @@ protected:
                                        bool& didHit, int& nodesVisited) const;
 
     // processes subtree for robust intersection
-    bool processSubtreeForRobustIntersection(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+    bool processSubtreeForRobustIntersection(const RobustIntersectionData<DIM>& rid,
+                                             Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
                                              int aggregateIndex, TraversalStack *subtree,
                                              float *boxHits, bool& didHit, int& nodesVisited) const;
 

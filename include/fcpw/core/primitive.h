@@ -56,7 +56,8 @@ public:
     virtual bool intersect(const Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false) const = 0;
 
     // intersects with ray
-    virtual bool intersectRobust(const Ray<DIM>& r, Interaction<DIM>& i) const = 0;
+    virtual bool intersectRobust(const Ray<DIM>& r, const RobustIntersectionData<DIM>& rid,
+                                 Interaction<DIM>& i) const = 0;
 
     // intersects with ray
     virtual int intersect(const Ray<DIM>& r, std::vector<Interaction<DIM>>& is,

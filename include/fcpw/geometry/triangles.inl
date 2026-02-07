@@ -259,8 +259,57 @@ inline bool Triangle::intersect(const Ray<3>& r, Interaction<3>& i, bool checkFo
     return false;
 }
 
-inline bool Triangle::intersectRobust(const Ray<3>& r, Interaction<3>& i) const
+inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionData<3>& rid, Interaction<3>& i) const
 {
+    // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
+    // calculate vertex coordinates relative to ray origin
+    Vector3 a = soup->positions[indices[0]] - r.o;
+    Vector3 b = soup->positions[indices[1]] - r.o;
+    Vector3 c = soup->positions[indices[2]] - r.o;
+
+    // perform shear and scale of vertex coordinates
+    float ax = a[rid.kx] - rid.Sx*a[rid.kz];
+    float ay = a[rid.ky] - rid.Sy*a[rid.kz];
+    float bx = b[rid.kx] - rid.Sx*b[rid.kz];
+    float by = b[rid.ky] - rid.Sy*b[rid.kz];
+    float cx = c[rid.kx] - rid.Sx*c[rid.kz];
+    float cy = c[rid.ky] - rid.Sy*c[rid.kz];
+
+    // calculate scaled barycentric coordinates
+    float u = cx*by - cy*bx;
+    float v = ax*cy - ay*cx;
+    float w = bx*ay - by*ax;
+
+    // fallback to test against edges using double precision
+    if (u == 0.0f && v == 0.0f && w == 0.0f) {
+        double cxby = (double)cx*(double)by;
+        double cybx = (double)cy*(double)bx;
+        u = (float)(cxby - cybx);
+
+        double axcy = (double)ax*(double)cy;
+        double aycx = (double)ay*(double)cx;
+        v = (float)(axcy - aycx);
+
+        double bxay = (double)bx*(double)ay;
+        double byax = (double)by*(double)ax;
+        w = (float)(bxay - byax);
+    }
+
+    // perform edge tests (no backface culling)
+    if ((u < 0.0f || v < 0.0f || w < 0.0f) &&
+        (u > 0.0f || v > 0.0f || w > 0.0f)) return false;
+
+    // calculate determinant
+    float det = u + v + w;
+    if (det == 0.0f) return false;
+
+    // calculate scaled z-coordinates of vertices and
+    // use them to calculate the hit distance
+    float az = rid.Sz*a[rid.kz];
+    float bz = rid.Sz*b[rid.kz];
+    float cz = rid.Sz*c[rid.kz];
+    float t = u*az + v*bz + w*cz;
+
     // TODO: implement
     return false;
 }

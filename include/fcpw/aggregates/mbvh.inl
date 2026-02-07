@@ -1144,6 +1144,10 @@ inline bool Mbvh<WIDTH, DIM,
                                                                   int nodeStartIndex, int aggregateIndex,
                                                                   int& nodesVisited) const
 {
+    // TODO: implement
+    return false;
+
+    /*
     bool didHit = false;
     TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
     FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
@@ -1229,6 +1233,7 @@ inline bool Mbvh<WIDTH, DIM,
     }
 
     return didHit;
+    */
 }
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>

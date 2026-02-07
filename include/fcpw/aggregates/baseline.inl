@@ -113,6 +113,8 @@ bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<D
 {
     // find closest hit
     bool didHit = false;
+    BoundingBox<DIM> box = this->boundingBox();
+    RobustIntersectionData<DIM> rid(r, box.pMin, box.pMax);
     for (int p = 0; p < (int)primitives.size(); p++) {
         nodesVisited++;
 
@@ -123,7 +125,7 @@ bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<D
 
         } else {
             const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(primitives[p]);
-            hit = geometricPrim->intersectRobust(r, i);
+            hit = geometricPrim->intersectRobust(r, rid, i);
             if (hit) {
                 i.referenceIndex = p;
                 i.objectIndex = this->pIndex;

@@ -763,7 +763,8 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForRobustIntersection(Ray<DIM>& r, Interaction<DIM>& i,
+inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForRobustIntersection(const RobustIntersectionData<DIM>& rid,
+                                                                                                   Ray<DIM>& r, Interaction<DIM>& i,
                                                                                                    int nodeStartIndex, int aggregateIndex,
                                                                                                    TraversalStack *subtree, float *boxHits,
                                                                                                    bool& didHit, int& nodesVisited) const
@@ -793,7 +794,7 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 
                 } else {
                     const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
-                    hit = geometricPrim->intersectRobust(r, i);
+                    hit = geometricPrim->intersectRobust(r, rid, i);
                     if (hit) {
                         i.nodeIndex = nodeIndex;
                         i.referenceIndex = referenceIndex;
@@ -808,8 +809,8 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
             }
 
         } else { // not a leaf
-            bool hit0 = flatTree[nodeIndex + 1].box.intersectRobust(r, boxHits[0], boxHits[1]);
-            bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.intersectRobust(r, boxHits[2], boxHits[3]);
+            bool hit0 = flatTree[nodeIndex + 1].box.intersectRobust(r, rid, boxHits[0], boxHits[1]);
+            bool hit1 = flatTree[nodeIndex + node.secondChildOffset].box.intersectRobust(r, rid, boxHits[2], boxHits[3]);
 
             // did we hit both nodes?
             if (hit0 && hit1) {
@@ -862,12 +863,14 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectRobustFr
     bool didHit = false;
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
     float boxHits[4];
+    BoundingBox<DIM> box = this->boundingBox();
+    RobustIntersectionData<DIM> rid(r, box.pMin, box.pMax);
 
     int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
-    if (flatTree[rootIndex].box.intersectRobust(r, boxHits[0], boxHits[1])) {
+    if (flatTree[rootIndex].box.intersectRobust(r, rid, boxHits[0], boxHits[1])) {
         subtree[0].node = rootIndex;
         subtree[0].distance = boxHits[0];
-        bool occluded = processSubtreeForRobustIntersection(r, i, nodeStartIndex, aggregateIndex,
+        bool occluded = processSubtreeForRobustIntersection(rid, r, i, nodeStartIndex, aggregateIndex,
                                                             subtree, boxHits, didHit, nodesVisited);
         if (occluded) return true;
     }
