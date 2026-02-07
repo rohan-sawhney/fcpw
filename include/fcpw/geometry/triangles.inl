@@ -263,9 +263,12 @@ inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionD
 {
     // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
     // calculate vertex coordinates relative to ray origin
-    Vector3 a = soup->positions[indices[0]] - r.o;
-    Vector3 b = soup->positions[indices[1]] - r.o;
-    Vector3 c = soup->positions[indices[2]] - r.o;
+    const Vector3& pa = soup->positions[indices[0]];
+    const Vector3& pb = soup->positions[indices[1]];
+    const Vector3& pc = soup->positions[indices[2]];
+    Vector3 a = pa - r.o;
+    Vector3 b = pb - r.o;
+    Vector3 c = pc - r.o;
 
     // perform shear and scale of vertex coordinates
     float ax = a[rid.kx] - rid.Sx*a[rid.kz];
@@ -310,8 +313,41 @@ inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionD
     float cz = rid.Sz*c[rid.kz];
     float t = u*az + v*bz + w*cz;
 
-    // TODO: implement
-    return false;
+    auto signMask = [](float x) -> uint32_t {
+        uint32_t u;
+        std::memcpy(&u, &x, sizeof(u));
+        return u & 0x80000000u;
+    };
+    auto xorf = [](float x, uint32_t mask) -> float {
+        uint32_t u;
+        std::memcpy(&u, &x, sizeof(u));
+        u ^= mask;
+        std::memcpy(&x, &u, sizeof(u));
+        return x;
+    };
+    uint32_t detSignMask = signMask(det);
+    float tp = xorf(t, detSignMask);
+    float detp = xorf(det, detSignMask);
+    if (tp < 0.0f || tp > r.tMax*detp) return false;
+
+    // normalize u, v, w, and t
+    float invDet = 1.0f/det;
+    u *= invDet;
+    v *= invDet;
+    w *= invDet;
+    t *= invDet;
+
+    // set interaction
+    i.d = t;
+    i.p = pa*u + pb*v + pc*w;
+    Vector3 v1 = pb - pa;
+    Vector3 v2 = pc - pa;
+    i.n = v1.cross(v2).normalized();
+    i.uv[0] = u;
+    i.uv[1] = v;
+    i.primitiveIndex = pIndex;
+
+    return true;
 }
 
 inline int Triangle::intersect(const Ray<3>& r, std::vector<Interaction<3>>& is,
