@@ -154,6 +154,32 @@ def run_cpu_ray_intersection_queries(scene, ray_origins, ray_directions, ray_dis
 
         return interactions
 
+def run_cpu_robust_ray_intersection_queries(scene, ray_origins, ray_directions, ray_distance_bounds,
+                                            run_bundled_queries = True):
+    n_queries = len(ray_origins)
+    if run_bundled_queries:
+        start_time = time.perf_counter()
+        interactions = fcpw.interaction_3D_list()
+        scene.intersect_robust(ray_origins, ray_directions, ray_distance_bounds, interactions)
+        end_time = time.perf_counter()
+        print(f"{n_queries} robust ray intersection queries took {end_time - start_time} seconds")
+
+        return interactions
+
+    else:
+        start_time = time.perf_counter()
+        interactions = [None] * n_queries
+
+        for q in range(n_queries):
+            ray = fcpw.ray_3D(ray_origins[q], ray_directions[q], ray_distance_bounds[q])
+            interactions[q] = fcpw.interaction_3D()
+            hit = scene.intersect_robust(ray, interactions[q])
+
+        end_time = time.perf_counter()
+        print(f"{n_queries} robust ray intersection queries took {end_time - start_time} seconds")
+
+        return interactions
+
 def branch_traversal_weight(r2: float):
     return 1.0 # stub
 
@@ -483,6 +509,7 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     flip_normal_orientation = np.array([0 if not is_interior[q] else 1 for q in range(n_queries)], dtype=int)
 
     baseline_cpu_ray_interactions = None
+    baseline_cpu_robust_ray_interactions = None
     baseline_cpu_sphere_interactions = None
     baseline_cpu_cpq_interactions = None
     baseline_cpu_cspq_interactions = None
@@ -493,6 +520,9 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
         print("\nRunning Baseline CPU Queries")
         baseline_cpu_ray_interactions = run_cpu_ray_intersection_queries(
             baseline_scene, query_points, random_directions, query_bounds, dim)
+        if dim == 3:
+            baseline_cpu_robust_ray_interactions = run_cpu_robust_ray_intersection_queries(
+                baseline_scene, query_points, random_directions, query_bounds)
         baseline_cpu_sphere_interactions = run_cpu_sphere_intersection_queries(
             baseline_scene, query_points, random_squared_radii, rand_nums, dim)
         baseline_cpu_cpq_interactions = run_cpu_closest_point_queries(
@@ -590,6 +620,9 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     scene.build(fcpw.aggregate_type.bvh_overlap_surface_area, True, True)
     cpu_ray_interactions = run_cpu_ray_intersection_queries(
         scene, query_points, random_directions, query_bounds, dim)
+    if dim == 3:
+        cpu_robust_ray_interactions = run_cpu_robust_ray_intersection_queries(
+            scene, query_points, random_directions, query_bounds)
     cpu_cpq_interactions = run_cpu_closest_point_queries(
         scene, query_points, query_bounds, dim)
     cpu_cspq_interactions = None
@@ -600,6 +633,9 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     if compare_with_cpu_baseline:
         print("\nComparing CPU ray intersection query results...")
         compare_cpu_interactions(baseline_cpu_ray_interactions, cpu_ray_interactions, dim)
+        if dim == 3:
+            print("\nComparing CPU robust ray intersection query results...")
+            compare_cpu_interactions(baseline_cpu_robust_ray_interactions, cpu_robust_ray_interactions, 3)
         print("\nComparing CPU closest point query results...")
         compare_cpu_interactions(baseline_cpu_cpq_interactions, cpu_cpq_interactions, dim)
         if compute_silhouettes:
