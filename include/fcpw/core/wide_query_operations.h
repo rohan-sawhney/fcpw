@@ -25,7 +25,10 @@ inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const Vect
 // performs wide version of robust ray box intersection test
 template<size_t WIDTH, size_t DIM>
 inline MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
-                                           const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD, float rtMax,
+                                           const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD,
+                                           const enokiVector<DIM>& roNear, const enokiVector<DIM>& roFar,
+                                           const enokiVector<DIM>& rinvDNear, const enokiVector<DIM>& rinvDFar,
+                                           float rtMax, const RobustIntersectionData<DIM>& rid,
                                            FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
     if constexpr (DIM == 3) {
@@ -129,7 +132,8 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
 // performs wide version of robust ray triangle intersection test
 template<size_t WIDTH>
 inline MaskP<WIDTH> intersectWideTriangleRobust(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-                                                const enokiVector3& ro, const enokiVector3& rd, float rtMax, FloatP<WIDTH>& d,
+                                                const enokiVector3& ro, const enokiVector3& rd, float rtMax,
+                                                const RobustIntersectionData<3>& rid, FloatP<WIDTH>& d,
                                                 Vector3P<WIDTH>& pt, Vector3P<WIDTH>& n, Vector2P<WIDTH>& t)
 {
     // TODO: implement

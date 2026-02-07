@@ -1050,8 +1050,8 @@ inline bool Mbvh<WIDTH, DIM,
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
 inline bool intersectRayPrimitivesRobust(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
                                          const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                         int aggregateIndex, const enokiVector<DIM>& ro,
-                                         const enokiVector<DIM>& rd, float& rtMax, Interaction<DIM>& i)
+                                         int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
+                                         const RobustIntersectionData<DIM>& rid, float& rtMax, Interaction<DIM>& i)
 {
     std::cerr << "intersectRayPrimitivesRobust(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -1063,7 +1063,7 @@ template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 inline bool intersectRayPrimitivesRobust(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
                                          const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
                                          int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
-                                         float& rtMax, Interaction<2>& i)
+                                         const RobustIntersectionData<2>& rid, float& rtMax, Interaction<2>& i)
 {
     // fallback to regular intersection
     return intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, aggregateIndex, ro, rd, rtMax, i, false);
@@ -1073,7 +1073,7 @@ template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 inline bool intersectRayPrimitivesRobust(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
                                          const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
                                          int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-                                         float& rtMax, Interaction<3>& i)
+                                         const RobustIntersectionData<3>& rid, float& rtMax, Interaction<3>& i)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -1092,7 +1092,7 @@ inline bool intersectRayPrimitivesRobust(QueryStub<WIDTH, 3> queryStub, const No
         const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
         const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
         const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-        MaskP<WIDTH> mask = intersectWideTriangleRobust<WIDTH>(pa, pb, pc, ro, rd, rtMax, d, pt, n, t);
+        MaskP<WIDTH> mask = intersectWideTriangleRobust<WIDTH>(pa, pb, pc, ro, rd, rtMax, rid, d, pt, n, t);
 
         // determine closest index
         int closestIndex = -1;
@@ -1144,16 +1144,22 @@ inline bool Mbvh<WIDTH, DIM,
                                                                   int nodeStartIndex, int aggregateIndex,
                                                                   int& nodesVisited) const
 {
-    // TODO: implement
-    return false;
-    /*
     bool didHit = false;
     TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
+    QueryStub<WIDTH, DIM> queryStub;
+    BoundingBox<DIM> box = this->boundingBox();
+    RobustIntersectionData<DIM> rid(r, box.pMin, box.pMax);
     FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
     enokiVector<DIM> ro = enoki::gather<enokiVector<DIM>>(r.o.data(), range);
     enokiVector<DIM> rd = enoki::gather<enokiVector<DIM>>(r.d.data(), range);
     enokiVector<DIM> rinvD = enoki::gather<enokiVector<DIM>>(r.invD.data(), range);
-    QueryStub<WIDTH, DIM> queryStub;
+    enokiVector<DIM> roNear, roFar, rinvDNear, rinvDFar;
+    if constexpr (DIM == 3) {
+        roNear = enoki::gather<enokiVector<DIM>>(rid.oNear.data(), range);
+        roFar = enoki::gather<enokiVector<DIM>>(rid.oFar.data(), range);
+        rinvDNear = enoki::gather<enokiVector<DIM>>(rid.invDNear.data(), range);
+        rinvDFar = enoki::gather<enokiVector<DIM>>(rid.invDFar.data(), range);
+    }
 
     // push root node
     int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
@@ -1175,7 +1181,7 @@ inline bool Mbvh<WIDTH, DIM,
             if (primitiveTypeSupportsVectorizedQueries) {
                 // perform vectorized intersection query
                 bool hit = intersectRayPrimitivesRobust(queryStub, node, leafNodes, nodeIndex,
-                                                        this->pIndex, ro, rd, r.tMax, i);
+                                                        this->pIndex, ro, rd, rid, r.tMax, i);
 
                 nodesVisited++;
                 if (hit) {
@@ -1200,7 +1206,7 @@ inline bool Mbvh<WIDTH, DIM,
 
                     } else {
                         const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
-                        hit = geometricPrim->intersectRobust(r, i);
+                        hit = geometricPrim->intersectRobust(r, rid, i);
                         if (hit) {
                             i.nodeIndex = nodeIndex;
                             i.referenceIndex = p;
@@ -1218,7 +1224,8 @@ inline bool Mbvh<WIDTH, DIM,
         } else {
             // intersect ray with boxes
             MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBoxRobust<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
-                                                        node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
+                                                        node.boxMin, node.boxMax, ro, rinvD, roNear, roFar,
+                                                        rinvDNear, rinvDFar, r.tMax, rid, tMin, tMax);
 
             // enqueue intersecting boxes in sorted order
             nodesVisited++;
@@ -1232,7 +1239,6 @@ inline bool Mbvh<WIDTH, DIM,
     }
 
     return didHit;
-    */
 }
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
