@@ -18,8 +18,41 @@ inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const Vect
 
     tMin = enoki::max(0.0f, enoki::hmax(tNear));
     tMax = enoki::min(rtMax, enoki::hmin(tFar));
-
     return tMin <= tMax;
+}
+
+// performs wide version of robust ray box intersection test
+template<size_t WIDTH, size_t DIM>
+inline MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+                                           const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD,
+                                           const enokiVector<DIM>& roNear, const enokiVector<DIM>& roFar,
+                                           const enokiVector<DIM>& rinvDNear, const enokiVector<DIM>& rinvDFar,
+                                           float rtMax, const RobustIntersectionData<DIM>& rid,
+                                           FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
+{
+    if constexpr (DIM == 3) {
+        // robust ray box intersection;
+        // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
+        FloatP<WIDTH> boxBounds[6] = { bMin[0], bMin[1], bMin[2],
+                                       bMax[0], bMax[1], bMax[2] };
+        VectorP<WIDTH, 3> bMinPerm, bMaxPerm;
+        bMinPerm[0] = boxBounds[rid.nearX];
+        bMinPerm[1] = boxBounds[rid.nearY];
+        bMinPerm[2] = boxBounds[rid.nearZ];
+        bMaxPerm[0] = boxBounds[rid.farX];
+        bMaxPerm[1] = boxBounds[rid.farY];
+        bMaxPerm[2] = boxBounds[rid.farZ];
+        VectorP<WIDTH, 3> tNear = (bMinPerm - roNear)*rinvDNear;
+        VectorP<WIDTH, 3> tFar = (bMaxPerm - roFar)*rinvDFar;
+
+        tMin = enoki::max(0.0f, enoki::hmax(tNear));
+        tMax = enoki::min(rtMax, enoki::hmin(tFar));
+        return tMin <= tMax;
+
+    } else {
+        // fallback to regular intersection
+        return intersectWideBox(bMin, bMax, ro, rinvD, rtMax, tMin, tMax);
+    }
 }
 
 // performs wide version of ray line segment intersection test

@@ -107,6 +107,41 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
+bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                                                           int nodeStartIndex, int aggregateIndex,
+                                                                           int& nodesVisited) const
+{
+    // find closest hit
+    bool didHit = false;
+    BoundingBox<DIM> box = this->boundingBox();
+    RobustIntersectionData<DIM> rid(r, box.pMin, box.pMax);
+    for (int p = 0; p < (int)primitives.size(); p++) {
+        nodesVisited++;
+
+        bool hit = false;
+        if (primitiveTypeIsAggregate) {
+            const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(primitives[p]);
+            hit = aggregate->intersectRobustFromNode(r, i, nodeStartIndex, aggregateIndex, nodesVisited);
+
+        } else {
+            const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(primitives[p]);
+            hit = geometricPrim->intersectRobust(r, rid, i);
+            if (hit) {
+                i.referenceIndex = p;
+                i.objectIndex = this->pIndex;
+            }
+        }
+
+        if (hit) {
+            didHit = true;
+            r.tMax = std::min(r.tMax, i.d);
+        }
+    }
+
+    return didHit;
+}
+
+template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
 inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                            int nodeStartIndex, int aggregateIndex, int& nodesVisited,
                                                                            bool checkForOcclusion, bool recordAllHits) const

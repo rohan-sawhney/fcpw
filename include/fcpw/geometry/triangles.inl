@@ -259,6 +259,101 @@ inline bool Triangle::intersect(const Ray<3>& r, Interaction<3>& i, bool checkFo
     return false;
 }
 
+inline uint32_t signMask(float x)
+{
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(u));
+    return u & 0x80000000u;
+}
+
+inline float xorf(float x, uint32_t mask)
+{
+    uint32_t u;
+    std::memcpy(&u, &x, sizeof(u));
+    u ^= mask;
+    std::memcpy(&x, &u, sizeof(u));
+    return x;
+};
+
+inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionData<3>& rid, Interaction<3>& i) const
+{
+    // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
+    // calculate vertex coordinates relative to ray origin
+    const Vector3& pa = soup->positions[indices[0]];
+    const Vector3& pb = soup->positions[indices[1]];
+    const Vector3& pc = soup->positions[indices[2]];
+    Vector3 a = pa - r.o;
+    Vector3 b = pb - r.o;
+    Vector3 c = pc - r.o;
+
+    // perform shear and scale of vertex coordinates
+    float ax = a[rid.kx] - rid.Sx*a[rid.kz];
+    float ay = a[rid.ky] - rid.Sy*a[rid.kz];
+    float bx = b[rid.kx] - rid.Sx*b[rid.kz];
+    float by = b[rid.ky] - rid.Sy*b[rid.kz];
+    float cx = c[rid.kx] - rid.Sx*c[rid.kz];
+    float cy = c[rid.ky] - rid.Sy*c[rid.kz];
+
+    // calculate scaled barycentric coordinates
+    float u = cx*by - cy*bx;
+    float v = ax*cy - ay*cx;
+    float w = bx*ay - by*ax;
+
+    // fallback to test against edges using double precision
+    if (u == 0.0f || v == 0.0f || w == 0.0f) {
+        double cxby = (double)cx*(double)by;
+        double cybx = (double)cy*(double)bx;
+        u = (float)(cxby - cybx);
+
+        double axcy = (double)ax*(double)cy;
+        double aycx = (double)ay*(double)cx;
+        v = (float)(axcy - aycx);
+
+        double bxay = (double)bx*(double)ay;
+        double byax = (double)by*(double)ax;
+        w = (float)(bxay - byax);
+    }
+
+    // perform edge tests (no backface culling)
+    if ((u < 0.0f || v < 0.0f || w < 0.0f) &&
+        (u > 0.0f || v > 0.0f || w > 0.0f)) return false;
+
+    // calculate determinant
+    float det = u + v + w;
+    if (det == 0.0f) return false;
+
+    // calculate scaled z-coordinates of vertices and
+    // use them to calculate the hit distance
+    float az = rid.Sz*a[rid.kz];
+    float bz = rid.Sz*b[rid.kz];
+    float cz = rid.Sz*c[rid.kz];
+    float t = u*az + v*bz + w*cz;
+
+    uint32_t detSignMask = signMask(det);
+    float tp = xorf(t, detSignMask);
+    float detp = xorf(det, detSignMask);
+    if (tp < 0.0f || tp > r.tMax*detp) return false;
+
+    // normalize u, v, w, and t
+    float invDet = 1.0f/det;
+    u *= invDet;
+    v *= invDet;
+    w *= invDet;
+    t *= invDet;
+
+    // set interaction
+    i.d = t;
+    i.p = pa*u + pb*v + pc*w;
+    Vector3 v1 = pb - pa;
+    Vector3 v2 = pc - pa;
+    i.n = v1.cross(v2).normalized();
+    i.uv[0] = u;
+    i.uv[1] = v;
+    i.primitiveIndex = pIndex;
+
+    return true;
+}
+
 inline int Triangle::intersect(const Ray<3>& r, std::vector<Interaction<3>>& is,
                                bool checkForOcclusion, bool recordAllHits) const
 {

@@ -113,6 +113,42 @@ struct BoundingBox {
         return true;
     }
 
+    // checks for robust ray intersection
+    bool intersectRobust(const Ray<DIM>& r, const RobustIntersectionData<DIM>& rid,
+                         float& tMin, float& tMax) const {
+        if constexpr (DIM == 3) {
+            // robust ray box intersection;
+            // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
+            float boxBounds[6] = { pMin[0], pMin[1], pMin[2],
+                                   pMax[0], pMax[1], pMax[2] };
+            Vector3 pMinPerm{boxBounds[rid.nearX],
+                             boxBounds[rid.nearY],
+                             boxBounds[rid.nearZ]};
+            Vector3 pMaxPerm{boxBounds[rid.farX],
+                             boxBounds[rid.farY],
+                             boxBounds[rid.farZ]};
+            Vector3 tNear = (pMinPerm - rid.oNear).cwiseProduct(rid.invDNear);
+            Vector3 tFar = (pMaxPerm - rid.oFar).cwiseProduct(rid.invDFar);
+            float tNearMax = std::max(0.0f, tNear.maxCoeff());
+            float tFarMin = std::min(r.tMax, tFar.minCoeff());
+            if (tNearMax > tFarMin) return false;
+
+            tMin = tNearMax;
+            tMax = tFarMin;
+            return true;
+
+        } else {
+            // fallback to regular intersection
+            return intersect(r, tMin, tMax);
+        }
+    }
+
+    // checks for robust ray intersection
+    bool intersectRobust(const Ray<DIM>& r, float& tMin, float& tMax) const {
+        // TODO: implement
+        return false;
+    }
+
     // checks whether bounding box is valid
     bool isValid() const {
         return (pMax.array() >= pMin.array()).all();

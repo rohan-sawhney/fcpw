@@ -816,7 +816,7 @@ inline bool intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeTy
     std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
 
-    return 0;
+    return false;
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
@@ -1032,6 +1032,107 @@ inline bool Mbvh<WIDTH, DIM,
             // intersect ray with boxes
             MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
                                                         node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
+
+            // enqueue intersecting boxes in sorted order
+            nodesVisited++;
+            mask &= enoki::neq(node.child, maxInt);
+            if (enoki::any(mask)) {
+                float stub = 0.0f;
+                enqueueNodes<FCPW_MBVH_BRANCHING_FACTOR>(node.child, tMin, tMax, mask,
+                                                         r.tMax, stub, stackPtr, subtree);
+            }
+        }
+    }
+
+    return didHit;
+}
+
+template<size_t WIDTH, size_t DIM,
+         typename PrimitiveType,
+         typename SilhouetteType,
+         typename NodeType,
+         typename LeafNodeType,
+         typename SilhouetteLeafNodeType>
+inline bool Mbvh<WIDTH, DIM,
+                 PrimitiveType,
+                 SilhouetteType,
+                 NodeType,
+                 LeafNodeType,
+                 SilhouetteLeafNodeType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                                                  int nodeStartIndex, int aggregateIndex,
+                                                                  int& nodesVisited) const
+{
+    bool didHit = false;
+    TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
+    QueryStub<WIDTH, DIM> queryStub;
+    BoundingBox<DIM> box = this->boundingBox();
+    RobustIntersectionData<DIM> rid(r, box.pMin, box.pMax);
+    FloatP<FCPW_MBVH_BRANCHING_FACTOR> tMin, tMax;
+    enokiVector<DIM> ro = enoki::gather<enokiVector<DIM>>(r.o.data(), range);
+    enokiVector<DIM> rd = enoki::gather<enokiVector<DIM>>(r.d.data(), range);
+    enokiVector<DIM> rinvD = enoki::gather<enokiVector<DIM>>(r.invD.data(), range);
+    enokiVector<DIM> roNear, roFar, rinvDNear, rinvDFar;
+    if constexpr (DIM == 3) {
+        roNear = enoki::gather<enokiVector<DIM>>(rid.oNear.data(), range);
+        roFar = enoki::gather<enokiVector<DIM>>(rid.oFar.data(), range);
+        rinvDNear = enoki::gather<enokiVector<DIM>>(rid.invDNear.data(), range);
+        rinvDFar = enoki::gather<enokiVector<DIM>>(rid.invDFar.data(), range);
+    }
+
+    // push root node
+    int rootIndex = aggregateIndex == this->pIndex ? nodeStartIndex : 0;
+    subtree[0].node = rootIndex;
+    subtree[0].distance = minFloat;
+    int stackPtr = 0;
+
+    while (stackPtr >= 0) {
+        // pop off the next node to work on
+        int nodeIndex = subtree[stackPtr].node;
+        float currentDist = subtree[stackPtr].distance;
+        stackPtr--;
+
+        // if this node is further than the closest found intersection, continue
+        if (currentDist > r.tMax) continue;
+        const NodeType& node(flatTree[nodeIndex]);
+
+        if (isLeafNode(node)) {
+            // For simplicity, we only support non-vectorized intersection queries for now
+            // primitive type does not support vectorized intersection query,
+            // perform query to each primitive one by one
+            int referenceOffset = node.child[2];
+            int nReferences = node.child[3];
+
+            for (int p = 0; p < nReferences; p++) {
+                int referenceIndex = referenceOffset + p;
+                const PrimitiveType *prim = primitives[referenceIndex];
+                nodesVisited++;
+
+                bool hit = false;
+                if (primitiveTypeIsAggregate) {
+                    const Aggregate<DIM> *aggregate = reinterpret_cast<const Aggregate<DIM> *>(prim);
+                    hit = aggregate->intersectRobustFromNode(r, i, nodeStartIndex, aggregateIndex, nodesVisited);
+
+                } else {
+                    const GeometricPrimitive<DIM> *geometricPrim = reinterpret_cast<const GeometricPrimitive<DIM> *>(prim);
+                    hit = geometricPrim->intersectRobust(r, rid, i);
+                    if (hit) {
+                        i.nodeIndex = nodeIndex;
+                        i.referenceIndex = p;
+                        i.objectIndex = this->pIndex;
+                    }
+                }
+
+                if (hit) {
+                    didHit = true;
+                    r.tMax = std::min(r.tMax, i.d);
+                }
+            }
+
+        } else {
+            // intersect ray with boxes
+            MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBoxRobust<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
+                                                        node.boxMin, node.boxMax, ro, rinvD, roNear, roFar,
+                                                        rinvDNear, rinvDFar, r.tMax, rid, tMin, tMax);
 
             // enqueue intersecting boxes in sorted order
             nodesVisited++;

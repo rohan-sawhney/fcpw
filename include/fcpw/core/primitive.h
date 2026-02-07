@@ -56,6 +56,10 @@ public:
     virtual bool intersect(const Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false) const = 0;
 
     // intersects with ray
+    virtual bool intersectRobust(const Ray<DIM>& r, const RobustIntersectionData<DIM>& rid,
+                                 Interaction<DIM>& i) const = 0;
+
+    // intersects with ray
     virtual int intersect(const Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                           bool checkForOcclusion=false, bool recordAllHits=false) const = 0;
 
@@ -119,6 +123,12 @@ public:
     bool intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false) const {
         int nodesVisited = 0;
         return this->intersectFromNode(r, i, 0, this->pIndex, nodesVisited, checkForOcclusion);
+    }
+
+    // intersects with ray
+    bool intersectRobust(Ray<DIM>& r, Interaction<DIM>& i) const {
+        int nodesVisited = 0;
+        return this->intersectRobustFromNode(r, i, 0, this->pIndex, nodesVisited);
     }
 
     // intersects with ray
@@ -231,6 +241,11 @@ public:
                                    bool checkForOcclusion=false) const = 0;
 
     // intersects with ray, starting the traversal at the specified node in an aggregate
+    virtual bool intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                         int nodeStartIndex, int aggregateIndex,
+                                         int& nodesVisited) const = 0;
+
+    // intersects with ray, starting the traversal at the specified node in an aggregate
     // NOTE: interactions are invalid when checkForOcclusion is enabled
     virtual int intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
@@ -320,6 +335,25 @@ public:
                                                 nodesVisited, checkForOcclusion);
 
         // apply transform to ray and interactions
+        r.tMax = rInv.transform(t).tMax;
+        if (hit) i.applyTransform(t, tInv, r.o);
+
+        nodesVisited++;
+        return hit;
+    }
+
+    // intersects with ray, starting the traversal at the specified node in an aggregate
+    bool intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                 int nodeStartIndex, int aggregateIndex,
+                                 int& nodesVisited) const {
+        // apply inverse transform to ray
+        Ray<DIM> rInv = r.transform(tInv);
+
+        // intersect
+        bool hit = aggregate->intersectRobustFromNode(rInv, i, nodeStartIndex,
+                                                      aggregateIndex, nodesVisited);
+
+        // apply transform to ray and interaction
         r.tMax = rInv.transform(t).tMax;
         if (hit) i.applyTransform(t, tInv, r.o);
 

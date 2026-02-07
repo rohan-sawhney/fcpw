@@ -112,6 +112,11 @@ public:
     // if checkForOcclusion is enabled, the interaction is not populated
     bool intersect(Ray<DIM>& r, Interaction<DIM>& i, bool checkForOcclusion=false) const;
 
+    // intersects the scene with the given ray and returns whether there is a hit;
+    // this method uses a more accurate but slower intersection test for 3D triangle meshes
+    // than the one above; for 2D line segment meshes, the two methods are equivalent
+    bool intersectRobust(Ray<DIM>& r, Interaction<DIM>& i) const;
+
     // intersects the scene with the given ray and returns the number of hits;
     // by default, returns the closest interaction if it exists;
     // if checkForOcclusion is enabled, the interactions vector is not populated;
@@ -173,6 +178,16 @@ public:
     void intersect(std::vector<Ray<DIM>>& rays,
                    std::vector<Interaction<DIM>>& interactions,
                    bool checkForOcclusion=false) const;
+
+    // intersects the scene with the given rays, returning the closest interaction if it exists;
+    // this method uses a more accurate but slower intersection test for 3D triangle meshes
+    // than the one above; for 2D line segment meshes, the two methods are equivalent
+    void intersectRobust(const Eigen::MatrixXf& rayOrigins,
+                         const Eigen::MatrixXf& rayDirections,
+                         const Eigen::VectorXf& rayDistanceBounds,
+                         std::vector<Interaction<DIM>>& interactions) const;
+    void intersectRobust(std::vector<Ray<DIM>>& rays,
+                         std::vector<Interaction<DIM>>& interactions) const;
 
     // intersects the scene with the given spheres, randomly selecting one geometric primitive
     // contained inside each sphere and sampling a random point on that primitive (written to 

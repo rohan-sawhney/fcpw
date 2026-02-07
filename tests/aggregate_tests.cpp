@@ -162,6 +162,56 @@ void timeRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate
 }
 
 template<size_t DIM>
+void timeRobustRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
+                                      const std::vector<Vector<DIM>>& rayOrigins,
+                                      const std::vector<Vector<DIM>>& rayDirections,
+                                      const std::vector<int>& indices,
+                                      const std::string& aggregateType,
+                                      bool queriesCoherent=false)
+{
+    std::atomic<int> totalNodesVisited(0);
+    std::atomic<int> maxNodesVisited(0);
+    high_resolution_clock::time_point t1 = high_resolution_clock::now();
+
+    auto time = [&](const tbb::blocked_range<int>& range) {
+        int nodesVisitedByThread = 0;
+        int maxNodesVisitedByThread = 0;
+        Interaction<DIM> cPrev;
+
+        for (int i = range.begin(); i < range.end(); ++i) {
+            int I = indices[i];
+
+            int nodesVisited = 0;
+            Interaction<DIM> c;
+            Ray<DIM> r(rayOrigins[I], rayDirections[I]);
+            bool hit = aggregate->intersectRobustFromNode(r, c, 0, aggregate->getIndex(), nodesVisited);
+            nodesVisitedByThread += nodesVisited;
+            maxNodesVisitedByThread = std::max(maxNodesVisitedByThread, nodesVisited);
+
+            if (hit) cPrev = c;
+        }
+
+        totalNodesVisited += nodesVisitedByThread;
+        if (maxNodesVisited < maxNodesVisitedByThread) {
+            maxNodesVisited = maxNodesVisitedByThread; // not thread-safe, but ok for test
+        }
+    };
+
+    tbb::blocked_range<int> range(0, nQueries);
+    tbb::parallel_for(range, time);
+
+    high_resolution_clock::time_point t2 = high_resolution_clock::now();
+    duration<double> timeSpan = duration_cast<duration<double>>(t2 - t1);
+    std::cout << rayOrigins.size() << " robust ray intersection queries"
+              << (queriesCoherent ? " with backtracking search" : "")
+              << " took " << timeSpan.count() << " seconds with "
+              << aggregateType << "; "
+              << (totalNodesVisited/nQueries) << " nodes visited on avg and max "
+              << maxNodesVisited << " nodes visited"
+              << std::endl;
+}
+
+template<size_t DIM>
 void timeSphereIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate,
                                    const std::vector<Vector<DIM>>& sphereCenters,
                                    const std::vector<float>& sphereSquaredRadii,
@@ -365,6 +415,45 @@ void testRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate
                           << std::endl;
                 stopQueries = true;
             }
+        }
+    };
+
+    tbb::blocked_range<int> range(0, nQueries);
+    tbb::parallel_for(range, test);
+}
+
+template<size_t DIM>
+void testRobustRayIntersectionQueries(const std::unique_ptr<Aggregate<DIM>>& aggregate1,
+                                      const std::unique_ptr<Aggregate<DIM>>& aggregate2,
+                                      const std::vector<Vector<DIM>>& rayOrigins,
+                                      const std::vector<Vector<DIM>>& rayDirections,
+                                      const std::vector<int>& indices)
+{
+    std::atomic<bool> stopQueries(false);
+    auto test = [&](const tbb::blocked_range<int>& range) {
+        Interaction<DIM> cPrev;
+
+        for (int i = range.begin(); i < range.end(); ++i) {
+            if (stopQueries) break;
+            int I = indices[i];
+
+            Interaction<DIM> c1;
+            Ray<DIM> r1(rayOrigins[I], rayDirections[I]);
+            bool hit1 = aggregate1->intersectRobust(r1, c1);
+
+            int nodesVisited = 0;
+            Interaction<DIM> c2;
+            Ray<DIM> r2(rayOrigins[I], rayDirections[I]);
+            bool hit2 = aggregate2->intersectRobustFromNode(r2, c2, 0, aggregate2->getIndex(), nodesVisited);
+
+            if ((hit1 != hit2) || (hit1 && hit2 && c1 != c2)) {
+                std::cerr << "d1: " << c1.d << " d2: " << c2.d
+                          << "\np1: " << c1.p << " p2: " << c2.p
+                          << "\nIntersections do not match!" << std::endl;
+                stopQueries = true;
+            }
+
+            if (hit2) cPrev = c2;
         }
     };
 
@@ -641,13 +730,15 @@ void run()
 
         // benchmark baseline queries
         //timeRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
-        //                              shuffledIndices, "Baseline");
+        //                                shuffledIndices, "Baseline");
+        //timeRobustRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
+        //                                      shuffledIndices, "Baseline");
         //timeSphereIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomSquaredRadii,
-        //                                 shuffledIndices, "Baseline");
+        //                                   shuffledIndices, "Baseline");
         //timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
-        //                           shuffledIndices, "Baseline");
+        //                             shuffledIndices, "Baseline");
         //timeClosestSilhouettePointQueries<DIM>(sceneData->aggregate, queryPoints,
-        //                                     shuffledIndices, "Baseline");
+        //                                       shuffledIndices, "Baseline");
 
         // build bvh aggregates and benchmark queries
         for (int bvh = 1; bvh < 6; bvh++) {
@@ -659,6 +750,10 @@ void run()
                                                 shuffledIndices, bvhTypes[bvh - 1]);
                 timeRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
                                                 indices, bvhTypes[bvh - 1], true);
+                timeRobustRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
+                                                      shuffledIndices, bvhTypes[bvh - 1]);
+                timeRobustRayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
+                                                      indices, bvhTypes[bvh - 1], true);
                 //timeSphereIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomSquaredRadii,
                 //                                 shuffledIndices, bvhTypes[bvh - 1]);
                 timeClosestPointQueries<DIM>(sceneData->aggregate, queryPoints,
@@ -700,6 +795,10 @@ void run()
                                                 queryPoints, randomDirections, shuffledIndices);
                 testRayIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
                                                 queryPoints, randomDirections, indices);
+                testRobustRayIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+                                                      queryPoints, randomDirections, shuffledIndices);
+                testRobustRayIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
+                                                      queryPoints, randomDirections, indices);
                 //testSphereIntersectionQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,
                 //                                 queryPoints, randomSquaredRadii, shuffledIndices);
                 testClosestPointQueries<DIM>(sceneData->aggregate, bvhSceneData->aggregate,

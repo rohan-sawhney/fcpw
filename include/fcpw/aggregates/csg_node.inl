@@ -145,6 +145,17 @@ inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNo
 }
 
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
+inline bool CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                                                                         int nodeStartIndex, int aggregateIndex,
+                                                                                         int& nodesVisited) const
+{
+    std::cerr << "CsgNode::intersectRobustFromNode(const Ray<DIM>&) not implemented" << std::endl;
+    exit(EXIT_FAILURE);
+
+    return false;
+}
+
+template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 inline int CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
                                                                                   int nodeStartIndex, int aggregateIndex, int& nodesVisited,
                                                                                   bool checkForOcclusion, bool recordAllHits) const

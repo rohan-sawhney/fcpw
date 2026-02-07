@@ -400,6 +400,10 @@ NB_MODULE(_fcpw, m) {
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given ray and returns whether there is a hit.\nIf check_for_occlusion is enabled, the interaction is not populated.",
             "r"_a, "i"_a, "check_for_occlusion"_a=false)
+        .def("intersect_robust", nb::overload_cast<fcpw::Ray<3>&, fcpw::Interaction<3>&>(
+            &fcpw::Scene<3>::intersectRobust, nb::const_),
+            "Intersects the scene with the given ray and returns whether there is a hit.\nThis method uses a more accurate but slower intersection test for 3D triangle meshes.",
+            "r"_a, "i"_a)
         .def("intersect", nb::overload_cast<fcpw::Ray<3>&, Interaction3DList&, bool, bool>(
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given ray and returns the number of hits.\nBy default, returns the closest interaction if it exists.\nIf check_for_occlusion is enabled, the interactions vector is not populated.\nIf record_all_hits is enabled, sorts interactions by distance to the ray origin.",
@@ -435,6 +439,14 @@ NB_MODULE(_fcpw, m) {
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given rays, returning the closest interaction if it exists.",
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
+        .def("intersect_robust", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&>(
+            &fcpw::Scene<3>::intersectRobust, nb::const_),
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.\nThis method uses a more accurate but slower intersection test for 3D triangle meshes.",
+            "ray_origins"_a, "ray_directions"_a, "ray_distance_bounds"_a, "interactions"_a)
+        .def("intersect_robust", nb::overload_cast<Ray3DList&, Interaction3DList&>(
+            &fcpw::Scene<3>::intersectRobust, nb::const_),
+            "Intersects the scene with the given rays, returning the closest interaction if it exists.\nThis method uses a more accurate but slower intersection test for 3D triangle meshes.",
+            "rays"_a, "interactions"_a)
         .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, Interaction3DList&, const Eigen::MatrixXf&, const std::function<float(float)>&>(
             &fcpw::Scene<3>::intersect, nb::const_),
             "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to interaction_3D.p) using the random numbers randNums[3].\nThe selection pdf value is written to interaction_3D.d along with the primitive index.",
