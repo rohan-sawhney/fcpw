@@ -1146,7 +1146,6 @@ inline bool Mbvh<WIDTH, DIM,
 {
     // TODO: implement
     return false;
-
     /*
     bool didHit = false;
     TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];

@@ -31,6 +31,27 @@ inline MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, cons
     if constexpr (DIM == 3) {
         // TODO: implement
         return false;
+        /*
+        // robust ray box intersection;
+        // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
+        float boxBounds[6] = { pMin[0], pMin[1], pMin[2],
+                               pMax[0], pMax[1], pMax[2] };
+        Vector3 pMinPerm{boxBounds[rid.near[0]],
+                         boxBounds[rid.near[1]],
+                         boxBounds[rid.near[2]]};
+        Vector3 pMaxPerm{boxBounds[rid.far[0]],
+                         boxBounds[rid.far[1]],
+                         boxBounds[rid.far[2]]};
+        Vector3 tNear = (pMinPerm - rid.oNear).cwiseProduct(rid.invDNear);
+        Vector3 tFar = (pMaxPerm - rid.oFar).cwiseProduct(rid.invDFar);
+        float tNearMax = std::max(0.0f, tNear.maxCoeff());
+        float tFarMin = std::min(r.tMax, tFar.minCoeff());
+        if (tNearMax > tFarMin) return false;
+
+        tMin = tNearMax;
+        tMax = tFarMin;
+        return true;
+        */
 
     } else {
         return intersectWideBox(bMin, bMax, ro, rinvD, rtMax, tMin, tMax);
@@ -113,6 +134,76 @@ inline MaskP<WIDTH> intersectWideTriangleRobust(const Vector3P<WIDTH>& pa, const
 {
     // TODO: implement
     return false;
+    /*
+    // source: Woop, Benthin, Wald. Watertight Ray/Triangle Intersection. JCGT 2013.
+    // calculate vertex coordinates relative to ray origin
+    const Vector3& pa = soup->positions[indices[0]];
+    const Vector3& pb = soup->positions[indices[1]];
+    const Vector3& pc = soup->positions[indices[2]];
+    Vector3 a = pa - r.o;
+    Vector3 b = pb - r.o;
+    Vector3 c = pc - r.o;
+
+    // perform shear and scale of vertex coordinates
+    float ax = a[rid.kx] - rid.S[0]*a[rid.kz];
+    float ay = a[rid.ky] - rid.S[1]*a[rid.kz];
+    float bx = b[rid.kx] - rid.S[0]*b[rid.kz];
+    float by = b[rid.ky] - rid.S[1]*b[rid.kz];
+    float cx = c[rid.kx] - rid.S[0]*c[rid.kz];
+    float cy = c[rid.ky] - rid.S[1]*c[rid.kz];
+
+    // calculate scaled barycentric coordinates
+    double cxby = (double)cx*(double)by;
+    double cybx = (double)cy*(double)bx;
+    float u = (float)(cxby - cybx);
+
+    double axcy = (double)ax*(double)cy;
+    double aycx = (double)ay*(double)cx;
+    float v = (float)(axcy - aycx);
+
+    double bxay = (double)bx*(double)ay;
+    double byax = (double)by*(double)ax;
+    float w = (float)(bxay - byax);
+
+    // perform edge tests (no backface culling)
+    if ((u < 0.0f || v < 0.0f || w < 0.0f) &&
+        (u > 0.0f || v > 0.0f || w > 0.0f)) return false;
+
+    // calculate determinant
+    float det = u + v + w;
+    if (det == 0.0f) return false;
+
+    // calculate scaled z-coordinates of vertices and
+    // use them to calculate the hit distance
+    float az = rid.S[2]*a[rid.kz];
+    float bz = rid.S[2]*b[rid.kz];
+    float cz = rid.S[2]*c[rid.kz];
+    float t = u*az + v*bz + w*cz;
+
+    uint32_t detSignMask = signMask(det);
+    float tp = xorf(t, detSignMask);
+    float detp = xorf(det, detSignMask);
+    if (tp < 0.0f || tp > r.tMax*detp) return false;
+
+    // normalize u, v, w, and t
+    float invDet = 1.0f/det;
+    u *= invDet;
+    v *= invDet;
+    w *= invDet;
+    t *= invDet;
+
+    // set interaction
+    i.d = t;
+    i.p = pa*u + pb*v + pc*w;
+    Vector3 v1 = pb - pa;
+    Vector3 v2 = pc - pa;
+    i.n = v1.cross(v2).normalized();
+    i.uv[0] = u;
+    i.uv[1] = v;
+    i.primitiveIndex = pIndex;
+
+    return true;
+    */
 }
 
 // performs wide version of sphere box overlap test
