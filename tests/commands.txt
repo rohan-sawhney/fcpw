@@ -42,7 +42,7 @@ python fcpw_tests.py --file_path=input/walker.obj --dim=2 --n_queries=1024 --com
 
 python3 fcpw_tests.py --file_path=input/bunny.obj --dim=3 --n_queries=1048576 --compute_silhouettes --run_gpu_queries --compare_with_warp --visualize_scene
 python3 fcpw_tests.py --file_path=input/armadillo.obj --dim=3 --n_queries=1048576 --compute_silhouettes --run_gpu_queries --compare_with_warp --visualize_scene
-python fcpw_tests.py --file_path=input/kitten.obj --dim=3 --n_queries=1048576 --compute_silhouettes --run_gpu_queries --compare_with_warp --visualize_scene
+python3 fcpw_tests.py --file_path=input/kitten.obj --dim=3 --n_queries=1048576 --compute_silhouettes --run_gpu_queries --compare_with_warp --visualize_scene
 
 python3 fcpw_tests.py --file_path=input/plus-shape.obj --dim=2 --n_queries=1048576 --compute_silhouettes --run_gpu_queries --visualize_scene
 python3 fcpw_tests.py --file_path=input/spiral.obj --dim=2 --n_queries=1048576 --compute_silhouettes --run_gpu_queries --visualize_scene
