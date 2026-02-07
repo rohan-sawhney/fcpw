@@ -34,6 +34,33 @@ def generate_scattered_points_and_rays(n_queries, bounding_box, dim):
 
     return scattered_points, random_directions, random_squared_radii
 
+def generate_edge_rays(n_queries, positions, indices, centroid):
+    """Generate rays from centroid toward random edge points on the mesh (3D only)."""
+    n_triangles = len(indices)
+    edge_points = []
+
+    for _ in range(n_queries):
+        # pick a random triangle
+        tri_idx = np.random.randint(0, n_triangles)
+        tri = indices[tri_idx]
+
+        # pick a random edge (0, 1, or 2)
+        edge_idx = np.random.randint(0, 3)
+        v0_idx = tri[edge_idx]
+        v1_idx = tri[(edge_idx + 1) % 3]
+
+        # pick a random point on the edge
+        t = np.random.rand()
+        edge_point = (1 - t) * positions[v0_idx] + t * positions[v1_idx]
+        edge_points.append(edge_point)
+
+    edge_points = np.array(edge_points, dtype=np.float32)
+    ray_origins = np.tile(centroid.astype(np.float32), (n_queries, 1))
+    ray_directions = edge_points - ray_origins
+    ray_directions /= np.linalg.norm(ray_directions, axis=1)[:, None]
+
+    return ray_origins, ray_directions
+
 def tag_interior_points(scene, query_points):
     n_queries = len(query_points)
     is_interior = fcpw.uint32_list()
@@ -471,6 +498,54 @@ def compare_warp_and_gpu_interactions(warp_faces, warp_points, warp_dist, gpu_in
             print(f"\td: {gpu_distances[i]}")
             print(f"\tindex: {gpu_indices[i]}")
 
+def test_robust_ray_intersection(positions, indices, scene, n_queries):
+    """Test robust ray-triangle intersection (3D only).
+
+    This test verifies that the robust ray intersection binding works properly
+    by shooting rays from the mesh centroid toward random edge points.
+    The robust method should achieve better hit rates than the default method.
+    """
+    # compute centroid
+    centroid = np.mean(positions, axis=0)
+    print(f"Mesh centroid: {centroid}")
+
+    # generate rays toward edge points
+    print("\nGenerating rays toward edge points")
+    ray_origins, ray_directions = generate_edge_rays(n_queries, positions, indices, centroid)
+    ray_distance_bounds = np.inf * np.ones(n_queries, dtype=np.float32)
+
+    # run default intersection
+    print("\nRunning default intersection")
+    default_interactions = fcpw.interaction_3D_list()
+    scene.intersect(ray_origins, ray_directions, ray_distance_bounds, default_interactions, False)
+
+    # run robust intersection
+    print("\nRunning robust intersection")
+    robust_interactions = fcpw.interaction_3D_list()
+    scene.intersect_robust(ray_origins, ray_directions, ray_distance_bounds, robust_interactions)
+
+    # count hits
+    default_indices = default_interactions.get_primitive_indices()
+    robust_indices = robust_interactions.get_primitive_indices()
+    default_hits = sum(1 for idx in default_indices if idx != -1)
+    robust_hits = sum(1 for idx in robust_indices if idx != -1)
+
+    print(f"Default method hits: {default_hits}/{n_queries} ({100*default_hits/n_queries:.1f}%)")
+    print(f"Robust method hits: {robust_hits}/{n_queries} ({100*robust_hits/n_queries:.1f}%)")
+
+    # also test single-ray API
+    ray = fcpw.ray_3D(ray_origins[0], ray_directions[0], ray_distance_bounds[0])
+    default_interaction = fcpw.interaction_3D()
+    hit_default = scene.intersect(ray, default_interaction, False)
+
+    ray = fcpw.ray_3D(ray_origins[0], ray_directions[0], ray_distance_bounds[0])
+    robust_interaction = fcpw.interaction_3D()
+    hit_robust = scene.intersect_robust(ray, robust_interaction)
+
+    print(f"Single-ray API test: default={hit_default}, robust={hit_robust}")
+
+    return robust_hits >= default_hits
+
 def visualize_polyscope_scene(positions, indices, query_points, random_directions,
                               random_squared_radii, interior_points, dim):
     ps.init()
@@ -491,13 +566,18 @@ def visualize_polyscope_scene(positions, indices, query_points, random_direction
     ps.show()
 
 def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
-        run_gpu_queries, compare_with_warp, refit_gpu_scene, visualize_scene, dim):
+        run_gpu_queries, compare_with_warp, test_robust_intersection,
+        refit_gpu_scene, visualize_scene, dim):
     print("Loading OBJ")
     positions, indices = load_obj(file_path, dim)
 
     print("\nBuilding BVH on CPU")
     scene = load_fcpw_scene(positions, indices, fcpw.aggregate_type.bvh_overlap_surface_area,
                             compute_silhouettes, False, dim, True)
+
+    if test_robust_intersection and dim == 3:
+        print("\nTesting robust ray intersection")
+        test_robust_ray_intersection(positions, indices, scene, n_queries)
 
     print("\nGenerating query data")
     bounding_box = compute_bounding_box(positions)
@@ -667,12 +747,14 @@ def main():
     parser.add_argument("--compare_with_cpu_baseline", action="store_true", help="compare with CPU baseline")
     parser.add_argument("--run_gpu_queries", action="store_true", help="run GPU queries")
     parser.add_argument("--compare_with_warp", action="store_true", help="compare with warp")
+    parser.add_argument("--test_robust_intersection", action="store_true", help="test robust ray intersection queries (3D only)")
     parser.add_argument("--refit_gpu_scene", action="store_true", help="refit GPU scene")
     parser.add_argument("--visualize_scene", action="store_true", help="visualize scene")
     args = parser.parse_args()
 
     run(args.file_path, args.n_queries, args.compute_silhouettes, args.compare_with_cpu_baseline,
-        args.run_gpu_queries, args.compare_with_warp, args.refit_gpu_scene, args.visualize_scene, args.dim)
+        args.run_gpu_queries, args.compare_with_warp, args.test_robust_intersection,
+        args.refit_gpu_scene, args.visualize_scene, args.dim)
 
 if __name__ == "__main__":
     main()
