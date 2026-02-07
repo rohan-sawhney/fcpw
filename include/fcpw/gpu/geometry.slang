@@ -248,13 +248,6 @@ public bool intersectTriangle(float3 pa, float3 pb, float3 pc,
     return false;
 }
 
-public bool intersectTriangleRobust(float3 pa, float3 pb, float3 pc, float3 ro, float3 rd, float rtMax,
-                                    inout float3 p, inout float3 n, inout float2 uv, inout float d)
-{
-    // TODO: implement
-    return false;
-}
-
 public float findClosestPointTriangle(float3 pa, float3 pb, float3 pc, float3 x, out float3 p, out float2 t)
 {
     // source: real time collision detection
