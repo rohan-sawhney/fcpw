@@ -9,6 +9,9 @@
 
 #define FCPW_GPU_UINT_MAX 4294967295
 
+#ifndef FCPW_GPU_STRUCTURES_DEFINED
+#define FCPW_GPU_STRUCTURES_DEFINED
+
 namespace fcpw {
 
 struct float2 {
@@ -772,6 +775,8 @@ struct GPUInteraction {
     float d;        // distance to interaction point
     uint32_t index; // index of primitive/silhouette associated with interaction point
 };
+
+#endif // FCPW_GPU_STRUCTURES_DEFINED
 
 class GPURunRayIntersectionQuery: public GPUShaderEntryPoint {
 public:

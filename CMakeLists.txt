@@ -4,6 +4,7 @@ project(fcpw)
 option(FCPW_USE_ENOKI "Build enoki" ON)
 option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
 option(FCPW_ENABLE_GPU_SUPPORT "Enable GPU support" OFF)
+option(FCPW_ENABLE_CUDA_SUPPORT "Enable CUDA backend" OFF)
 option(FCPW_BUILD_BINDINGS "Build bindings" OFF)
 option(FCPW_BUILD_DEMO "Build demo" OFF)
 option(FCPW_BUILD_TESTS "Build tests" OFF)
@@ -108,6 +109,68 @@ endif()
 if(FCPW_ENABLE_GPU_SUPPORT)
     target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_GPU)
     target_link_libraries(${PROJECT_NAME} INTERFACE ${FCPW_SLANG_RHI_LIBRARY})
+endif()
+
+if(FCPW_ENABLE_CUDA_SUPPORT)
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+
+    # CUDA source files
+    set(FCPW_CUDA_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/fcpw/gpu/cuda/cuda_utils.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/include/fcpw/gpu/cuda/cuda_bvh_kernels.cu
+    )
+
+    # Create CUDA library
+    add_library(fcpw_cuda ${FCPW_CUDA_SOURCES})
+    target_compile_features(fcpw_cuda PUBLIC cxx_std_17)
+    target_compile_features(fcpw_cuda PUBLIC cuda_std_14)
+
+    # Set CUDA architectures based on CUDA version
+    # CUDA 12.0+ dropped support for SM 6.0 (Pascal)
+    # Use native architecture or specify compatible ones
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+        if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "13.0")
+            # CUDA 13.0+: Use native to auto-detect current GPU, plus common architectures including Blackwell (120)
+            set(CMAKE_CUDA_ARCHITECTURES "native;70;75;80;86;89;90;100;120")
+        elseif(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "12.0")
+            # CUDA 12.0+: Start from SM 7.0 (Volta), add Blackwell (100)
+            set(CMAKE_CUDA_ARCHITECTURES "70;75;80;86;89;90;100")
+        elseif(CUDAToolkit_VERSION VERSION_GREATER_EQUAL "11.0")
+            # CUDA 11.x: Support SM 6.0+ (Pascal to Hopper)
+            set(CMAKE_CUDA_ARCHITECTURES "60;70;75;80;86;89")
+        else()
+            # CUDA 10.x and older
+            set(CMAKE_CUDA_ARCHITECTURES "60;70;75")
+        endif()
+    endif()
+
+    message(STATUS "CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+
+    set_target_properties(fcpw_cuda PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        CUDA_ARCHITECTURES "${CMAKE_CUDA_ARCHITECTURES}"
+    )
+
+    # Include directories for CUDA library
+    target_include_directories(fcpw_cuda PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        ${FCPW_EIGEN_INCLUDES}
+        ${FCPW_SLANG_RHI_INCLUDES}
+    )
+
+    # Link CUDA runtime and slang-rhi (needed for bvh_interop_structures.h)
+    target_link_libraries(fcpw_cuda PUBLIC CUDA::cudart ${FCPW_SLANG_RHI_LIBRARY})
+
+    # Add CUDA support to main library
+    target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_CUDA)
+    target_link_libraries(${PROJECT_NAME} INTERFACE fcpw_cuda)
+
+    if(hasParent)
+        set(FCPW_CUDA_LIBRARY fcpw_cuda PARENT_SCOPE)
+    else()
+        set(FCPW_CUDA_LIBRARY fcpw_cuda)
+    endif()
 endif()
 
 ################################################################################

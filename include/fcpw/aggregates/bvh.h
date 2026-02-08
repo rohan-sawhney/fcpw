@@ -5,6 +5,12 @@
 #define FCPW_BVH_MAX_DEPTH 64
 
 namespace fcpw {
+
+// Forward declaration for CUDA backend
+namespace cuda {
+    struct CUDABvhBuffers;
+}
+
 // modified version of https://github.com/brandonpelfrey/Fast-BVH and
 // https://github.com/straaljager/GPU-path-tracing-with-CUDA-tutorial-4
 
@@ -222,6 +228,9 @@ protected:
     friend class CPUBvhDataExtractor;
     template<size_t A, typename B, typename C, typename D>
     friend class CPUBvhUpdateDataExtractor;
+
+    // CUDA backend friend declaration
+    friend struct cuda::CUDABvhBuffers;
 };
 
 } // namespace fcpw
