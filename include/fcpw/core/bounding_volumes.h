@@ -143,12 +143,6 @@ struct BoundingBox {
         }
     }
 
-    // checks for robust ray intersection
-    bool intersectRobust(const Ray<DIM>& r, float& tMin, float& tMax) const {
-        // TODO: implement
-        return false;
-    }
-
     // checks whether bounding box is valid
     bool isValid() const {
         return (pMax.array() >= pMin.array()).all();
