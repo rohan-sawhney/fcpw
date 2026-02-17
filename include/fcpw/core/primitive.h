@@ -489,6 +489,11 @@ public:
         x = t*xInv;
     }
 
+    // getters for CUDA interop
+    const std::shared_ptr<Aggregate<DIM>>& getAggregate() const { return aggregate; }
+    const Transform<DIM>& getTransform() const { return t; }
+    const Transform<DIM>& getInverseTransform() const { return tInv; }
+
 private:
     // members
     std::shared_ptr<Aggregate<DIM>> aggregate;

@@ -1,5 +1,9 @@
 #include <fcpw/utilities/scene_loader.h>
+#ifdef FCPW_USE_CUDA
+#include <fcpw/fcpw_cuda.h>
+#else
 #include <fcpw/fcpw_gpu.h>
+#endif
 #include "oneapi/tbb/parallel_for.h"
 #include "oneapi/tbb/blocked_range.h"
 #include <atomic>
@@ -14,10 +18,23 @@
 using namespace fcpw;
 using namespace std::chrono;
 
+#ifdef FCPW_USE_CUDA
+using GPURay = CUDARay;
+using GPUBoundingSphere = CUDABoundingSphere;
+using GPUInteraction = CUDAInteraction;
+using GPUFloat3 = CUDAFloat3;
+#define FCPW_GPU_UINT_MAX FCPW_CUDA_UINT_MAX
+static const char* gpuBackendName = "CUDA";
+#else
+using GPUFloat3 = float3;
+static const char* gpuBackendName = "GPU";
+#endif
+
 static bool refitBvh = false;
 static bool vizScene = false;
 static bool plotInteriorPoints = false;
 static bool computeSilhouettes = false;
+static bool useTransform = false;
 static int nQueries = 1048576;
 
 template<size_t DIM>
@@ -262,7 +279,7 @@ void compareInteractions(const std::vector<Interaction<DIM>>& cpuInteractions,
                       << "\n\td: " << cpuInteraction.d
                       << "\n\tindex: " << cpuInteraction.primitiveIndex
                       << std::endl;
-            std::cout << "GPU Interaction"
+            std::cout << gpuBackendName << " Interaction"
                       << "\n\tp: " << gpuInteraction.p.x << " " << gpuInteraction.p.y << " " << gpuInteraction.p.z
                       << "\n\tn: " << gpuInteraction.n.x << " " << gpuInteraction.n.y << " " << gpuInteraction.n.z
                       << "\n\tuv: " << gpuInteraction.uv.x << " " << gpuInteraction.uv.y
@@ -282,7 +299,7 @@ void visualizeScene(SceneData<DIM> *sceneData,
                     const std::vector<Vector<DIM>>& interiorPoints)
 {
     // set a few options
-    polyscope::options::programName = "GPU Bvh Traversal Tests";
+    polyscope::options::programName = std::string(gpuBackendName) + " Bvh Traversal Tests";
     polyscope::options::verbosity = 0;
     polyscope::options::usePrefsFile = false;
     polyscope::options::autocenterStructures = false;
@@ -349,6 +366,35 @@ void visualizeScene(SceneData<DIM> *sceneData,
 }
 
 template<size_t DIM>
+Transform<DIM> createTestTransform()
+{
+    Transform<DIM> transform = Transform<DIM>::Identity();
+    transform.translate(Vector<DIM>::Constant(0.5f));
+    Eigen::Matrix<float, DIM, DIM> rotation;
+    if constexpr (DIM == 2) {
+        float angle = 0.3f;
+        rotation << std::cos(angle), -std::sin(angle),
+                    std::sin(angle),  std::cos(angle);
+    } else {
+        float angle = 0.3f;
+        rotation << std::cos(angle), -std::sin(angle), 0.0f,
+                    std::sin(angle),  std::cos(angle), 0.0f,
+                    0.0f,             0.0f,            1.0f;
+    }
+    transform.rotate(rotation);
+    transform.scale(1.5f);
+    return transform;
+}
+
+template<size_t DIM>
+void wrapInTransformedAggregate(SceneData<DIM> *sceneData)
+{
+    Transform<DIM> transform = createTestTransform<DIM>();
+    std::shared_ptr<Aggregate<DIM>> sharedAgg(std::move(sceneData->aggregate));
+    sceneData->aggregate = std::make_unique<TransformedAggregate<DIM>>(sharedAgg, transform);
+}
+
+template<size_t DIM>
 void run()
 {
     // build bvh on CPU
@@ -359,6 +405,12 @@ void run()
     scene.build(AggregateType::Bvh_OverlapSurfaceArea, false, true);
     SceneData<DIM> *sceneData = scene.getSceneData();
     bool isLineSegmentGeometry = sceneData->lineSegmentObjects.size() > 0;
+
+    // optionally wrap aggregate in a TransformedAggregate
+    if (useTransform) {
+        wrapInTransformedAggregate<DIM>(sceneData);
+        std::cout << "Wrapped aggregate in TransformedAggregate" << std::endl;
+    }
 
     // generate random points and rays
     BoundingBox<DIM> boundingBox = sceneData->aggregate->boundingBox();
@@ -373,19 +425,19 @@ void run()
     std::vector<GPURay> gpuRays(nQueries);
     std::vector<GPUBoundingSphere> gpuBoundingSpheres(nQueries);
     std::vector<GPUBoundingSphere> gpuInfiniteSpheres(nQueries);
-    std::vector<float3> gpuRandNums(nQueries);
+    std::vector<GPUFloat3> gpuRandNums(nQueries);
     std::vector<uint32_t> gpuFlipNormalOrientation(nQueries);
 
     std::vector<bool> isInterior;
     tagInteriorPoints<DIM>(sceneData->aggregate, queryPoints, isInterior);
 
     for (int i = 0; i < nQueries; i++) {
-        float3 queryPoint = float3{queryPoints[i][0],
-                                   queryPoints[i][1],
-                                   DIM == 2 ? 0.0f : queryPoints[i][2]};
-        float3 randomDirection = float3{randomDirections[i][0],
-                                        randomDirections[i][1],
-                                        DIM == 2 ? 0.0f : randomDirections[i][2]};
+        GPUFloat3 queryPoint = GPUFloat3{queryPoints[i][0],
+                                        queryPoints[i][1],
+                                        DIM == 2 ? 0.0f : queryPoints[i][2]};
+        GPUFloat3 randomDirection = GPUFloat3{randomDirections[i][0],
+                                              randomDirections[i][1],
+                                              DIM == 2 ? 0.0f : randomDirections[i][2]};
         float randomSquaredRadius = randomSquaredRadii[i];
 
         indices.emplace_back(i);
@@ -394,25 +446,29 @@ void run()
         gpuRays[i] = GPURay(queryPoint, randomDirection);
         gpuBoundingSpheres[i] = GPUBoundingSphere(queryPoint, randomSquaredRadius);
         gpuInfiniteSpheres[i] = GPUBoundingSphere(queryPoint, maxFloat);
-        gpuRandNums[i] = float3{randNums[i][0],
-                                randNums[i][1],
-                                DIM == 2 ? 0.0f : randNums[i][2]};
+        gpuRandNums[i] = GPUFloat3{randNums[i][0],
+                                   randNums[i][1],
+                                   DIM == 2 ? 0.0f : randNums[i][2]};
         gpuFlipNormalOrientation[i] = flipNormalOrientation[i] ? 1 : 0;
     }
 
     // transfer scene to GPU
+#ifdef FCPW_USE_CUDA
+    CUDAScene<DIM> gpuScene(true);
+#else
     std::filesystem::path fpcwDirectoryPath = std::filesystem::current_path().parent_path();
     GPUScene<DIM> gpuScene(fpcwDirectoryPath.string(), true);
+#endif
     gpuScene.transferToGPU(scene);
 
     // refit GPU BVH
     if (refitBvh) {
-        std::cout << "Refitting GPU BVH..." << std::endl;
+        std::cout << "Refitting " << gpuBackendName << " BVH..." << std::endl;
         gpuScene.refit(scene);
     }
 
     // run GPU queries
-    std::cout << "Running GPU queries..." << std::endl;
+    std::cout << "Running " << gpuBackendName << " queries..." << std::endl;
     std::vector<GPUInteraction> gpuRayInteractions;
     gpuScene.intersect(gpuRays, gpuRayInteractions);
 
@@ -434,8 +490,13 @@ void run()
                                          randNums, indices, cpuSphereInteractions);
 
     // build vectorized bvh for remaining CPU queries
-    scene.build(AggregateType::Bvh_OverlapSurfaceArea, true, true); 
+    scene.build(AggregateType::Bvh_OverlapSurfaceArea, true, true);
     sceneData = scene.getSceneData();
+
+    // re-wrap in TransformedAggregate if needed
+    if (useTransform) {
+        wrapInTransformedAggregate<DIM>(sceneData);
+    }
 
     std::vector<Interaction<DIM>> cpuRayInteractions(nQueries);
     runCPURayIntersectionQueries<DIM>(sceneData->aggregate, queryPoints, randomDirections,
@@ -451,14 +512,14 @@ void run()
     }
 
     // compare CPU & GPU results
-    std::cout << "\nComparing CPU & GPU ray intersection query results..." << std::endl;
+    std::cout << "\nComparing CPU & " << gpuBackendName << " ray intersection query results..." << std::endl;
     compareInteractions<DIM>(cpuRayInteractions, gpuRayInteractions);
-    std::cout << "\nComparing CPU & GPU sphere intersection query results..." << std::endl;
+    std::cout << "\nComparing CPU & " << gpuBackendName << " sphere intersection query results..." << std::endl;
     compareInteractions<DIM>(cpuSphereInteractions, gpuSphereInteractions);
-    std::cout << "\nComparing CPU & GPU closest point query results..." << std::endl;
+    std::cout << "\nComparing CPU & " << gpuBackendName << " closest point query results..." << std::endl;
     compareInteractions<DIM>(cpuCPQInteractions, gpuCPQInteractions);
     if (computeSilhouettes) {
-        std::cout << "\nComparing CPU & GPU closest silhouette point query results..." << std::endl;
+        std::cout << "\nComparing CPU & " << gpuBackendName << " closest silhouette point query results..." << std::endl;
         compareInteractions<DIM>(cpuCSPQInteractions, gpuCSPQInteractions);
     }
     std::cout << "\ndone" << std::endl;
@@ -475,12 +536,13 @@ void run()
 
 int main(int argc, const char *argv[]) {
     // configure the argument parser
-    args::ArgumentParser parser("gpu bvh traversal tests");
+    args::ArgumentParser parser(std::string(gpuBackendName) + " bvh traversal tests");
     args::Group group(parser, "", args::Group::Validators::DontCare);
     args::Flag refitBvh(group, "bool", "refit bvh", {"refitBvh"});
     args::Flag vizScene(group, "bool", "visualize scene", {"vizScene"});
     args::Flag plotInteriorPoints(group, "bool", "plot interior points", {"plotInteriorPoints"});
     args::Flag computeSilhouettes(group, "bool", "compute silhouettes", {"computeSilhouettes"});
+    args::Flag useTransform(group, "bool", "wrap aggregate in TransformedAggregate", {"useTransform"});
     args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
     args::ValueFlag<int> nQueries(parser, "integer", "number of queries", {"nQueries"});
     args::ValueFlag<std::string> lineSegmentFilename(parser, "string", "line segment soup filename", {"lFile"});
@@ -516,6 +578,7 @@ int main(int argc, const char *argv[]) {
     if (vizScene) ::vizScene = args::get(vizScene);
     if (plotInteriorPoints) ::plotInteriorPoints = args::get(plotInteriorPoints);
     if (computeSilhouettes) ::computeSilhouettes = args::get(computeSilhouettes);
+    if (useTransform) ::useTransform = args::get(useTransform);
     if (nQueries) ::nQueries = args::get(nQueries);
     if (lineSegmentFilename) {
         files.emplace_back(std::make_pair(args::get(lineSegmentFilename), LoadingOption::ObjLineSegments));

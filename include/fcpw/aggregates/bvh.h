@@ -222,6 +222,13 @@ protected:
     friend class CPUBvhDataExtractor;
     template<size_t A, typename B, typename C, typename D>
     friend class CPUBvhUpdateDataExtractor;
+
+#ifdef FCPW_USE_CUDA
+    template<size_t A, typename B, typename C, typename D, typename E, typename F, typename G>
+    friend class CPUCUDABvhDataExtractor;
+    template<size_t A, typename B, typename C, typename D>
+    friend class CPUCUDABvhUpdateDataExtractor;
+#endif
 };
 
 } // namespace fcpw
