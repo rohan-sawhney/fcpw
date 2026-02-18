@@ -18,7 +18,7 @@ public:
     // the 'build' function in the Scene class, to the GPU. NOTE: Currently only supports
     // scenes with a single object, i.e., no CSG trees, instanced or transformed aggregates,
     // or nested hierarchies of aggregates. When using 'build', set 'vectorize' to false.
-    void transferToGPU(Scene<DIM>& scene);
+    void transferToGPU(Scene<DIM>& scene, DeviceType deviceType=DeviceType::Default);
 
     // refits the BVH on the GPU after updating the geometry, either via calls to
     // updateObjectVertex in the Scene class, or directly in GPU code in the user's slang

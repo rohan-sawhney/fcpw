@@ -16,7 +16,7 @@ printLogs(printLogs_)
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
+inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene, DeviceType deviceType)
 {
     SceneData<DIM> *sceneData = scene.getSceneData();
     bool hasLineSegmentGeometry = sceneData->lineSegmentObjects.size() > 0;
@@ -29,7 +29,7 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene)
                              std::to_string(hasLineSegmentGeometry ? FCPW_LINE_SEGMENT_BVH : FCPW_TRIANGLE_BVH);
     context.searchPaths = { fcpwGpuDirectoryPath };
     context.macros = {{ "FCPW_BVH_TYPE", macroValue }};
-    context.initDevice();
+    context.initDevice(deviceType);
 
     // load modules
     std::vector<GPUModule> libraryModules;

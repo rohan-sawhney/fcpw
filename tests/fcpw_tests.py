@@ -131,6 +131,14 @@ def load_fcpw_scene(positions, indices, aggregate_type, compute_silhouettes, vec
 
     return scene
 
+def parse_device_type(backend):
+    device_type_map = {
+        "default": fcpw.device_type.default,
+        "cuda": fcpw.device_type.cuda,
+        "vulkan": fcpw.device_type.vulkan,
+    }
+    return device_type_map.get(backend, fcpw.device_type.default)
+
 def init_gpu_data(n_queries, dim):
     scene = None
     fcpw_directory_path = str(Path.cwd().parent)
@@ -567,7 +575,7 @@ def visualize_polyscope_scene(positions, indices, query_points, random_direction
 
 def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
         run_gpu_queries, compare_with_warp, test_robust_intersection,
-        refit_gpu_scene, visualize_scene, dim):
+        refit_gpu_scene, visualize_scene, dim, device_backend="default"):
     print("Loading OBJ")
     positions, indices = load_obj(file_path, dim)
 
@@ -618,7 +626,7 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     if run_gpu_queries:
         print("\nTransferring CPU BVH to GPU")
         gpu_scene = init_gpu_data(n_queries, dim)
-        gpu_scene.transfer_to_gpu(scene)
+        gpu_scene.transfer_to_gpu(scene, parse_device_type(device_backend))
 
         if refit_gpu_scene:
             print("\nRefitting GPU BVH")
@@ -750,11 +758,12 @@ def main():
     parser.add_argument("--test_robust_intersection", action="store_true", help="test robust ray intersection queries (3D only)")
     parser.add_argument("--refit_gpu_scene", action="store_true", help="refit GPU scene")
     parser.add_argument("--visualize_scene", action="store_true", help="visualize scene")
+    parser.add_argument("--device_backend", type=str, default="default", choices=["default", "cuda", "vulkan"], help="GPU backend")
     args = parser.parse_args()
 
     run(args.file_path, args.n_queries, args.compute_silhouettes, args.compare_with_cpu_baseline,
         args.run_gpu_queries, args.compare_with_warp, args.test_robust_intersection,
-        args.refit_gpu_scene, args.visualize_scene, args.dim)
+        args.refit_gpu_scene, args.visualize_scene, args.dim, args.device_backend)
 
 if __name__ == "__main__":
     main()

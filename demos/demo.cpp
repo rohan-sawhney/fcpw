@@ -240,7 +240,14 @@ void visualize(const std::vector<Vector<3>>& positions,
     polyscope::show();
 }
 
-void run(bool useGpu)
+DeviceType parseDeviceType(const std::string& backend)
+{
+    if (backend == "cuda") return DeviceType::CUDA;
+    if (backend == "vulkan") return DeviceType::Vulkan;
+    return DeviceType::Default;
+}
+
+void run(bool useGpu, const std::string& deviceBackend)
 {
     // load obj file
     std::filesystem::path currentDirectory = std::filesystem::current_path().parent_path();
@@ -273,7 +280,7 @@ void run(bool useGpu)
         // transfer scene to GPU
         bool printStats = false;
         GPUScene<3> gpuScene(currentDirectory.string(), printStats);
-        gpuScene.transferToGPU(scene);
+        gpuScene.transferToGPU(scene, parseDeviceType(deviceBackend));
 
         // visualize results
         std::vector<Vector<3>> closestPoints;
@@ -299,6 +306,7 @@ int main(int argc, const char *argv[]) {
     args::ArgumentParser parser("fcpw demo");
     args::Group group(parser, "", args::Group::Validators::DontCare);
     args::Flag useGpu(group, "bool", "use GPU", {"useGpu"});
+    args::ValueFlag<std::string> deviceBackend(parser, "string", "GPU backend: default, cuda, vulkan", {"deviceBackend"});
 
     // parse args
     try {
@@ -314,7 +322,8 @@ int main(int argc, const char *argv[]) {
         return 1;
     }
 
-    run(args::get(useGpu));
+    std::string backend = deviceBackend ? args::get(deviceBackend) : "default";
+    run(args::get(useGpu), backend);
 
     return 0;
 }
