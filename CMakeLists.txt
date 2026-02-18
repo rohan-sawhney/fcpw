@@ -3,7 +3,8 @@ project(fcpw)
 
 option(FCPW_USE_ENOKI "Build enoki" ON)
 option(FCPW_USE_EIGHT_WIDE_BRANCHING "Use 8 wide branching (default 4)" OFF)
-option(FCPW_ENABLE_GPU_SUPPORT "Enable GPU support" OFF)
+option(FCPW_ENABLE_GPU_SUPPORT "Enable Slang GPU support" OFF)
+option(FCPW_ENABLE_CUDA_SUPPORT "Enable CUDA GPU support" OFF)
 option(FCPW_BUILD_BINDINGS "Build bindings" OFF)
 option(FCPW_BUILD_DEMO "Build demo" OFF)
 option(FCPW_BUILD_TESTS "Build tests" OFF)
@@ -45,7 +46,7 @@ list(APPEND FCPW_DEPS_INCLUDES ${FCPW_EIGEN_INCLUDES})
 if(FCPW_ENABLE_GPU_SUPPORT)
     set(SLANG_RHI_INSTALL             OFF CACHE BOOL " " FORCE)
     set(SLANG_RHI_ENABLE_WGPU         OFF CACHE BOOL "Disable WebGPU" FORCE)
-    set(SLANG_RHI_FETCH_SLANG_VERSION "2026.1.1" CACHE STRING "Slang version to fetch")
+    set(SLANG_RHI_FETCH_SLANG_VERSION "2026.2.2" CACHE STRING "Slang version to fetch")
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/deps/slang-rhi)
 
     if(hasParent)
@@ -56,6 +57,10 @@ if(FCPW_ENABLE_GPU_SUPPORT)
         set(FCPW_SLANG_RHI_LIBRARY slang-rhi)
     endif()
     list(APPEND FCPW_DEPS_INCLUDES ${FCPW_SLANG_RHI_INCLUDES})
+endif()
+
+if(FCPW_ENABLE_CUDA_SUPPORT)
+    find_package(CUDAToolkit REQUIRED)
 endif()
 
 if(FCPW_USE_ENOKI)
@@ -106,8 +111,29 @@ if(FCPW_USE_ENOKI)
 endif()
 
 if(FCPW_ENABLE_GPU_SUPPORT)
-    target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_GPU)
+    target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_GPU -DFCPW_USE_SLANG)
     target_link_libraries(${PROJECT_NAME} INTERFACE ${FCPW_SLANG_RHI_LIBRARY})
+endif()
+
+if(FCPW_ENABLE_CUDA_SUPPORT)
+    enable_language(CUDA)
+    add_library(fcpw_cuda_backend STATIC include/fcpw/cuda/fcpw_cuda_kernels.cu)
+    target_include_directories(fcpw_cuda_backend PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${FCPW_DEPS_INCLUDES}
+        ${CUDAToolkit_INCLUDE_DIRS})
+    target_compile_features(fcpw_cuda_backend PRIVATE cxx_std_17)
+    set_target_properties(fcpw_cuda_backend PROPERTIES
+        CUDA_STANDARD 17
+        CUDA_STANDARD_REQUIRED ON
+        POSITION_INDEPENDENT_CODE ON
+        CUDA_SEPARABLE_COMPILATION ON)
+    if(NOT CMAKE_CUDA_ARCHITECTURES)
+        set_target_properties(fcpw_cuda_backend PROPERTIES CUDA_ARCHITECTURES "60;70;75;80;86")
+    endif()
+
+    target_compile_definitions(${PROJECT_NAME} INTERFACE -DFCPW_USE_GPU -DFCPW_USE_CUDA)
+    target_link_libraries(${PROJECT_NAME} INTERFACE fcpw_cuda_backend CUDA::cudart)
 endif()
 
 ################################################################################

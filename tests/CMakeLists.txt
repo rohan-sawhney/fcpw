@@ -20,7 +20,7 @@ add_executable(csg_tests csg_tests.cpp)
 target_link_libraries(csg_tests fcpw polyscope TBB::tbb)
 target_include_directories(csg_tests PRIVATE ${FCPW_TESTS_INCLUDES})
 
-if(FCPW_ENABLE_GPU_SUPPORT)
+if(FCPW_ENABLE_GPU_SUPPORT OR FCPW_ENABLE_CUDA_SUPPORT)
     add_executable(gpu_tests gpu_tests.cpp)
     target_link_libraries(gpu_tests fcpw polyscope TBB::tbb)
     target_include_directories(gpu_tests PRIVATE ${FCPW_TESTS_INCLUDES})

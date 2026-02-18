@@ -1,5 +1,14 @@
 #pragma once
 
+// NOTE:
+// This is the legacy GPU API surface used by demos/tests/bindings.
+// Backend selection is compile-time and preserves the original Slang path:
+// 1) FCPW_USE_SLANG: original Slang implementation in include/fcpw/gpu.
+// 2) FCPW_USE_CUDA:  CUDA implementation in include/fcpw/cuda.
+// Keep these branches independent; CUDA must not depend on Slang internals.
+
+#if defined(FCPW_USE_SLANG)
+
 #include <fcpw/fcpw.h>
 #include <fcpw/gpu/bvh_interop_structures.h>
 
@@ -14,7 +23,7 @@ public:
     /////////////////////////////////////////////////////////////////////////////////////////////
     // API to transfer scene to the GPU, and to refit it if needed
 
-    // transfers a binary (non-vectorized) BVH aggregate, constructed on the CPU using 
+    // transfers a binary (non-vectorized) BVH aggregate, constructed on the CPU using
     // the 'build' function in the Scene class, to the GPU. NOTE: Currently only supports
     // scenes with a single object, i.e., no CSG trees, instanced or transformed aggregates,
     // or nested hierarchies of aggregates. When using 'build', set 'vectorize' to false.
@@ -40,7 +49,7 @@ public:
                    bool checkForOcclusion=false);
 
     // intersects the scene with the given spheres, randomly selecting one geometric primitive
-    // contained inside each sphere and sampling a random point on that primitive (written to 
+    // contained inside each sphere and sampling a random point on that primitive (written to
     // GPUInteraction.p) using the random numbers randNums[3] (float3.z is ignored for DIM = 2);
     // the selection pdf value is written to GPUInteraction.d along with the primitive index
     void intersect(const Eigen::MatrixXf& sphereCenters,
@@ -93,3 +102,41 @@ private:
 } // namespace fcpw
 
 #include "fcpw_gpu.inl"
+
+#elif defined(FCPW_USE_CUDA)
+
+#include <filesystem>
+#include <fcpw/fcpw_cuda.h>
+
+namespace fcpw {
+
+// Legacy compatibility aliases so existing code using GPUScene/GPURay/etc.
+// can target CUDA without changing call sites.
+template<size_t DIM>
+using GPUScene = CUDAScene<DIM>;
+
+using GPUBoundingBox = CUDABoundingBox;
+using GPUBoundingCone = CUDABoundingCone;
+using GPUBvhNode = CUDABvhNode;
+using GPUSnchNode = CUDASnchNode;
+using GPULineSegment = CUDALineSegment;
+using GPUTriangle = CUDATriangle;
+using GPUVertex = CUDAVertex;
+using GPUEdge = CUDAEdge;
+using GPUNoSilhouette = CUDANoSilhouette;
+
+using GPURay = CUDARay;
+using GPUBoundingSphere = CUDABoundingSphere;
+using GPUInteraction = CUDAInteraction;
+
+} // namespace fcpw
+
+#ifndef FCPW_GPU_UINT_MAX
+#define FCPW_GPU_UINT_MAX FCPW_CUDA_UINT_MAX
+#endif
+
+#else
+
+#error "GPU backend not selected. Enable FCPW_USE_SLANG or FCPW_USE_CUDA via CMake options."
+
+#endif
