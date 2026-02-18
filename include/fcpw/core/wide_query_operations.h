@@ -149,6 +149,14 @@ inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const Vector
     return d2Min <= sr2;
 }
 
+// finds closest point on wide point to point
+template<size_t WIDTH, size_t DIM>
+inline FloatP<WIDTH> findClosestPointWidePoint(const VectorP<WIDTH, DIM>& p, const enokiVector<DIM>& x, VectorP<WIDTH, DIM>& pt)
+{
+    pt = p;
+    return enoki::squared_norm(x - p);
+}
+
 // finds closest point on wide line segment to point
 template<size_t WIDTH, size_t DIM>
 inline FloatP<WIDTH> findClosestPointWideLineSegment(const VectorP<WIDTH, DIM>& pa, const VectorP<WIDTH, DIM>& pb,
