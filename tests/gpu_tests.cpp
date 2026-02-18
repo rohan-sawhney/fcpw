@@ -21,7 +21,7 @@ static bool computeSilhouettes = false;
 static std::string deviceBackend = "default";
 static int nQueries = 1048576;
 
-DeviceType parseDeviceType(const std::string& backend)
+DeviceType parseDeviceBackend(const std::string& backend)
 {
     if (backend == "cuda") return DeviceType::CUDA;
     if (backend == "vulkan") return DeviceType::Vulkan;
@@ -411,7 +411,7 @@ void run()
     // transfer scene to GPU
     std::filesystem::path fpcwDirectoryPath = std::filesystem::current_path().parent_path();
     GPUScene<DIM> gpuScene(fpcwDirectoryPath.string(), true);
-    gpuScene.transferToGPU(scene, parseDeviceType(deviceBackend));
+    gpuScene.transferToGPU(scene, parseDeviceBackend(deviceBackend));
 
     // refit GPU BVH
     if (refitBvh) {

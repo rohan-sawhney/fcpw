@@ -240,7 +240,7 @@ void visualize(const std::vector<Vector<3>>& positions,
     polyscope::show();
 }
 
-DeviceType parseDeviceType(const std::string& backend)
+DeviceType parseDeviceBackend(const std::string& backend)
 {
     if (backend == "cuda") return DeviceType::CUDA;
     if (backend == "vulkan") return DeviceType::Vulkan;
@@ -280,7 +280,7 @@ void run(bool useGpu, const std::string& deviceBackend)
         // transfer scene to GPU
         bool printStats = false;
         GPUScene<3> gpuScene(currentDirectory.string(), printStats);
-        gpuScene.transferToGPU(scene, parseDeviceType(deviceBackend));
+        gpuScene.transferToGPU(scene, parseDeviceBackend(deviceBackend));
 
         // visualize results
         std::vector<Vector<3>> closestPoints;

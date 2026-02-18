@@ -131,7 +131,7 @@ def load_fcpw_scene(positions, indices, aggregate_type, compute_silhouettes, vec
 
     return scene
 
-def parse_device_type(backend):
+def parse_device_backend(backend):
     device_type_map = {
         "default": fcpw.device_type.default,
         "cuda": fcpw.device_type.cuda,
@@ -626,7 +626,7 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     if run_gpu_queries:
         print("\nTransferring CPU BVH to GPU")
         gpu_scene = init_gpu_data(n_queries, dim)
-        gpu_scene.transfer_to_gpu(scene, parse_device_type(device_backend))
+        gpu_scene.transfer_to_gpu(scene, parse_device_backend(device_backend))
 
         if refit_gpu_scene:
             print("\nRefitting GPU BVH")

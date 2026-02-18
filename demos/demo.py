@@ -66,7 +66,7 @@ def perform_gpu_closest_point_queries(gpu_scene, query_points):
 
     return closest_points
 
-def parse_device_type(backend):
+def parse_device_backend(backend):
     device_type_map = {
         "default": fcpw.device_type.default,
         "cuda": fcpw.device_type.cuda,
@@ -132,7 +132,7 @@ def main():
         fcpw_directory_path = str(Path.cwd().parent)
         print_stats = False
         gpu_scene = fcpw.gpu_scene_3D(fcpw_directory_path, print_stats)
-        gpu_scene.transfer_to_gpu(scene, parse_device_type(args.device_backend))
+        gpu_scene.transfer_to_gpu(scene, parse_device_backend(args.device_backend))
 
         # visualize scene
         visualize(gpu_scene, positions, indices, query_points, True)
