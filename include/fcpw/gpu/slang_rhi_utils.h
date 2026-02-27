@@ -317,6 +317,38 @@ public:
     }
 };
 
+class GPUSampler {
+public:
+    // members
+    SamplerDesc desc;
+    ComPtr<ISampler> sampler;
+
+    // allocate a sampler with the given filtering and addressing modes
+    Slang::Result allocate(ComPtr<IDevice>& device,
+                           TextureFilteringMode filter,
+                           TextureAddressingMode address) {
+        desc.minFilter = filter;
+        desc.magFilter = filter;
+        desc.addressU = address;
+        desc.addressV = address;
+        desc.addressW = address;
+        SLANG_RETURN_ON_FAIL(device->createSampler(desc, sampler.writeRef()));
+
+        return SLANG_OK;
+    }
+
+    // allocate a sampler with the given filtering and addressing modes
+    void allocate(GPUContext& context,
+                  TextureFilteringMode filter,
+                  TextureAddressingMode address) {
+        Slang::Result createSamplerResult = allocate(context.device, filter, address);
+        if (createSamplerResult != SLANG_OK) {
+            std::cerr << "failed to create sampler" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+};
+
 template <size_t DIM>
 class GPUTexture {
 public:
@@ -327,8 +359,9 @@ public:
 
     // allocate a texture with the given dimensions and data
     template <typename T, size_t CHANNELS>
-    Slang::Result allocate(ComPtr<IDevice>& device, bool unorderedAccess,
-                           size_t width, size_t height, size_t depth,
+    Slang::Result allocate(ComPtr<IDevice>& device, ComPtr<ISampler>& sampler,
+                           bool unorderedAccess, size_t width,
+                           size_t height, size_t depth,
                            const T* initialData, size_t elementCount) {
         desc.type = getTextureType();
         desc.size.width = width;
@@ -362,6 +395,7 @@ public:
 
         TextureViewDesc viewDesc = {};
         viewDesc.format = format;
+        if (device->getDeviceType() == DeviceType::CUDA) viewDesc.sampler = sampler.get();
         SLANG_RETURN_ON_FAIL(device->createTextureView(texture, viewDesc, view.writeRef()));
 
         return SLANG_OK;
@@ -369,11 +403,13 @@ public:
 
     // allocate a texture with the given dimensions and data
     template <typename T, size_t CHANNELS>
-    void allocate(GPUContext& context, bool unorderedAccess,
-                  size_t width, size_t height, size_t depth,
+    void allocate(GPUContext& context, GPUSampler& sampler,
+                  bool unorderedAccess, size_t width,
+                  size_t height, size_t depth,
                   const std::vector<T>& initialData) {
         Slang::Result createTextureResult = allocate<T>(
-            context.device, unorderedAccess, width, height, depth,
+            context.device, sampler.sampler,
+            unorderedAccess, width, height, depth,
             initialData.data(), initialData.size());
         if (createTextureResult != SLANG_OK) {
             std::cerr << "failed to create texture" << std::endl;
@@ -467,38 +503,6 @@ private:
     size_t getTexelSize(Format format) const {
         const FormatInfo& info = getFormatInfo(format);
         return info.blockSizeInBytes/info.pixelsPerBlock;
-    }
-};
-
-class GPUSampler {
-public:
-    // members
-    SamplerDesc desc;
-    ComPtr<ISampler> sampler;
-
-    // allocate a sampler with the given filtering and addressing modes
-    Slang::Result allocate(ComPtr<IDevice>& device,
-                           TextureFilteringMode filter,
-                           TextureAddressingMode address) {
-        desc.minFilter = filter;
-        desc.magFilter = filter;
-        desc.addressU = address;
-        desc.addressV = address;
-        desc.addressW = address;
-        SLANG_RETURN_ON_FAIL(device->createSampler(desc, sampler.writeRef()));
-
-        return SLANG_OK;
-    }
-
-    // allocate a sampler with the given filtering and addressing modes
-    void allocate(GPUContext& context,
-                  TextureFilteringMode filter,
-                  TextureAddressingMode address) {
-        Slang::Result createSamplerResult = allocate(context.device, filter, address);
-        if (createSamplerResult != SLANG_OK) {
-            std::cerr << "failed to create sampler" << std::endl;
-            exit(EXIT_FAILURE);
-        }
     }
 };
 
