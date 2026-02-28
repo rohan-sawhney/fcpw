@@ -482,7 +482,7 @@ int main(int argc, const char *argv[]) {
     args::Flag vizScene(group, "bool", "visualize scene", {"vizScene"});
     args::Flag plotInteriorPoints(group, "bool", "plot interior points", {"plotInteriorPoints"});
     args::Flag computeSilhouettes(group, "bool", "compute silhouettes", {"computeSilhouettes"});
-    args::ValueFlag<std::string> deviceBackend(parser, "string", "GPU backend: default, cuda, vulkan", {"deviceBackend"});
+    args::ValueFlag<std::string> deviceBackend(parser, "string", "GPU backend: default, cuda, vulkan, d3d12", {"deviceBackend"});
     args::ValueFlag<int> dim(parser, "integer", "scene dimension", {"dim"});
     args::ValueFlag<int> nQueries(parser, "integer", "number of queries", {"nQueries"});
     args::ValueFlag<std::string> lineSegmentFilename(parser, "string", "line segment soup filename", {"lFile"});

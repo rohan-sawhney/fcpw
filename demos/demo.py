@@ -104,7 +104,7 @@ def main():
     # parse arguments
     parser = argparse.ArgumentParser(description="fcpw demo")
     parser.add_argument("--use_gpu", action="store_true", help="use GPU")
-    parser.add_argument("--device_backend", type=str, default="default", choices=["default", "cuda", "vulkan"], help="GPU backend")
+    parser.add_argument("--device_backend", type=str, default="default", choices=["default", "cuda", "vulkan", "d3d12"], help="GPU backend")
     args = parser.parse_args()
 
     # load obj file
