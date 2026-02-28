@@ -51,6 +51,7 @@ using Vector3 = Vector<3>;
 
 using Vector2i = Eigen::Vector2i;
 using Vector3i = Eigen::Vector3i;
+using Vector4i = Eigen::Vector4i;
 
 template<size_t DIM>
 using Transform = Eigen::Transform<float, DIM, Eigen::Affine>;
