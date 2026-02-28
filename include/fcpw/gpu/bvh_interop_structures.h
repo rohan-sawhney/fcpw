@@ -11,7 +11,7 @@
 
 namespace fcpw {
 
-struct float2 {
+struct alignas(8) float2 {
     float x, y;
 };
 
