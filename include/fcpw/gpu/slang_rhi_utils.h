@@ -528,6 +528,13 @@ void printReflectionInfo(const ShaderCursor& cursor, int nFields,
     }
 }
 
+DeviceType parseDeviceBackend(const std::string& backend) {
+    if (backend == "cuda") return DeviceType::CUDA;
+    if (backend == "vulkan") return DeviceType::Vulkan;
+    if (backend == "d3d12") return DeviceType::D3D12;
+    return DeviceType::Default;
+}
+
 template <typename GPUEntryPoint>
 void runShader(GPUContext& context,
                const ComputeShader& shader,

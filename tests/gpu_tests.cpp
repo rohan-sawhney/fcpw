@@ -21,13 +21,6 @@ static bool computeSilhouettes = false;
 static std::string deviceBackend = "default";
 static int nQueries = 1048576;
 
-DeviceType parseDeviceBackend(const std::string& backend)
-{
-    if (backend == "cuda") return DeviceType::CUDA;
-    if (backend == "vulkan") return DeviceType::Vulkan;
-    return DeviceType::Default;
-}
-
 template<size_t DIM>
 void splitBoxRecursive(BoundingBox<DIM> boundingBox,
                        std::vector<BoundingBox<DIM>>& boxes, int depth)
@@ -411,7 +404,7 @@ void run()
     // transfer scene to GPU
     std::filesystem::path fpcwDirectoryPath = std::filesystem::current_path().parent_path();
     GPUScene<DIM> gpuScene(fpcwDirectoryPath.string(), true);
-    gpuScene.transferToGPU(scene, parseDeviceBackend(deviceBackend));
+    gpuScene.transferToGPU(scene, deviceBackend);
 
     // refit GPU BVH
     if (refitBvh) {

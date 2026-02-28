@@ -491,11 +491,6 @@ NB_MODULE(_fcpw, m) {
             "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
 
 #ifdef FCPW_USE_GPU
-    nb::enum_<rhi::DeviceType>(m, "device_type")
-        .value("default", rhi::DeviceType::Default)
-        .value("vulkan", rhi::DeviceType::Vulkan)
-        .value("cuda", rhi::DeviceType::CUDA);
-
     nb::class_<fcpw::float2>(m, "gpu_float_2D")
         .def(nb::init<>())
         .def(nb::init<float, float>(),
@@ -594,7 +589,7 @@ NB_MODULE(_fcpw, m) {
             "fcpw_directory_path"_a, "print_logs"_a=false)
         .def("transfer_to_gpu", &fcpw::GPUScene<2>::transferToGPU,
             "Transfers a binary (non-vectorized) BVH aggregate, constructed on the CPU using the 'build' function in the Scene class, to the GPU.\nNOTE: Currently only supports scenes with a single object, i.e., no CSG trees, instanced or transformed aggregates, or nested hierarchies of aggregates.\nWhen using 'build', set 'vectorize' to false.",
-            "scene"_a, "device_type"_a=rhi::DeviceType::Default)
+            "scene"_a, "device_backend"_a="default")
         .def("refit", &fcpw::GPUScene<2>::refit,
             "Refits the BVH on the GPU after updating the geometry, either via calls to update_object_vertex in the Scene class, or directly in GPU code\nin the user's slang shaders (set updateGeometry to false if the geometry is updated directly on the GPU).\nNOTE: Before calling this function, the BVH must already have been transferred to the GPU.",
             "scene"_a, "update_geometry"_a=true)
@@ -638,7 +633,7 @@ NB_MODULE(_fcpw, m) {
             "fcpw_directory_path"_a, "print_logs"_a=false)
         .def("transfer_to_gpu", &fcpw::GPUScene<3>::transferToGPU,
             "Transfers a binary (non-vectorized) BVH aggregate, constructed on the CPU using the 'build' function in the Scene class, to the GPU.\nNOTE: Currently only supports scenes with a single object, i.e., no CSG trees, instanced or transformed aggregates, or nested hierarchies of aggregates.\nWhen using 'build', set 'vectorize' to false.",
-            "scene"_a, "device_type"_a=rhi::DeviceType::Default)
+            "scene"_a, "device_backend"_a="default")
         .def("refit", &fcpw::GPUScene<3>::refit,
             "Refits the BVH on the GPU after updating the geometry, either via calls to update_object_vertex in the Scene class, or directly in GPU code\nin the user's slang shaders (set updateGeometry to false if the geometry is updated directly on the GPU).\nNOTE: Before calling this function, the BVH must already have been transferred to the GPU.",
             "scene"_a, "update_geometry"_a=true)
