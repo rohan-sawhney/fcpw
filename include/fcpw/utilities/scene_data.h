@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fcpw/aggregates/csg_node.h>
+#include <fcpw/geometry/points.h>
 #include <fcpw/geometry/line_segments.h>
 #include <fcpw/geometry/triangles.h>
 #include <fcpw/geometry/silhouette_vertices.h>
@@ -10,6 +11,7 @@
 namespace fcpw {
 
 enum class ObjectType {
+    Points,
     LineSegments,
     Triangles
 };
@@ -45,6 +47,7 @@ public:
     std::vector<PolygonSoup<DIM>> soups;
     std::unordered_map<int, std::vector<std::pair<ObjectType, int>>> soupToObjectsMap;
 
+    std::vector<std::unique_ptr<std::vector<Point<DIM>>>> pointObjects;
     std::vector<std::unique_ptr<std::vector<LineSegment>>> lineSegmentObjects;
     std::vector<std::unique_ptr<std::vector<Triangle>>> triangleObjects;
     std::vector<std::unique_ptr<std::vector<SilhouetteVertex>>> silhouetteVertexObjects;
@@ -53,6 +56,7 @@ public:
     std::unordered_map<int, CsgTreeNode> csgTree;
     std::function<bool(float, int)> ignoreSilhouette;
 
+    std::vector<std::vector<Point<DIM> *>> pointObjectPtrs;
     std::vector<std::vector<LineSegment *>> lineSegmentObjectPtrs;
     std::vector<std::vector<Triangle *>> triangleObjectPtrs;
     std::vector<std::vector<SilhouetteVertex *>> silhouetteVertexObjectPtrs;

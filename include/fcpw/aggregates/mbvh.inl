@@ -173,6 +173,31 @@ inline void populateLeafNode(const NodeType& node,
     exit(EXIT_FAILURE);
 }
 
+template<size_t DIM, typename NodeType, typename LeafNodeType>
+inline void populateLeafNode(const NodeType& node,
+                             const std::vector<Point<DIM> *>& primitives,
+                             std::vector<LeafNodeType>& leafNodes, size_t WIDTH)
+{
+    int leafOffset = -node.child[0] - 1;
+    int referenceOffset = node.child[2];
+    int nReferences = node.child[3];
+
+    // populate leaf node with line segments
+    for (int p = 0; p < nReferences; p++) {
+        int referenceIndex = referenceOffset + p;
+        int leafIndex = leafOffset + p/WIDTH;
+        int w = p%WIDTH;
+
+        const Point<DIM> *point = primitives[referenceIndex];
+        const Vector<DIM>& pt = point->soup->positions[point->indices[0]];
+
+        leafNodes[leafIndex].primitiveIndex[w] = point->getIndex();
+        for (int i = 0; i < DIM; i++) {
+            leafNodes[leafIndex].positions[0][i][w] = pt[i];
+        }
+    }
+}
+
 template<typename NodeType, typename LeafNodeType>
 inline void populateLeafNode(const NodeType& node,
                              const std::vector<LineSegment *>& primitives,
@@ -397,7 +422,8 @@ silhouettes(silhouettes_),
 range(enoki::arange<enoki::Array<int, DIM>>())
 {
     primitiveTypeIsAggregate = std::is_base_of<Aggregate<DIM>, PrimitiveType>::value;
-    primitiveTypeSupportsVectorizedQueries = std::is_same<PrimitiveType, LineSegment>::value ||
+    primitiveTypeSupportsVectorizedQueries = std::is_same<PrimitiveType, Point<DIM>>::value ||
+                                             std::is_same<PrimitiveType, LineSegment>::value ||
                                              std::is_same<PrimitiveType, Triangle>::value;
     silhouetteTypeSupportsVectorizedQueries = std::is_same<SilhouetteType, SilhouetteVertex>::value ||
                                               std::is_same<SilhouetteType, SilhouetteEdge>::value;
@@ -2031,6 +2057,57 @@ inline bool findClosestPointPrimitives(QueryStub<WIDTH, 2> queryStub, const Node
     return found;
 }
 
+template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
+inline bool findClosestPointPoint(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
+                                  const std::vector<LeafNodeType>& leafNodes,
+                                  int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
+                                  float& sr2, Interaction<DIM>& i)
+{
+    int leafOffset = -node.child[0] - 1;
+    int nLeafs = node.child[1];
+    int referenceOffset = node.child[2];
+    int nReferences = node.child[3];
+    int startReference = 0;
+    bool found = false;
+
+    for (int l = 0; l < nLeafs; l++) {
+        // perform vectorized closest point query
+        VectorP<WIDTH, DIM> pt;
+        int leafIndex = leafOffset + l;
+        const VectorP<WIDTH, DIM>& p = leafNodes[leafIndex].positions[0];
+        const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
+        FloatP<WIDTH> d2 = findClosestPointWidePoint<WIDTH, DIM>(p, sc, pt);
+
+        // determine closest index
+        int closestIndex = -1;
+        int W = std::min((int)WIDTH, nReferences - startReference);
+
+        for (int w = 0; w < W; w++) {
+            if (d2[w] <= sr2) {
+                closestIndex = w;
+                sr2 = d2[w];
+            }
+        }
+
+        // update interaction
+        if (closestIndex != -1) {
+            for (size_t j = 0; j < DIM; ++j)
+                i.p[j] = pt[j][closestIndex];
+            
+            i.d = std::sqrt(d2[closestIndex]);
+            i.primitiveIndex = primitiveIndex[closestIndex];
+            i.nodeIndex = nodeIndex;
+            i.referenceIndex = referenceOffset + startReference + closestIndex;
+            i.objectIndex = aggregateIndex;
+            found = true;
+        }
+
+        startReference += WIDTH;
+    }
+
+    return found;
+}
+
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 inline bool findClosestPointPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
                                        const std::vector<LeafNodeType>& leafNodes,
@@ -2126,7 +2203,17 @@ inline bool Mbvh<WIDTH, DIM,
         const NodeType& node(flatTree[nodeIndex]);
 
         if (isLeafNode(node)) {
-            if (primitiveTypeSupportsVectorizedQueries) {
+            // code smell: dispatch to point here since we have access to PrimitiveType
+            //   and Point<2> & LineSegment and Point<3> and Triangle
+            // The optimal place to dispatch is through templates in findClosestPointPrimitives,
+            //   but it seems by then we can't infer the primitive type there?
+            if constexpr (std::is_same<PrimitiveType, Point<DIM>>::value) {
+                // perform vectorized closest point query
+                bool found = findClosestPointPoint(queryStub, node, leafNodes, nodeIndex,
+                                                   this->pIndex, sc, s.r2, i);
+                if (found) notFound = false;
+                nodesVisited++;
+            } else if (primitiveTypeSupportsVectorizedQueries) {
                 // perform vectorized closest point query
                 bool found = findClosestPointPrimitives(queryStub, node, leafNodes, nodeIndex,
                                                         this->pIndex, sc, s.r2, i);
