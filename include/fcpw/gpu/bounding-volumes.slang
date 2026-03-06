@@ -73,6 +73,24 @@ public struct BoundingBox
         float3 tNear = min(t0, t1);
         float3 tFar = max(t0, t1);
 
+        // Handle degenerate slabs where the ray direction component is zero
+        // (e.g., 2D rays where d.z = 0). When dInv = INF and the slab extent
+        // contains the origin (pMin = pMax = o = 0), the product 0 * INF has
+        // implementation-defined results (NaN, 0, or INF depending on GPU).
+        // Fix: detect parallel slabs using r.d, and either:
+        //   - return false if the ray misses the slab (origin outside)
+        //   - use unconstrained range if the ray hits the slab (origin inside)
+        bool3 parallel = (r.d == float3(0.0));
+        bool3 withinSlab = (r.o >= pMin) & (r.o <= pMax);
+        if (any(parallel & !withinSlab))
+        {
+            tMin = FLT_MAX;
+            tMax = FLT_MAX;
+            return false;
+        }
+        tNear = select(parallel, float3(-FLT_MAX), tNear);
+        tFar = select(parallel, float3(FLT_MAX), tFar);
+
         float tNearMax = max(0.0, max(tNear.x, max(tNear.y, tNear.z)));
         float tFarMin = min(r.tMax, min(tFar.x, min(tFar.y, tFar.z)));
         if (tNearMax > tFarMin)
