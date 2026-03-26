@@ -30,13 +30,13 @@ def load_obj(obj_file_path):
 
 def load_fcpw_scene(positions, indices, build_vectorized_cpu_bvh):
     # load positions and indices
-    scene = fcpw.scene_3D()
+    scene = fcpw.Scene3D()
     scene.set_object_count(1)
     scene.set_object_vertices(positions, 0)
     scene.set_object_triangles(indices, 0)
 
     # build scene on CPU
-    aggregate_type = fcpw.aggregate_type.bvh_surface_area
+    aggregate_type = fcpw.AggregateType.bvh_surface_area
     print_stats = False
     reduce_memory_footprint = False
     scene.build(aggregate_type, build_vectorized_cpu_bvh,
@@ -47,7 +47,7 @@ def load_fcpw_scene(positions, indices, build_vectorized_cpu_bvh):
 def perform_closest_point_queries(scene, query_points):
     # perform cpqs
     squared_max_radii = np.inf * np.ones(len(query_points), dtype=np.float32)
-    interactions = fcpw.interaction_3D_list()
+    interactions = fcpw.Interaction3DList()
     scene.find_closest_points(query_points, squared_max_radii, interactions)
 
     # extract closest points using fast bulk extraction
@@ -58,7 +58,7 @@ def perform_closest_point_queries(scene, query_points):
 def perform_gpu_closest_point_queries(gpu_scene, query_points):
     # perform cpqs on GPU
     squared_max_radii = np.inf * np.ones(len(query_points), dtype=np.float32)
-    interactions = fcpw.gpu_interaction_list()
+    interactions = fcpw.GPUInteractionList()
     gpu_scene.find_closest_points(query_points, squared_max_radii, interactions)
 
     # extract closest points using fast bulk extraction
@@ -123,7 +123,7 @@ def main():
         # transfer scene to GPU
         fcpw_directory_path = str(Path.cwd().parent)
         print_stats = False
-        gpu_scene = fcpw.gpu_scene_3D(fcpw_directory_path, print_stats)
+        gpu_scene = fcpw.GPUScene3D(fcpw_directory_path, print_stats)
         gpu_scene.transfer_to_gpu(scene, args.device_backend)
 
         # visualize scene

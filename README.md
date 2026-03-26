@@ -41,13 +41,13 @@ Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo
 
 # Python API
 
-*FCPW*'s C++ and Python APIs follow a similar structure. However, since Python does not support templates, Python classes and functions use explicit `_2D` or `_3D` dimension tags:
+*FCPW*'s C++ and Python APIs follow a similar structure. However, since Python does not support templates, Python classes and functions use explicit `2D` or `3D` dimension tags:
 
 ```python
 import fcpw
 
 # initialize a 3d scene
-scene = fcpw.scene_3D()
+scene = fcpw.Scene3D()
 
 # load positions and indices of a single triangle mesh
 scene.set_object_count(1)
@@ -55,12 +55,12 @@ scene.set_object_vertices(positions, 0)
 scene.set_object_triangles(indices, 0)
 
 # build acceleration structure
-aggregate_type = fcpw.aggregate_type.bvh_surface_area
+aggregate_type = fcpw.AggregateType.bvh_surface_area
 build_vectorized_bvh = True
 scene.build(aggregate_type, build_vectorized_bvh)
 
 # perform several closest point queries
-interactions = fcpw.interaction_3D_list()
+interactions = fcpw.Interaction3DList()
 scene.find_closest_points(query_points, squared_max_radii, interactions)
 
 # extract closest points
@@ -107,19 +107,19 @@ and in Python:
 import fcpw
 
 # initialize a 3d scene and load geometry (same as above)
-scene = fcpw.scene_3D()
+scene = fcpw.Scene3D()
 ...
 
 # build acceleration structure on CPU
 build_vectorized_cpu_bvh = False # NOTE: must build non-vectorized structure
-scene.build(fcpw.aggregate_type.bvh_surface_area, build_vectorized_cpu_bvh)
+scene.build(fcpw.AggregateType.bvh_surface_area, build_vectorized_cpu_bvh)
 
 # transfer scene to GPU
-gpu_scene = fcpw.gpu_scene_3D("PATH_TO_FCPW_DIRECTORY")
+gpu_scene = fcpw.GPUScene3D("PATH_TO_FCPW_DIRECTORY")
 gpu_scene.transfer_to_gpu(scene)
 
 # perform several closest point queries on GPU
-interactions = fcpw.gpu_interaction_list()
+interactions = fcpw.GPUInteractionList()
 gpu_scene.find_closest_points(query_points, squared_max_radii, interactions)
 ```
 
