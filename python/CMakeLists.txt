@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.15...3.27)
 project(fcpw-python)
 
-nanobind_add_module(_fcpw NOMINSIZE STABLE_ABI NB_STATIC fcpw_py.cpp)
+nanobind_add_module(_fcpw NOMINSIZE STABLE_ABI NB_STATIC fcpw_bindings.cpp)
 target_link_libraries(_fcpw PRIVATE fcpw)
 
 # ensure the extension can find adjacent shared libs at runtime
