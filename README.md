@@ -71,7 +71,7 @@ Refer to [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.
 
 # GPU Support
 
-GPU support for a large collection of query points is provided through the [GPUScene](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/fcpw_gpu.h) class in C++, and `gpu_scene_*D` classes in Python. *FCPW* currently requires the acceleration structure to be built on the CPU and then transferred to the GPU. For instance, in C++ we have:
+GPU support for a large collection of query points is provided through the [GPUScene](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/fcpw_gpu.h) class in C++, and `GPUScene*D` classes in Python. *FCPW* currently requires the acceleration structure to be built on the CPU and then transferred to the GPU. For instance, in C++ we have:
 
 ```c++
 #include <fcpw/fcpw_gpu.h>
