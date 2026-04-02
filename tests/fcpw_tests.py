@@ -572,7 +572,7 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     positions, indices = load_obj(file_path, dim)
 
     print("\nBuilding BVH on CPU")
-    scene = load_fcpw_scene(positions, indices, fcpw.AggregateType.bvh_overlap_surface_area,
+    scene = load_fcpw_scene(positions, indices, fcpw.AggregateType.Bvh_OverlapSurfaceArea,
                             compute_silhouettes, False, dim, True)
 
     if test_robust_intersection and dim == 3:
@@ -594,7 +594,7 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     baseline_cpu_cpq_interactions = None
     baseline_cpu_cspq_interactions = None
     if compare_with_cpu_baseline:
-        baseline_scene = load_fcpw_scene(positions, indices, fcpw.AggregateType.baseline,
+        baseline_scene = load_fcpw_scene(positions, indices, fcpw.AggregateType.Baseline,
                                          compute_silhouettes, False, dim, True)
 
         print("\nRunning Baseline CPU Queries")
@@ -697,7 +697,7 @@ def run(file_path, n_queries, compute_silhouettes, compare_with_cpu_baseline,
     print("\nRunning BVH CPU Queries")
     cpu_sphere_interactions = run_cpu_sphere_intersection_queries(
         scene, query_points, random_squared_radii, rand_nums, dim)
-    scene.build(fcpw.AggregateType.bvh_overlap_surface_area, True, True)
+    scene.build(fcpw.AggregateType.Bvh_OverlapSurfaceArea, True, True)
     cpu_ray_interactions = run_cpu_ray_intersection_queries(
         scene, query_points, random_directions, query_bounds, dim)
     if dim == 3:

@@ -15,26 +15,26 @@ NB_MODULE(_fcpw, m) {
     m.doc() = "FCPW Python bindings";
 
     nb::enum_<fcpw::PrimitiveType>(m, "PrimitiveType")
-        .value("line_segment", fcpw::PrimitiveType::LineSegment)
-        .value("triangle", fcpw::PrimitiveType::Triangle);
+        .value("LineSegment", fcpw::PrimitiveType::LineSegment)
+        .value("Triangle", fcpw::PrimitiveType::Triangle);
 
     nb::enum_<fcpw::AggregateType>(m, "AggregateType")
-        .value("baseline", fcpw::AggregateType::Baseline)
-        .value("bvh_longest_axis_center", fcpw::AggregateType::Bvh_LongestAxisCenter)
-        .value("bvh_overlap_surface_area", fcpw::AggregateType::Bvh_OverlapSurfaceArea)
-        .value("bvh_surface_area", fcpw::AggregateType::Bvh_SurfaceArea)
-        .value("bvh_overlap_volume", fcpw::AggregateType::Bvh_OverlapVolume)
-        .value("bvh_volume", fcpw::AggregateType::Bvh_Volume);
+        .value("Baseline", fcpw::AggregateType::Baseline)
+        .value("Bvh_LongestAxisCenter", fcpw::AggregateType::Bvh_LongestAxisCenter)
+        .value("Bvh_OverlapSurfaceArea", fcpw::AggregateType::Bvh_OverlapSurfaceArea)
+        .value("Bvh_SurfaceArea", fcpw::AggregateType::Bvh_SurfaceArea)
+        .value("Bvh_OverlapVolume", fcpw::AggregateType::Bvh_OverlapVolume)
+        .value("Bvh_Volume", fcpw::AggregateType::Bvh_Volume);
 
     nb::enum_<fcpw::DistanceInfo>(m, "DistanceInfo")
-        .value("exact", fcpw::DistanceInfo::Exact)
-        .value("bounded", fcpw::DistanceInfo::Bounded);
+        .value("Exact", fcpw::DistanceInfo::Exact)
+        .value("Bounded", fcpw::DistanceInfo::Bounded);
 
     nb::enum_<fcpw::BooleanOperation>(m, "BooleanOperation")
-        .value("union", fcpw::BooleanOperation::Union)
-        .value("intersection", fcpw::BooleanOperation::Intersection)
-        .value("difference", fcpw::BooleanOperation::Difference)
-        .value("none", fcpw::BooleanOperation::None);
+        .value("Union", fcpw::BooleanOperation::Union)
+        .value("Intersection", fcpw::BooleanOperation::Intersection)
+        .value("Difference", fcpw::BooleanOperation::Difference)
+        .value("None", fcpw::BooleanOperation::None);
 
     nb::class_<fcpw::CsgTreeNode>(m, "CsgTreeNode")
         .def(nb::init<int, int, bool, bool, fcpw::BooleanOperation>(),

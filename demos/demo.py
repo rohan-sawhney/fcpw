@@ -36,7 +36,7 @@ def load_fcpw_scene(positions, indices, build_vectorized_cpu_bvh):
     scene.set_object_triangles(indices, 0)
 
     # build scene on CPU
-    aggregate_type = fcpw.AggregateType.bvh_surface_area
+    aggregate_type = fcpw.AggregateType.Bvh_SurfaceArea
     print_stats = False
     reduce_memory_footprint = False
     scene.build(aggregate_type, build_vectorized_cpu_bvh,

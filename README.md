@@ -55,7 +55,7 @@ scene.set_object_vertices(positions, 0)
 scene.set_object_triangles(indices, 0)
 
 # build acceleration structure
-aggregate_type = fcpw.AggregateType.bvh_surface_area
+aggregate_type = fcpw.AggregateType.Bvh_SurfaceArea
 build_vectorized_bvh = True
 scene.build(aggregate_type, build_vectorized_bvh)
 
@@ -112,7 +112,7 @@ scene = fcpw.Scene3D()
 
 # build acceleration structure on CPU
 build_vectorized_cpu_bvh = False # NOTE: must build non-vectorized structure
-scene.build(fcpw.AggregateType.bvh_surface_area, build_vectorized_cpu_bvh)
+scene.build(fcpw.AggregateType.Bvh_SurfaceArea, build_vectorized_cpu_bvh)
 
 # transfer scene to GPU
 gpu_scene = fcpw.GPUScene3D("PATH_TO_FCPW_DIRECTORY")
