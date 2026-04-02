@@ -491,14 +491,14 @@ NB_MODULE(_fcpw, m) {
             "squared_min_radius"_a=0.0f, "precision"_a=1e-3f, "record_normal"_a=false);
 
 #ifdef FCPW_USE_GPU
-    nb::class_<fcpw::float2>(m, "GPUFloat2D")
+    nb::class_<fcpw::float2>(m, "GPUFloat2")
         .def(nb::init<>())
         .def(nb::init<float, float>(),
             "x"_a, "y"_a)
         .def_rw("x", &fcpw::float2::x)
         .def_rw("y", &fcpw::float2::y);
 
-    nb::class_<fcpw::float3>(m, "GPUFloat3D")
+    nb::class_<fcpw::float3>(m, "GPUFloat3")
         .def(nb::init<>())
         .def(nb::init<float, float, float>(),
             "x"_a, "y"_a, "z"_a)
@@ -603,11 +603,11 @@ NB_MODULE(_fcpw, m) {
             "rays"_a, "interactions"_a, "check_for_occlusion"_a=false)
         .def("intersect", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, const Eigen::MatrixXf&, GPUInteractionList&>(
             &fcpw::GPUScene<2>::intersect),
-            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to GPUInteraction.p) using the random numbers rand_nums[3] (GPUFloat3D.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
+            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to GPUInteraction.p) using the random numbers rand_nums[3] (GPUFloat3.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
             "sphere_centers"_a, "sphere_squared_radii"_a, "rand_nums"_a, "interactions"_a)
         .def("intersect", nb::overload_cast<const GPUBoundingSphereList&, const GPUFloat3List&, GPUInteractionList&>(
             &fcpw::GPUScene<2>::intersect),
-            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to GPUInteraction.p) using the random numbers rand_nums[3] (GPUFloat3D.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
+            "Intersects the scene with the given spheres, randomly selecting one geometric primitive contained inside each sphere and sampling\na random point on that primitive (written to GPUInteraction.p) using the random numbers rand_nums[3] (GPUFloat3.z is ignored).\nThe selection pdf value is written to interaction.d along with the primitive index.",
             "bounding_spheres"_a, "rand_nums"_a, "interactions"_a)
         .def("find_closest_points", nb::overload_cast<const Eigen::MatrixXf&, const Eigen::VectorXf&, GPUInteractionList&, bool>(
             &fcpw::GPUScene<2>::findClosestPoints),
