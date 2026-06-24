@@ -5,6 +5,7 @@
 namespace fcpw {
 
 enum class PrimitiveType {
+    Point,
     LineSegment,
     Triangle
 };
@@ -24,6 +25,10 @@ public:
     // sets the vertex positions for an object
     void setObjectVertices(const Eigen::MatrixXf& positions, int objectIndex);
     void setObjectVertices(const std::vector<Vector<DIM>>& positions, int objectIndex);
+    
+    // sets the vertex indices of points for an object
+    void setObjectPoints(const Eigen::MatrixXi& indices, int objectIndex);
+    void setObjectPoints(const std::vector<int>& indices, int objectIndex);
 
     // sets the vertex indices of line segments for an object
     void setObjectLineSegments(const Eigen::MatrixXi& indices, int objectIndex);
@@ -46,6 +51,9 @@ public:
 
     // sets the number of vertices for an object
     void setObjectVertexCount(int nVertices, int objectIndex);
+    
+    // sets the number of points for an object
+    void setObjectPointCount(int nPoints, int objectIndex);
 
     // sets the number of line segments for an object
     void setObjectLineSegmentCount(int nLineSegments, int objectIndex);
@@ -55,6 +63,9 @@ public:
 
     // sets the position of a vertex for an object
     void setObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex);
+    
+    // sets the vertex index of a point for an object
+    void setObjectPoint(const int& index, int pointIndex, int objectIndex);
 
     // sets the vertex indices of a line segment for an object
     void setObjectLineSegment(const Vector2i& indices, int lineSegmentIndex, int objectIndex);

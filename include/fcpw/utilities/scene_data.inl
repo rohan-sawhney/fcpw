@@ -13,6 +13,7 @@ inline void SceneData<DIM>::clearObjectData()
 {
     soups.clear();
     soupToObjectsMap.clear();
+    pointObjects.clear();
     lineSegmentObjects.clear();
     triangleObjects.clear();
     silhouetteVertexObjects.clear();
@@ -25,6 +26,7 @@ inline void SceneData<DIM>::clearObjectData()
 template<size_t DIM>
 inline void SceneData<DIM>::clearAggregateData()
 {
+    pointObjectPtrs.clear();
     lineSegmentObjectPtrs.clear();
     triangleObjectPtrs.clear();
     silhouetteVertexObjectPtrs.clear();
