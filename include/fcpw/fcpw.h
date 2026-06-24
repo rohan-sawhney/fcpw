@@ -6,7 +6,8 @@ namespace fcpw {
 
 enum class PrimitiveType {
     LineSegment,
-    Triangle
+    Triangle,
+    Quad
 };
 
 template<size_t DIM>
@@ -33,6 +34,9 @@ public:
     void setObjectTriangles(const Eigen::MatrixXi& indices, int objectIndex);
     void setObjectTriangles(const std::vector<Vector3i>& indices, int objectIndex);
 
+    // sets the vertex indices of quads for an object
+    void setObjectQuads(const std::vector<Vector4i>& indices, int objectIndex);
+
     /////////////////////////////////////////////////////////////////////////////////////////////
     // alternate lower-level API to specify scene geometry
 
@@ -53,6 +57,9 @@ public:
     // sets the number of triangles for an object
     void setObjectTriangleCount(int nTriangles, int objectIndex);
 
+    // sets the number of quads in an object
+    void setObjectQuadCount(int nQuads, int objectIndex);
+
     // sets the position of a vertex for an object
     void setObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex);
 
@@ -61,6 +68,9 @@ public:
 
     // sets the vertex indices of a triangle for an object
     void setObjectTriangle(const Vector3i& indices, int triangleIndex, int objectIndex);
+
+    // sets the vertex indices of a quad in an object
+    void setObjectQuad(const Vector4i& indices, int quadIndex, int objectIndex);
 
     /////////////////////////////////////////////////////////////////////////////////////////////
     // API to specify instance transforms and csg tree
@@ -76,12 +86,12 @@ public:
 
     // precomputes silhouette information for primitives in a scene to perform closest silhouette
     // point queries; the optional ignoreSilhouette callback allows the user to specify which
-    // interior vertices/edges in the line segment/triangle geometry to ignore for silhouette tests
-    // (arguments: vertex/edge dihedral angle, index of an adjacent line segment/triangle)
+    // interior vertices/edges in the line segment/triangle/quad geometry to ignore for silhouette tests
+    // (arguments: vertex/edge dihedral angle, index of an adjacent line segment/triangle/quad)
     // NOTE: does not currently support non-manifold geometry
     void computeSilhouettes(const std::function<bool(float, int)>& ignoreSilhouette={});
 
-    // precomputes vertex or edge normals for an object made of line segments or triangles (resp.)
+    // precomputes vertex or edge normals for an object made of line segments or triangles or quads (resp.)
     void computeObjectNormals(int objectIndex, bool computeWeighted=false);
 
     // builds a (possibly vectorized) aggregate/accelerator for the scene; each call to this

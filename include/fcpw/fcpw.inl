@@ -68,6 +68,7 @@ inline void Scene<3>::setObjectTypes(const std::vector<std::vector<PrimitiveType
     // initialize soup and object vectors
     int nObjects = (int)objectTypes.size();
     int nTriangleObjects = 0;
+    int nQuadObjects = 0;
     sceneData->soups.resize(nObjects);
     sceneData->instanceTransforms.resize(nObjects);
 
@@ -82,9 +83,15 @@ inline void Scene<3>::setObjectTypes(const std::vector<std::vector<PrimitiveType
                                                                        nTriangleObjects));
             nTriangleObjects++;
         }
-    }
+       if (objectTypes[i][0] == PrimitiveType::Quad) {
+            sceneData->soupToObjectsMap[i].emplace_back(std::make_pair(ObjectType::Quads,
+                                                                        nQuadObjects));
+            nQuadObjects++;
+        }
+     }
 
     sceneData->triangleObjects.resize(nTriangleObjects);
+    sceneData->quadObjects.resize(nQuadObjects);
 }
 
 template<size_t DIM>
@@ -148,6 +155,33 @@ inline void Scene<3>::setObjectTriangleCount(int nTriangles, int objectIndex)
 }
 
 template<size_t DIM>
+inline void Scene<DIM>::setObjectQuadCount(int nQuads, int objectIndex)
+{
+    std::cerr << "setObjectQuadCount(): DIM: " << DIM << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+template<>
+inline void Scene<3>::setObjectQuadCount(int nQuads, int objectIndex)
+{
+    // resize soup indices
+    PolygonSoup<3>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + 4*nQuads);
+
+    // allocate quads
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::Quads) {
+            int quadObjectIndex = objectsMap[i].second;
+            sceneData->quadObjects[quadObjectIndex] =
+                    std::unique_ptr<std::vector<Quad>>(new std::vector<Quad>(nQuads));
+            break;
+        }
+    }
+}
+
+template<size_t DIM>
 inline void Scene<DIM>::setObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex)
 {
     sceneData->soups[objectIndex].positions[vertexIndex] = position;
@@ -201,6 +235,34 @@ inline void Scene<3>::setObjectTriangle(const Vector3i& indices, int triangleInd
     triangle.indices[1] = indices[1];
     triangle.indices[2] = indices[2];
     triangle.setIndex(triangleIndex);
+}
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectQuad(const Vector4i& indices, int quadIndex, int objectIndex)
+{
+    std::cerr << "setObjectQuad(): DIM: " << DIM << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+template<>
+inline void Scene<3>::setObjectQuad(const Vector4i& indices, int quadIndex, int objectIndex)
+{
+    // update soup indices
+    PolygonSoup<3>& soup = sceneData->soups[objectIndex];
+    soup.indices[4*quadIndex + 0] = indices[0];
+    soup.indices[4*quadIndex + 1] = indices[1];
+    soup.indices[4*quadIndex + 2] = indices[2];
+    soup.indices[4*quadIndex + 3] = indices[3];
+
+    // update quad indices
+    int quadObjectIndex = sceneData->soupToObjectsMap[objectIndex][0].second;
+    Quad& quad = (*sceneData->quadObjects[quadObjectIndex])[quadIndex];
+    quad.soup = &soup;
+    quad.indices[0] = indices[0];
+    quad.indices[1] = indices[1];
+    quad.indices[2] = indices[2];
+    quad.indices[3] = indices[3];
+    quad.setIndex(quadIndex);
 }
 
 template<size_t DIM>
@@ -389,6 +451,45 @@ inline void Scene<3>::setObjectTriangles(const std::vector<Vector3i>& indices, i
     }
 }
 
+
+template<size_t DIM>
+inline void Scene<DIM>::setObjectQuads(const std::vector<Vector4i>& indices, int objectIndex)
+{
+    std::cerr << "setObjectQuads(): DIM: " << DIM << std::endl;
+    exit(EXIT_FAILURE);
+}
+
+template<>
+inline void Scene<3>::setObjectQuads(const std::vector<Vector4i>& indices, int objectIndex)
+{
+    const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[objectIndex];
+    for (int i = 0; i < (int)objectsMap.size(); i++) {
+        if (objectsMap[i].first == ObjectType::Quads) {
+            std::cerr << "Already set quads!" << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    // create line segment object
+    int nQuads = (int)indices.size();
+    int nQuadObjects = (int)sceneData->quadObjects.size();
+    sceneData->soupToObjectsMap[objectIndex].emplace_back(std::make_pair(ObjectType::Quads,
+                                                                         nQuadObjects));
+    sceneData->quadObjects.resize(nQuadObjects + 1);
+    sceneData->quadObjects[nQuadObjects] =
+        std::unique_ptr<std::vector<Quad>>(new std::vector<Quad>(nQuads));
+
+    // resize soup indices
+    PolygonSoup<3>& soup = sceneData->soups[objectIndex];
+    int nIndices = (int)soup.indices.size();
+    soup.indices.resize(nIndices + 4*nQuads);
+
+    // set quads
+    for (int i = 0; i < nQuads; i++) {
+        setObjectQuad(indices[i], i, objectIndex);
+    }
+}
+
 template<size_t DIM>
 inline void Scene<DIM>::setObjectInstanceTransforms(const std::vector<Transform<DIM>>& transforms, int objectIndex)
 {
@@ -414,6 +515,31 @@ inline int assignEdgeIndices(const std::vector<Triangle>& triangles, PolygonSoup
             int k = (j + 1)%3;
             int I = triangles[i].indices[j];
             int J = triangles[i].indices[k];
+            if (I > J) std::swap(I, J);
+            std::pair<int, int> e(I, J);
+
+            if (indexMap.find(e) == indexMap.end()) indexMap[e] = E++;
+            soup.eIndices.emplace_back(indexMap[e]);
+        }
+    }
+
+    return E;
+}
+
+// I suuspect this  is done incorrrectly
+inline int assignEdgeIndices(const std::vector<Quad>& quads, PolygonSoup<3>& soup)
+{
+    int E = 0;
+    int N = (int)quads.size();
+    std::map<std::pair<int, int>, int> indexMap;
+    soup.eIndices.clear();
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < 4; j++) {
+            int k = (j + 1)%4;
+            int I = quads[i].indices[j];
+            int J = quads[i].indices[k];
+            // perhaps there should be an L?
             if (I > J) std::swap(I, J);
             std::pair<int, int> e(I, J);
 
@@ -472,11 +598,13 @@ inline void Scene<2>::computeSilhouettes(const std::function<bool(float, int)>& 
     }
 }
 
+// I have added quads to this, perhaps incorrectly
 template<>
 inline void Scene<3>::computeSilhouettes(const std::function<bool(float, int)>& ignoreSilhouette)
 {
     int nTriangleObjects = (int)sceneData->triangleObjects.size();
-    sceneData->silhouetteEdgeObjects.resize(nTriangleObjects);
+    int nQuadObjects = (int)sceneData->quadObjects.size();
+    sceneData->silhouetteEdgeObjects.resize(nTriangleObjects+ nQuadObjects);
     sceneData->ignoreSilhouette = ignoreSilhouette;
 
     for (auto& kv: sceneData->soupToObjectsMap) {
@@ -513,6 +641,41 @@ inline void Scene<3>::computeSilhouettes(const std::function<bool(float, int)>& 
                     silhouetteEdge.indices[orientation == 1 ? 0 : 3] = triangle.indices[I];
                     silhouetteEdge.indices[1] = triangle.indices[J];
                     silhouetteEdge.indices[2] = triangle.indices[K];
+                    silhouetteEdge.setIndex(eIndex);
+                }
+            }
+        }
+        if (objectsMap[0].first == ObjectType::Quads) {
+            // allocate silhouette edges
+            int quadObjectIndex = objectsMap[0].second;
+            int nQuads = (int)soup.indices.size()/4;
+            int nSilhouetteEdges = assignEdgeIndices(*sceneData->quadObjects[quadObjectIndex], soup);
+            sceneData->silhouetteEdgeObjects[quadObjectIndex] =
+                std::unique_ptr<std::vector<SilhouetteEdge>>(new std::vector<SilhouetteEdge>(nSilhouetteEdges));
+
+            // assign soup and indices to silhouette edges
+            for (int i = 0; i < nQuads; i++) {
+                const Quad& quad = (*sceneData->quadObjects[quadObjectIndex])[i];
+
+                for (int j = 0; j < 4; j++) {
+                    int I = j - 1 < 0 ? 3 : j - 1;
+                    int J = j + 0;
+                    int K = j + 1 > 3 ? 0 : j + 1;
+                    int L = K + 1 > 3 ? 0 : K + 1;
+                    int eIndex = soup.eIndices[4*quad.getIndex() + j];
+
+                    float orientation = 1;
+                    if (quad.indices[J] > quad.indices[K]) {
+                        std::swap(J, K);
+                        orientation *= -1;
+                    }
+
+                    SilhouetteEdge& silhouetteEdge = (*sceneData->silhouetteEdgeObjects[quadObjectIndex])[eIndex];
+                    silhouetteEdge.soup = &soup;
+                    silhouetteEdge.indices[orientation == 1 ? 0 : 4] = quad.indices[I];
+                    silhouetteEdge.indices[1] = quad.indices[J];
+                    silhouetteEdge.indices[2] = quad.indices[K];
+                    silhouetteEdge.indices[3] = quad.indices[L];
                     silhouetteEdge.setIndex(eIndex);
                 }
             }
@@ -577,6 +740,35 @@ inline void computeNormals<3, Triangle>(const std::vector<Triangle>& triangles,
     for (int i = 0; i < E; i++) soup.eNormals[i].normalize();
 }
 
+
+template<>
+inline void computeNormals<3, Quad>(const std::vector<Quad>& quads,
+                                        PolygonSoup<3>& soup, bool computeWeighted)
+{
+    int N = (int)quads.size();
+    int V = (int)soup.positions.size();
+    int E = assignEdgeIndices(quads, soup);
+    soup.vNormals.clear();
+    soup.eNormals.clear();
+    soup.vNormals.resize(V, Vector3::Zero());
+    soup.eNormals.resize(E, Vector3::Zero());
+
+    for (int i = 0; i < N; i++) {
+        Vector3 n = quads[i].normal(true);
+        float area = quads[i].surfaceArea();
+
+        for (int j = 0; j < 4; j++) {
+            float angle = computeWeighted ? quads[i].angle(j) : 1.0f;
+
+            soup.vNormals[quads[i].indices[j]] += angle*n;
+            soup.eNormals[soup.eIndices[4*quads[i].getIndex() + j]] += area*n;
+        }
+    }
+
+    for (int i = 0; i < V; i++) soup.vNormals[i].normalize();
+    for (int i = 0; i < E; i++) soup.eNormals[i].normalize();
+}
+
 template<size_t DIM>
 inline void Scene<DIM>::computeObjectNormals(int objectIndex, bool computeWeighted)
 {
@@ -606,6 +798,11 @@ inline void Scene<3>::computeObjectNormals(int objectIndex, bool computeWeighted
     if (objectsMap[0].first == ObjectType::Triangles) {
         int triangleObjectIndex = objectsMap[0].second;
         computeNormals<3, Triangle>(*sceneData->triangleObjects[triangleObjectIndex],
+                                    soup, computeWeighted);
+    }
+    if (objectsMap[0].first == ObjectType::Quads) {
+        int quadObjectIndex = objectsMap[0].second;
+        computeNormals<3, Quad>(*sceneData->quadObjects[quadObjectIndex],
                                     soup, computeWeighted);
     }
 }
@@ -688,6 +885,45 @@ inline void sortTriangleSoupPositions(const std::vector<NodeType>& flatTree,
     if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
 }
 
+template<typename NodeType, typename PrimitiveType>
+inline void sortQuadSoupPositions(const std::vector<NodeType>& flatTree,
+                                      std::vector<PrimitiveType *>& quads,
+                                      PolygonSoup<3>& soup)
+{
+    int V = (int)soup.positions.size();
+    std::vector<Vector3> sortedPositions(V), sortedVertexNormals(V);
+    soup.indexMap.resize(V);
+    std::fill(soup.indexMap.begin(), soup.indexMap.end(), -1);
+    int v = 0;
+
+    // collect sorted positions, updating quad and soup indices
+    for (int i = 0; i < (int)flatTree.size(); i++) {
+        const NodeType& node(flatTree[i]);
+
+        for (int j = 0; j < node.nReferences; j++) { // leaf node if nReferences > 0
+            int referenceIndex = node.referenceOffset + j;
+            PrimitiveType *quad = quads[referenceIndex];
+
+            for (int k = 0; k < 4; k++) {
+                int vIndex = quad->indices[k];
+
+                if (soup.indexMap[vIndex] == -1) {
+                    sortedPositions[v] = soup.positions[vIndex];
+                    if (soup.vNormals.size() > 0) sortedVertexNormals[v] = soup.vNormals[vIndex];
+                    soup.indexMap[vIndex] = v++;
+                }
+
+                soup.indices[4*quad->getIndex() + k] = soup.indexMap[vIndex];
+                quad->indices[k] = soup.indexMap[vIndex];
+            }
+        }
+    }
+
+    // update to sorted positions
+    soup.positions = std::move(sortedPositions);
+    if (soup.vNormals.size() > 0) soup.vNormals = std::move(sortedVertexNormals);
+}
+
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
 inline void sortSoupPositions(const std::vector<NodeType>& flatTree,
                               std::vector<PrimitiveType *>& primitives,
@@ -751,6 +987,33 @@ inline void sortSoupPositions<3, SnchNode<3>, Triangle, SilhouetteEdge>(const st
         SilhouetteEdge *silhouetteEdge = silhouetteEdges[i];
 
         for (int j = 0; j < 4; j++) {
+            int vIndex = silhouetteEdge->indices[j];
+            if (vIndex != -1) silhouetteEdge->indices[j] = soup.indexMap[vIndex];
+        }
+    }
+}
+
+template<>
+inline void sortSoupPositions<3, BvhNode<3>, Quad, SilhouettePrimitive<3>>(const std::vector<BvhNode<3>>& flatTree,
+                                                                               std::vector<Quad *>& quads,
+                                                                               std::vector<SilhouettePrimitive<3> *>& silhouettes,
+                                                                               PolygonSoup<3>& soup)
+{
+    sortQuadSoupPositions<BvhNode<3>, Quad>(flatTree, quads, soup);
+}
+
+template<>
+inline void sortSoupPositions<3, SnchNode<3>, Quad, SilhouetteEdge>(const std::vector<SnchNode<3>>& flatTree,
+                                                                        std::vector<Quad *>& quads,
+                                                                        std::vector<SilhouetteEdge *>& silhouetteEdges,
+                                                                        PolygonSoup<3>& soup)
+{
+    sortQuadSoupPositions<SnchNode<3>, Quad>(flatTree, quads, soup);
+
+    for (int i = 0; i < silhouetteEdges.size(); i++) {
+        SilhouetteEdge *silhouetteEdge = silhouetteEdges[i];
+
+        for (int j = 0; j < 4; j++) {  // I suspect this is not being done correctly for quads
             int vIndex = silhouetteEdge->indices[j];
             if (vIndex != -1) silhouetteEdge->indices[j] = soup.indexMap[vIndex];
         }
@@ -954,22 +1217,26 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
                                         std::unique_ptr<SceneData<3>>& sceneData,
                                         std::vector<std::unique_ptr<Aggregate<3>>>& objectAggregates)
 {
-    // allocate space for line segment and triangle object ptrs
+    // allocate space for line segment, triangle, and quad object ptrs
     int nObjects = (int)sceneData->soups.size();
     int nTriangleObjectPtrs = 0;
+    int nQuadObjectPtrs = 0;
 
     for (int i = 0; i < nObjects; i++) {
         const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
         if (objectsMap[0].first == ObjectType::Triangles) nTriangleObjectPtrs++;
-    }
+        if (objectsMap[0].first == ObjectType::Quads) nQuadObjectPtrs++;
+     }
 
     objectAggregates.resize(nObjects);
     sceneData->triangleObjectPtrs.resize(nTriangleObjectPtrs);
-    sceneData->silhouetteEdgeObjectPtrs.resize(nTriangleObjectPtrs);
+    sceneData->quadObjectPtrs.resize(nQuadObjectPtrs);
+    sceneData->silhouetteEdgeObjectPtrs.resize(nTriangleObjectPtrs + nQuadObjectPtrs);
 
     // populate the object ptrs and make their aggregates
     int nAggregates = 0;
     nTriangleObjectPtrs = 0;
+    nQuadObjectPtrs = 0;
 
     for (int i = 0; i < nObjects; i++) {
         const std::vector<std::pair<ObjectType, int>>& objectsMap = sceneData->soupToObjectsMap[i];
@@ -1016,6 +1283,45 @@ inline void buildGeometricAggregates<3>(const AggregateType& aggregateType, bool
             nTriangleObjectPtrs++;
         }
 
+        if (objectsMap[0].first == ObjectType::Quads) {
+            // soup contains quads, set quad object ptrs
+            int quadObjectIndex = objectsMap[0].second;
+            std::vector<Quad>& quadObject = *sceneData->quadObjects[quadObjectIndex];
+            std::vector<Quad *>& quadObjectPtr = sceneData->quadObjectPtrs[nQuadObjectPtrs];
+
+            for (int j = 0; j < (int)quadObject.size(); j++) {
+                quadObjectPtr.emplace_back(&quadObject[j]);
+            }
+            if (sceneData->silhouetteEdgeObjects.size() > 0) {
+                // soup contains silhouette edges, set silhouette edge object ptrs
+                std::vector<SilhouetteEdge>& silhouetteEdgeObject = *sceneData->silhouetteEdgeObjects[quadObjectIndex];
+                std::vector<SilhouetteEdge *>& silhouetteEdgeObjectPtr = sceneData->silhouetteEdgeObjectPtrs[nQuadObjectPtrs];
+
+                for (int j = 0; j < (int)silhouetteEdgeObject.size(); j++) {
+                    silhouetteEdgeObjectPtr.emplace_back(&silhouetteEdgeObject[j]);
+                }
+
+                using SortQuadPositionsFunc = std::function<void(const std::vector<SnchNode<3>>&,
+                                                                     std::vector<Quad *>&,
+                                                                     std::vector<SilhouetteEdge *>&)>;
+                SortQuadPositionsFunc sortQuadPositions = std::bind(&sortSoupPositions<3, SnchNode<3>, Quad, SilhouetteEdge>,
+                                                                            std::placeholders::_1, std::placeholders::_2,
+                                                                            std::placeholders::_3, std::ref(sceneData->soups[i]));
+                objectAggregates[i] = makeAggregate<3, SnchNode<3>, Quad, SilhouetteEdge, MsnchNode<3>>(
+                    aggregateType, quadObjectPtr, silhouetteEdgeObjectPtr, vectorize, printStats, sortQuadPositions, ignoreSilhouette);
+
+            } else {
+                using SortQuadPositionsFunc = std::function<void(const std::vector<BvhNode<3>>&,
+                                                                     std::vector<Quad *>&,
+                                                                     std::vector<SilhouettePrimitive<3> *>&)>;
+                SortQuadPositionsFunc sortQuadPositions = std::bind(&sortSoupPositions<3, BvhNode<3>, Quad, SilhouettePrimitive<3>>,
+                                                                            std::placeholders::_1, std::placeholders::_2,
+                                                                            std::placeholders::_3, std::ref(sceneData->soups[i]));
+                 objectAggregates[i] = makeAggregate<3, BvhNode<3>, Quad, SilhouettePrimitive<3>, MbvhNode<3>>(
+                    aggregateType, quadObjectPtr, sceneData->silhouetteObjectPtrStub, vectorize, printStats, sortQuadPositions);
+            }
+            nQuadObjectPtrs++;
+        }
         objectAggregates[i]->setIndex(nAggregates++);
     }
 }

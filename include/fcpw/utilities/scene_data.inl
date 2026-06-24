@@ -15,6 +15,7 @@ inline void SceneData<DIM>::clearObjectData()
     soupToObjectsMap.clear();
     lineSegmentObjects.clear();
     triangleObjects.clear();
+    quadObjects.clear();
     silhouetteVertexObjects.clear();
     silhouetteEdgeObjects.clear();
     instanceTransforms.clear();
@@ -27,6 +28,7 @@ inline void SceneData<DIM>::clearAggregateData()
 {
     lineSegmentObjectPtrs.clear();
     triangleObjectPtrs.clear();
+    quadObjectPtrs.clear();
     silhouetteVertexObjectPtrs.clear();
     silhouetteEdgeObjectPtrs.clear();
     silhouetteObjectPtrStub.clear();
