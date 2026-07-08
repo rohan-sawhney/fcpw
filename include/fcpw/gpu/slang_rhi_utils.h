@@ -1,5 +1,8 @@
 #pragma once
 
+#include <iostream>
+#include <vector>
+#include <string>
 #include <slang-rhi.h>
 #include <slang-rhi/shader-cursor.h>
 
