@@ -3,6 +3,7 @@ namespace fcpw {
 template<size_t DIM, typename PrimitiveTypeLeft, typename PrimitiveTypeRight>
 void CsgNode<DIM, PrimitiveTypeLeft, PrimitiveTypeRight>::computeBoundingBox()
 {
+    box = BoundingBox<DIM>();
     if (operation == BooleanOperation::Intersection) {
         // use the child bounding box with the smaller extent; this is not the tightest fit box
         BoundingBox<DIM> boxLeft = left->boundingBox();
