@@ -94,7 +94,7 @@ inline float uniformRealRandomNumber(float a=0.0f, float b=1.0f)
 }
 
 template<size_t DIM>
-inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
+Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
 {
     Vector<DIM> v;
     for (size_t i = 0; i < DIM; i++) {
@@ -105,7 +105,7 @@ inline Vector<DIM> uniformRealRandomVector(float a=0.0f, float b=1.0f)
 }
 
 template<size_t DIM>
-inline Vector<DIM> rotate(const Vector<DIM>& u, const Vector<DIM>& v, float theta)
+Vector<DIM> rotate(const Vector<DIM>& u, const Vector<DIM>& v, float theta)
 {
     std::cerr << "rotate<DIM>() not implemented" << std::endl;
     exit(EXIT_FAILURE);

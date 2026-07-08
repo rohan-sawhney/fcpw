@@ -520,15 +520,15 @@ public:
     virtual void setDispatchResources(const ShaderCursor& cursor, uint32_t dispatchIndex) const { /* do nothing */ }
 };
 
-void printReflectionInfo(const ShaderCursor& cursor, int nFields,
-                         const std::string& reflectionType) {
+inline void printReflectionInfo(const ShaderCursor& cursor, int nFields,
+                                const std::string& reflectionType) {
     std::cout << "Reflection: " << reflectionType << std::endl;
     for (int i = 0; i < nFields; i++) {
         std::cout << "\targument[" << i << "]: " << cursor.getTypeLayout()->getFieldByIndex(i)->getName() << std::endl;
     }
 }
 
-DeviceType parseDeviceBackend(const std::string& backend) {
+inline DeviceType parseDeviceBackend(const std::string& backend) {
     if (backend == "cuda") return DeviceType::CUDA;
     if (backend == "vulkan") return DeviceType::Vulkan;
     if (backend == "d3d12") return DeviceType::D3D12;

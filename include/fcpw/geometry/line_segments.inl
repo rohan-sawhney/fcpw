@@ -198,8 +198,8 @@ inline int LineSegment::intersect(const Ray<2>& r, std::vector<Interaction<2>>& 
 }
 
 template<size_t DIM>
-inline float findClosestPointLineSegment(const Vector<DIM>& pa, const Vector<DIM>& pb,
-                                         const Vector<DIM>& x, Vector<DIM>& pt, float& t)
+float findClosestPointLineSegment(const Vector<DIM>& pa, const Vector<DIM>& pb,
+                                  const Vector<DIM>& x, Vector<DIM>& pt, float& t)
 {
     Vector<DIM> u = pb - pa;
     Vector<DIM> v = x - pa;

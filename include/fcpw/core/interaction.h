@@ -72,12 +72,12 @@ struct Interaction {
 };
 
 template<size_t DIM>
-inline bool compareInteractions(const Interaction<DIM>& i, const Interaction<DIM>& j) {
+bool compareInteractions(const Interaction<DIM>& i, const Interaction<DIM>& j) {
     return i.d < j.d;
 }
 
 template<size_t DIM>
-inline std::vector<Interaction<DIM>> removeDuplicates(const std::vector<Interaction<DIM>>& is) {
+std::vector<Interaction<DIM>> removeDuplicates(const std::vector<Interaction<DIM>>& is) {
     int N = (int)is.size();
     std::vector<bool> isDuplicate(N, false);
     std::vector<Interaction<DIM>> cs;

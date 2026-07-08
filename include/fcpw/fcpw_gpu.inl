@@ -8,7 +8,7 @@
 namespace fcpw {
 
 template<size_t DIM>
-inline GPUScene<DIM>::GPUScene(const std::string& fcpwDirectoryPath_, bool printLogs_):
+GPUScene<DIM>::GPUScene(const std::string& fcpwDirectoryPath_, bool printLogs_):
 nThreadsPerGroup(256),
 printLogs(printLogs_)
 {
@@ -16,7 +16,7 @@ printLogs(printLogs_)
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene, const std::string& deviceBackend)
+void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene, const std::string& deviceBackend)
 {
     SceneData<DIM> *sceneData = scene.getSceneData();
     bool hasLineSegmentGeometry = sceneData->lineSegmentObjects.size() > 0;
@@ -62,7 +62,7 @@ inline void GPUScene<DIM>::transferToGPU(Scene<DIM>& scene, const std::string& d
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
+void GPUScene<DIM>::refit(Scene<DIM>& scene, bool updateGeometry)
 {
     SceneData<DIM> *sceneData = scene.getSceneData();
     bool hasSilhouetteGeometry = sceneData->silhouetteVertexObjects.size() > 0 ||
@@ -92,11 +92,11 @@ inline uint32_t countThreadGroups(uint32_t workload, uint32_t nThreadsPerGroup, 
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
-                                     const Eigen::MatrixXf& rayDirections,
-                                     const Eigen::VectorXf& rayDistanceBounds,
-                                     std::vector<GPUInteraction>& interactions,
-                                     bool checkForOcclusion)
+void GPUScene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
+                              const Eigen::MatrixXf& rayDirections,
+                              const Eigen::VectorXf& rayDistanceBounds,
+                              std::vector<GPUInteraction>& interactions,
+                              bool checkForOcclusion)
 {
     int nQueries = (int)rayOrigins.rows();
     std::vector<GPURay> rays(nQueries);
@@ -135,9 +135,9 @@ inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& rayOrigins,
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
-                                     std::vector<GPUInteraction>& interactions,
-                                     bool checkForOcclusion)
+void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
+                              std::vector<GPUInteraction>& interactions,
+                              bool checkForOcclusion)
 {
     // allocate GPU entry point data
     GPURunRayIntersectionQuery runRayIntersectionQuery;
@@ -156,10 +156,10 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPURay>& rays,
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& sphereCenters,
-                                     const Eigen::VectorXf& sphereSquaredRadii,
-                                     const Eigen::MatrixXf& randNums,
-                                     std::vector<GPUInteraction>& interactions)
+void GPUScene<DIM>::intersect(const Eigen::MatrixXf& sphereCenters,
+                              const Eigen::VectorXf& sphereSquaredRadii,
+                              const Eigen::MatrixXf& randNums,
+                              std::vector<GPUInteraction>& interactions)
 {
     int nQueries = (int)sphereCenters.rows();
     std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
@@ -197,9 +197,9 @@ inline void GPUScene<DIM>::intersect(const Eigen::MatrixXf& sphereCenters,
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& boundingSpheres,
-                                     const std::vector<float3>& randNums,
-                                     std::vector<GPUInteraction>& interactions)
+void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& boundingSpheres,
+                              const std::vector<float3>& randNums,
+                              std::vector<GPUInteraction>& interactions)
 {
     // allocate GPU entry point data
     GPURunSphereIntersectionQuery runSphereIntersectionQuery;
@@ -217,10 +217,10 @@ inline void GPUScene<DIM>::intersect(const std::vector<GPUBoundingSphere>& bound
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestPoints(const Eigen::MatrixXf& queryPoints,
-                                             const Eigen::VectorXf& squaredMaxRadii,
-                                             std::vector<GPUInteraction>& interactions,
-                                             bool recordNormals)
+void GPUScene<DIM>::findClosestPoints(const Eigen::MatrixXf& queryPoints,
+                                      const Eigen::VectorXf& squaredMaxRadii,
+                                      std::vector<GPUInteraction>& interactions,
+                                      bool recordNormals)
 {
     int nQueries = (int)queryPoints.rows();
     std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
@@ -253,9 +253,9 @@ inline void GPUScene<DIM>::findClosestPoints(const Eigen::MatrixXf& queryPoints,
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere>& boundingSpheres,
-                                             std::vector<GPUInteraction>& interactions,
-                                             bool recordNormals)
+void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere>& boundingSpheres,
+                                      std::vector<GPUInteraction>& interactions,
+                                      bool recordNormals)
 {
     // allocate GPU entry point data
     GPURunClosestPointQuery runClosestPointQuery;
@@ -274,11 +274,11 @@ inline void GPUScene<DIM>::findClosestPoints(const std::vector<GPUBoundingSphere
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestSilhouettePoints(const Eigen::MatrixXf& queryPoints,
-                                                       const Eigen::VectorXf& squaredMaxRadii,
-                                                       const Eigen::VectorXi& flipNormalOrientation,
-                                                       std::vector<GPUInteraction>& interactions,
-                                                       float squaredMinRadius, float precision)
+void GPUScene<DIM>::findClosestSilhouettePoints(const Eigen::MatrixXf& queryPoints,
+                                                const Eigen::VectorXf& squaredMaxRadii,
+                                                const Eigen::VectorXi& flipNormalOrientation,
+                                                std::vector<GPUInteraction>& interactions,
+                                                float squaredMinRadius, float precision)
 {
     int nQueries = (int)queryPoints.rows();
     std::vector<GPUBoundingSphere> boundingSpheres(nQueries);
@@ -315,10 +315,10 @@ inline void GPUScene<DIM>::findClosestSilhouettePoints(const Eigen::MatrixXf& qu
 }
 
 template<size_t DIM>
-inline void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoundingSphere>& boundingSpheres,
-                                                       const std::vector<uint32_t>& flipNormalOrientation,
-                                                       std::vector<GPUInteraction>& interactions,
-                                                       float squaredMinRadius, float precision)
+void GPUScene<DIM>::findClosestSilhouettePoints(const std::vector<GPUBoundingSphere>& boundingSpheres,
+                                                const std::vector<uint32_t>& flipNormalOrientation,
+                                                std::vector<GPUInteraction>& interactions,
+                                                float squaredMinRadius, float precision)
 {
     // allocate GPU entry point data
     GPURunClosestSilhouettePointQuery runClosestSilhouettePointQuery;

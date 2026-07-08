@@ -1,8 +1,8 @@
 namespace fcpw {
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline Baseline<DIM, PrimitiveType, SilhouetteType>::Baseline(std::vector<PrimitiveType *>& primitives_,
-                                                              std::vector<SilhouetteType *>& silhouettes_):
+Baseline<DIM, PrimitiveType, SilhouetteType>::Baseline(std::vector<PrimitiveType *>& primitives_,
+                                                       std::vector<SilhouetteType *>& silhouettes_):
 primitives(primitives_),
 silhouettes(silhouettes_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
@@ -11,7 +11,7 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline void Baseline<DIM, PrimitiveType, SilhouetteType>::refit()
+void Baseline<DIM, PrimitiveType, SilhouetteType>::refit()
 {
     // refit primitives if they are aggregates
     if (primitiveTypeIsAggregate) {
@@ -23,7 +23,7 @@ inline void Baseline<DIM, PrimitiveType, SilhouetteType>::refit()
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline BoundingBox<DIM> Baseline<DIM, PrimitiveType, SilhouetteType>::boundingBox() const
+BoundingBox<DIM> Baseline<DIM, PrimitiveType, SilhouetteType>::boundingBox() const
 {
     BoundingBox<DIM> bb;
     for (int p = 0; p < (int)primitives.size(); p++) {
@@ -34,7 +34,7 @@ inline BoundingBox<DIM> Baseline<DIM, PrimitiveType, SilhouetteType>::boundingBo
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline Vector<DIM> Baseline<DIM, PrimitiveType, SilhouetteType>::centroid() const
+Vector<DIM> Baseline<DIM, PrimitiveType, SilhouetteType>::centroid() const
 {
     Vector<DIM> c = Vector<DIM>::Zero();
     int nPrimitives = (int)primitives.size();
@@ -47,7 +47,7 @@ inline Vector<DIM> Baseline<DIM, PrimitiveType, SilhouetteType>::centroid() cons
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline float Baseline<DIM, PrimitiveType, SilhouetteType>::surfaceArea() const
+float Baseline<DIM, PrimitiveType, SilhouetteType>::surfaceArea() const
 {
     float area = 0.0f;
     for (int p = 0; p < (int)primitives.size(); p++) {
@@ -58,7 +58,7 @@ inline float Baseline<DIM, PrimitiveType, SilhouetteType>::surfaceArea() const
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline float Baseline<DIM, PrimitiveType, SilhouetteType>::signedVolume() const
+float Baseline<DIM, PrimitiveType, SilhouetteType>::signedVolume() const
 {
     float volume = 0.0f;
     for (int p = 0; p < (int)primitives.size(); p++) {
@@ -69,9 +69,9 @@ inline float Baseline<DIM, PrimitiveType, SilhouetteType>::signedVolume() const
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
-                                                                            int aggregateIndex, int& nodesVisited,
-                                                                            bool checkForOcclusion) const
+bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                                                     int aggregateIndex, int& nodesVisited,
+                                                                     bool checkForOcclusion) const
 {
     // find closest hit
     bool didHit = false;
@@ -142,9 +142,9 @@ bool Baseline<DIM, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<D
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-                                                                           int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                                           bool checkForOcclusion, bool recordAllHits) const
+int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+                                                                    int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+                                                                    bool checkForOcclusion, bool recordAllHits) const
 {
     int hits = 0;
     if (!recordAllHits) is.resize(1);
@@ -203,10 +203,10 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<D
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s,
-                                                                           std::vector<Interaction<DIM>>& is,
-                                                                           int nodeStartIndex, int aggregateIndex,
-                                                                           int& nodesVisited, bool recordOneHit) const
+int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s,
+                                                                    std::vector<Interaction<DIM>>& is,
+                                                                    int nodeStartIndex, int aggregateIndex,
+                                                                    int& nodesVisited, bool recordOneHit) const
 {
     int hits = 0;
     float totalPrimitiveWeight = 0.0f;
@@ -263,10 +263,10 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                           const Vector<DIM>& randNums, int nodeStartIndex,
-                                                                           int aggregateIndex, int& nodesVisited,
-                                                                           const std::function<float(float)>& branchTraversalWeight) const
+int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                    const Vector<DIM>& randNums, int nodeStartIndex,
+                                                                    int aggregateIndex, int& nodesVisited,
+                                                                    const std::function<float(float)>& branchTraversalWeight) const
 {
     int hits = 0;
     float totalPrimitiveWeight = 0.0f;
@@ -340,9 +340,9 @@ inline int Baseline<DIM, PrimitiveType, SilhouetteType>::intersectFromNode(const
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                                   int nodeStartIndex, int aggregateIndex,
-                                                                                   int& nodesVisited, bool recordNormal) const
+bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                            int nodeStartIndex, int aggregateIndex,
+                                                                            int& nodesVisited, bool recordNormal) const
 {
     // find closest point
     bool notFound = true;
@@ -384,11 +384,11 @@ inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestPointFromNo
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                                             int nodeStartIndex, int aggregateIndex,
-                                                                                             int& nodesVisited, bool flipNormalOrientation,
-                                                                                             float squaredMinRadius, float precision,
-                                                                                             bool recordNormal) const
+bool Baseline<DIM, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                                      int nodeStartIndex, int aggregateIndex,
+                                                                                      int& nodesVisited, bool flipNormalOrientation,
+                                                                                      float squaredMinRadius, float precision,
+                                                                                      bool recordNormal) const
 {
     if (squaredMinRadius >= s.r2) return false;
 

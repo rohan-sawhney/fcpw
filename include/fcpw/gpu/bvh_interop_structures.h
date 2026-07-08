@@ -217,8 +217,8 @@ void extractSnchNodes(const std::vector<SnchNode<DIM>>& flatTree,
     }
 }
 
-void extractLineSegments(const std::vector<LineSegment *>& primitives,
-                         std::vector<GPULineSegment>& gpuLineSegments)
+inline void extractLineSegments(const std::vector<LineSegment *>& primitives,
+                                std::vector<GPULineSegment>& gpuLineSegments)
 {
     int nPrimitives = (int)primitives.size();
     gpuLineSegments.resize(nPrimitives);
@@ -234,8 +234,8 @@ void extractLineSegments(const std::vector<LineSegment *>& primitives,
     }
 }
 
-void extractSilhouetteVertices(const std::vector<SilhouetteVertex *>& silhouettes,
-                               std::vector<GPUVertex>& gpuVertices)
+inline void extractSilhouetteVertices(const std::vector<SilhouetteVertex *>& silhouettes,
+                                      std::vector<GPUVertex>& gpuVertices)
 {
     int nSilhouettes = (int)silhouettes.size();
     gpuVertices.resize(nSilhouettes);
@@ -255,8 +255,8 @@ void extractSilhouetteVertices(const std::vector<SilhouetteVertex *>& silhouette
     }
 }
 
-void extractTriangles(const std::vector<Triangle *>& primitives,
-                      std::vector<GPUTriangle>& gpuTriangles)
+inline void extractTriangles(const std::vector<Triangle *>& primitives,
+                             std::vector<GPUTriangle>& gpuTriangles)
 {
     int nPrimitives = (int)primitives.size();
     gpuTriangles.resize(nPrimitives);
@@ -274,8 +274,8 @@ void extractTriangles(const std::vector<Triangle *>& primitives,
     }
 }
 
-void extractSilhouetteEdges(const std::vector<SilhouetteEdge *>& silhouettes,
-                            std::vector<GPUEdge>& gpuEdges)
+inline void extractSilhouetteEdges(const std::vector<SilhouetteEdge *>& silhouettes,
+                                   std::vector<GPUEdge>& gpuEdges)
 {
     int nSilhouettes = (int)silhouettes.size();
     gpuEdges.resize(nSilhouettes);
@@ -654,9 +654,9 @@ private:
 };
 
 template<>
-void GPUBvhBuffers::allocate<2>(GPUContext& gpuContext, const SceneData<2> *cpuSceneData,
-                                bool allocatePrimitiveData, bool allocateSilhouetteData,
-                                bool allocateNodeData, bool allocateRefitData)
+inline void GPUBvhBuffers::allocate<2>(GPUContext& gpuContext, const SceneData<2> *cpuSceneData,
+                                       bool allocatePrimitiveData, bool allocateSilhouetteData,
+                                       bool allocateNodeData, bool allocateRefitData)
 {
     if (allocateSilhouetteData) {
         if (allocatePrimitiveData) {
@@ -691,9 +691,9 @@ void GPUBvhBuffers::allocate<2>(GPUContext& gpuContext, const SceneData<2> *cpuS
 }
 
 template<>
-void GPUBvhBuffers::allocate<3>(GPUContext& gpuContext, const SceneData<3> *cpuSceneData,
-                                bool allocatePrimitiveData, bool allocateSilhouetteData,
-                                bool allocateNodeData, bool allocateRefitData)
+inline void GPUBvhBuffers::allocate<3>(GPUContext& gpuContext, const SceneData<3> *cpuSceneData,
+                                       bool allocatePrimitiveData, bool allocateSilhouetteData,
+                                       bool allocateNodeData, bool allocateRefitData)
 {
     if (allocateSilhouetteData) {
         if (allocatePrimitiveData) {

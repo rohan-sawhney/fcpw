@@ -226,7 +226,7 @@ inline void computeOrthonormalBasis(const Vector3& n, Vector3& b1, Vector3& b2)
 }
 
 template<size_t DIM>
-inline float projectToPlane(const Vector<DIM>& n, const Vector<DIM>& e)
+float projectToPlane(const Vector<DIM>& n, const Vector<DIM>& e)
 {
     std::cerr << "projectToPlane(): DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -332,11 +332,11 @@ struct BoundingCone {
 };
 
 template<size_t DIM>
-inline BoundingCone<DIM> mergeBoundingCones(const BoundingCone<DIM>& coneA,
-                                            const BoundingCone<DIM>& coneB,
-                                            const Vector<DIM>& originA,
-                                            const Vector<DIM>& originB,
-                                            const Vector<DIM>& newOrigin)
+BoundingCone<DIM> mergeBoundingCones(const BoundingCone<DIM>& coneA,
+                                     const BoundingCone<DIM>& coneB,
+                                     const Vector<DIM>& originA,
+                                     const Vector<DIM>& originB,
+                                     const Vector<DIM>& newOrigin)
 {
     BoundingCone<DIM> cone;
     if (coneA.isValid() && coneB.isValid()) {

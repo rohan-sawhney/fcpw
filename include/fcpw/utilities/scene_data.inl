@@ -1,7 +1,7 @@
 namespace fcpw {
 
 template<size_t DIM>
-inline SceneData<DIM>::SceneData():
+SceneData<DIM>::SceneData():
 aggregate(nullptr),
 ignoreSilhouette({})
 {
@@ -9,7 +9,7 @@ ignoreSilhouette({})
 }
 
 template<size_t DIM>
-inline void SceneData<DIM>::clearObjectData()
+void SceneData<DIM>::clearObjectData()
 {
     soups.clear();
     soupToObjectsMap.clear();
@@ -23,7 +23,7 @@ inline void SceneData<DIM>::clearObjectData()
 }
 
 template<size_t DIM>
-inline void SceneData<DIM>::clearAggregateData()
+void SceneData<DIM>::clearAggregateData()
 {
     lineSegmentObjectPtrs.clear();
     triangleObjectPtrs.clear();

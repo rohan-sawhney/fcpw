@@ -1,10 +1,10 @@
 namespace fcpw {
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
-                                                                                 const BoundingBox<DIM>& boxRight,
-                                                                                 int nReferencesLeft, int nReferencesRight,
-                                                                                 int depth) const
+float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::computeSplitCost(const BoundingBox<DIM>& boxLeft,
+                                                                          const BoundingBox<DIM>& boxRight,
+                                                                          int nReferencesLeft, int nReferencesRight,
+                                                                          int depth) const
 {
     float cost = maxFloat;
     if (packLeaves && depth > 0 && ((float)depthGuess/depth) < 1.5f &&
@@ -37,12 +37,12 @@ inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::computeSplitCost
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
-                                                                                   const BoundingBox<DIM>& nodeCentroidBox,
-                                                                                   const std::vector<BoundingBox<DIM>>& referenceBoxes,
-                                                                                   const std::vector<Vector<DIM>>& referenceCentroids,
-                                                                                   int depth, int nodeStart, int nodeEnd,
-                                                                                   int& splitDim, float& splitCoord)
+float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::computeObjectSplit(const BoundingBox<DIM>& nodeBoundingBox,
+                                                                            const BoundingBox<DIM>& nodeCentroidBox,
+                                                                            const std::vector<BoundingBox<DIM>>& referenceBoxes,
+                                                                            const std::vector<Vector<DIM>>& referenceCentroids,
+                                                                            int depth, int nodeStart, int nodeEnd,
+                                                                            int& splitDim, float& splitCoord)
 {
     float splitCost = maxFloat;
     splitDim = -1;
@@ -111,9 +111,9 @@ inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::computeObjectSpl
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
-                                                                                 std::vector<BoundingBox<DIM>>& referenceBoxes,
-                                                                                 std::vector<Vector<DIM>>& referenceCentroids)
+int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::performObjectSplit(int nodeStart, int nodeEnd, int splitDim, float splitCoord,
+                                                                          std::vector<BoundingBox<DIM>>& referenceBoxes,
+                                                                          std::vector<Vector<DIM>>& referenceCentroids)
 {
     int mid = nodeStart;
     for (int i = nodeStart; i < nodeEnd; i++) {
@@ -140,10 +140,10 @@ inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::performObjectSplit
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
-                                                                              std::vector<Vector<DIM>>& referenceCentroids,
-                                                                              std::vector<NodeType>& buildNodes,
-                                                                              int parent, int start, int end, int depth)
+void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::buildRecursive(std::vector<BoundingBox<DIM>>& referenceBoxes,
+                                                                       std::vector<Vector<DIM>>& referenceCentroids,
+                                                                       std::vector<NodeType>& buildNodes,
+                                                                       int parent, int start, int end, int depth)
 {
     const int Untouched    = 0xffffffff;
     const int TouchedTwice = 0xfffffffd;
@@ -209,7 +209,7 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::buildRecursive(st
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::build()
+void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::build()
 {
     // precompute bounding boxes and centroids
     int nReferences = (int)primitives.size();
@@ -234,10 +234,10 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::build()
 }
 
 template<size_t DIM, typename SilhouetteType>
-inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& silhouetteRefs,
-                                          const std::vector<Vector<DIM>>& silhouetteNormals,
-                                          const std::vector<Vector<DIM>>& silhouetteFaceNormals,
-                                          std::vector<SnchNode<DIM>>& flatTree, int start, int end)
+void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& silhouetteRefs,
+                                   const std::vector<Vector<DIM>>& silhouetteNormals,
+                                   const std::vector<Vector<DIM>>& silhouetteFaceNormals,
+                                   std::vector<SnchNode<DIM>>& flatTree, int start, int end)
 {
     BoundingCone<DIM> cone;
     SnchNode<DIM>& node(flatTree[start]);
@@ -304,7 +304,7 @@ inline void computeBoundingConesRecursive(const std::vector<SilhouetteType *>& s
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::assignGeometricDataToNodes(const std::function<bool(float, int)>& ignoreSilhouette)
+void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::assignGeometricDataToNodes(const std::function<bool(float, int)>& ignoreSilhouette)
 {
     // do nothing
 }
@@ -425,12 +425,12 @@ inline void Bvh<3, SnchNode<3>, Triangle, SilhouetteEdge>::assignGeometricDataTo
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::Bvh(const CostHeuristic& costHeuristic_,
-                                                              std::vector<PrimitiveType *>& primitives_,
-                                                              std::vector<SilhouetteType *>& silhouettes_,
-                                                              SortPositionsFunc<DIM, NodeType, PrimitiveType, SilhouetteType> sortPositions_,
-                                                              const std::function<bool(float, int)>& ignoreSilhouette_,
-                                                              bool packLeaves_, int leafSize_, int nBuckets_):
+Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::Bvh(const CostHeuristic& costHeuristic_,
+                                                       std::vector<PrimitiveType *>& primitives_,
+                                                       std::vector<SilhouetteType *>& silhouettes_,
+                                                       SortPositionsFunc<DIM, NodeType, PrimitiveType, SilhouetteType> sortPositions_,
+                                                       const std::function<bool(float, int)>& ignoreSilhouette_,
+                                                       bool packLeaves_, int leafSize_, int nBuckets_):
 costHeuristic(costHeuristic_),
 nNodes(0),
 nLeafs(0),
@@ -458,13 +458,13 @@ primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 }
 
 template<typename NodeType>
-inline void mergeBoundingCones(const NodeType& left, const NodeType& right, NodeType& node)
+void mergeBoundingCones(const NodeType& left, const NodeType& right, NodeType& node)
 {
     // do nothing
 }
 
 template<size_t DIM>
-inline void mergeBoundingCones(const SnchNode<DIM>& left, const SnchNode<DIM>& right, SnchNode<DIM>& node)
+void mergeBoundingCones(const SnchNode<DIM>& left, const SnchNode<DIM>& right, SnchNode<DIM>& node)
 {
     node.cone = mergeBoundingCones<DIM>(left.cone, right.cone,
                                         left.box.centroid(),
@@ -473,10 +473,10 @@ inline void mergeBoundingCones(const SnchNode<DIM>& left, const SnchNode<DIM>& r
 }
 
 template<size_t DIM, typename SilhouetteType>
-inline BoundingCone<DIM> computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
-                                             const Vector<DIM>& centroid,
-                                             int nSilhouetteReferences,
-                                             int silhouetteReferenceOffset)
+BoundingCone<DIM> computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
+                                      const Vector<DIM>& centroid,
+                                      int nSilhouetteReferences,
+                                      int silhouetteReferenceOffset)
 {
     // compute bounding cone axis
     BoundingCone<DIM> cone;
@@ -524,13 +524,13 @@ inline BoundingCone<DIM> computeBoundingCone(const std::vector<SilhouetteType *>
 }
 
 template<typename NodeType, typename SilhouetteType>
-inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs, NodeType& node)
+void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs, NodeType& node)
 {
     // do nothing
 }
 
 template<size_t DIM, typename SilhouetteType>
-inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs, SnchNode<DIM>& node)
+void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs, SnchNode<DIM>& node)
 {
     node.cone = computeBoundingCone<DIM, SilhouetteType>(silhouetteRefs, node.box.centroid(),
                                                          node.nSilhouetteReferences,
@@ -538,9 +538,9 @@ inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteR
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void refitRecursive(const std::vector<PrimitiveType *>& primitives,
-                           const std::vector<SilhouetteType *>& silhouetteRefs,
-                           std::vector<NodeType>& flatTree, int nodeIndex)
+void refitRecursive(const std::vector<PrimitiveType *>& primitives,
+                    const std::vector<SilhouetteType *>& silhouetteRefs,
+                    std::vector<NodeType>& flatTree, int nodeIndex)
 {
     NodeType& node(flatTree[nodeIndex]);
 
@@ -573,7 +573,7 @@ inline void refitRecursive(const std::vector<PrimitiveType *>& primitives,
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::refit()
+void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::refit()
 {
     // refit primitives if they are aggregates
     if (primitiveTypeIsAggregate) {
@@ -591,7 +591,7 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::refit()
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::printStats() const
+void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::printStats() const
 {
     std::cout << "BVH stats: "
               << nNodes << " nodes, "
@@ -604,13 +604,13 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::printStats() cons
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline BoundingBox<DIM> Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::boundingBox() const
+BoundingBox<DIM> Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::boundingBox() const
 {
     return flatTree.size() > 0 ? flatTree[0].box : BoundingBox<DIM>();
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline Vector<DIM> Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::centroid() const
+Vector<DIM> Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::centroid() const
 {
     Vector<DIM> c = Vector<DIM>::Zero();
     int nPrimitives = (int)primitives.size();
@@ -623,7 +623,7 @@ inline Vector<DIM> Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::centroid()
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::surfaceArea() const
+float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::surfaceArea() const
 {
     float area = 0.0f;
     for (int p = 0; p < (int)primitives.size(); p++) {
@@ -634,7 +634,7 @@ inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::surfaceArea() co
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::signedVolume() const
+float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::signedVolume() const
 {
     float volume = 0.0f;
     for (int p = 0; p < (int)primitives.size(); p++) {
@@ -645,10 +645,10 @@ inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::signedVolume() c
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
-                                                                                             int aggregateIndex, bool checkForOcclusion,
-                                                                                             TraversalStack *subtree, float *boxHits,
-                                                                                             bool& didHit, int& nodesVisited) const
+bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                                                                      int aggregateIndex, bool checkForOcclusion,
+                                                                                      TraversalStack *subtree, float *boxHits,
+                                                                                      bool& didHit, int& nodesVisited) const
 {
     int stackPtr = 0;
     while (stackPtr >= 0) {
@@ -742,9 +742,9 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
-                                                                                 int aggregateIndex, int& nodesVisited,
-                                                                                 bool checkForOcclusion) const
+bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                                                          int aggregateIndex, int& nodesVisited,
+                                                                          bool checkForOcclusion) const
 {
     bool didHit = false;
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
@@ -763,11 +763,11 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForRobustIntersection(const RobustIntersectionData<DIM>& rid,
-                                                                                                   Ray<DIM>& r, Interaction<DIM>& i,
-                                                                                                   int nodeStartIndex, int aggregateIndex,
-                                                                                                   TraversalStack *subtree, float *boxHits,
-                                                                                                   bool& didHit, int& nodesVisited) const
+bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForRobustIntersection(const RobustIntersectionData<DIM>& rid,
+                                                                                            Ray<DIM>& r, Interaction<DIM>& i,
+                                                                                            int nodeStartIndex, int aggregateIndex,
+                                                                                            TraversalStack *subtree, float *boxHits,
+                                                                                            bool& didHit, int& nodesVisited) const
 {
     int stackPtr = 0;
     while (stackPtr >= 0) {
@@ -856,9 +856,9 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
-                                                                                       int nodeStartIndex, int aggregateIndex,
-                                                                                       int& nodesVisited) const
+bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                                                                int nodeStartIndex, int aggregateIndex,
+                                                                                int& nodesVisited) const
 {
     bool didHit = false;
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
@@ -879,10 +879,10 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectRobustFr
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-                                                                                             int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
-                                                                                             bool recordAllHits, TraversalStack *subtree,
-                                                                                             float *boxHits, int& hits, int& nodesVisited) const
+bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+                                                                                      int nodeStartIndex, int aggregateIndex, bool checkForOcclusion,
+                                                                                      bool recordAllHits, TraversalStack *subtree,
+                                                                                      float *boxHits, int& hits, int& nodesVisited) const
 {
     int stackPtr = 0;
     while (stackPtr >= 0) {
@@ -984,9 +984,9 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-                                                                                int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                                                bool checkForOcclusion, bool recordAllHits) const
+int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+                                                                         int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+                                                                         bool checkForOcclusion, bool recordAllHits) const
 {
     int hits = 0;
     if (!recordAllHits) is.resize(1);
@@ -1020,9 +1020,9 @@ inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
-                                                                                              int nodeStartIndex, int aggregateIndex, bool recordOneHit,
-                                                                                              TraversalStack *subtree, float *boxHits, int& hits, int& nodesVisited) const
+float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(const BoundingSphere<DIM>& s, std::vector<Interaction<DIM>>& is,
+                                                                                       int nodeStartIndex, int aggregateIndex, bool recordOneHit,
+                                                                                       TraversalStack *subtree, float *boxHits, int& hits, int& nodesVisited) const
 {
     float totalPrimitiveWeight = 0.0f;
     int stackPtr = 0;
@@ -1093,10 +1093,10 @@ inline float Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFo
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s,
-                                                                                std::vector<Interaction<DIM>>& is,
-                                                                                int nodeStartIndex, int aggregateIndex,
-                                                                                int& nodesVisited, bool recordOneHit) const
+int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s,
+                                                                         std::vector<Interaction<DIM>>& is,
+                                                                         int nodeStartIndex, int aggregateIndex,
+                                                                         int& nodesVisited, bool recordOneHit) const
 {
     int hits = 0;
     float totalPrimitiveWeight = 0.0f;
@@ -1130,11 +1130,11 @@ inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                                             const Vector<DIM>& randNums, int nodeStartIndex, int aggregateIndex,
-                                                                                             const std::function<float(float)>& branchTraversalWeight,
-                                                                                             int nodeIndex, float traversalPdf, float *boxHits,
-                                                                                             int& hits, int& nodesVisited) const
+void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForIntersection(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                                      const Vector<DIM>& randNums, int nodeStartIndex, int aggregateIndex,
+                                                                                      const std::function<float(float)>& branchTraversalWeight,
+                                                                                      int nodeIndex, float traversalPdf, float *boxHits,
+                                                                                      int& hits, int& nodesVisited) const
 {
     int stackPtr = 0;
     float d2NodeMax = boxHits[1];
@@ -1246,10 +1246,10 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                                const Vector<DIM>& randNums, int nodeStartIndex,
-                                                                                int aggregateIndex, int& nodesVisited,
-                                                                                const std::function<float(float)>& branchTraversalWeight) const
+int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                         const Vector<DIM>& randNums, int nodeStartIndex,
+                                                                         int aggregateIndex, int& nodesVisited,
+                                                                         const std::function<float(float)>& branchTraversalWeight) const
 {
     int hits = 0;
     float boxHits[4];
@@ -1280,10 +1280,10 @@ inline int Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::intersectFromNode(
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                                             int nodeStartIndex, int aggregateIndex,
-                                                                                             bool recordNormal, TraversalStack *subtree,
-                                                                                             float *boxHits, bool& notFound, int& nodesVisited) const
+void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeForClosestPoint(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                                      int nodeStartIndex, int aggregateIndex,
+                                                                                      bool recordNormal, TraversalStack *subtree,
+                                                                                      float *boxHits, bool& notFound, int& nodesVisited) const
 {
     int stackPtr = 0;
     while (stackPtr >= 0) {
@@ -1380,9 +1380,9 @@ inline void Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::processSubtreeFor
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                                        int nodeStartIndex, int aggregateIndex,
-                                                                                        int& nodesVisited, bool recordNormal) const
+bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                                 int nodeStartIndex, int aggregateIndex,
+                                                                                 int& nodesVisited, bool recordNormal) const
 {
     bool notFound = true;
     TraversalStack subtree[FCPW_BVH_MAX_DEPTH];
@@ -1410,30 +1410,30 @@ inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::findClosestPointF
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline void processSubtreeForClosestSilhouettePoint(const std::vector<NodeType>& flatTree,
-                                                    const std::vector<PrimitiveType *>& primitives,
-                                                    const std::vector<SilhouetteType *>& silhouetteRefs,
-                                                    BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                    int nodeStartIndex, int aggregateIndex, int objectIndex,
-                                                    bool primitiveTypeIsAggregate, bool flipNormalOrientation,
-                                                    float squaredMinRadius, float precision, bool recordNormal,
-                                                    TraversalStack *subtree, float *boxHits, bool& notFound,
-                                                    int& nodesVisited)
+void processSubtreeForClosestSilhouettePoint(const std::vector<NodeType>& flatTree,
+                                             const std::vector<PrimitiveType *>& primitives,
+                                             const std::vector<SilhouetteType *>& silhouetteRefs,
+                                             BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                             int nodeStartIndex, int aggregateIndex, int objectIndex,
+                                             bool primitiveTypeIsAggregate, bool flipNormalOrientation,
+                                             float squaredMinRadius, float precision, bool recordNormal,
+                                             TraversalStack *subtree, float *boxHits, bool& notFound,
+                                             int& nodesVisited)
 {
     std::cerr << "Bvh::processSubtreeForClosestSilhouettePoint() not implemented" << std::endl;
     exit(EXIT_FAILURE);
 }
 
 template<size_t DIM, typename PrimitiveType, typename SilhouetteType>
-inline void processSubtreeForClosestSilhouettePoint(const std::vector<SnchNode<DIM>>& flatTree,
-                                                    const std::vector<PrimitiveType *>& primitives,
-                                                    const std::vector<SilhouetteType *>& silhouetteRefs,
-                                                    BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                    int nodeStartIndex, int aggregateIndex, int objectIndex,
-                                                    bool primitiveTypeIsAggregate, bool flipNormalOrientation,
-                                                    float squaredMinRadius, float precision, bool recordNormal,
-                                                    TraversalStack *subtree, float *boxHits, bool& notFound,
-                                                    int& nodesVisited)
+void processSubtreeForClosestSilhouettePoint(const std::vector<SnchNode<DIM>>& flatTree,
+                                             const std::vector<PrimitiveType *>& primitives,
+                                             const std::vector<SilhouetteType *>& silhouetteRefs,
+                                             BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                             int nodeStartIndex, int aggregateIndex, int objectIndex,
+                                             bool primitiveTypeIsAggregate, bool flipNormalOrientation,
+                                             float squaredMinRadius, float precision, bool recordNormal,
+                                             TraversalStack *subtree, float *boxHits, bool& notFound,
+                                             int& nodesVisited)
 {
     float stubs[2];
     int stackPtr = 0;
@@ -1552,11 +1552,11 @@ inline void processSubtreeForClosestSilhouettePoint(const std::vector<SnchNode<D
 }
 
 template<size_t DIM, typename NodeType, typename PrimitiveType, typename SilhouetteType>
-inline bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                                                  int nodeStartIndex, int aggregateIndex,
-                                                                                                  int& nodesVisited, bool flipNormalOrientation,
-                                                                                                  float squaredMinRadius, float precision,
-                                                                                                  bool recordNormal) const
+bool Bvh<DIM, NodeType, PrimitiveType, SilhouetteType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                                           int nodeStartIndex, int aggregateIndex,
+                                                                                           int& nodesVisited, bool flipNormalOrientation,
+                                                                                           float squaredMinRadius, float precision,
+                                                                                           bool recordNormal) const
 {
     if (squaredMinRadius >= s.r2) return false;
 

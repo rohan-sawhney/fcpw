@@ -3,13 +3,13 @@
 namespace fcpw {
 
 template<typename BvhNodeType, typename MbvhNodeType>
-inline void assignGeometricDataToNode(const BvhNodeType& bvhNode, MbvhNodeType& mbvhNode, int index)
+void assignGeometricDataToNode(const BvhNodeType& bvhNode, MbvhNodeType& mbvhNode, int index)
 {
     // do nothing
 }
 
 template<size_t DIM>
-inline void assignGeometricDataToNode(const SnchNode<DIM>& bvhNode, MsnchNode<DIM>& mbvhNode, int index)
+void assignGeometricDataToNode(const SnchNode<DIM>& bvhNode, MsnchNode<DIM>& mbvhNode, int index)
 {
     // assign bvh node's bounding cone to mbvh node
     for (size_t j = 0; j < DIM; j++) {
@@ -21,15 +21,15 @@ inline void assignGeometricDataToNode(const SnchNode<DIM>& bvhNode, MsnchNode<DI
 }
 
 template<typename BvhNodeType, typename MbvhNodeType>
-inline void assignSilhouetteLeafRangeToNode(const BvhNodeType& bvhNode, MbvhNodeType& mbvhNode,
-                                            size_t WIDTH, int& nSilhouetteLeafs)
+void assignSilhouetteLeafRangeToNode(const BvhNodeType& bvhNode, MbvhNodeType& mbvhNode,
+                                     size_t WIDTH, int& nSilhouetteLeafs)
 {
     // do nothing
 }
 
 template<size_t DIM>
-inline void assignSilhouetteLeafRangeToNode(const SnchNode<DIM>& bvhNode, MsnchNode<DIM>& mbvhNode,
-                                            size_t WIDTH, int& nSilhouetteLeafs)
+void assignSilhouetteLeafRangeToNode(const SnchNode<DIM>& bvhNode, MsnchNode<DIM>& mbvhNode,
+                                     size_t WIDTH, int& nSilhouetteLeafs)
 {
     if (bvhNode.nSilhouetteReferences > 0) {
         mbvhNode.silhouetteChild[0] = -(nSilhouetteLeafs + 1); // negative value indicates that node is a leaf
@@ -54,13 +54,13 @@ template<size_t WIDTH, size_t DIM,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
 template<typename BvhNodeType>
-inline int Mbvh<WIDTH, DIM,
-                PrimitiveType,
-                SilhouetteType,
-                NodeType,
-                LeafNodeType,
-                SilhouetteLeafNodeType>::collapseBvh(const Bvh<DIM, BvhNodeType, PrimitiveType, SilhouetteType> *bvh,
-                                                     int bvhNodeIndex, int parent, int depth)
+int Mbvh<WIDTH, DIM,
+         PrimitiveType,
+         SilhouetteType,
+         NodeType,
+         LeafNodeType,
+         SilhouetteLeafNodeType>::collapseBvh(const Bvh<DIM, BvhNodeType, PrimitiveType, SilhouetteType> *bvh,
+                                              int bvhNodeIndex, int parent, int depth)
 {
     const BvhNodeType& bvhNode = bvh->flatTree[bvhNodeIndex];
     maxDepth = std::max(depth, maxDepth);
@@ -152,12 +152,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline bool Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::isLeafNode(const NodeType& node) const
+bool Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::isLeafNode(const NodeType& node) const
 {
     return node.child[0] < 0;
 }
@@ -165,18 +165,18 @@ inline bool Mbvh<WIDTH, DIM,
 template<typename PrimitiveType,
          typename NodeType,
          typename LeafNodeType>
-inline void populateLeafNode(const NodeType& node,
-                             const std::vector<PrimitiveType *>& primitives,
-                             std::vector<LeafNodeType>& leafNodes, size_t WIDTH)
+void populateLeafNode(const NodeType& node,
+                      const std::vector<PrimitiveType *>& primitives,
+                      std::vector<LeafNodeType>& leafNodes, size_t WIDTH)
 {
     std::cerr << "populateLeafNode(): WIDTH: " << WIDTH << " not supported" << std::endl;
     exit(EXIT_FAILURE);
 }
 
 template<typename NodeType, typename LeafNodeType>
-inline void populateLeafNode(const NodeType& node,
-                             const std::vector<LineSegment *>& primitives,
-                             std::vector<LeafNodeType>& leafNodes, size_t WIDTH)
+void populateLeafNode(const NodeType& node,
+                      const std::vector<LineSegment *>& primitives,
+                      std::vector<LeafNodeType>& leafNodes, size_t WIDTH)
 {
     int leafOffset = -node.child[0] - 1;
     int referenceOffset = node.child[2];
@@ -201,9 +201,9 @@ inline void populateLeafNode(const NodeType& node,
 }
 
 template<typename NodeType, typename LeafNodeType>
-inline void populateLeafNode(const NodeType& node,
-                             const std::vector<Triangle *>& primitives,
-                             std::vector<LeafNodeType>& leafNodes, size_t WIDTH)
+void populateLeafNode(const NodeType& node,
+                      const std::vector<Triangle *>& primitives,
+                      std::vector<LeafNodeType>& leafNodes, size_t WIDTH)
 {
     int leafOffset = -node.child[0] - 1;
     int referenceOffset = node.child[2];
@@ -235,12 +235,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline void Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::populateLeafNodes()
+void Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::populateLeafNodes()
 {
     if (primitiveTypeSupportsVectorizedQueries) {
         leafNodes.resize(nLeafs);
@@ -255,20 +255,20 @@ inline void Mbvh<WIDTH, DIM,
 template<typename SilhouetteType,
          typename NodeType,
          typename SilhouetteLeafNodeType>
-inline void populateSilhouetteLeafNode(const NodeType& node,
-                                       const std::vector<SilhouetteType *>& silhouettes,
-                                       std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
-                                       size_t WIDTH)
+void populateSilhouetteLeafNode(const NodeType& node,
+                                const std::vector<SilhouetteType *>& silhouettes,
+                                std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
+                                size_t WIDTH)
 {
     std::cerr << "populateSilhouetteLeafNode(): WIDTH: " << WIDTH << " not supported" << std::endl;
     exit(EXIT_FAILURE);
 }
 
 template<typename SilhouetteLeafNodeType>
-inline void populateSilhouetteLeafNode(const MsnchNode<2>& node,
-                                       const std::vector<SilhouetteVertex *>& silhouettes,
-                                       std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
-                                       size_t WIDTH)
+void populateSilhouetteLeafNode(const MsnchNode<2>& node,
+                                const std::vector<SilhouetteVertex *>& silhouettes,
+                                std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
+                                size_t WIDTH)
 {
     int silhouetteLeafOffset = -node.silhouetteChild[0] - 1;
     int silhouetteReferenceOffset = node.silhouetteChild[2];
@@ -307,10 +307,10 @@ inline void populateSilhouetteLeafNode(const MsnchNode<2>& node,
 }
 
 template<typename SilhouetteLeafNodeType>
-inline void populateSilhouetteLeafNode(const MsnchNode<3>& node,
-                                       const std::vector<SilhouetteEdge *>& silhouettes,
-                                       std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
-                                       size_t WIDTH)
+void populateSilhouetteLeafNode(const MsnchNode<3>& node,
+                                const std::vector<SilhouetteEdge *>& silhouettes,
+                                std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
+                                size_t WIDTH)
 {
     int silhouetteLeafOffset = -node.silhouetteChild[0] - 1;
     int silhouetteReferenceOffset = node.silhouetteChild[2];
@@ -356,12 +356,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline void Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::populateSilhouetteLeafNodes()
+void Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::populateSilhouetteLeafNodes()
 {
     if (silhouetteTypeSupportsVectorizedQueries) {
         silhouetteLeafNodes.resize(nSilhouetteLeafs);
@@ -381,13 +381,13 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline Mbvh<WIDTH, DIM,
-            PrimitiveType,
-            SilhouetteType,
-            NodeType,
-            LeafNodeType,
-            SilhouetteLeafNodeType>::Mbvh(std::vector<PrimitiveType *>& primitives_,
-                                          std::vector<SilhouetteType *>& silhouettes_):
+Mbvh<WIDTH, DIM,
+     PrimitiveType,
+     SilhouetteType,
+     NodeType,
+     LeafNodeType,
+     SilhouetteLeafNodeType>::Mbvh(std::vector<PrimitiveType *>& primitives_,
+                                   std::vector<SilhouetteType *>& silhouettes_):
 nNodes(0),
 nLeafs(0),
 nSilhouetteLeafs(0),
@@ -412,12 +412,12 @@ template<size_t WIDTH, size_t DIM,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
 template<typename BvhNodeType>
-inline void Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::initialize(const Bvh<DIM, BvhNodeType, PrimitiveType, SilhouetteType> *bvh)
+void Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::initialize(const Bvh<DIM, BvhNodeType, PrimitiveType, SilhouetteType> *bvh)
 {
     // clear previous data
     nNodes = 0;
@@ -441,17 +441,17 @@ inline void Mbvh<WIDTH, DIM,
 }
 
 template<size_t DIM, typename NodeType, typename SilhouetteType>
-inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
-                                const BoundingBox<DIM>& box, NodeType& node,
-                                BoundingCone<DIM>& cone)
+void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
+                         const BoundingBox<DIM>& box, NodeType& node,
+                         BoundingCone<DIM>& cone)
 {
     // do nothing
 }
 
 template<size_t DIM, typename SilhouetteType>
-inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
-                                const BoundingBox<DIM>& box, MsnchNode<DIM>& node,
-                                BoundingCone<DIM>& cone)
+void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteRefs,
+                         const BoundingBox<DIM>& box, MsnchNode<DIM>& node,
+                         BoundingCone<DIM>& cone)
 {
     int silhouetteReferenceOffset = node.silhouetteChild[2];
     int nSilhouetteReferences = node.silhouetteChild[3];
@@ -462,13 +462,13 @@ inline void computeBoundingCone(const std::vector<SilhouetteType *>& silhouetteR
 }
 
 template<size_t DIM, typename NodeType>
-inline void assignBoundingCone(const BoundingCone<DIM>& cone, NodeType& node, int index)
+void assignBoundingCone(const BoundingCone<DIM>& cone, NodeType& node, int index)
 {
     // do nothing
 }
 
 template<size_t DIM>
-inline void assignBoundingCone(const BoundingCone<DIM>& cone, MsnchNode<DIM>& node, int index)
+void assignBoundingCone(const BoundingCone<DIM>& cone, MsnchNode<DIM>& node, int index)
 {
     for (size_t i = 0; i < DIM; i++) {
         node.coneAxis[i][index] = cone.axis[i];
@@ -479,19 +479,19 @@ inline void assignBoundingCone(const BoundingCone<DIM>& cone, MsnchNode<DIM>& no
 }
 
 template<size_t DIM, typename NodeType>
-inline void mergeBoundingCones(const BoundingCone<DIM>& coneA, const BoundingCone<DIM>& coneB,
-                               const BoundingBox<DIM>& boxA, const BoundingBox<DIM>& boxB,
-                               const BoundingBox<DIM>& mergedBox, NodeType& node,
-                               BoundingCone<DIM>& cone)
+void mergeBoundingCones(const BoundingCone<DIM>& coneA, const BoundingCone<DIM>& coneB,
+                        const BoundingBox<DIM>& boxA, const BoundingBox<DIM>& boxB,
+                        const BoundingBox<DIM>& mergedBox, NodeType& node,
+                        BoundingCone<DIM>& cone)
 {
     // do nothing
 }
 
 template<size_t DIM>
-inline void mergeBoundingCones(const BoundingCone<DIM>& coneA, const BoundingCone<DIM>& coneB,
-                               const BoundingBox<DIM>& boxA, const BoundingBox<DIM>& boxB,
-                               const BoundingBox<DIM>& mergedBox, MsnchNode<DIM>& node,
-                               BoundingCone<DIM>& cone)
+void mergeBoundingCones(const BoundingCone<DIM>& coneA, const BoundingCone<DIM>& coneB,
+                        const BoundingBox<DIM>& boxA, const BoundingBox<DIM>& boxB,
+                        const BoundingBox<DIM>& mergedBox, MsnchNode<DIM>& node,
+                        BoundingCone<DIM>& cone)
 {
     cone = mergeBoundingCones<DIM>(coneA, coneB,
                                    boxA.centroid(),
@@ -504,9 +504,9 @@ template<size_t WIDTH,
          typename NodeType,
          typename PrimitiveType,
          typename SilhouetteType>
-inline std::pair<BoundingBox<DIM>, BoundingCone<DIM>> refitRecursive(const std::vector<PrimitiveType *>& primitives,
-                                                                     const std::vector<SilhouetteType *>& silhouetteRefs,
-                                                                     std::vector<NodeType>& flatTree, int nodeIndex)
+std::pair<BoundingBox<DIM>, BoundingCone<DIM>> refitRecursive(const std::vector<PrimitiveType *>& primitives,
+                                                              const std::vector<SilhouetteType *>& silhouetteRefs,
+                                                              std::vector<NodeType>& flatTree, int nodeIndex)
 {
     BoundingBox<DIM> box;
     BoundingCone<DIM> cone;
@@ -562,12 +562,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline void Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::refit()
+void Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::refit()
 {
     // refit primitives if they are aggregates
     if (primitiveTypeIsAggregate) {
@@ -589,15 +589,15 @@ inline void Mbvh<WIDTH, DIM,
 }
 
 template<typename NodeType>
-inline void updateSilhouetteLeafInfo(const NodeType& mbvhNode, size_t WIDTH,
-                                     float& nSilhouetteLeafsNotFull)
+void updateSilhouetteLeafInfo(const NodeType& mbvhNode, size_t WIDTH,
+                              float& nSilhouetteLeafsNotFull)
 {
     // do nothing
 }
 
 template<size_t DIM>
-inline void updateSilhouetteLeafInfo(const MsnchNode<DIM>& mbvhNode, size_t WIDTH,
-                                     float& nSilhouetteLeafsNotFull)
+void updateSilhouetteLeafInfo(const MsnchNode<DIM>& mbvhNode, size_t WIDTH,
+                              float& nSilhouetteLeafsNotFull)
 {
     if (mbvhNode.silhouetteChild[3]%WIDTH != 0) {
         nSilhouetteLeafsNotFull += 1.0f;
@@ -610,12 +610,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline void Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::printStats() const
+void Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::printStats() const
 {
     // count not-full nodes
     float nLeafsNotFull = 0.0f;
@@ -661,12 +661,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline BoundingBox<DIM> Mbvh<WIDTH, DIM,
-                             PrimitiveType,
-                             SilhouetteType,
-                             NodeType,
-                             LeafNodeType,
-                             SilhouetteLeafNodeType>::boundingBox() const
+BoundingBox<DIM> Mbvh<WIDTH, DIM,
+                      PrimitiveType,
+                      SilhouetteType,
+                      NodeType,
+                      LeafNodeType,
+                      SilhouetteLeafNodeType>::boundingBox() const
 {
     BoundingBox<DIM> box;
     if (flatTree.size() == 0) return box;
@@ -683,12 +683,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline Vector<DIM> Mbvh<WIDTH, DIM,
-                        PrimitiveType,
-                        SilhouetteType,
-                        NodeType,
-                        LeafNodeType,
-                        SilhouetteLeafNodeType>::centroid() const
+Vector<DIM> Mbvh<WIDTH, DIM,
+                 PrimitiveType,
+                 SilhouetteType,
+                 NodeType,
+                 LeafNodeType,
+                 SilhouetteLeafNodeType>::centroid() const
 {
     Vector<DIM> c = Vector<DIM>::Zero();
     int nPrimitives = (int)primitives.size();
@@ -706,12 +706,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline float Mbvh<WIDTH, DIM,
-                  PrimitiveType,
-                  SilhouetteType,
-                  NodeType,
-                  LeafNodeType,
-                  SilhouetteLeafNodeType>::surfaceArea() const
+float Mbvh<WIDTH, DIM,
+           PrimitiveType,
+           SilhouetteType,
+           NodeType,
+           LeafNodeType,
+           SilhouetteLeafNodeType>::surfaceArea() const
 {
     float area = 0.0f;
     for (int p = 0; p < (int)primitives.size(); p++) {
@@ -727,12 +727,12 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline float Mbvh<WIDTH, DIM,
-                  PrimitiveType,
-                  SilhouetteType,
-                  NodeType,
-                  LeafNodeType,
-                  SilhouetteLeafNodeType>::signedVolume() const
+float Mbvh<WIDTH, DIM,
+           PrimitiveType,
+           SilhouetteType,
+           NodeType,
+           LeafNodeType,
+           SilhouetteLeafNodeType>::signedVolume() const
 {
     float volume = 0.0f;
     for (int p = 0; p < (int)primitives.size(); p++) {
@@ -743,9 +743,9 @@ inline float Mbvh<WIDTH, DIM,
 }
 
 template<size_t WIDTH>
-inline void enqueueNodes(const IntP<WIDTH>& child, const FloatP<WIDTH>& tMin,
-                         const FloatP<WIDTH>& tMax, const MaskP<WIDTH>& mask, float minDist,
-                         float& tMaxMin, int& stackPtr, TraversalStack *subtree)
+void enqueueNodes(const IntP<WIDTH>& child, const FloatP<WIDTH>& tMin,
+                  const FloatP<WIDTH>& tMax, const MaskP<WIDTH>& mask, float minDist,
+                  float& tMaxMin, int& stackPtr, TraversalStack *subtree)
 {
     // enqueue nodes
     int closestIndex = -1;
@@ -808,10 +808,10 @@ struct QueryStub {
 };
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
-inline bool intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
-                                   const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                   int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
-                                   float& rtMax, Interaction<DIM>& i, bool checkForOcclusion)
+bool intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
+                            const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                            int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
+                            float& rtMax, Interaction<DIM>& i, bool checkForOcclusion)
 {
     std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -820,10 +820,10 @@ inline bool intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeTy
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline bool intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
-                                   const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                   int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
-                                   float& rtMax, Interaction<2>& i, bool checkForOcclusion)
+bool intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
+                            const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                            int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
+                            float& rtMax, Interaction<2>& i, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -878,10 +878,10 @@ inline bool intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline bool intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
-                                   const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                   int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-                                   float& rtMax, Interaction<3>& i, bool checkForOcclusion)
+bool intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
+                            const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                            int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
+                            float& rtMax, Interaction<3>& i, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -945,14 +945,14 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline bool Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
-                                                            int aggregateIndex, int& nodesVisited,
-                                                            bool checkForOcclusion) const
+bool Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::intersectFromNode(Ray<DIM>& r, Interaction<DIM>& i, int nodeStartIndex,
+                                                     int aggregateIndex, int& nodesVisited,
+                                                     bool checkForOcclusion) const
 {
     bool didHit = false;
     TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
@@ -1053,14 +1053,14 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline bool Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
-                                                                  int nodeStartIndex, int aggregateIndex,
-                                                                  int& nodesVisited) const
+bool Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::intersectRobustFromNode(Ray<DIM>& r, Interaction<DIM>& i,
+                                                           int nodeStartIndex, int aggregateIndex,
+                                                           int& nodesVisited) const
 {
     bool didHit = false;
     TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
@@ -1149,10 +1149,10 @@ inline bool Mbvh<WIDTH, DIM,
 }
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
-inline int intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
-                                  const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                  int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
-                                  float& rtMax, std::vector<Interaction<DIM>>& is, bool checkForOcclusion)
+int intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
+                           const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                           int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
+                           float& rtMax, std::vector<Interaction<DIM>>& is, bool checkForOcclusion)
 {
     std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -1161,10 +1161,10 @@ inline int intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeTyp
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline int intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
-                                  const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                  int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
-                                  float& rtMax, std::vector<Interaction<2>>& is, bool checkForOcclusion)
+int intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
+                           const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                           int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
+                           float& rtMax, std::vector<Interaction<2>>& is, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -1215,10 +1215,10 @@ inline int intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType&
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline int intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
-                                  const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                  int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-                                  float& rtMax, std::vector<Interaction<3>>& is, bool checkForOcclusion)
+int intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
+                           const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                           int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
+                           float& rtMax, std::vector<Interaction<3>>& is, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -1278,14 +1278,14 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline int Mbvh<WIDTH, DIM,
-                PrimitiveType,
-                SilhouetteType,
-                NodeType,
-                LeafNodeType,
-                SilhouetteLeafNodeType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
-                                                           int nodeStartIndex, int aggregateIndex, int& nodesVisited,
-                                                           bool checkForOcclusion, bool recordAllHits) const
+int Mbvh<WIDTH, DIM,
+         PrimitiveType,
+         SilhouetteType,
+         NodeType,
+         LeafNodeType,
+         SilhouetteLeafNodeType>::intersectFromNode(Ray<DIM>& r, std::vector<Interaction<DIM>>& is,
+                                                    int nodeStartIndex, int aggregateIndex, int& nodesVisited,
+                                                    bool checkForOcclusion, bool recordAllHits) const
 {
     int hits = 0;
     if (!recordAllHits) is.resize(1);
@@ -1409,11 +1409,11 @@ inline int Mbvh<WIDTH, DIM,
 }
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
-inline int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                     int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
-                                     float u, Interaction<DIM>& i, float& totalPrimitiveWeight,
-                                     bool isNodeInsideSphere=false)
+int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
+                              const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                              int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
+                              float u, Interaction<DIM>& i, float& totalPrimitiveWeight,
+                              bool isNodeInsideSphere=false)
 {
     std::cerr << "intersectSpherePrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -1422,11 +1422,11 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const Node
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                     int aggregateIndex, const enokiVector2& sc, float sr2,
-                                     float u, Interaction<2>& i, float& totalPrimitiveWeight,
-                                     bool isNodeInsideSphere=false)
+int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
+                              const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                              int aggregateIndex, const enokiVector2& sc, float sr2,
+                              float u, Interaction<2>& i, float& totalPrimitiveWeight,
+                              bool isNodeInsideSphere=false)
 {
     Vector2 queryPt(sc[0], sc[1]);
     int leafOffset = -node.child[0] - 1;
@@ -1482,11 +1482,11 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeTy
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline int intersectSpherePrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                     int aggregateIndex, const enokiVector3& sc, float sr2,
-                                     float u, Interaction<3>& i, float& totalPrimitiveWeight,
-                                     bool isNodeInsideSphere=false)
+int intersectSpherePrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
+                              const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                              int aggregateIndex, const enokiVector3& sc, float sr2,
+                              float u, Interaction<3>& i, float& totalPrimitiveWeight,
+                              bool isNodeInsideSphere=false)
 {
     Vector3 queryPt(sc[0], sc[1], sc[2]);
     int leafOffset = -node.child[0] - 1;
@@ -1543,11 +1543,11 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, 3> queryStub, const NodeTy
 }
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
-inline int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                     int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
-                                     std::vector<Interaction<DIM>>& is, float& totalPrimitiveWeight,
-                                     bool isNodeInsideSphere=false)
+int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
+                              const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                              int aggregateIndex, const enokiVector<DIM>& sc, float sr2,
+                              std::vector<Interaction<DIM>>& is, float& totalPrimitiveWeight,
+                              bool isNodeInsideSphere=false)
 {
     std::cerr << "intersectSpherePrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -1556,11 +1556,11 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, DIM> queryStub, const Node
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                     int aggregateIndex, const enokiVector2& sc, float sr2,
-                                     std::vector<Interaction<2>>& is, float& totalPrimitiveWeight,
-                                     bool isNodeInsideSphere=false)
+int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
+                              const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                              int aggregateIndex, const enokiVector2& sc, float sr2,
+                              std::vector<Interaction<2>>& is, float& totalPrimitiveWeight,
+                              bool isNodeInsideSphere=false)
 {
     Vector2 queryPt(sc[0], sc[1]);
     int leafOffset = -node.child[0] - 1;
@@ -1607,11 +1607,11 @@ inline int intersectSpherePrimitives(QueryStub<WIDTH, 2> queryStub, const NodeTy
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline int intersectSpherePrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
-                                     const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
-                                     int aggregateIndex, const enokiVector3& sc, float sr2,
-                                     std::vector<Interaction<3>>& is, float& totalPrimitiveWeight,
-                                     bool isNodeInsideSphere=false)
+int intersectSpherePrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
+                              const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
+                              int aggregateIndex, const enokiVector3& sc, float sr2,
+                              std::vector<Interaction<3>>& is, float& totalPrimitiveWeight,
+                              bool isNodeInsideSphere=false)
 {
     Vector3 queryPt(sc[0], sc[1], sc[2]);
     int leafOffset = -node.child[0] - 1;
@@ -1664,15 +1664,15 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline int Mbvh<WIDTH, DIM,
-                PrimitiveType,
-                SilhouetteType,
-                NodeType,
-                LeafNodeType,
-                SilhouetteLeafNodeType>::intersectFromNode(const BoundingSphere<DIM>& s,
-                                                           std::vector<Interaction<DIM>>& is,
-                                                           int nodeStartIndex, int aggregateIndex,
-                                                           int& nodesVisited, bool recordOneHit) const
+int Mbvh<WIDTH, DIM,
+         PrimitiveType,
+         SilhouetteType,
+         NodeType,
+         LeafNodeType,
+         SilhouetteLeafNodeType>::intersectFromNode(const BoundingSphere<DIM>& s,
+                                                    std::vector<Interaction<DIM>>& is,
+                                                    int nodeStartIndex, int aggregateIndex,
+                                                    int& nodesVisited, bool recordOneHit) const
 {
     int hits = 0;
     float totalPrimitiveWeight = 0.0f;
@@ -1794,15 +1794,15 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline int Mbvh<WIDTH, DIM,
-                PrimitiveType,
-                SilhouetteType,
-                NodeType,
-                LeafNodeType,
-                SilhouetteLeafNodeType>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                           const Vector<DIM>& randNums, int nodeStartIndex,
-                                                           int aggregateIndex, int& nodesVisited,
-                                                           const std::function<float(float)>& branchTraversalWeight) const
+int Mbvh<WIDTH, DIM,
+         PrimitiveType,
+         SilhouetteType,
+         NodeType,
+         LeafNodeType,
+         SilhouetteLeafNodeType>::intersectFromNode(const BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                    const Vector<DIM>& randNums, int nodeStartIndex,
+                                                    int aggregateIndex, int& nodesVisited,
+                                                    const std::function<float(float)>& branchTraversalWeight) const
 {
     int hits = 0;
     FloatP<FCPW_MBVH_BRANCHING_FACTOR> d2Min, d2Max;
@@ -1966,10 +1966,10 @@ inline int Mbvh<WIDTH, DIM,
 }
 
 template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
-inline bool findClosestPointPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
-                                       const std::vector<LeafNodeType>& leafNodes,
-                                       int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
-                                       float& sr2, Interaction<DIM>& i)
+bool findClosestPointPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
+                                const std::vector<LeafNodeType>& leafNodes,
+                                int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
+                                float& sr2, Interaction<DIM>& i)
 {
     std::cerr << "findClosestPointPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -1978,10 +1978,10 @@ inline bool findClosestPointPrimitives(QueryStub<WIDTH, DIM> queryStub, const No
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline bool findClosestPointPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
-                                       const std::vector<LeafNodeType>& leafNodes,
-                                       int nodeIndex, int aggregateIndex, const enokiVector2& sc,
-                                       float& sr2, Interaction<2>& i)
+bool findClosestPointPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
+                                const std::vector<LeafNodeType>& leafNodes,
+                                int nodeIndex, int aggregateIndex, const enokiVector2& sc,
+                                float& sr2, Interaction<2>& i)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -2032,10 +2032,10 @@ inline bool findClosestPointPrimitives(QueryStub<WIDTH, 2> queryStub, const Node
 }
 
 template<size_t WIDTH, typename NodeType, typename LeafNodeType>
-inline bool findClosestPointPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
-                                       const std::vector<LeafNodeType>& leafNodes,
-                                       int nodeIndex, int aggregateIndex, const enokiVector3& sc,
-                                       float& sr2, Interaction<3>& i)
+bool findClosestPointPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
+                                const std::vector<LeafNodeType>& leafNodes,
+                                int nodeIndex, int aggregateIndex, const enokiVector3& sc,
+                                float& sr2, Interaction<3>& i)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -2094,14 +2094,14 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline bool Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                   int nodeStartIndex, int aggregateIndex,
-                                                                   int& nodesVisited, bool recordNormal) const
+bool Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::findClosestPointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                            int nodeStartIndex, int aggregateIndex,
+                                                            int& nodesVisited, bool recordNormal) const
 {
     bool notFound = true;
     TraversalStack subtree[FCPW_MBVH_MAX_DEPTH];
@@ -2197,11 +2197,11 @@ inline bool Mbvh<WIDTH, DIM,
 }
 
 template<size_t WIDTH, size_t DIM, typename SilhouetteLeafNodeType>
-inline bool findClosestSilhouettes(QueryStub<WIDTH, DIM> queryStub, const MsnchNode<DIM>& node,
-                                   const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
-                                   int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
-                                   float& sr2, Interaction<DIM>& i, bool flipNormalOrientation,
-                                   float squaredMinRadius, float precision)
+bool findClosestSilhouettes(QueryStub<WIDTH, DIM> queryStub, const MsnchNode<DIM>& node,
+                            const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
+                            int nodeIndex, int aggregateIndex, const enokiVector<DIM>& sc,
+                            float& sr2, Interaction<DIM>& i, bool flipNormalOrientation,
+                            float squaredMinRadius, float precision)
 {
     std::cerr << "findClosestSilhouettes(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -2210,11 +2210,11 @@ inline bool findClosestSilhouettes(QueryStub<WIDTH, DIM> queryStub, const MsnchN
 }
 
 template<size_t WIDTH, typename SilhouetteLeafNodeType>
-inline bool findClosestSilhouettes(QueryStub<WIDTH, 2> queryStub, const MsnchNode<2>& node,
-                                   const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
-                                   int nodeIndex, int aggregateIndex, const enokiVector2& sc,
-                                   float& sr2, Interaction<2>& i, bool flipNormalOrientation,
-                                   float squaredMinRadius, float precision)
+bool findClosestSilhouettes(QueryStub<WIDTH, 2> queryStub, const MsnchNode<2>& node,
+                            const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
+                            int nodeIndex, int aggregateIndex, const enokiVector2& sc,
+                            float& sr2, Interaction<2>& i, bool flipNormalOrientation,
+                            float squaredMinRadius, float precision)
 {
     if (squaredMinRadius >= sr2) return false;
 
@@ -2271,11 +2271,11 @@ inline bool findClosestSilhouettes(QueryStub<WIDTH, 2> queryStub, const MsnchNod
 }
 
 template<size_t WIDTH, typename SilhouetteLeafNodeType>
-inline bool findClosestSilhouettes(QueryStub<WIDTH, 3> queryStub, const MsnchNode<3>& node,
-                                   const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
-                                   int nodeIndex, int aggregateIndex, const enokiVector3& sc,
-                                   float& sr2, Interaction<3>& i, bool flipNormalOrientation,
-                                   float squaredMinRadius, float precision)
+bool findClosestSilhouettes(QueryStub<WIDTH, 3> queryStub, const MsnchNode<3>& node,
+                            const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
+                            int nodeIndex, int aggregateIndex, const enokiVector3& sc,
+                            float& sr2, Interaction<3>& i, bool flipNormalOrientation,
+                            float squaredMinRadius, float precision)
 {
     if (squaredMinRadius >= sr2) return false;
 
@@ -2341,18 +2341,18 @@ template<size_t WIDTH, size_t DIM,
          typename SilhouetteType,
          typename NodeType,
          typename SilhouetteLeafNodeType>
-inline void processSubtreeForClosestSilhouettePoint(QueryStub<WIDTH, DIM> queryStub,
-                                                    const std::vector<NodeType>& flatTree,
-                                                    const std::vector<PrimitiveType *>& primitives,
-                                                    const std::vector<SilhouetteType *>& silhouetteRefs,
-                                                    const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
-                                                    const enokiVector<DIM>& sc, BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                    int nodeStartIndex, int aggregateIndex, int objectIndex,
-                                                    bool primitiveTypeIsAggregate, bool silhouetteTypeSupportsVectorizedQueries,
-                                                    bool flipNormalOrientation, float squaredMinRadius, float precision,
-                                                    bool recordNormal, TraversalStack *subtree,
-                                                    FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min,
-                                                    bool& notFound, int& nodesVisited)
+void processSubtreeForClosestSilhouettePoint(QueryStub<WIDTH, DIM> queryStub,
+                                             const std::vector<NodeType>& flatTree,
+                                             const std::vector<PrimitiveType *>& primitives,
+                                             const std::vector<SilhouetteType *>& silhouetteRefs,
+                                             const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
+                                             const enokiVector<DIM>& sc, BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                             int nodeStartIndex, int aggregateIndex, int objectIndex,
+                                             bool primitiveTypeIsAggregate, bool silhouetteTypeSupportsVectorizedQueries,
+                                             bool flipNormalOrientation, float squaredMinRadius, float precision,
+                                             bool recordNormal, TraversalStack *subtree,
+                                             FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min,
+                                             bool& notFound, int& nodesVisited)
 {
     std::cerr << "Mbvh::processSubtreeForClosestSilhouettePoint() not implemented" << std::endl;
     exit(EXIT_FAILURE);
@@ -2362,18 +2362,18 @@ template<size_t WIDTH, size_t DIM,
          typename PrimitiveType,
          typename SilhouetteType,
          typename SilhouetteLeafNodeType>
-inline void processSubtreeForClosestSilhouettePoint(QueryStub<WIDTH, DIM> queryStub,
-                                                    const std::vector<MsnchNode<DIM>>& flatTree,
-                                                    const std::vector<PrimitiveType *>& primitives,
-                                                    const std::vector<SilhouetteType *>& silhouetteRefs,
-                                                    const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
-                                                    const enokiVector<DIM>& sc, BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                    int nodeStartIndex, int aggregateIndex, int objectIndex,
-                                                    bool primitiveTypeIsAggregate, bool silhouetteTypeSupportsVectorizedQueries,
-                                                    bool flipNormalOrientation, float squaredMinRadius, float precision,
-                                                    bool recordNormal, TraversalStack *subtree,
-                                                    FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min,
-                                                    bool& notFound, int& nodesVisited)
+void processSubtreeForClosestSilhouettePoint(QueryStub<WIDTH, DIM> queryStub,
+                                             const std::vector<MsnchNode<DIM>>& flatTree,
+                                             const std::vector<PrimitiveType *>& primitives,
+                                             const std::vector<SilhouetteType *>& silhouetteRefs,
+                                             const std::vector<SilhouetteLeafNodeType>& silhouetteLeafNodes,
+                                             const enokiVector<DIM>& sc, BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                             int nodeStartIndex, int aggregateIndex, int objectIndex,
+                                             bool primitiveTypeIsAggregate, bool silhouetteTypeSupportsVectorizedQueries,
+                                             bool flipNormalOrientation, float squaredMinRadius, float precision,
+                                             bool recordNormal, TraversalStack *subtree,
+                                             FloatP<FCPW_MBVH_BRANCHING_FACTOR>& d2Min,
+                                             bool& notFound, int& nodesVisited)
 {
     FloatP<FCPW_MBVH_BRANCHING_FACTOR> stubs[2];
     int stackPtr = 0;
@@ -2485,16 +2485,16 @@ template<size_t WIDTH, size_t DIM,
          typename NodeType,
          typename LeafNodeType,
          typename SilhouetteLeafNodeType>
-inline bool Mbvh<WIDTH, DIM,
-                 PrimitiveType,
-                 SilhouetteType,
-                 NodeType,
-                 LeafNodeType,
-                 SilhouetteLeafNodeType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
-                                                                             int nodeStartIndex, int aggregateIndex,
-                                                                             int& nodesVisited, bool flipNormalOrientation,
-                                                                             float squaredMinRadius, float precision,
-                                                                             bool recordNormal) const
+bool Mbvh<WIDTH, DIM,
+          PrimitiveType,
+          SilhouetteType,
+          NodeType,
+          LeafNodeType,
+          SilhouetteLeafNodeType>::findClosestSilhouettePointFromNode(BoundingSphere<DIM>& s, Interaction<DIM>& i,
+                                                                      int nodeStartIndex, int aggregateIndex,
+                                                                      int& nodesVisited, bool flipNormalOrientation,
+                                                                      float squaredMinRadius, float precision,
+                                                                      bool recordNormal) const
 {
     if (squaredMinRadius >= s.r2) return false;
 

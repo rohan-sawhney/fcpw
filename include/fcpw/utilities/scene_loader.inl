@@ -150,8 +150,8 @@ inline void loadTriangleSoupFromOBJFile(const std::string& filename, PolygonSoup
 }
 
 template<size_t DIM>
-inline void loadInstanceTransforms(const std::string& filename,
-                                   std::vector<std::vector<Transform<DIM>>>& instanceTransforms)
+void loadInstanceTransforms(const std::string& filename,
+                            std::vector<std::vector<Transform<DIM>>>& instanceTransforms)
 {
     // load file
     std::ifstream in(filename);
@@ -216,8 +216,8 @@ inline void loadCsgTree(const std::string& filename, std::unordered_map<int, Csg
 }
 
 template<size_t DIM, typename PrimitiveType>
-inline void loadGeometry(const std::string& filename, const LoadingOption& loadingOption,
-                         PolygonSoup<DIM>& soup, std::unique_ptr<std::vector<PrimitiveType>>& primitiveObject)
+void loadGeometry(const std::string& filename, const LoadingOption& loadingOption,
+                  PolygonSoup<DIM>& soup, std::unique_ptr<std::vector<PrimitiveType>>& primitiveObject)
 {
     std::cerr << "loadGeometry<DIM, PrimitiveType>(): Not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -294,7 +294,7 @@ inline void loadGeometry<3, Triangle>(const std::string& filename, const Loading
 }
 
 template<size_t DIM>
-inline void SceneLoader<DIM>::loadFiles(Scene<DIM>& scene, bool computeNormals)
+void SceneLoader<DIM>::loadFiles(Scene<DIM>& scene, bool computeNormals)
 {
     // collect the various object types about to be loaded
     int nFiles = (int)files.size();

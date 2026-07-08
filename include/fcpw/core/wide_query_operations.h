@@ -6,9 +6,9 @@ namespace fcpw {
 
 // performs wide version of ray box intersection test
 template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
-                                     const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD, float rtMax,
-                                     FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
+MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+                              const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD, float rtMax,
+                              FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
     // vectorized slab test
     VectorP<WIDTH, DIM> t0 = (bMin - ro)*rinvD;
@@ -23,12 +23,12 @@ inline MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const Vect
 
 // performs wide version of robust ray box intersection test
 template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
-                                           const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD,
-                                           const enokiVector<DIM>& roNear, const enokiVector<DIM>& roFar,
-                                           const enokiVector<DIM>& rinvDNear, const enokiVector<DIM>& rinvDFar,
-                                           float rtMax, const RobustIntersectionData<DIM>& rid,
-                                           FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
+MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+                                    const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD,
+                                    const enokiVector<DIM>& roNear, const enokiVector<DIM>& roFar,
+                                    const enokiVector<DIM>& rinvDNear, const enokiVector<DIM>& rinvDFar,
+                                    float rtMax, const RobustIntersectionData<DIM>& rid,
+                                    FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
     if constexpr (DIM == 3) {
         // robust ray box intersection;
@@ -57,10 +57,10 @@ inline MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, cons
 
 // performs wide version of ray line segment intersection test
 template<size_t WIDTH>
-inline MaskP<WIDTH> intersectWideLineSegment(const Vector2P<WIDTH>& pa, const Vector2P<WIDTH>& pb,
-                                             const enokiVector2& ro, const enokiVector2& rd, float rtMax,
-                                             FloatP<WIDTH>& d, Vector2P<WIDTH>& pt, Vector2P<WIDTH>& n,
-                                             FloatP<WIDTH>& t, bool checkForOcclusion)
+MaskP<WIDTH> intersectWideLineSegment(const Vector2P<WIDTH>& pa, const Vector2P<WIDTH>& pb,
+                                      const enokiVector2& ro, const enokiVector2& rd, float rtMax,
+                                      FloatP<WIDTH>& d, Vector2P<WIDTH>& pt, Vector2P<WIDTH>& n,
+                                      FloatP<WIDTH>& t, bool checkForOcclusion)
 {
     Vector2P<WIDTH> u = pa - ro;
     Vector2P<WIDTH> v = pb - pa;
@@ -91,9 +91,9 @@ inline MaskP<WIDTH> intersectWideLineSegment(const Vector2P<WIDTH>& pa, const Ve
 
 // performs wide version of ray triangle intersection test
 template<size_t WIDTH>
-inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-                                          const enokiVector3& ro, const enokiVector3& rd, float rtMax, FloatP<WIDTH>& d,
-                                          Vector3P<WIDTH>& pt, Vector3P<WIDTH>& n, Vector2P<WIDTH>& t, bool checkForOcclusion)
+MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+                                   const enokiVector3& ro, const enokiVector3& rd, float rtMax, FloatP<WIDTH>& d,
+                                   Vector3P<WIDTH>& pt, Vector3P<WIDTH>& n, Vector2P<WIDTH>& t, bool checkForOcclusion)
 {
     // vectorized Möller–Trumbore intersection algorithm
     Vector3P<WIDTH> v1 = pb - pa;
@@ -125,9 +125,9 @@ inline MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vecto
 
 // performs wide version of sphere box overlap test
 template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
-                                   const enokiVector<DIM>& sc, float sr2,
-                                   FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
+MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+                            const enokiVector<DIM>& sc, float sr2,
+                            FloatP<WIDTH>& d2Min, FloatP<WIDTH>& d2Max)
 {
     VectorP<WIDTH, DIM> u = bMin - sc;
     VectorP<WIDTH, DIM> v = sc - bMax;
@@ -139,8 +139,8 @@ inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const Vector
 
 // performs wide version of sphere box overlap test
 template<size_t WIDTH, size_t DIM>
-inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
-                                   const enokiVector<DIM>& sc, float sr2, FloatP<WIDTH>& d2Min)
+MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+                            const enokiVector<DIM>& sc, float sr2, FloatP<WIDTH>& d2Min)
 {
     VectorP<WIDTH, DIM> u = bMin - sc;
     VectorP<WIDTH, DIM> v = sc - bMax;
@@ -151,8 +151,8 @@ inline MaskP<WIDTH> overlapWideBox(const VectorP<WIDTH, DIM>& bMin, const Vector
 
 // finds closest point on wide line segment to point
 template<size_t WIDTH, size_t DIM>
-inline FloatP<WIDTH> findClosestPointWideLineSegment(const VectorP<WIDTH, DIM>& pa, const VectorP<WIDTH, DIM>& pb,
-                                                     const enokiVector<DIM>& x, VectorP<WIDTH, DIM>& pt, FloatP<WIDTH>& t)
+FloatP<WIDTH> findClosestPointWideLineSegment(const VectorP<WIDTH, DIM>& pa, const VectorP<WIDTH, DIM>& pb,
+                                              const enokiVector<DIM>& x, VectorP<WIDTH, DIM>& pt, FloatP<WIDTH>& t)
 {
     VectorP<WIDTH, DIM> u = pb - pa;
     VectorP<WIDTH, DIM> v = x - pa;
@@ -174,8 +174,8 @@ inline FloatP<WIDTH> findClosestPointWideLineSegment(const VectorP<WIDTH, DIM>& 
 
 // finds closest point on wide triangle to point
 template<size_t WIDTH>
-inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-                                                  const enokiVector3& x, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
+FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+                                           const enokiVector3& x, Vector3P<WIDTH>& pt, Vector2P<WIDTH>& t)
 {
     // check if x in vertex region outside pa
     Vector3P<WIDTH> ab = pb - pa;
@@ -268,7 +268,7 @@ inline FloatP<WIDTH> findClosestPointWideTriangle(const Vector3P<WIDTH>& pa, con
 
 // computes orthonormal basis for direction in 3d
 template<size_t WIDTH>
-inline void computeWideOrthonormalBasis(const Vector3P<WIDTH>& n, Vector3P<WIDTH>& b1, Vector3P<WIDTH>& b2)
+void computeWideOrthonormalBasis(const Vector3P<WIDTH>& n, Vector3P<WIDTH>& b1, Vector3P<WIDTH>& b2)
 {
     // source: https://graphics.pixar.com/library/OrthonormalB/paper.pdf
     FloatP<WIDTH> sign = enoki::copysign(1.0f, n[2]);
@@ -285,7 +285,7 @@ inline void computeWideOrthonormalBasis(const Vector3P<WIDTH>& n, Vector3P<WIDTH
 
 // projects vector onto plane defined by n
 template<size_t WIDTH, size_t DIM>
-inline FloatP<WIDTH> projectToWidePlane(const VectorP<WIDTH, DIM>& n, const VectorP<WIDTH, DIM>& e)
+FloatP<WIDTH> projectToWidePlane(const VectorP<WIDTH, DIM>& n, const VectorP<WIDTH, DIM>& e)
 {
     std::cerr << "projectToWidePlane(): WIDTH: " << WIDTH << " DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -295,7 +295,7 @@ inline FloatP<WIDTH> projectToWidePlane(const VectorP<WIDTH, DIM>& n, const Vect
 
 // projects vector onto plane defined by n in 2d
 template<size_t WIDTH>
-inline FloatP<WIDTH> projectToWidePlane(const Vector2P<WIDTH>& n, const Vector2P<WIDTH>& e)
+FloatP<WIDTH> projectToWidePlane(const Vector2P<WIDTH>& n, const Vector2P<WIDTH>& e)
 {
     // compute orthonormal basis
     Vector2P<WIDTH> b;
@@ -309,7 +309,7 @@ inline FloatP<WIDTH> projectToWidePlane(const Vector2P<WIDTH>& n, const Vector2P
 
 // projects vector onto plane defined by n in 3d
 template<size_t WIDTH>
-inline FloatP<WIDTH> projectToWidePlane(const Vector3P<WIDTH>& n, const Vector3P<WIDTH>& e)
+FloatP<WIDTH> projectToWidePlane(const Vector3P<WIDTH>& n, const Vector3P<WIDTH>& e)
 {
     // compute orthonormal basis
     Vector3P<WIDTH> b1, b2;
@@ -323,11 +323,11 @@ inline FloatP<WIDTH> projectToWidePlane(const Vector3P<WIDTH>& n, const Vector3P
 
 // performs wide version of cone cone overlap test
 template<size_t WIDTH, size_t DIM>
-inline void overlapWideCone(const VectorP<WIDTH, DIM>& normalConeAxis, const FloatP<WIDTH>& normalConeHalfAngle,
-                            const FloatP<WIDTH>& normalConeRadius, const enokiVector<DIM>& co,
-                            const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
-                            const FloatP<WIDTH>& distToBox, FloatP<WIDTH>& minAngleRange,
-                            FloatP<WIDTH>& maxAngleRange, MaskP<WIDTH>& overlap)
+void overlapWideCone(const VectorP<WIDTH, DIM>& normalConeAxis, const FloatP<WIDTH>& normalConeHalfAngle,
+                     const FloatP<WIDTH>& normalConeRadius, const enokiVector<DIM>& co,
+                     const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
+                     const FloatP<WIDTH>& distToBox, FloatP<WIDTH>& minAngleRange,
+                     FloatP<WIDTH>& maxAngleRange, MaskP<WIDTH>& overlap)
 {
     minAngleRange = 0.0f;
     maxAngleRange = M_PI_2;
@@ -383,9 +383,9 @@ inline void overlapWideCone(const VectorP<WIDTH, DIM>& normalConeAxis, const Flo
 
 // checks whether vertex is a silhouette
 template<size_t WIDTH>
-inline MaskP<WIDTH> isWideSilhouetteVertex(const Vector2P<WIDTH>& n0, const Vector2P<WIDTH>& n1,
-                                           const Vector2P<WIDTH>& viewDir, const FloatP<WIDTH>& d,
-                                           bool flipNormalOrientation, float precision)
+MaskP<WIDTH> isWideSilhouetteVertex(const Vector2P<WIDTH>& n0, const Vector2P<WIDTH>& n1,
+                                    const Vector2P<WIDTH>& viewDir, const FloatP<WIDTH>& d,
+                                    bool flipNormalOrientation, float precision)
 {
     float sign = flipNormalOrientation ? 1.0f : -1.0f;
 
@@ -418,10 +418,10 @@ inline MaskP<WIDTH> isWideSilhouetteVertex(const Vector2P<WIDTH>& n0, const Vect
 
 // checks whether edge is a silhouette
 template<size_t WIDTH>
-inline MaskP<WIDTH> isWideSilhouetteEdge(const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-                                         const Vector3P<WIDTH>& n0, const Vector3P<WIDTH>& n1,
-                                         const Vector3P<WIDTH>& viewDir, const FloatP<WIDTH>& d,
-                                         bool flipNormalOrientation, float precision)
+MaskP<WIDTH> isWideSilhouetteEdge(const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
+                                  const Vector3P<WIDTH>& n0, const Vector3P<WIDTH>& n1,
+                                  const Vector3P<WIDTH>& viewDir, const FloatP<WIDTH>& d,
+                                  bool flipNormalOrientation, float precision)
 {
     float sign = flipNormalOrientation ? 1.0f : -1.0f;
 
