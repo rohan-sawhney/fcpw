@@ -65,7 +65,8 @@ public:
     /////////////////////////////////////////////////////////////////////////////////////////////
     // API to specify instance transforms and csg tree
 
-    // sets the instance transforms for an object
+    // sets the instance transforms for an object; transforms must use uniform scaling
+    // (rotation, reflection, and translation are supported)
     void setObjectInstanceTransforms(const std::vector<Transform<DIM>>& transforms, int objectIndex);
 
     // sets the data for a node in the csg tree; NOTE: the root node of the csg tree must have index 0

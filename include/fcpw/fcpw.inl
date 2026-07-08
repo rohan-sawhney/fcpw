@@ -1129,7 +1129,8 @@ template<size_t DIM>
 void Scene<DIM>::updateObjectVertex(const Vector<DIM>& position, int vertexIndex, int objectIndex)
 {
     PolygonSoup<DIM>& soup = sceneData->soups[objectIndex];
-    soup.positions[soup.indexMap[vertexIndex]] = position;
+    int positionIndex = soup.indexMap.empty() ? vertexIndex : soup.indexMap[vertexIndex];
+    soup.positions[positionIndex] = position;
 }
 
 template<size_t DIM>

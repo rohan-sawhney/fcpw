@@ -437,7 +437,7 @@ nLeafs(0),
 leafSize(leafSize_),
 nBuckets(nBuckets_),
 maxDepth(0),
-depthGuess(std::log2(primitives_.size())),
+depthGuess(0),
 buckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 rightBuckets(nBuckets, std::make_pair(BoundingBox<DIM>(), 0)),
 primitives(primitives_),
@@ -445,6 +445,14 @@ silhouettes(silhouettes_),
 packLeaves(packLeaves_),
 primitiveTypeIsAggregate(std::is_base_of<Aggregate<DIM>, PrimitiveType>::value)
 {
+    if (primitives.empty()) {
+        std::cerr << "Cannot construct a BVH without primitives" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+
+    // estimate the depth of the bvh
+    depthGuess = std::log2(primitives.size());
+
     // build bvh
     build();
 
