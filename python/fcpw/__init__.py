@@ -11,6 +11,17 @@ try:
     else:
         __all__ = []
 
+    # directory containing the packaged slang shaders (present only in GPU-enabled
+    # installations), laid out with the same relative structure as a source checkout;
+    # pass this as the fcpw_directory_path argument of GPUScene when using an
+    # installed package. When running from a source checkout, pass the repository
+    # root instead so that shader edits take effect without reinstalling.
+    import os
+    _slang_directory_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "slang")
+    if os.path.isdir(_slang_directory_path):
+        slang_directory_path = _slang_directory_path
+        __all__.append("slang_directory_path")
+
 except ImportError as e:
     # provide helpful error message if the extension module fails to load
     import warnings

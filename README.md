@@ -123,6 +123,8 @@ interactions = fcpw.GPUInteractionList()
 gpu_scene.find_closest_points(query_points, squared_max_radii, interactions)
 ```
 
+GPU-enabled Python installations package the Slang shaders compiled at runtime by `GPUScene`: pass `fcpw.slang_directory_path` as its `fcpw_directory_path` argument when using an installed package. When running from a source checkout (as the demos do), pass the repository root instead so that shader edits take effect without reinstalling.
+
 Refer to [demo.cpp](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.cpp) and [demo.py](https://github.com/rohan-sawhney/fcpw/blob/master/demos/demo.py) for complete demos. GPU support is available on Linux and Windows ([Slang](https://shader-slang.com/slang/user-guide/) currently only has unofficial support for macOS).
 
 For those developing directly on the GPU, the acceleration structure can also be accessed through [bvh.slang](https://github.com/rohan-sawhney/fcpw/blob/master/include/fcpw/gpu/bvh.slang). Slang offers CUDA, HLSL, Vulkan and Metal (experimental) as compilation targets. Refer to its [user guide](https://shader-slang.com/slang/user-guide/get-started.html) for further details on compiling to these targets.

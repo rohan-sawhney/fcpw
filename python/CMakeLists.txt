@@ -20,6 +20,16 @@ install(TARGETS _fcpw
 
 # install GPU support files if enabled
 if(FCPW_ENABLE_GPU_SUPPORT)
+    # Package the slang shaders, which GPUScene compiles at runtime. The
+    # source-tree relative layout is preserved under fcpw/slang so that
+    # GPUScene resolves modules from an installed package without any changes;
+    # pass fcpw.slang_directory_path as the fcpw_directory_path argument of
+    # GPUScene when using an installed package rather than a source checkout.
+    install(DIRECTORY ${CMAKE_SOURCE_DIR}/include/fcpw/gpu
+        DESTINATION fcpw/slang/include/fcpw
+        FILES_MATCHING PATTERN "*.slang"
+    )
+
     # slang-rhi is static by default, but it depends on fetched Slang
     # compiler/runtime libraries and optional backend DLLs. Bundle those
     # next to _fcpw so GPU bindings do not depend on build-tree paths.
