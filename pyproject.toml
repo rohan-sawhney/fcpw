@@ -7,7 +7,8 @@ name = "fcpw"
 version = "1.2.1"
 description = "Python bindings for FCPW"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
+dependencies = ["numpy"]
 authors = [
     { name = "Rohan Sawhney" },
 ]
