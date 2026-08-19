@@ -46,11 +46,12 @@ NB_MODULE(_fcpw, m) {
         .def_rw("operation", &fcpw::CsgTreeNode::operation);
 
     nb::class_<fcpw::Ray<2>>(m, "Ray2D")
-        .def(nb::init<const fcpw::Vector<2>&, const fcpw::Vector<2>&, float>(),
-            "o"_a, "d"_a, "t_max"_a=fcpw::maxFloat)
+        .def(nb::init<const fcpw::Vector<2>&, const fcpw::Vector<2>&, float, float>(),
+            "o"_a, "d"_a, "t_max"_a=fcpw::maxFloat, "t_min"_a=0.0f)
         .def_rw("o", &fcpw::Ray<2>::o)
         .def_rw("d", &fcpw::Ray<2>::d)
         .def_rw("inv_d", &fcpw::Ray<2>::invD)
+        .def_rw("t_min", &fcpw::Ray<2>::tMin)
         .def_rw("t_max", &fcpw::Ray<2>::tMax);
 
     nb::class_<fcpw::BoundingSphere<2>>(m, "BoundingSphere2D")
@@ -74,11 +75,12 @@ NB_MODULE(_fcpw, m) {
         .def_rw("distance_info", &fcpw::Interaction<2>::distanceInfo);
 
     nb::class_<fcpw::Ray<3>>(m, "Ray3D")
-        .def(nb::init<const fcpw::Vector<3>&, const fcpw::Vector<3>&, float>(),
-            "o"_a, "d"_a, "t_max"_a=fcpw::maxFloat)
+        .def(nb::init<const fcpw::Vector<3>&, const fcpw::Vector<3>&, float, float>(),
+            "o"_a, "d"_a, "t_max"_a=fcpw::maxFloat, "t_min"_a=0.0f)
         .def_rw("o", &fcpw::Ray<3>::o)
         .def_rw("d", &fcpw::Ray<3>::d)
         .def_rw("inv_d", &fcpw::Ray<3>::invD)
+        .def_rw("t_min", &fcpw::Ray<3>::tMin)
         .def_rw("t_max", &fcpw::Ray<3>::tMax);
 
     nb::class_<fcpw::BoundingSphere<3>>(m, "BoundingSphere3D")

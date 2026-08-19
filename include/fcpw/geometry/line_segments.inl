@@ -149,7 +149,7 @@ inline bool LineSegment::intersect(const Ray<2>& r, Interaction<2>& i, bool chec
     float dv = r.d[0]*v[1] - r.d[1]*v[0];
     if (std::fabs(dv) <= epsilon) return false;
 
-    // solve r.o + t*r.d = pa + s*(pb - pa) for t >= 0 && 0 <= s <= 1
+    // solve r.o + t*r.d = pa + s*(pb - pa) for t >= r.tMin && 0 <= s <= 1
     // s = (u x r.d)/(r.d x v)
     float ud = u[0]*r.d[1] - u[1]*r.d[0];
     float s = ud/dv;
@@ -159,7 +159,7 @@ inline bool LineSegment::intersect(const Ray<2>& r, Interaction<2>& i, bool chec
         float uv = u[0]*v[1] - u[1]*v[0];
         float t = uv/dv;
 
-        if (t >= 0.0f && t <= r.tMax) {
+        if (t >= r.tMin && t <= r.tMax) {
             if (checkForOcclusion) return true;
             i.d = t;
             i.p = pa + s*v;

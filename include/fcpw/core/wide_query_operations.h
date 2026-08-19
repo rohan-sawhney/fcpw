@@ -7,7 +7,8 @@ namespace fcpw {
 // performs wide version of ray box intersection test
 template<size_t WIDTH, size_t DIM>
 MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WIDTH, DIM>& bMax,
-                              const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD, float rtMax,
+                              const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD,
+                              float rtMin, float rtMax,
                               FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
     // vectorized slab test
@@ -16,7 +17,7 @@ MaskP<WIDTH> intersectWideBox(const VectorP<WIDTH, DIM>& bMin, const VectorP<WID
     VectorP<WIDTH, DIM> tNear = enoki::min(t0, t1);
     VectorP<WIDTH, DIM> tFar = enoki::max(t0, t1);
 
-    tMin = enoki::max(0.0f, enoki::hmax(tNear));
+    tMin = enoki::max(rtMin, enoki::hmax(tNear));
     tMax = enoki::min(rtMax, enoki::hmin(tFar));
     return tMin <= tMax;
 }
@@ -27,7 +28,7 @@ MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, const Vecto
                                     const enokiVector<DIM>& ro, const enokiVector<DIM>& rinvD,
                                     const enokiVector<DIM>& roNear, const enokiVector<DIM>& roFar,
                                     const enokiVector<DIM>& rinvDNear, const enokiVector<DIM>& rinvDFar,
-                                    float rtMax, const RobustIntersectionData<DIM>& rid,
+                                    float rtMin, float rtMax, const RobustIntersectionData<DIM>& rid,
                                     FloatP<WIDTH>& tMin, FloatP<WIDTH>& tMax)
 {
     if constexpr (DIM == 3) {
@@ -45,20 +46,21 @@ MaskP<WIDTH> intersectWideBoxRobust(const VectorP<WIDTH, DIM>& bMin, const Vecto
         VectorP<WIDTH, 3> tNear = (bMinPerm - roNear)*rinvDNear;
         VectorP<WIDTH, 3> tFar = (bMaxPerm - roFar)*rinvDFar;
 
-        tMin = enoki::max(0.0f, enoki::hmax(tNear));
+        tMin = enoki::max(rtMin, enoki::hmax(tNear));
         tMax = enoki::min(rtMax, enoki::hmin(tFar));
         return tMin <= tMax;
 
     } else {
         // fallback to regular intersection
-        return intersectWideBox(bMin, bMax, ro, rinvD, rtMax, tMin, tMax);
+        return intersectWideBox(bMin, bMax, ro, rinvD, rtMin, rtMax, tMin, tMax);
     }
 }
 
 // performs wide version of ray line segment intersection test
 template<size_t WIDTH>
 MaskP<WIDTH> intersectWideLineSegment(const Vector2P<WIDTH>& pa, const Vector2P<WIDTH>& pb,
-                                      const enokiVector2& ro, const enokiVector2& rd, float rtMax,
+                                      const enokiVector2& ro, const enokiVector2& rd,
+                                      float rtMin, float rtMax,
                                       FloatP<WIDTH>& d, Vector2P<WIDTH>& pt, Vector2P<WIDTH>& n,
                                       FloatP<WIDTH>& t, bool checkForOcclusion)
 {
@@ -79,7 +81,7 @@ MaskP<WIDTH> intersectWideLineSegment(const Vector2P<WIDTH>& pa, const Vector2P<
     // s = (u x v)/(r.d x v)
     FloatP<WIDTH> uv = u[0]*v[1] - u[1]*v[0];
     d = uv*invDv;
-    active &= d >= 0.0f && d <= rtMax;
+    active &= d >= rtMin && d <= rtMax;
     if (checkForOcclusion) return active;
     pt = pa + t*v;
     n[0] = v[1];
@@ -92,7 +94,8 @@ MaskP<WIDTH> intersectWideLineSegment(const Vector2P<WIDTH>& pa, const Vector2P<
 // performs wide version of ray triangle intersection test
 template<size_t WIDTH>
 MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WIDTH>& pb, const Vector3P<WIDTH>& pc,
-                                   const enokiVector3& ro, const enokiVector3& rd, float rtMax, FloatP<WIDTH>& d,
+                                   const enokiVector3& ro, const enokiVector3& rd,
+                                   float rtMin, float rtMax, FloatP<WIDTH>& d,
                                    Vector3P<WIDTH>& pt, Vector3P<WIDTH>& n, Vector2P<WIDTH>& t, bool checkForOcclusion)
 {
     // vectorized Möller–Trumbore intersection algorithm
@@ -113,7 +116,7 @@ MaskP<WIDTH> intersectWideTriangle(const Vector3P<WIDTH>& pa, const Vector3P<WID
     active &= w >= 0.0f && v + w <= 1.0f;
 
     d = enoki::dot(v2, q)*invDet;
-    active &= d >= 0.0f && d <= rtMax;
+    active &= d >= rtMin && d <= rtMax;
     if (checkForOcclusion) return active;
     pt = pa + v1*v + v2*w;
     n = enoki::normalize(enoki::cross(v1, v2));

@@ -20,6 +20,9 @@ add_executable(csg_tests csg_tests.cpp)
 target_link_libraries(csg_tests fcpw polyscope TBB::tbb)
 target_include_directories(csg_tests PRIVATE ${FCPW_TESTS_INCLUDES})
 
+add_executable(ray_tmin_tests ray_tmin_tests.cpp)
+target_link_libraries(ray_tmin_tests fcpw)
+
 if(FCPW_ENABLE_GPU_SUPPORT)
     add_executable(gpu_tests gpu_tests.cpp)
     target_link_libraries(gpu_tests fcpw polyscope TBB::tbb)

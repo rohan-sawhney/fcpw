@@ -244,7 +244,7 @@ inline bool Triangle::intersect(const Ray<3>& r, Interaction<3>& i, bool checkFo
     if (w < 0 || v + w > 1) return false;
 
     float t = v2.dot(q)*invDet;
-    if (t >= 0.0f && t <= r.tMax) {
+    if (t >= r.tMin && t <= r.tMax) {
         if (checkForOcclusion) return true;
         i.d = t;
         i.p = pa + v1*v + v2*w;
@@ -332,7 +332,7 @@ inline bool Triangle::intersectRobust(const Ray<3>& r, const RobustIntersectionD
     uint32_t detSignMask = signMask(det);
     float tp = xorf(t, detSignMask);
     float detp = xorf(det, detSignMask);
-    if (tp < 0.0f || tp > r.tMax*detp) return false;
+    if (tp < r.tMin*detp || tp > r.tMax*detp) return false;
 
     // normalize u, v, w, and t
     float invDet = 1.0f/det;

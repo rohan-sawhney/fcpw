@@ -811,7 +811,7 @@ template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
 bool intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
                             const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
                             int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
-                            float& rtMax, Interaction<DIM>& i, bool checkForOcclusion)
+                            float rtMin, float& rtMax, Interaction<DIM>& i, bool checkForOcclusion)
 {
     std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -823,7 +823,7 @@ template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 bool intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
                             const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
                             int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
-                            float& rtMax, Interaction<2>& i, bool checkForOcclusion)
+                            float rtMin, float& rtMax, Interaction<2>& i, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -841,7 +841,7 @@ bool intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
         const Vector2P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
         const Vector2P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
         const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-        MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMax, d,
+        MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMin, rtMax, d,
                                                             pt, n, t, checkForOcclusion);
 
         // determine closest index
@@ -881,7 +881,7 @@ template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 bool intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
                             const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
                             int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-                            float& rtMax, Interaction<3>& i, bool checkForOcclusion)
+                            float rtMin, float& rtMax, Interaction<3>& i, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -900,7 +900,7 @@ bool intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
         const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
         const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
         const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-        MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMax, d,
+        MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMin, rtMax, d,
                                                          pt, n, t, checkForOcclusion);
 
         // determine closest index
@@ -982,7 +982,7 @@ bool Mbvh<WIDTH, DIM,
             if (primitiveTypeSupportsVectorizedQueries) {
                 // perform vectorized intersection query
                 bool hit = intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
-                                                  ro, rd, r.tMax, i, checkForOcclusion);
+                                                  ro, rd, r.tMin, r.tMax, i, checkForOcclusion);
 
                 nodesVisited++;
                 if (hit) {
@@ -1031,7 +1031,8 @@ bool Mbvh<WIDTH, DIM,
         } else {
             // intersect ray with boxes
             MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
-                                                        node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
+                                                        node.boxMin, node.boxMax, ro, rinvD,
+                                                        r.tMin, r.tMax, tMin, tMax);
 
             // enqueue intersecting boxes in sorted order
             nodesVisited++;
@@ -1132,7 +1133,7 @@ bool Mbvh<WIDTH, DIM,
             // intersect ray with boxes
             MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBoxRobust<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
                                                         node.boxMin, node.boxMax, ro, rinvD, roNear, roFar,
-                                                        rinvDNear, rinvDFar, r.tMax, rid, tMin, tMax);
+                                                        rinvDNear, rinvDFar, r.tMin, r.tMax, rid, tMin, tMax);
 
             // enqueue intersecting boxes in sorted order
             nodesVisited++;
@@ -1152,7 +1153,7 @@ template<size_t WIDTH, size_t DIM, typename NodeType, typename LeafNodeType>
 int intersectRayPrimitives(QueryStub<WIDTH, DIM> queryStub, const NodeType& node,
                            const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
                            int aggregateIndex, const enokiVector<DIM>& ro, const enokiVector<DIM>& rd,
-                           float& rtMax, std::vector<Interaction<DIM>>& is, bool checkForOcclusion)
+                           float rtMin, float& rtMax, std::vector<Interaction<DIM>>& is, bool checkForOcclusion)
 {
     std::cerr << "intersectRayPrimitives(): WIDTH: " << WIDTH << ", DIM: " << DIM << " not supported" << std::endl;
     exit(EXIT_FAILURE);
@@ -1164,7 +1165,7 @@ template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 int intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
                            const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
                            int aggregateIndex, const enokiVector2& ro, const enokiVector2& rd,
-                           float& rtMax, std::vector<Interaction<2>>& is, bool checkForOcclusion)
+                           float rtMin, float& rtMax, std::vector<Interaction<2>>& is, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -1182,7 +1183,7 @@ int intersectRayPrimitives(QueryStub<WIDTH, 2> queryStub, const NodeType& node,
         const Vector2P<WIDTH>& pa = leafNodes[leafIndex].positions[0];
         const Vector2P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
         const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-        MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMax, d,
+        MaskP<WIDTH> mask = intersectWideLineSegment<WIDTH>(pa, pb, ro, rd, rtMin, rtMax, d,
                                                             pt, n, t, checkForOcclusion);
 
         // record interactions
@@ -1218,7 +1219,7 @@ template<size_t WIDTH, typename NodeType, typename LeafNodeType>
 int intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
                            const std::vector<LeafNodeType>& leafNodes, int nodeIndex,
                            int aggregateIndex, const enokiVector3& ro, const enokiVector3& rd,
-                           float& rtMax, std::vector<Interaction<3>>& is, bool checkForOcclusion)
+                           float rtMin, float& rtMax, std::vector<Interaction<3>>& is, bool checkForOcclusion)
 {
     int leafOffset = -node.child[0] - 1;
     int nLeafs = node.child[1];
@@ -1237,7 +1238,7 @@ int intersectRayPrimitives(QueryStub<WIDTH, 3> queryStub, const NodeType& node,
         const Vector3P<WIDTH>& pb = leafNodes[leafIndex].positions[1];
         const Vector3P<WIDTH>& pc = leafNodes[leafIndex].positions[2];
         const IntP<WIDTH>& primitiveIndex = leafNodes[leafIndex].primitiveIndex;
-        MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMax, d,
+        MaskP<WIDTH> mask = intersectWideTriangle<WIDTH>(pa, pb, pc, ro, rd, rtMin, rtMax, d,
                                                          pt, n, t, checkForOcclusion);
 
         // record interactions
@@ -1317,11 +1318,11 @@ int Mbvh<WIDTH, DIM,
                 // perform vectorized intersection query
                 if (recordAllHits) {
                     hits += intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
-                                                   ro, rd, r.tMax, is, checkForOcclusion);
+                                                   ro, rd, r.tMin, r.tMax, is, checkForOcclusion);
 
                 } else {
                     hits += intersectRayPrimitives(queryStub, node, leafNodes, nodeIndex, this->pIndex,
-                                                   ro, rd, r.tMax, is[0], checkForOcclusion);
+                                                   ro, rd, r.tMin, r.tMax, is[0], checkForOcclusion);
                 }
 
                 nodesVisited++;
@@ -1378,7 +1379,8 @@ int Mbvh<WIDTH, DIM,
         } else {
             // intersect ray with boxes
             MaskP<FCPW_MBVH_BRANCHING_FACTOR> mask = intersectWideBox<FCPW_MBVH_BRANCHING_FACTOR, DIM>(
-                                                        node.boxMin, node.boxMax, ro, rinvD, r.tMax, tMin, tMax);
+                                                        node.boxMin, node.boxMax, ro, rinvD,
+                                                        r.tMin, r.tMax, tMin, tMax);
 
             // enqueue intersecting boxes in sorted order
             nodesVisited++;

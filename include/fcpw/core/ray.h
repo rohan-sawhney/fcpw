@@ -7,8 +7,9 @@ namespace fcpw {
 template<size_t DIM>
 struct Ray {
     // constructor
-    Ray(const Vector<DIM>& o_, const Vector<DIM>& d_, float tMax_=maxFloat):
-        o(o_), d(d_), invD(d.cwiseInverse()), tMax(tMax_) {}
+    Ray(const Vector<DIM>& o_, const Vector<DIM>& d_, float tMax_=maxFloat,
+        float tMin_=0.0f):
+        o(o_), d(d_), invD(d.cwiseInverse()), tMin(tMin_), tMax(tMax_) {}
 
     // operator()
     Vector<DIM> operator()(float t) const {
@@ -20,13 +21,15 @@ struct Ray {
         Vector<DIM> to = t*o;
         Vector<DIM> td = t*(o + d*(tMax < maxFloat ? tMax : 1.0f)) - to;
         float tdNorm = td.norm();
+        float rayScale = tdNorm/(tMax < maxFloat ? tMax : 1.0f);
 
-        return Ray<DIM>(to, td/tdNorm, tMax < maxFloat ? tdNorm : maxFloat);
+        return Ray<DIM>(to, td/tdNorm, tMax < maxFloat ? tdNorm : maxFloat,
+                        tMin*rayScale);
     }
 
     // members
     Vector<DIM> o, d, invD;
-    float tMax;
+    float tMin, tMax;
 };
 
 // Robust ray data for conservative BVH traversal and triangle intersection;
